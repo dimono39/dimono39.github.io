@@ -1,0 +1,488 @@
+<h2>💾 Экспорт отчетов</h2>
+
+<div class="export-buttons" style="margin-bottom: 30px;">
+    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px;">
+        <button class="btn btn-success" onclick="exportModule.exportToExcel()">
+            📊 Excel отчет
+        </button>
+        <button class="btn btn-print" onclick="exportModule.exportToPDF()">
+            📄 PDF отчет
+        </button>
+        <button class="btn" onclick="exportModule.exportHTML()">
+            🌐 HTML отчет
+        </button>
+        <button class="btn" onclick="exportModule.exportToCSV()">
+            📋 CSV данные
+        </button>
+        <button class="btn" onclick="exportModule.exportJSON()">
+            💾 JSON (резервная копия)
+        </button>
+        <button class="btn" onclick="exportModule.exportForEJournal()">
+            📒 Для эл.дневника
+        </button>
+        <button class="btn" onclick="exportModule.printFullReport()">
+            🖨️ Печать на А4
+        </button>
+        <button class="btn" onclick="exportModule.printOptimizedReport()">
+            📄 Оптимизированная печать
+        </button>
+    </div>
+</div>
+
+<div class="chart-container">
+    <h3>📋 Предпросмотр отчета</h3>
+    <div id="reportPreview">
+        <!-- Предпросмотр отчета -->
+    </div>
+</div>
+
+<div class="chart-container" style="margin-top: 20px;">
+    <h3>⚙️ Настройки экспорта</h3>
+    
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px;">
+        <div>
+            <h4>Формат экспорта</h4>
+            <div class="form-group">
+                <label>Тип файла:</label>
+                <select id="exportFormat">
+                    <option value="excel">Excel (.xlsx)</option>
+                    <option value="pdf">PDF (.pdf)</option>
+                    <option value="html">HTML (.html)</option>
+                    <option value="csv">CSV (.csv)</option>
+                    <option value="json">JSON (.json)</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label>Кодировка:</label>
+                <select id="exportEncoding">
+                    <option value="utf-8">UTF-8</option>
+                    <option value="windows-1251">Windows-1251</option>
+                </select>
+            </div>
+        </div>
+        
+        <div>
+            <h4>Содержимое</h4>
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" id="includeResults" checked> Результаты учащихся
+                </label>
+            </div>
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" id="includeAnalytics" checked> Аналитику
+                </label>
+            </div>
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" id="includeErrors" checked> Ошибки
+                </label>
+            </div>
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" id="includeCharts"> Графики
+                </label>
+            </div>
+        </div>
+        
+        <div>
+            <h4>Дополнительно</h4>
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" id="includeMetadata" checked> Метаданные
+                </label>
+            </div>
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" id="includeComments"> Комментарии
+                </label>
+            </div>
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" id="protectFile"> Защита файла
+                </label>
+            </div>
+        </div>
+    </div>
+    
+    <button class="btn btn-success" onclick="exportWithSettings()" style="margin-top: 20px;">
+        🚀 Экспорт с настройками
+    </button>
+</div>
+
+<div class="chart-container" style="margin-top: 20px;">
+    <h3>📁 Управление резервными копиями</h3>
+    
+    <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+        <button class="btn" onclick="createBackupManually()">
+            💾 Создать резервную копию
+        </button>
+        <button class="btn" onclick="showBackupRestoreDialog()">
+            🔄 Восстановить из копии
+        </button>
+        <button class="btn" onclick="showBackupManagement()">
+            📋 Управление копиями
+        </button>
+    </div>
+    
+    <div id="backupInfo" style="background: #f8f9fa; padding: 15px; border-radius: 8px;">
+        <p><strong>Последняя резервная копия:</strong> <span id="lastBackupTime">Не создавалась</span></p>
+        <p><strong>Размер данных:</strong> <span id="dataSize">0 KB</span></p>
+        <p><strong>Количество копий:</strong> <span id="backupCount">0</span></p>
+    </div>
+</div>
+
+<div class="chart-container" style="margin-top: 20px;">
+    <h3>🔗 Интеграция с системами</h3>
+    
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+        <button class="btn" onclick="exportToMES()">
+            🏫 МЭШ (Московская электронная школа)
+        </button>
+        <button class="btn" onclick="exportToDnevnikRu()">
+            📒 Дневник.ру
+        </button>
+        <button class="btn" onclick="exportToElJur()">
+            ⚖️ ЭлЖур
+        </button>
+        <button class="btn" onclick="exportToGoogleClassroom()">
+            🎓 Google Classroom
+        </button>
+    </div>
+    
+    <div style="margin-top: 20px; padding: 15px; background: #e8f4fc; border-radius: 8px;">
+        <h4>📋 Форматы для интеграции</h4>
+        <ul style="margin: 10px 0 0 20px;">
+            <li><strong>CSV</strong> - универсальный формат для импорта в большинство систем</li>
+            <li><strong>JSON</strong> - для программной интеграции через API</li>
+            <li><strong>Excel</strong> - для ручного импорта в электронные журналы</li>
+            <li><strong>XML</strong> - для систем, поддерживающих этот формат</li>
+        </ul>
+    </div>
+</div>
+
+<script>
+// Инициализация при загрузке вкладки
+document.addEventListener('DOMContentLoaded', function() {
+    updateReportPreview();
+    updateBackupInfo();
+});
+
+// Функции для этой вкладки
+function updateBackupInfo() {
+    // Обновление информации о резервных копиях
+    const backups = Object.keys(localStorage)
+        .filter(key => key.startsWith('backup_'))
+        .sort()
+        .reverse();
+    
+    document.getElementById('backupCount').textContent = backups.length;
+    
+    if (backups.length > 0) {
+        try {
+            const lastBackupKey = backups[0];
+            const lastBackup = JSON.parse(localStorage.getItem(lastBackupKey));
+            document.getElementById('lastBackupTime').textContent = lastBackup.timestamp || 'Неизвестно';
+        } catch (error) {
+            document.getElementById('lastBackupTime').textContent = 'Ошибка чтения';
+        }
+    }
+    
+    // Расчет размера данных
+    const dataSize = JSON.stringify(localStorage).length;
+    document.getElementById('dataSize').textContent = formatFileSize(dataSize);
+}
+
+function formatFileSize(bytes) {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(2) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+}
+
+function createBackupManually() {
+    if (app.saveData()) {
+        app.createBackup();
+        updateBackupInfo();
+        showNotification('Резервная копия создана вручную', 'success');
+    }
+}
+
+function showBackupRestoreDialog() {
+    const backups = Object.keys(localStorage)
+        .filter(key => key.startsWith('backup_'))
+        .map(key => {
+            try {
+                const data = JSON.parse(localStorage.getItem(key));
+                return {
+                    key: key,
+                    timestamp: data.timestamp || 'Неизвестно',
+                    subject: data.data?.test?.subject || 'Без названия',
+                    className: data.data?.test?.class || 'Без класса'
+                };
+            } catch (error) {
+                return null;
+            }
+        })
+        .filter(b => b !== null)
+        .sort((a, b) => b.key.localeCompare(a.key));
+    
+    if (backups.length === 0) {
+        showNotification('Резервные копии не найдены', 'warning');
+        return;
+    }
+    
+    let html = '<h3>Выберите резервную копию для восстановления:</h3>';
+    html += '<div style="max-height: 300px; overflow-y: auto; margin: 15px 0;">';
+    
+    backups.forEach(backup => {
+        html += `
+            <div class="backup-item" onclick="selectBackup('${backup.key}')">
+                <strong>${backup.timestamp}</strong><br>
+                <small>${backup.subject} - ${backup.className}</small>
+            </div>
+        `;
+    });
+    
+    html += '</div>';
+    html += `
+        <div style="margin-top: 20px; display: flex; gap: 10px; justify-content: flex-end;">
+            <button class="btn" onclick="hideModal()">Отмена</button>
+            <button class="btn btn-success" id="restoreBackupBtn" disabled onclick="restoreSelectedBackup()">
+                🔄 Восстановить
+            </button>
+        </div>
+    `;
+    
+    showModal('Восстановление резервной копии', html);
+    
+    window.selectedBackupKey = null;
+}
+
+function selectBackup(key) {
+    window.selectedBackupKey = key;
+    document.getElementById('restoreBackupBtn').disabled = false;
+    
+    // Подсветка выбранного элемента
+    document.querySelectorAll('.backup-item').forEach(item => {
+        item.style.background = '';
+    });
+    
+    event.target.closest('.backup-item').style.background = '#e8f4fc';
+}
+
+function restoreSelectedBackup() {
+    if (!window.selectedBackupKey) return;
+    
+    if (confirm('Восстановить эту резервную копию? Текущие данные будут потеряны.')) {
+        try {
+            const backup = JSON.parse(localStorage.getItem(window.selectedBackupKey));
+            if (backup && backup.data) {
+                app.data = backup.data;
+                app.saveData();
+                app.renderAll();
+                hideModal();
+                showNotification('Резервная копия восстановлена', 'success');
+            }
+        } catch (error) {
+            showNotification('Ошибка восстановления: ' + error.message, 'error');
+        }
+    }
+}
+
+function showBackupManagement() {
+    const backups = Object.keys(localStorage)
+        .filter(key => key.startsWith('backup_'))
+        .map(key => {
+            try {
+                const data = JSON.parse(localStorage.getItem(key));
+                const size = JSON.stringify(data).length;
+                return {
+                    key: key,
+                    timestamp: data.timestamp || 'Неизвестно',
+                    subject: data.data?.test?.subject || 'Без названия',
+                    className: data.data?.test?.class || 'Без класса',
+                    size: size
+                };
+            } catch (error) {
+                return null;
+            }
+        })
+        .filter(b => b !== null)
+        .sort((a, b) => b.key.localeCompare(a.key));
+    
+    let html = '<h3>Управление резервными копиями</h3>';
+    
+    if (backups.length === 0) {
+        html += '<p>Резервные копии не найдены</p>';
+    } else {
+        html += `
+            <p>Всего копий: ${backups.length}</p>
+            <div style="max-height: 400px; overflow-y: auto; margin: 15px 0;">
+                <table style="width: 100%; font-size: 12px;">
+                    <thead>
+                        <tr>
+                            <th>Дата</th>
+                            <th>Данные</th>
+                            <th>Размер</th>
+                            <th>Действия</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+        `;
+        
+        backups.forEach(backup => {
+            html += `
+                <tr>
+                    <td>${backup.timestamp}</td>
+                    <td>${backup.subject} - ${backup.className}</td>
+                    <td>${formatFileSize(backup.size)}</td>
+                    <td>
+                        <button class="btn btn-sm" onclick="restoreBackup('${backup.key}')" title="Восстановить">
+                            🔄
+                        </button>
+                        <button class="btn btn-sm btn-danger" onclick="deleteBackup('${backup.key}')" title="Удалить">
+                            🗑️
+                        </button>
+                        <button class="btn btn-sm" onclick="exportBackup('${backup.key}')" title="Экспортировать">
+                            📥
+                        </button>
+                    </td>
+                </tr>
+            `;
+        });
+        
+        html += `
+                    </tbody>
+                </table>
+            </div>
+            
+            <div style="margin-top: 20px;">
+                <button class="btn btn-danger" onclick="deleteAllBackups()">
+                    🗑️ Удалить все копии
+                </button>
+                <button class="btn" onclick="exportAllBackups()" style="margin-left: 10px;">
+                    📥 Экспортировать все
+                </button>
+            </div>
+        `;
+    }
+    
+    html += `
+        <div style="margin-top: 20px;">
+            <button class="btn" onclick="hideModal()">Закрыть</button>
+        </div>
+    `;
+    
+    showModal('Управление резервными копиями', html);
+}
+
+function deleteBackup(key) {
+    if (confirm('Удалить эту резервную копию?')) {
+        localStorage.removeItem(key);
+        showBackupManagement();
+        updateBackupInfo();
+        showNotification('Резервная копия удалена', 'success');
+    }
+}
+
+function deleteAllBackups() {
+    const backups = Object.keys(localStorage).filter(key => key.startsWith('backup_'));
+    
+    if (backups.length === 0) {
+        showNotification('Нет резервных копий для удаления', 'info');
+        return;
+    }
+    
+    if (confirm(`Удалить все резервные копии? (${backups.length} штук)`)) {
+        backups.forEach(key => localStorage.removeItem(key));
+        hideModal();
+        updateBackupInfo();
+        showNotification(`Удалено ${backups.length} резервных копий`, 'success');
+    }
+}
+
+function exportBackup(key) {
+    try {
+        const backup = localStorage.getItem(key);
+        const data = JSON.parse(backup);
+        const jsonStr = JSON.stringify(data, null, 2);
+        const filename = `резервная_копия_${key.replace('backup_', '')}.json`;
+        
+        utils.downloadFile(jsonStr, filename, 'application/json');
+        showNotification('Резервная копия экспортирована', 'success');
+    } catch (error) {
+        showNotification('Ошибка экспорта: ' + error.message, 'error');
+    }
+}
+
+function exportAllBackups() {
+    const backups = {};
+    
+    Object.keys(localStorage)
+        .filter(key => key.startsWith('backup_'))
+        .forEach(key => {
+            try {
+                backups[key] = JSON.parse(localStorage.getItem(key));
+            } catch (error) {
+                console.error('Ошибка чтения копии', key, error);
+            }
+        });
+    
+    const jsonStr = JSON.stringify(backups, null, 2);
+    const filename = `все_резервные_копии_${new Date().toISOString().slice(0, 10)}.json`;
+    
+    utils.downloadFile(jsonStr, filename, 'application/json');
+    showNotification(`Экспортировано ${Object.keys(backups).length} резервных копий`, 'success');
+}
+
+function exportWithSettings() {
+    const format = document.getElementById('exportFormat').value;
+    const includeResults = document.getElementById('includeResults').checked;
+    const includeAnalytics = document.getElementById('includeAnalytics').checked;
+    const includeErrors = document.getElementById('includeErrors').checked;
+    const includeCharts = document.getElementById('includeCharts').checked;
+    const includeMetadata = document.getElementById('includeMetadata').checked;
+    const includeComments = document.getElementById('includeComments').checked;
+    
+    // Здесь должна быть логика экспорта с учетом настроек
+    // В упрощенном варианте просто экспортируем стандартным способом
+    
+    switch(format) {
+        case 'excel':
+            exportModule.exportToExcel();
+            break;
+        case 'pdf':
+            exportModule.exportToPDF();
+            break;
+        case 'html':
+            exportModule.exportHTML();
+            break;
+        case 'csv':
+            exportModule.exportToCSV();
+            break;
+        case 'json':
+            exportModule.exportJSON();
+            break;
+    }
+    
+    showNotification(`Экспорт в формате ${format} запущен`, 'info');
+}
+
+// Функции интеграции (заглушки)
+function exportToMES() {
+    showNotification('Экспорт в МЭШ (функция в разработке)', 'info');
+}
+
+function exportToDnevnikRu() {
+    showNotification('Экспорт в Дневник.ру (функция в разработке)', 'info');
+}
+
+function exportToElJur() {
+    showNotification('Экспорт в ЭлЖур (функция в разработке)', 'info');
+}
+
+function exportToGoogleClassroom() {
+    showNotification('Экспорт в Google Classroom (функция в разработке)', 'info');
+}
+</script>

@@ -1,0 +1,61 @@
+<div class="header">
+    <h1>📊 Система анализа образовательных результатов</h1>
+    <p>Профессиональный анализ результатов контрольных, ВПР, ОГЭ, ЕГЭ и функциональной грамотности</p>
+    
+    <div class="header-info" style="margin-top: 15px; font-size: 14px; opacity: 0.9;">
+        <div style="display: flex; justify-content: center; gap: 20px; flex-wrap: wrap;">
+            <span>
+                <strong>Текущая работа:</strong>
+                <span id="currentWorkInfo">Не настроено</span>
+            </span>
+            <span>
+                <strong>Учащихся:</strong>
+                <span id="currentStudentsCount">0</span>
+            </span>
+            <span>
+                <strong>Заданий:</strong>
+                <span id="currentTasksCount">0</span>
+            </span>
+            <span>
+                <strong>Последнее сохранение:</strong>
+                <span id="lastSaveTime">только что</span>
+            </span>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Функция обновления информации в шапке
+    function updateHeaderInfo() {
+        const workInfo = document.getElementById('currentWorkInfo');
+        const studentsCount = document.getElementById('currentStudentsCount');
+        const tasksCount = document.getElementById('currentTasksCount');
+        const lastSave = document.getElementById('lastSaveTime');
+        
+        if (workInfo) {
+            const subject = app.data.test.subject || 'Не указан';
+            const className = app.data.test.class || 'Не указан';
+            workInfo.textContent = `${subject}, ${className}`;
+        }
+        
+        if (studentsCount) {
+            studentsCount.textContent = app.data.students.length;
+        }
+        
+        if (tasksCount) {
+            tasksCount.textContent = app.data.tasks.length;
+        }
+        
+        if (lastSave) {
+            const now = new Date();
+            lastSave.textContent = now.toLocaleTimeString('ru-RU', { 
+                hour: '2-digit', 
+                minute: '2-digit' 
+            });
+        }
+    }
+    
+    // Обновляем информацию при загрузке и после изменений
+    document.addEventListener('DOMContentLoaded', updateHeaderInfo);
+    setInterval(updateHeaderInfo, 60000); // Обновлять каждую минуту
+</script>

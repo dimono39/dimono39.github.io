@@ -1,0 +1,258 @@
+<h2>👥 Список учащихся</h2>
+
+<div id="studentsContainer">
+    <!-- Динамически заполняется из render.js -->
+</div>
+
+<div class="mass-operations" style="margin-top: 30px; padding: 20px; background: #f8f9fa; border-radius: 8px;">
+    <h4>⚡ Массовые операции</h4>
+    
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px; margin: 15px 0;">
+        <div>
+            <label style="display: block; margin-bottom: 8px; font-weight: bold;">Импорт из текста:</label>
+            <textarea id="massImportText" rows="4" placeholder="Введите имена учащихся (каждое с новой строки):&#10;Иванов Алексей&#10;Петрова Мария&#10;Сидоров Дмитрий" style="width: 100%; padding: 10px; border: 2px solid #ddd; border-radius: 6px;"></textarea>
+            <button class="btn btn-success" onclick="importStudentsFromText()" style="margin-top: 10px; width: 100%;">
+                📝 Импортировать учащихся
+            </button>
+        </div>
+        
+        <div>
+            <label style="display: block; margin-bottom: 8px; font-weight: bold;">Генерация списка:</label>
+            <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                <input type="number" id="generateCount" min="1" max="50" value="10" style="flex: 1; padding: 10px; border: 2px solid #ddd; border-radius: 6px;">
+                <button class="btn" onclick="generateStudentsList()">
+                    🎯 Сгенерировать
+                </button>
+            </div>
+            <div class="form-group">
+                <label>Шаблон имен:</label>
+                <select id="nameTemplate" style="width: 100%;">
+                    <option value="Учащийся {n}">Учащийся {n}</option>
+                    <option value="Студент {n}">Студент {n}</option>
+                    <option value="Ученик {n}">Ученик {n}</option>
+                </select>
+            </div>
+        </div>
+        
+        <div>
+            <label style="display: block; margin-bottom: 8px; font-weight: bold;">Управление списком:</label>
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+                <button class="btn btn-warning" onclick="sortStudentsAlphabetically()">
+                    🔤 Сортировать по алфавиту
+                </button>
+                <button class="btn" onclick="shuffleStudents()">
+                    🔀 Перемешать случайно
+                </button>
+                <button class="btn btn-danger" onclick="removeAllStudents()">
+                    🗑️ Удалить всех учащихся
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="students-statistics" style="margin-top: 20px;">
+    <h4>📊 Статистика по учащимся</h4>
+    <div id="studentsStats" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin: 15px 0;">
+        <!-- Статистика будет заполнена динамически -->
+    </div>
+</div>
+
+<script>
+    // Импорт учащихся из текста
+    function importStudentsFromText() {
+        const textarea = document.getElementById('massImportText');
+        if (!textarea) return;
+        
+        const text = textarea.value.trim();
+        if (!text) {
+            app.showNotification('Введите имена учащихся!', 'error');
+            return;
+        }
+        
+        app.generateStudentsFromText(text);
+        textarea.value = '';
+    }
+    
+    // Генерация списка учащихся
+    function generateStudentsList() {
+        const countInput = document.getElementById('generateCount');
+        const templateSelect = document.getElementById('nameTemplate');
+        
+        if (!countInput || !templateSelect) return;
+        
+        const count = parseInt(countInput.value) || 10;
+        const template = templateSelect.value;
+        
+        if (count < 1 || count > 50) {
+            app.showNotification('Количество должно быть от 1 до 50', 'error');
+            return;
+        }
+        
+        const names = [];
+        for (let i = 1; i <= count; i++) {
+            names.push(template.replace('{n}', i));
+        }
+        
+        app.generateStudentsFromText(names.join('\n'));
+    }
+    
+    // Сортировка по алфавиту
+    function sortStudentsAlphabetically() {
+        if (app.data.students.length === 0) {
+            app.showNotification('Нет учащихся для сортировки', 'info');
+            return;
+        }
+        
+        // Создаем массив объектов для сортировки
+        const studentsWithResults = app.data.students.map((name, index) => ({
+            name,
+            results: app.data.results[index],
+            errors: app.data.errors.filter(e => e.studentIndex === index)
+        }));
+        
+        // Сортируем по имени
+        studentsWithResults.sort((a, b) => a.name.localeCompare(b.name, 'ru'));
+        
+        // Обновляем данные
+        app.data.students = studentsWithResults.map(s => s.name);
+        app.data.results = studentsWithResults.map(s => s.results);
+        
+        // Обновляем индексы ошибок
+        const newErrors = [];
+        studentsWithResults.forEach((student, newIndex) => {
+            const oldIndex = app.data.students.indexOf(student.name);
+            const studentErrors = app.data.errors.filter(e => e.studentIndex === oldIndex);
+            studentErrors.forEach(error => {
+                newErrors.push({
+                    ...error,
+                    studentIndex: newIndex
+                });
+            });
+        });
+        app.data.errors = newErrors;
+        
+        app.saveData();
+        app.renderAll();
+        app.showNotification('Учащиеся отсортированы по алфавиту', 'success');
+    }
+    
+    // Перемешивание учащихся
+    function shuffleStudents() {
+        if (app.data.students.length < 2) {
+            app.showNotification('Нужно хотя бы 2 учащихся', 'info');
+            return;
+        }
+        
+        // Создаем массив индексов
+        const indices = [...Array(app.data.students.length).keys()];
+        
+        // Алгоритм Фишера-Йетса для перемешивания
+        for (let i = indices.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [indices[i], indices[j]] = [indices[j], indices[i]];
+        }
+        
+        // Применяем перемешивание
+        const shuffledStudents = indices.map(i => app.data.students[i]);
+        const shuffledResults = indices.map(i => app.data.results[i]);
+        
+        // Обновляем ошибки
+        const newErrors = [];
+        indices.forEach((newIndex, oldIndex) => {
+            const studentErrors = app.data.errors.filter(e => e.studentIndex === oldIndex);
+            studentErrors.forEach(error => {
+                newErrors.push({
+                    ...error,
+                    studentIndex: newIndex
+                });
+            });
+        });
+        
+        app.data.students = shuffledStudents;
+        app.data.results = shuffledResults;
+        app.data.errors = newErrors;
+        
+        app.saveData();
+        app.renderAll();
+        app.showNotification('Список учащихся перемешан', 'success');
+    }
+    
+    // Удаление всех учащихся
+    function removeAllStudents() {
+        if (app.data.students.length === 0) {
+            app.showNotification('Нет учащихся для удаления', 'info');
+            return;
+        }
+        
+        if (confirm(`Удалить всех ${app.data.students.length} учащихся? Все их результаты и ошибки будут удалены.`)) {
+            app.data.students = [];
+            app.data.results = [];
+            app.data.errors = [];
+            
+            // Сбрасываем счетчик в настройках
+            app.data.test.presentStudents = 0;
+            document.getElementById('presentStudents').value = 0;
+            
+            app.saveData();
+            app.renderAll();
+            app.showNotification('Все учащиеся удалены', 'success');
+        }
+    }
+    
+    // Обновление статистики учащихся
+    function updateStudentsStatistics() {
+        const container = document.getElementById('studentsStats');
+        if (!container) return;
+        
+        const totalStudents = app.data.students.length;
+        const totalPresent = app.data.test.presentStudents || 0;
+        const absentCount = Math.max(0, (app.data.test.totalStudents || 0) - totalPresent);
+        
+        // Подсчет учащихся по успеваемости
+        const gradeCounts = {5: 0, 4: 0, 3: 0, 2: 0};
+        app.data.results.forEach(scores => {
+            const total = scores.reduce((sum, score) => sum + (score || 0), 0);
+            const grade = app.calculateGrade(total);
+            gradeCounts[grade] = (gradeCounts[grade] || 0) + 1;
+        });
+        
+        // Подсчет учащихся с ошибками
+        const studentsWithErrors = new Set(app.data.errors.map(e => e.studentIndex)).size;
+        
+        container.innerHTML = `
+            <div class="kpi-card">
+                <div class="kpi-value">${totalStudents}</div>
+                <div class="kpi-label">Всего учащихся</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-value">${absentCount}</div>
+                <div class="kpi-label">Отсутствовало</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-value">${studentsWithErrors}</div>
+                <div class="kpi-label">С ошибками</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-value">${gradeCounts[5]}</div>
+                <div class="kpi-label">На "5"</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-value">${gradeCounts[4]}</div>
+                <div class="kpi-label">На "4"</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-value">${gradeCounts[3]}</div>
+                <div class="kpi-label">На "3"</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-value">${gradeCounts[2]}</div>
+                <div class="kpi-label">На "2"</div>
+            </div>
+        `;
+    }
+    
+    // Обновляем статистику при загрузке
+    document.addEventListener('DOMContentLoaded', updateStudentsStatistics);
+    setInterval(updateStudentsStatistics, 5000);
+</script>

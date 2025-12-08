@@ -1,0 +1,77 @@
+<h2>📈 Комплексная аналитика</h2>
+
+<div class="export-buttons" style="margin-bottom: 30px;">
+    <button class="btn" onclick="showComparativeAnalysis()">📈 Сравнительный анализ</button>
+    <button class="btn" onclick="showAdvancedSearchDialog()">🔍 Расширенный поиск</button>
+    <button class="btn" onclick="generateSmartRecommendations()">🤖 Умные рекомендации</button>
+    <button class="btn" onclick="exportAnalyticsToPDF()">📄 Отчет по аналитике</button>
+</div>
+
+<h3 class="section-title">Общая статистика</h3>
+<div class="kpi-grid" id="kpiDashboard">
+    <!-- Заполняется динамически -->
+</div>
+
+<h3 class="section-title">Таксономический анализ по уровням сложности</h3>
+<div id="taxonomyAnalysis">
+    <!-- Заполняется динамически -->
+</div>
+
+<h3 class="section-title">Анализ ошибок</h3>
+<div id="errorsAnalysis">
+    <!-- Заполняется динамически -->
+</div>
+
+<h3 class="section-title">Персональный анализ учащихся</h3>
+<div id="personalAnalysis">
+    <!-- Заполняется динамически -->
+</div>
+
+<h3 class="section-title">Групповой анализ</h3>
+<div id="groupAnalysis">
+    <!-- Заполняется динамически -->
+</div>
+
+<div id="specializedAnalysis">
+    <!-- Специализированный анализ по типу работы -->
+</div>
+
+<div id="smartRecommendationsContainer" style="margin-top: 30px;">
+    <!-- Умные рекомендации -->
+</div>
+
+<div class="chart-container" style="margin-top: 30px;">
+    <h3>📊 Дополнительная статистика</h3>
+    <div id="additionalStats">
+        <!-- Дополнительная статистика -->
+    </div>
+</div>
+
+<script>
+// Инициализация при загрузке вкладки
+document.addEventListener('DOMContentLoaded', function() {
+    updateAnalytics();
+});
+
+// Функции для этой вкладки
+function exportAnalyticsToPDF() {
+    // Экспорт аналитики в PDF
+    if (typeof exportModule !== 'undefined' && exportModule.exportToPDF) {
+        exportModule.exportToPDF();
+    }
+}
+
+function showAdvancedSearchDialog() {
+    // Показать диалог расширенного поиска
+    if (typeof showAdvancedSearch === 'function') {
+        showAdvancedSearch();
+    }
+}
+
+function showComparativeAnalysis() {
+    // Показать сравнительный анализ
+    if (typeof showComparativeAnalysisDialog === 'function') {
+        showComparativeAnalysisDialog();
+    }
+}
+</script>

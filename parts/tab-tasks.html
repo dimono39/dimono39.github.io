@@ -1,0 +1,159 @@
+<h2>📝 Таксономический анализ заданий</h2>
+
+<div id="tasksContainer">
+    <!-- Динамически заполняется из render.js -->
+</div>
+
+<div class="task-templates" style="margin-top: 30px; padding: 20px; background: #f8f9fa; border-radius: 8px;">
+    <h4>🚀 Быстрые шаблоны заданий</h4>
+    <p style="margin-bottom: 15px; color: #666;">Выберите готовый шаблон для автоматического создания заданий:</p>
+    
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px;">
+        <button class="btn" onclick="generateTemplate('standard')" style="text-align: left;">
+            <div style="font-weight: bold;">📊 Стандартная контрольная</div>
+            <small>8 заданий, 4 уровня сложности</small>
+        </button>
+        
+        <button class="btn" onclick="generateTemplate('vpr')" style="text-align: left;">
+            <div style="font-weight: bold;">📝 ВПР</div>
+            <small>12 заданий, компетенции ВПР</small>
+        </button>
+        
+        <button class="btn" onclick="generateTemplate('oge')" style="text-align: left;">
+            <div style="font-weight: bold;">🎯 ОГЭ</div>
+            <small>15 заданий, КЭС и ПУ</small>
+        </button>
+        
+        <button class="btn" onclick="generateTemplate('ege')" style="text-align: left;">
+            <div style="font-weight: bold;">⭐ ЕГЭ</div>
+            <small>19 заданий, профильный уровень</small>
+        </button>
+        
+        <button class="btn" onclick="generateTemplate('literacy')" style="text-align: left;">
+            <div style="font-weight: bold;">🌐 Функциональная грамотность</div>
+            <small>8 заданий, 6 видов грамотности</small>
+        </button>
+        
+        <button class="btn" onclick="generateTemplate('psychology')" style="text-align: left;">
+            <div style="font-weight: bold;">🧠 Психологическая диагностика</div>
+            <small>10 заданий, 4 измерения EI</small>
+        </button>
+    </div>
+</div>
+
+<div class="task-statistics" style="margin-top: 20px;">
+    <h4>📈 Статистика заданий</h4>
+    <div id="taskStats" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin: 15px 0;">
+        <!-- Статистика будет заполнена динамически -->
+    </div>
+</div>
+
+<script>
+    // Генерация шаблона заданий
+    function generateTemplate(templateType) {
+        if (app.data.tasks.length > 0 && !confirm('Текущие задания будут удалены. Продолжить?')) {
+            return;
+        }
+        
+        app.data.tasks = [];
+        app.data.results = [];
+        
+        let tasks = [];
+        
+        switch(templateType) {
+            case 'standard':
+                tasks = [
+                    { type: "Теоретический вопрос", maxScore: 2, level: 1, knowledge: "Знание определений", number: 1 },
+                    { type: "Простой пример", maxScore: 1, level: 1, knowledge: "Базовые вычисления", number: 2 },
+                    { type: "Задача на правило", maxScore: 3, level: 2, knowledge: "Применение правила", number: 3 },
+                    { type: "Сравнение понятий", maxScore: 2, level: 2, knowledge: "Сравнительный анализ", number: 4 },
+                    { type: "Решение типовой задачи", maxScore: 4, level: 2, knowledge: "Решение задач", number: 5 },
+                    { type: "Анализ текста", maxScore: 3, level: 3, knowledge: "Аналитическое мышление", number: 6 },
+                    { type: "Доказательство", maxScore: 3, level: 3, knowledge: "Логическое мышление", number: 7 },
+                    { type: "Творческое задание", maxScore: 5, level: 4, knowledge: "Творческое мышление", number: 8 }
+                ];
+                break;
+                
+            case 'vpr':
+                tasks = [
+                    { type: "Арифметические действия", maxScore: 1, level: 1, knowledge: "Вычисления", competence: "calculations", vprLevel: 1, number: 1 },
+                    { type: "Чтение текста", maxScore: 1, level: 1, knowledge: "Понимание текста", competence: "text_work", vprLevel: 1, number: 2 },
+                    { type: "Работа с таблицей", maxScore: 2, level: 2, knowledge: "Анализ данных", competence: "data_work", vprLevel: 2, number: 3 },
+                    { type: "Решение логической задачи", maxScore: 2, level: 2, knowledge: "Логика", competence: "logic", vprLevel: 2, number: 4 },
+                    { type: "Построение графика", maxScore: 2, level: 2, knowledge: "Графики", competence: "graphics", vprLevel: 2, number: 5 },
+                    { type: "Анализ диаграммы", maxScore: 2, level: 2, knowledge: "Диаграммы", competence: "data_work", vprLevel: 2, number: 6 }
+                ];
+                break;
+                
+            case 'psychology':
+                tasks = [
+                    { type: "Распознавание эмоций", maxScore: 10, level: 1, knowledge: "Восприятие эмоций", dimension: "perception", subscale: "Лицевые выражения", number: 1 },
+                    { type: "Эмоции в контексте", maxScore: 8, level: 2, knowledge: "Восприятие эмоций", dimension: "perception", subscale: "Контекст", number: 2 },
+                    { type: "Эмоции и решения", maxScore: 12, level: 3, knowledge: "Использование эмоций", dimension: "use", subscale: "Принятие решений", number: 3 },
+                    { type: "Сложные эмоции", maxScore: 15, level: 3, knowledge: "Понимание эмоций", dimension: "understanding", subscale: "Дифференциация", number: 4 },
+                    { type: "Эмоциональные переходы", maxScore: 10, level: 4, knowledge: "Понимание эмоций", dimension: "understanding", subscale: "Динамика", number: 5 },
+                    { type: "Управление гневом", maxScore: 12, level: 2, knowledge: "Управление эмоциями", dimension: "management", subscale: "Регуляция", number: 6 },
+                    { type: "Эмпатический ответ", maxScore: 17, level: 4, knowledge: "Управление эмоциями", dimension: "management", subscale: "Эмпатия", number: 7 }
+                ];
+                break;
+        }
+        
+        app.data.tasks = tasks;
+        
+        // Создаем пустые результаты для всех студентов
+        app.data.students.forEach((student, index) => {
+            app.data.results[index] = new Array(tasks.length).fill(0);
+        });
+        
+        app.saveData();
+        app.renderAll();
+        app.showNotification(`Шаблон "${templateType}" загружен!`, 'success');
+    }
+    
+    // Обновление статистики заданий
+    function updateTaskStatistics() {
+        const container = document.getElementById('taskStats');
+        if (!container) return;
+        
+        const totalTasks = app.data.tasks.length;
+        const totalPoints = app.data.tasks.reduce((sum, task) => sum + (task.maxScore || 0), 0);
+        
+        // Распределение по уровням сложности
+        const levelCounts = {1: 0, 2: 0, 3: 0, 4: 0};
+        app.data.tasks.forEach(task => {
+            const level = task.level || 1;
+            levelCounts[level] = (levelCounts[level] || 0) + 1;
+        });
+        
+        container.innerHTML = `
+            <div class="kpi-card">
+                <div class="kpi-value">${totalTasks}</div>
+                <div class="kpi-label">Всего заданий</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-value">${totalPoints}</div>
+                <div class="kpi-label">Всего баллов</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-value">${levelCounts[1]}</div>
+                <div class="kpi-label">Уровень 1</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-value">${levelCounts[2]}</div>
+                <div class="kpi-label">Уровень 2</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-value">${levelCounts[3]}</div>
+                <div class="kpi-label">Уровень 3</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-value">${levelCounts[4]}</div>
+                <div class="kpi-label">Уровень 4</div>
+            </div>
+        `;
+    }
+    
+    // Обновляем статистику при загрузке и изменении заданий
+    document.addEventListener('DOMContentLoaded', updateTaskStatistics);
+    setInterval(updateTaskStatistics, 5000);
+</script>

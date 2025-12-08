@@ -1,0 +1,36 @@
+{
+  "name": "education-analytics",
+  "version": "2.0.0",
+  "description": "Система анализа образовательных результатов",
+  "main": "index.html",
+  "scripts": {
+    "start": "live-server .",
+    "build": "node build.js",
+    "dev": "concurrently \"npm run watch-html\" \"npm run watch-css\" \"npm run watch-js\"",
+    "watch-html": "nodemon --watch parts/ --ext html --exec \"npm run build-html\"",
+    "watch-css": "nodemon --watch css/ --ext css --exec \"npm run build-css\"",
+    "watch-js": "nodemon --watch js/ --ext js --exec \"npm run build-js\"",
+    "build-html": "node build-html.js",
+    "build-css": "node build-css.js",
+    "build-js": "node build-js.js"
+  },
+  "keywords": [
+    "education",
+    "analytics",
+    "testing",
+    "assessment"
+  ],
+  "author": "Education Analytics System",
+  "license": "MIT",
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "live-server": "^1.2.2",
+    "nodemon": "^3.0.1"
+  },
+  "dependencies": {
+    "braces": "^3.0.3",
+    "chart.js": "^4.5.1",
+    "chokidar": "^3.6.0",
+    "micromatch": "^4.0.8"
+  }
+}

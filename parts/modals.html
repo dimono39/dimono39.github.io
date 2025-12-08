@@ -1,0 +1,561 @@
+<!-- ==================== МОДАЛЬНЫЕ ОКНА И УВЕДОМЛЕНИЯ ==================== -->
+
+<!-- Основное модальное окно -->
+<div class="modal-overlay" id="modalOverlay" style="display: none;">
+    <div class="modal-content" id="modalContent">
+        <!-- Содержимое будет вставлено динамически -->
+    </div>
+</div>
+
+<!-- Контекстное меню -->
+<div class="context-menu" id="contextMenu" style="display: none;"></div>
+
+<!-- Уведомления -->
+<div id="notificationsContainer" class="notifications-container"></div>
+
+<!-- Модальное окно для массового редактирования оценок -->
+<template id="bulkEditModalTemplate">
+    <div class="modal-header">
+        <h3>📝 Массовое редактирование оценок</h3>
+        <button class="modal-close" onclick="hideModal()">×</button>
+    </div>
+    
+    <div class="modal-body">
+        <div class="form-group">
+            <label>Действие:</label>
+            <select id="bulkAction" class="modal-select">
+                <option value="set">Установить значение</option>
+                <option value="add">Добавить баллы</option>
+                <option value="subtract">Вычесть баллы</option>
+                <option value="multiply">Умножить на коэффициент</option>
+                <option value="round">Округлить оценки</option>
+                <option value="normalize">Нормализовать (привести к макс. баллу)</option>
+            </select>
+        </div>
+        
+        <div class="form-group" id="bulkValueContainer">
+            <label>Значение:</label>
+            <input type="number" id="bulkValue" class="modal-input" value="0" step="0.1">
+        </div>
+        
+        <div class="form-group">
+            <label>Для заданий:</label>
+            <div class="checkbox-group">
+                <label class="checkbox-label">
+                    <input type="checkbox" id="selectAllTasks" checked>
+                    <span>Все задания</span>
+                </label>
+                <div id="tasksCheckboxes" class="scrollable-list">
+                    <!-- Задания будут добавлены динамически -->
+                </div>
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <label>Для учащихся:</label>
+            <div class="checkbox-group">
+                <label class="checkbox-label">
+                    <input type="checkbox" id="selectAllStudents" checked>
+                    <span>Все учащиеся</span>
+                </label>
+                <div id="studentsCheckboxes" class="scrollable-list">
+                    <!-- Учащиеся будут добавлены динамически -->
+                </div>
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <label>Условия:</label>
+            <select id="bulkCondition" class="modal-select">
+                <option value="all">Все выбранные</option>
+                <option value="less_than">Только оценки меньше</option>
+                <option value="greater_than">Только оценки больше</option>
+                <option value="equal">Только оценки равные</option>
+            </select>
+            <input type="number" id="bulkConditionValue" class="modal-input" value="0" style="margin-top: 5px;">
+        </div>
+        
+        <div class="preview-section">
+            <h4>Предпросмотр изменений:</h4>
+            <div id="bulkPreview" class="preview-box">
+                Нажмите "Предпросмотр" для расчета изменений
+            </div>
+            <button class="btn btn-sm" onclick="previewBulkEdit()">🔄 Предпросмотр</button>
+        </div>
+    </div>
+    
+    <div class="modal-footer">
+        <button class="btn" onclick="hideModal()">Отмена</button>
+        <button class="btn btn-success" onclick="applyBulkEdit()">✅ Применить</button>
+    </div>
+</template>
+
+<!-- Модальное окно для управления ошибками -->
+<template id="errorsManagementModalTemplate">
+    <div class="modal-header">
+        <h3>⚙️ Управление ошибками</h3>
+        <button class="modal-close" onclick="hideModal()">×</button>
+    </div>
+    
+    <div class="modal-body">
+        <div class="management-grid">
+            <div class="management-card">
+                <h4>👤 По учащимся</h4>
+                <select id="studentForErrors" class="modal-select" onchange="updateStudentErrorsInfo()">
+                    <option value="">Выберите учащегося</option>
+                    <!-- Учащиеся будут добавлены динамически -->
+                </select>
+                <div id="studentErrorsInfo" class="info-box"></div>
+                <button class="btn btn-danger" onclick="deleteAllStudentErrors(parseInt(document.getElementById('studentForErrors').value))" 
+                        id="deleteStudentErrorsBtn" disabled>
+                    🗑️ Удалить все ошибки
+                </button>
+            </div>
+            
+            <div class="management-card">
+                <h4>📊 По типам ошибок</h4>
+                <select id="errorTypeFilter" class="modal-select" onchange="updateTypeErrorsInfo()">
+                    <option value="">Выберите тип ошибки</option>
+                    <!-- Типы ошибок будут добавлены динамически -->
+                </select>
+                <div id="typeErrorsInfo" class="info-box"></div>
+                <button class="btn btn-danger" onclick="deleteAllErrorsByType(document.getElementById('errorTypeFilter').value)" 
+                        id="deleteTypeErrorsBtn" disabled>
+                    🗑️ Удалить все ошибки
+                </button>
+            </div>
+        </div>
+        
+        <div class="stats-card">
+            <h4>📈 Статистика ошибок</h4>
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <div class="stat-value" id="totalErrorsCount">0</div>
+                    <div class="stat-label">Всего ошибок</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="studentsWithErrorsCount">0</div>
+                    <div class="stat-label">Учащихся с ошибками</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="tasksWithErrorsCount">0</div>
+                    <div class="stat-label">Заданий с ошибками</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="mostCommonError">—</div>
+                    <div class="stat-label">Самая частая ошибка</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="actions-section">
+            <h4>⚡ Быстрые действия</h4>
+            <div class="action-buttons">
+                <button class="btn btn-warning" onclick="showBulkDeleteErrors()">
+                    🗑️ Массовое удаление ошибок
+                </button>
+                <button class="btn" onclick="exportErrorsToCSV()">
+                    📥 Экспорт ошибок (CSV)
+                </button>
+                <button class="btn btn-danger" onclick="deleteAllErrors()" style="margin-left: auto;">
+                    ⚠️ Удалить все ошибки
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="modal-footer">
+        <button class="btn" onclick="hideModal()">Закрыть</button>
+    </div>
+</template>
+
+<!-- Модальное окно для импорта учащихся -->
+<template id="importStudentsModalTemplate">
+    <div class="modal-header">
+        <h3>📝 Импорт списка учащихся</h3>
+        <button class="modal-close" onclick="hideModal()">×</button>
+    </div>
+    
+    <div class="modal-body">
+        <div class="import-methods">
+            <div class="method-tabs">
+                <button class="method-tab active" onclick="showImportMethod('text')">📋 Текст</button>
+                <button class="method-tab" onclick="showImportMethod('file')">📁 Файл</button>
+                <button class="method-tab" onclick="showImportMethod('generate')">🎲 Сгенерировать</button>
+            </div>
+            
+            <div id="importTextMethod" class="import-method active">
+                <p>Введите список учащихся (каждое имя с новой строки):</p>
+                <textarea id="importStudentsText" class="import-textarea" rows="10" placeholder="Иванов Алексей&#10;Петрова Мария&#10;Сидоров Дмитрий"></textarea>
+                <div class="import-options">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="importReplace" checked>
+                        <span>Заменить текущий список</span>
+                    </label>
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="importAutoFormat">
+                        <span>Автоматически форматировать имена</span>
+                    </label>
+                </div>
+            </div>
+            
+            <div id="importFileMethod" class="import-method">
+                <p>Загрузите файл с расширением .txt или .csv:</p>
+                <div class="file-upload">
+                    <input type="file" id="importFileInput" accept=".txt,.csv,.xlsx,.xls">
+                    <label for="importFileInput" class="file-upload-label">
+                        📁 Выберите файл
+                    </label>
+                    <div id="importFileName" class="file-name"></div>
+                </div>
+                <div class="file-preview" id="filePreview"></div>
+            </div>
+            
+            <div id="importGenerateMethod" class="import-method">
+                <p>Сгенерировать случайных учащихся:</p>
+                <div class="form-group">
+                    <label>Количество учащихся:</label>
+                    <input type="number" id="generateCount" class="modal-input" min="1" max="50" value="10">
+                </div>
+                <div class="form-group">
+                    <label>Шаблон имен:</label>
+                    <select id="generateTemplate" class="modal-select">
+                        <option value="russian">Русские имена</option>
+                        <option value="english">Английские имена</option>
+                        <option value="mixed">Смешанные</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Добавить случайные оценки:</label>
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="generateScores" checked>
+                        <span>Сгенерировать случайные результаты</span>
+                    </label>
+                </div>
+            </div>
+        </div>
+        
+        <div class="preview-section">
+            <h4>Предпросмотр:</h4>
+            <div id="importPreview" class="preview-box scrollable-list">
+                <!-- Предпросмотр будет здесь -->
+            </div>
+            <button class="btn btn-sm" onclick="previewImport()">🔄 Обновить предпросмотр</button>
+        </div>
+    </div>
+    
+    <div class="modal-footer">
+        <button class="btn" onclick="hideModal()">Отмена</button>
+        <button class="btn btn-success" onclick="processImport()">✅ Импортировать</button>
+    </div>
+</template>
+
+<!-- Модальное окно для настроек критериев -->
+<template id="criteriaSettingsModalTemplate">
+    <div class="modal-header">
+        <h3>🎯 Настройка критериев оценивания</h3>
+        <button class="modal-close" onclick="hideModal()">×</button>
+    </div>
+    
+    <div class="modal-body">
+        <div class="criteria-methods">
+            <div class="method-tabs">
+                <button class="method-tab active" onclick="showCriteriaMethod('standard')">📊 Стандартные</button>
+                <button class="method-tab" onclick="showCriteriaMethod('percentage')">📈 Процентные</button>
+                <button class="method-tab" onclick="showCriteriaMethod('custom')">⚙️ Пользовательские</button>
+                <button class="method-tab" onclick="showCriteriaMethod('presets')">🚀 Пресеты</button>
+            </div>
+            
+            <div id="criteriaStandardMethod" class="criteria-method active">
+                <p>Стандартная система оценивания:</p>
+                <div class="criteria-grid">
+                    <div class="criteria-item">
+                        <label>5 (Отлично):</label>
+                        <div class="criteria-inputs">
+                            <input type="number" id="stdCriteria5min" class="criteria-input" min="0" max="100">
+                            <span>—</span>
+                            <input type="number" id="stdCriteria5max" class="criteria-input" min="0" max="100">
+                        </div>
+                    </div>
+                    <div class="criteria-item">
+                        <label>4 (Хорошо):</label>
+                        <div class="criteria-inputs">
+                            <input type="number" id="stdCriteria4min" class="criteria-input" min="0" max="100">
+                            <span>—</span>
+                            <input type="number" id="stdCriteria4max" class="criteria-input" min="0" max="100">
+                        </div>
+                    </div>
+                    <div class="criteria-item">
+                        <label>3 (Удовл.):</label>
+                        <div class="criteria-inputs">
+                            <input type="number" id="stdCriteria3min" class="criteria-input" min="0" max="100">
+                            <span>—</span>
+                            <input type="number" id="stdCriteria3max" class="criteria-input" min="0" max="100">
+                        </div>
+                    </div>
+                    <div class="criteria-item">
+                        <label>2 (Неуд.):</label>
+                        <div class="criteria-inputs">
+                            <input type="number" id="stdCriteria2min" class="criteria-input" min="0" max="100">
+                            <span>—</span>
+                            <input type="number" id="stdCriteria2max" class="criteria-input" min="0" max="100">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="criteriaPercentageMethod" class="criteria-method">
+                <p>Процентная система оценивания:</p>
+                <div class="form-group">
+                    <label>Количество уровней:</label>
+                    <select id="percentageLevels" class="modal-select" onchange="updatePercentageCriteria()">
+                        <option value="2">2 уровня</option>
+                        <option value="3">3 уровня</option>
+                        <option value="4" selected>4 уровня</option>
+                        <option value="5">5 уровней</option>
+                    </select>
+                </div>
+                <div id="percentageCriteriaContainer" class="criteria-grid">
+                    <!-- Процентные критерии будут сгенерированы динамически -->
+                </div>
+            </div>
+            
+            <div id="criteriaCustomMethod" class="criteria-method">
+                <p>Пользовательская система:</p>
+                <div class="form-group">
+                    <button class="btn btn-sm" onclick="addCustomCriterion()">➕ Добавить уровень</button>
+                </div>
+                <div id="customCriteriaContainer" class="custom-criteria-list">
+                    <!-- Пользовательские критерии будут здесь -->
+                </div>
+            </div>
+            
+            <div id="criteriaPresetsMethod" class="criteria-method">
+                <p>Быстрые пресеты:</p>
+                <div class="presets-grid">
+                    <button class="preset-btn" onclick="applyPreset('standard_5')">
+                        <div class="preset-icon">📊</div>
+                        <div class="preset-name">Стандартная (2-5)</div>
+                    </button>
+                    <button class="preset-btn" onclick="applyPreset('five_point')">
+                        <div class="preset-icon">1️⃣</div>
+                        <div class="preset-name">Пятибалльная (1-5)</div>
+                    </button>
+                    <button class="preset-btn" onclick="applyPreset('vpr_percent')">
+                        <div class="preset-icon">📝</div>
+                        <div class="preset-name">ВПР (проценты)</div>
+                    </button>
+                    <button class="preset-btn" onclick="applyPreset('psychology_levels')">
+                        <div class="preset-icon">🧠</div>
+                        <div class="preset-name">Психология (уровни)</div>
+                    </button>
+                    <button class="preset-btn" onclick="applyPreset('ten_point')">
+                        <div class="preset-icon">🔟</div>
+                        <div class="preset-name">Десятибалльная</div>
+                    </button>
+                    <button class="preset-btn" onclick="applyPreset('ege_points')">
+                        <div class="preset-icon">🎯</div>
+                        <div class="preset-name">ЕГЭ (баллы)</div>
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="info-card">
+            <h4>💡 Информация</h4>
+            <div id="criteriaInfo" class="info-content">
+                Выберите систему оценивания, подходящую для вашего типа работы.
+            </div>
+        </div>
+    </div>
+    
+    <div class="modal-footer">
+        <button class="btn" onclick="hideModal()">Отмена</button>
+        <button class="btn btn-success" onclick="saveCriteriaSettings()">✅ Сохранить критерии</button>
+    </div>
+</template>
+
+<!-- Модальное окно для экспорта отчетов -->
+<template id="exportReportsModalTemplate">
+    <div class="modal-header">
+        <h3>💾 Экспорт отчетов</h3>
+        <button class="modal-close" onclick="hideModal()">×</button>
+    </div>
+    
+    <div class="modal-body">
+        <div class="export-options">
+            <h4>📄 Форматы экспорта:</h4>
+            <div class="export-grid">
+                <button class="export-option" onclick="exportToPDF()">
+                    <div class="export-icon">📄</div>
+                    <div class="export-name">PDF отчет</div>
+                    <div class="export-desc">Полный аналитический отчет</div>
+                </button>
+                <button class="export-option" onclick="exportToExcel()">
+                    <div class="export-icon">📊</div>
+                    <div class="export-name">Excel таблица</div>
+                    <div class="export-desc">Данные для анализа</div>
+                </button>
+                <button class="export-option" onclick="exportHTML()">
+                    <div class="export-icon">🌐</div>
+                    <div class="export-name">HTML страница</div>
+                    <div class="export-desc">Интерактивный отчет</div>
+                </button>
+                <button class="export-option" onclick="exportJSON()">
+                    <div class="export-icon">💾</div>
+                    <div class="export-name">JSON данные</div>
+                    <div class="export-desc">Для интеграции с другими системами</div>
+                </button>
+                <button class="export-option" onclick="exportForTeacher()">
+                    <div class="export-icon">👩‍🏫</div>
+                    <div class="export-name">Отчет для учителя</div>
+                    <div class="export-desc">Детальный анализ с рекомендациями</div>
+                </button>
+                <button class="export-option" onclick="exportForEJournal()">
+                    <div class="export-icon">📒</div>
+                    <div class="export-name">Для эл.дневника</div>
+                    <div class="export-desc">Формат для загрузки в СГО</div>
+                </button>
+            </div>
+        </div>
+        
+        <div class="export-settings">
+            <h4>⚙️ Настройки экспорта:</h4>
+            <div class="settings-grid">
+                <div class="form-group">
+                    <label>Включить в отчет:</label>
+                    <div class="checkbox-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="exportSummary" checked>
+                            <span>Сводку результатов</span>
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="exportAnalytics" checked>
+                            <span>Аналитику</span>
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="exportCharts" checked>
+                            <span>Графики</span>
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="exportRecommendations" checked>
+                            <span>Рекомендации</span>
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="exportErrors" checked>
+                            <span>Анализ ошибок</span>
+                        </label>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label>Имя файла:</label>
+                    <input type="text" id="exportFilename" class="modal-input" 
+                           value="Отчет_по_работе_{{дата}}">
+                </div>
+                
+                <div class="form-group">
+                    <label>Качество PDF:</label>
+                    <select id="exportQuality" class="modal-select">
+                        <option value="low">Низкое (быстрее)</option>
+                        <option value="medium" selected>Среднее</option>
+                        <option value="high">Высокое</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+        
+        <div class="preview-section">
+            <h4>👁️ Предпросмотр:</h4>
+            <div id="exportPreview" class="preview-box scrollable-preview">
+                <!-- Предпросмотр будет здесь -->
+            </div>
+            <button class="btn btn-sm" onclick="updateExportPreview()">🔄 Обновить предпросмотр</button>
+        </div>
+    </div>
+    
+    <div class="modal-footer">
+        <button class="btn" onclick="hideModal()">Отмена</button>
+        <button class="btn btn-success" onclick="executeExport()">🚀 Начать экспорт</button>
+    </div>
+</template>
+
+<!-- Модальное окно для психологического заключения -->
+<template id="psychologyReportModalTemplate">
+    <div class="modal-header">
+        <h3>🧠 Психологическое заключение</h3>
+        <button class="modal-close" onclick="hideModal()">×</button>
+    </div>
+    
+    <div class="modal-body psychology-report">
+        <div class="report-header">
+            <h4>Психолого-педагогическое заключение</h4>
+            <div class="report-meta">
+                <div class="meta-item">
+                    <strong>Дата:</strong> <span id="psychReportDate">{{дата}}</span>
+                </div>
+                <div class="meta-item">
+                    <strong>Группа:</strong> <span id="psychReportGroup">{{класс}}</span>
+                </div>
+                <div class="meta-item">
+                    <strong>Методика:</strong> <span id="psychReportMethod">{{методика}}</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="report-section">
+            <h5>📊 Результаты диагностики</h5>
+            <div id="psychResultsSummary" class="results-summary">
+                <!-- Сводка результатов будет здесь -->
+            </div>
+        </div>
+        
+        <div class="report-section">
+            <h5>🎯 Уровни развития</h5>
+            <div id="psychLevelsDistribution" class="levels-distribution">
+                <!-- Распределение по уровням будет здесь -->
+            </div>
+        </div>
+        
+        <div class="report-section">
+            <h5>👥 Групповой профиль</h5>
+            <div id="psychGroupProfile" class="group-profile">
+                <!-- Групповой профиль будет здесь -->
+            </div>
+        </div>
+        
+        <div class="report-section">
+            <h5>💡 Рекомендации</h5>
+            <div id="psychRecommendations" class="recommendations-list">
+                <!-- Рекомендации будут здесь -->
+            </div>
+        </div>
+        
+        <div class="report-section">
+            <h5>📝 Заключение</h5>
+            <div class="conclusion-editor">
+                <textarea id="psychConclusionText" class="conclusion-textarea" rows="6" 
+                          placeholder="Введите текст заключения..."></textarea>
+                <div class="conclusion-tools">
+                    <button class="btn btn-sm" onclick="generatePsychConclusion()">
+                        🤖 Сгенерировать автоматически
+                    </button>
+                    <button class="btn btn-sm" onclick="savePsychConclusion()">
+                        💾 Сохранить черновик
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="modal-footer">
+        <div class="footer-actions">
+            <button class="btn" onclick="printPsychologyReport()">
+                🖨️ Печать отчета
+            </button>
+            <button class="btn btn-success" onclick="savePsychologyReport()">
+                ✅ Сохранить заключение
+            </button>
+        </div>
+    </div>
+</template>

@@ -1,0 +1,397 @@
+<h2>💡 Выводы и рекомендации</h2>
+
+<div class="print-only">
+    <div class="header" style="padding: 15px; margin-bottom: 20px;">
+        <h2 style="font-size: 1.5em; margin: 0;">Аналитический отчет по диагностической работе</h2>
+        <p style="margin: 5px 0;">
+            <strong id="printSubjectClass"></strong> | 
+            <span id="printTheme"></span> | 
+            <span id="printDate"></span>
+        </p>
+    </div>
+</div>
+
+<h3 class="section-title">📊 Общий анализ работы</h3>
+<div id="workAnalysis" class="recommendation-card">
+    <!-- Общий анализ работы -->
+</div>
+
+<h3 class="section-title">🎯 Ключевые выводы</h3>
+<div id="keyConclusions">
+    <!-- Ключевые выводы -->
+</div>
+
+<h3 class="section-title">🔧 План коррекционных мероприятий</h3>
+<div id="correctionPlan">
+    <!-- План коррекционных мероприятий -->
+</div>
+
+<h3 class="section-title">🚀 Дальнейшие шаги</h3>
+<div id="nextSteps">
+    <!-- Дальнейшие шаги -->
+</div>
+
+<h3 class="section-title">👥 Индивидуальные рекомендации</h3>
+<div id="individualRecommendations">
+    <!-- Индивидуальные рекомендации -->
+</div>
+
+<h3 class="section-title">📋 Рекомендации для родителей</h3>
+<div id="parentRecommendations" class="recommendation-card">
+    <!-- Рекомендации для родителей -->
+</div>
+
+<div class="print-controls no-print" style="margin-top: 30px;">
+    <h4>🖨️ Печать рекомендаций</h4>
+    <p>Подготовьте отчет с рекомендациями для:</p>
+    <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px;">
+        <button class="btn btn-print" onclick="printRecommendationsForTeacher()">
+            👩‍🏫 Для учителя
+        </button>
+        <button class="btn btn-print" onclick="printRecommendationsForParents()">
+            👨‍👩‍👧‍👦 Для родителей
+        </button>
+        <button class="btn btn-print" onclick="printRecommendationsForAdmin()">
+            🏫 Для администрации
+        </button>
+        <button class="btn" onclick="exportRecommendationsToWord()">
+            📝 В Word
+        </button>
+    </div>
+</div>
+
+<script>
+// Инициализация при загрузке вкладки
+document.addEventListener('DOMContentLoaded', function() {
+    updateRecommendations();
+});
+
+// Функции для этой вкладки
+function updateRecommendations() {
+    // Обновление информации для печати
+    document.getElementById('printSubjectClass').textContent = 
+        `${app.data.test.subject || ''}, ${app.data.test.class || ''}`;
+    document.getElementById('printTheme').textContent = app.data.test.theme || '';
+    document.getElementById('printDate').textContent = 
+        new Date(app.data.test.testDate).toLocaleDateString('ru-RU') || '';
+    
+    // Генерация рекомендаций
+    generateWorkAnalysis();
+    generateKeyConclusions();
+    generateCorrectionPlan();
+    generateNextSteps();
+    generateIndividualRecommendations();
+    generateParentRecommendations();
+}
+
+function generateWorkAnalysis() {
+    const container = document.getElementById('workAnalysis');
+    if (!container) return;
+    
+    const totalStudents = app.data.students.length;
+    const avgScore = exportModule.calculateAverageScore();
+    const successRate = exportModule.calculateSuccessRate();
+    const qualityRate = exportModule.calculateQualityRate();
+    
+    let analysis = `<p><strong>Общая характеристика работы:</strong></p>`;
+    analysis += `<p>Работу выполняли <strong>${totalStudents}</strong> учащихся. `;
+    analysis += `Средний балл составил <strong>${avgScore.toFixed(2)}</strong>. `;
+    analysis += `Успеваемость - <strong>${successRate.toFixed(1)}%</strong>, `;
+    analysis += `качество знаний - <strong>${qualityRate.toFixed(1)}%</strong>.</p>`;
+    
+    // Анализ уровня сложности
+    if (app.data.tasks.length > 0) {
+        const easyTasks = app.data.tasks.filter(t => t.level <= 2).length;
+        const hardTasks = app.data.tasks.filter(t => t.level >= 3).length;
+        analysis += `<p>Работа содержит <strong>${easyTasks}</strong> заданий базового уровня и `;
+        analysis += `<strong>${hardTasks}</strong> заданий повышенной сложности.</p>`;
+    }
+    
+    container.innerHTML = analysis;
+}
+
+function generateKeyConclusions() {
+    const container = document.getElementById('keyConclusions');
+    if (!container) return;
+    
+    const successRate = exportModule.calculateSuccessRate();
+    const qualityRate = exportModule.calculateQualityRate();
+    
+    let conclusions = '';
+    
+    if (successRate >= 80) {
+        conclusions = `
+            <div class="recommendation-card recommendation-info">
+                <h4>✅ Высокая успеваемость</h4>
+                <p>Большинство учащихся успешно справились с работой. Материал усвоен в полном объеме.</p>
+            </div>
+        `;
+    } else if (successRate >= 60) {
+        conclusions = `
+            <div class="recommendation-card recommendation-warning">
+                <h4>⚠️ Средняя успеваемость</h4>
+                <p>Есть учащиеся, испытывающие трудности. Требуется работа над проблемными темами.</p>
+            </div>
+        `;
+    } else {
+        conclusions = `
+            <div class="recommendation-card recommendation-critical">
+                <h4>❌ Низкая успеваемость</h4>
+                <p>Значительная часть учащихся не усвоила материал. Необходима коррекционная работа.</p>
+            </div>
+        `;
+    }
+    
+    if (qualityRate >= 40) {
+        conclusions += `
+            <div class="recommendation-card recommendation-info">
+                <h4>⭐ Хорошее качество знаний</h4>
+                <p>Достаточное количество учащихся показало высокие результаты.</p>
+            </div>
+        `;
+    }
+    
+    container.innerHTML = conclusions;
+}
+
+function generateCorrectionPlan() {
+    const container = document.getElementById('correctionPlan');
+    if (!container) return;
+    
+    const plan = `
+        <div class="recommendation-card">
+            <h4>📅 Ближайшие мероприятия (1-2 недели)</h4>
+            <ol>
+                <li>Провести анализ типичных ошибок на ближайшем уроке</li>
+                <li>Организовать консультации для отстающих учащихся</li>
+                <li>Разработать дифференцированные задания по проблемным темам</li>
+                <li>Проинформировать родителей о результатах работы</li>
+            </ol>
+        </div>
+        
+        <div class="recommendation-card">
+            <h4>🎯 Долгосрочные мероприятия (месяц)</h4>
+            <ol>
+                <li>Включить проблемные темы в план повторения</li>
+                <li>Разработать систему дополнительных заданий</li>
+                <li>Провести повторный контроль через 3-4 недели</li>
+                <li>Скорректировать рабочую программу при необходимости</li>
+            </ol>
+        </div>
+    `;
+    
+    container.innerHTML = plan;
+}
+
+function generateNextSteps() {
+    const container = document.getElementById('nextSteps');
+    if (!container) return;
+    
+    const steps = `
+        <div class="kpi-grid">
+            <div class="kpi-card">
+                <div class="kpi-value">📝</div>
+                <div class="kpi-label">Работа над ошибками</div>
+                <small>На ближайшем уроке</small>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-value">👥</div>
+                <div class="kpi-label">Индивидуальные консультации</div>
+                <small>В течение недели</small>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-value">📅</div>
+                <div class="kpi-label">Повторный контроль</div>
+                <small>Через 3-4 недели</small>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-value">📊</div>
+                <div class="kpi-label">Анализ динамики</div>
+                <small>Сравнение с предыдущими работами</small>
+            </div>
+        </div>
+    `;
+    
+    container.innerHTML = steps;
+}
+
+function generateIndividualRecommendations() {
+    const container = document.getElementById('individualRecommendations');
+    if (!container) return;
+    
+    // Находим учащихся с низкими результатами
+    const lowPerformingStudents = [];
+    const highPerformingStudents = [];
+    
+    app.data.students.forEach((student, index) => {
+        const scores = app.data.results[index] || [];
+        const total = scores.reduce((sum, score) => sum + (score || 0), 0);
+        const grade = app.calculateGrade(total);
+        
+        if (grade <= 2) {
+            lowPerformingStudents.push({ student, index, grade, total });
+        } else if (grade >= 4) {
+            highPerformingStudents.push({ student, index, grade, total });
+        }
+    });
+    
+    let recommendations = '';
+    
+    if (lowPerformingStudents.length > 0) {
+        recommendations += `
+            <div class="recommendation-card recommendation-critical">
+                <h4>👥 Учащиеся, требующие особого внимания</h4>
+                <ul>
+                    ${lowPerformingStudents.map(s => 
+                        `<li><strong>${s.student}</strong> - оценка ${s.grade}, ${s.total} баллов</li>`
+                    ).join('')}
+                </ul>
+                <p><strong>Рекомендации:</strong> индивидуальные консультации, дополнительные задания, работа с родителями.</p>
+            </div>
+        `;
+    }
+    
+    if (highPerformingStudents.length > 0) {
+        recommendations += `
+            <div class="recommendation-card recommendation-info">
+                <h4>⭐ Учащиеся с высокими результатами</h4>
+                <ul>
+                    ${highPerformingStudents.slice(0, 5).map(s => 
+                        `<li><strong>${s.student}</strong> - оценка ${s.grade}, ${s.total} баллов</li>`
+                    ).join('')}
+                </ul>
+                <p><strong>Рекомендации:</strong> дополнительные задания повышенной сложности, участие в олимпиадах.</p>
+            </div>
+        `;
+    }
+    
+    container.innerHTML = recommendations || '<p>Все учащиеся показали удовлетворительные результаты.</p>';
+}
+
+function generateParentRecommendations() {
+    const container = document.getElementById('parentRecommendations');
+    if (!container) return;
+    
+    const recommendations = `
+        <h4>📋 Рекомендации для родителей</h4>
+        <p><strong>Общие рекомендации:</strong></p>
+        <ul>
+            <li>Обсудите с ребенком результаты работы</li>
+            <li>Обратите внимание на типичные ошибки</li>
+            <li>Помогите организовать повторение проблемных тем</li>
+            <li>Поддерживайте регулярность выполнения домашних заданий</li>
+        </ul>
+        
+        <p><strong>Конкретные шаги:</strong></p>
+        <ol>
+            <li>Просмотрите работу вместе с ребенком</li>
+            <li>Выявите причины ошибок</li>
+            <li>Составьте план устранения пробелов</li>
+            <li>Регулярно контролируйте прогресс</li>
+        </ol>
+        
+        <p style="margin-top: 15px; font-size: 12px; color: #666;">
+            <em>Рекомендации носят общий характер. Для получения индивидуальных рекомендаций обратитесь к учителю.</em>
+        </p>
+    `;
+    
+    container.innerHTML = recommendations;
+}
+
+// Функции печати
+function printRecommendationsForTeacher() {
+    // Сохраняем текущее состояние
+    const activeTab = localStorage.getItem('activeTab');
+    
+    // Показываем только нужные блоки
+    document.querySelectorAll('.tab-content').forEach(tab => {
+        if (tab.id === 'recommendations') {
+            tab.classList.add('active');
+        } else {
+            tab.classList.add('no-print');
+        }
+    });
+    
+    // Скрываем ненужные элементы
+    document.querySelectorAll('.no-print, .print-controls').forEach(el => {
+        el.style.display = 'none';
+    });
+    
+    // Печать
+    window.print();
+    
+    // Восстанавливаем состояние
+    setTimeout(() => {
+        document.querySelectorAll('.tab-content').forEach(tab => {
+            tab.classList.remove('active', 'no-print');
+        });
+        
+        document.querySelectorAll('.no-print, .print-controls').forEach(el => {
+            el.style.display = '';
+        });
+        
+        if (activeTab) {
+            const tabButton = document.querySelector(`.tab-btn[onclick*="${activeTab}"]`);
+            if (tabButton) {
+                tabButton.click();
+            }
+        }
+    }, 500);
+}
+
+function exportRecommendationsToWord() {
+    // Экспорт рекомендаций в Word
+    const content = generateWordContent();
+    const blob = new Blob([content], { type: 'application/msword' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `рекомендации_${app.data.test.subject || ''}_${new Date().toISOString().slice(0, 10)}.doc`;
+    a.click();
+    URL.revokeObjectURL(url);
+}
+
+function generateWordContent() {
+    // Генерация содержимого для Word
+    return `
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <title>Рекомендации по результатам работы</title>
+            <style>
+                body { font-family: Arial, sans-serif; margin: 2cm; }
+                h1, h2, h3 { color: #2c3e50; }
+                .section { margin-bottom: 20px; }
+                ul, ol { margin-left: 20px; }
+            </style>
+        </head>
+        <body>
+            <h1>Рекомендации по результатам диагностической работы</h1>
+            <p>Предмет: ${app.data.test.subject || ''}</p>
+            <p>Класс: ${app.data.test.class || ''}</p>
+            <p>Тема: ${app.data.test.theme || ''}</p>
+            <p>Дата: ${new Date(app.data.test.testDate).toLocaleDateString('ru-RU') || ''}</p>
+            
+            <div class="section">
+                <h2>Ключевые выводы</h2>
+                ${document.getElementById('keyConclusions')?.innerHTML || ''}
+            </div>
+            
+            <div class="section">
+                <h2>План коррекционных мероприятий</h2>
+                ${document.getElementById('correctionPlan')?.innerHTML || ''}
+            </div>
+            
+            <div class="section">
+                <h2>Индивидуальные рекомендации</h2>
+                ${document.getElementById('individualRecommendations')?.innerHTML || ''}
+            </div>
+            
+            <p style="margin-top: 50px; font-size: 11px; color: #666;">
+                Отчет сгенерирован ${new Date().toLocaleDateString('ru-RU')}
+            </p>
+        </body>
+        </html>
+    `;
+}
+</script>

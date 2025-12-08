@@ -1,0 +1,80 @@
+<div class="tabs no-print">
+    <button class="tab-btn active" onclick="app.showTab('setup', event)">
+        <span style="display: flex; align-items: center; gap: 5px;">
+            🎯 Настройки работы
+        </span>
+    </button>
+    
+    <button class="tab-btn" onclick="app.showTab('tasks', event)">
+        <span style="display: flex; align-items: center; gap: 5px;">
+            📝 Таксономия заданий
+        </span>
+    </button>
+    
+    <button class="tab-btn" onclick="app.showTab('students', event)">
+        <span style="display: flex; align-items: center; gap: 5px;">
+            👥 Учащиеся
+        </span>
+    </button>
+    
+    <button class="tab-btn" onclick="app.showTab('results', event)">
+        <span style="display: flex; align-items: center; gap: 5px;">
+            📊 Результаты и ошибки
+        </span>
+    </button>
+    
+    <button class="tab-btn" onclick="app.showTab('analytics', event)">
+        <span style="display: flex; align-items: center; gap: 5px;">
+            📈 Аналитика
+        </span>
+    </button>
+    
+    <button class="tab-btn" onclick="app.showTab('visualization', event)">
+        <span style="display: flex; align-items: center; gap: 5px;">
+            📊 Визуализация
+        </span>
+    </button>
+    
+    <button class="tab-btn" onclick="app.showTab('recommendations', event)">
+        <span style="display: flex; align-items: center; gap: 5px;">
+            💡 Рекомендации
+        </span>
+    </button>
+    
+    <button class="tab-btn" onclick="app.showTab('export', event)">
+        <span style="display: flex; align-items: center; gap: 5px;">
+            💾 Экспорт
+        </span>
+    </button>
+</div>
+
+<div class="quick-actions no-print" style="background: #f8f9fa; padding: 10px 15px; border-bottom: 1px solid #ddd;">
+    <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
+        <button class="btn btn-sm" onclick="app.saveData()" title="Сохранить все данные (Ctrl+S)">
+            💾 Сохранить
+        </button>
+        <button class="btn btn-sm" onclick="app.loadSampleData()" title="Загрузить пример данных">
+            🔄 Пример
+        </button>
+        <button class="btn btn-sm" onclick="app.restoreBackupDialog()" title="Восстановить из резервной копии">
+            💾 Восстановить
+        </button>
+        
+        <span style="margin-left: auto; display: flex; gap: 5px; align-items: center; font-size: 12px; color: #666;">
+            <div id="autoSaveStatus" style="display: flex; align-items: center; gap: 3px;">
+                <div style="width: 8px; height: 8px; background: #27ae60; border-radius: 50%;"></div>
+                Автосохранение включено
+            </div>
+        </span>
+    </div>
+</div>
+
+<script>
+    // Обновление статуса автосохранения
+    function updateAutoSaveStatus() {
+        const statusElement = document.getElementById('autoSaveStatus');
+        if (statusElement) {
+            // Можно добавить логику отображения статуса
+        }
+    }
+</script>
