@@ -676,7 +676,63 @@ window.clearAllData = function() {
         location.reload();
     }
 };
+// Экспорт ВСЕХ нужных функций в глобальную область
+window.showTab = showTab;
+window.saveData = saveData;
+window.loadSampleData = loadSampleData;
+window.addStudent = addStudent;
+window.removeStudent = removeStudent;
+window.addTask = addTask;
+window.removeTask = removeTask;
+window.showNotification = showNotification;
+window.showModal = showModal;
+window.hideModal = hideModal;
 
+// Для совместимости с app.* вызовами
+window.app = window.app || {};
+window.app.showTab = showTab;
+window.app.saveData = saveData;
+window.app.loadSampleData = loadSampleData;
+window.app.addStudent = addStudent;
+window.app.removeStudent = removeStudent;
+window.app.addTask = addTask;
+window.app.removeTask = removeTask;
+window.app.showNotification = showNotification;
+window.app.showModal = showModal;
+window.app.hideModal = hideModal;
+window.app.scheduleAutoSave = scheduleAutoSave;
+window.app.syncStudentsCount = function() {
+    console.log('syncStudentsCount called');
+    // Простая реализация
+    appData.test.totalStudents = appData.students.length;
+    appData.test.presentStudents = appData.students.length;
+    saveData();
+    renderTestSettings();
+};
+
+// Заглушки для отсутствующих функций
+window.app.restoreBackupDialog = function() {
+    showNotification('Функция восстановления из бэкапа временно недоступна', 'warning');
+};
+
+window.app.saveTestSettings = function() {
+    // Сохранение настроек теста из формы
+    const formElements = ['subject', 'class', 'testDate', 'testTheme', 'testGoals', 
+                          'workType', 'workFormat', 'timeLimit', 'totalStudents', 
+                          'presentStudents', 'absentReason'];
+    
+    formElements.forEach(id => {
+        const element = document.getElementById(id);
+        if (element && element.value !== undefined) {
+            const key = id === 'testTheme' ? 'theme' : 
+                       id === 'testGoals' ? 'goals' : id;
+            appData.test[key] = element.value;
+        }
+    });
+    
+    saveData();
+    showNotification('Настройки теста сохранены', 'success');
+};
 
 // Инициализируем при загрузке DOM
 if (!window.appInitialized) {
