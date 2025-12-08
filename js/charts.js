@@ -104,7 +104,7 @@ function updateVisualization() {
 function initGradesChart() {
     const canvas = document.getElementById('gradesChart');
     if (!canvas) {
-        console.warn('Canvas gradesChart не найден');
+        console.warn('Canvas gradesChart не найден, откладываем инициализацию');
         return;
     }
     
