@@ -1299,8 +1299,8 @@
             // Даем время на загрузку всех ресурсов
             setTimeout(() => {
                 // Проверяем наличие модулей
-                if (typeof app !== 'undefined' && app.initializeApp) {
-                    app.initializeApp();
+                if (typeof app !== 'undefined' && app.initialize) {
+                    app.initialize();
                 } else {
                     console.error('Основной модуль приложения не загружен');
                     showError('Ошибка загрузки системы. Обновите страницу.');
