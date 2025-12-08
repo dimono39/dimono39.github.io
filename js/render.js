@@ -902,7 +902,214 @@ function updateErrorsStats() {
         }
     });
 }
+// render.js
 
+class Renderer {
+    /**
+     * Генерация полей стандартного задания
+     * @param {Object} options - Настройки задания
+     * @param {string} options.taskType - Тип задания (multiple_choice, single_choice, matching)
+     * @param {string} options.question - Вопрос
+     * @param {Array} options.options - Варианты ответов (для multiple/single choice)
+     * @param {Array} options.pairs - Пары для сопоставления (для matching)
+     * @param {string} options.correctAnswer - Правильный ответ
+     * @returns {HTMLElement} Контейнер с полями
+     */
+    renderStandardTaskFields(options = {}) {
+        const container = document.createElement('div');
+        container.className = 'standard-task-fields';
+        
+        // Общие поля для всех типов заданий
+        const typeSelect = this.createSelectField('taskType', 'Тип задания', [
+            {value: 'multiple_choice', text: 'Множественный выбор'},
+            {value: 'single_choice', text: 'Одиночный выбор'},
+            {value: 'matching', text: 'Сопоставление'}
+        ], options.taskType);
+        
+        const questionField = this.createTextField(
+            'question', 
+            'Вопрос', 
+            options.question || ''
+        );
+        
+        container.appendChild(typeSelect);
+        container.appendChild(questionField);
+        
+        // Динамические поля в зависимости от типа задания
+        const dynamicContainer = document.createElement('div');
+        dynamicContainer.className = 'dynamic-fields';
+        container.appendChild(dynamicContainer);
+        
+        // Обработчик изменения типа задания
+        typeSelect.querySelector('select').addEventListener('change', (e) => {
+            this.updateDynamicFields(e.target.value, dynamicContainer, options);
+        });
+        
+        // Инициализация полей при первой загрузке
+        const initialType = options.taskType || 'multiple_choice';
+        this.updateDynamicFields(initialType, dynamicContainer, options);
+        
+        return container;
+    }
+    
+    /**
+     * Обновление динамических полей в зависимости от типа задания
+     * @private
+     */
+    updateDynamicFields(taskType, container, options) {
+        container.innerHTML = '';
+        
+        switch(taskType) {
+            case 'multiple_choice':
+            case 'single_choice':
+                this.renderChoiceFields(container, options);
+                break;
+            case 'matching':
+                this.renderMatchingFields(container, options);
+                break;
+        }
+    }
+    
+    /**
+     * Генерация полей для заданий с выбором ответа
+     * @private
+     */
+    renderChoiceFields(container, options) {
+        const optionsLabel = document.createElement('label');
+        optionsLabel.textContent = 'Варианты ответов (каждый с новой строки):';
+        
+        const optionsTextarea = document.createElement('textarea');
+        optionsTextarea.name = 'options';
+        optionsTextarea.rows = 5;
+        optionsTextarea.placeholder = 'Вариант 1\nВариант 2\nВариант 3';
+        
+        if (options.options && Array.isArray(options.options)) {
+            optionsTextarea.value = options.options.join('\n');
+        }
+        
+        const answerLabel = document.createElement('label');
+        answerLabel.textContent = 'Правильный ответ:';
+        
+        const answerInput = document.createElement('input');
+        answerInput.type = 'text';
+        answerInput.name = 'correctAnswer';
+        answerInput.placeholder = 'Введите правильный вариант';
+        answerInput.value = options.correctAnswer || '';
+        
+        container.appendChild(optionsLabel);
+        container.appendChild(optionsTextarea);
+        container.appendChild(answerLabel);
+        container.appendChild(answerInput);
+    }
+    
+    /**
+     * Генерация полей для заданий на сопоставление
+     * @private
+     */
+    renderMatchingFields(container, options) {
+        const pairsLabel = document.createElement('label');
+        pairsLabel.textContent = 'Пары для сопоставления (формат: ключ=значение, каждая пара с новой строки):';
+        
+        const pairsTextarea = document.createElement('textarea');
+        pairsTextarea.name = 'pairs';
+        pairsTextarea.rows = 5;
+        pairsTextarea.placeholder = 'Термин1=Определение1\nТермин2=Определение2';
+        
+        if (options.pairs && Array.isArray(options.pairs)) {
+            pairsTextarea.value = options.pairs.map(pair => `${pair.key}=${pair.value}`).join('\n');
+        }
+        
+        container.appendChild(pairsLabel);
+        pairsTextarea.appendChild(pairsTextarea);
+    }
+    
+    /**
+     * Создание поля выбора (select)
+     * @private
+     */
+    createSelectField(name, label, items, selectedValue) {
+        const container = document.createElement('div');
+        container.className = 'form-field';
+        
+        const labelEl = document.createElement('label');
+        labelEl.textContent = label;
+        
+        const select = document.createElement('select');
+        select.name = name;
+        
+        items.forEach(item => {
+            const option = document.createElement('option');
+            option.value = item.value;
+            option.textContent = item.text;
+            if (item.value === selectedValue) {
+                option.selected = true;
+            }
+            select.appendChild(option);
+        });
+        
+        container.appendChild(labelEl);
+        container.appendChild(select);
+        
+        return container;
+    }
+    
+    /**
+     * Создание текстового поля
+     * @private
+     */
+    createTextField(name, label, value) {
+        const container = document.createElement('div');
+        container.className = 'form-field';
+        
+        const labelEl = document.createElement('label');
+        labelEl.textContent = label;
+        
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.name = name;
+        input.value = value;
+        
+        container.appendChild(labelEl);
+        container.appendChild(input);
+        
+        return container;
+    }
+    
+    /**
+     * Получение данных из сгенерированных полей
+     * @param {HTMLElement} container - Контейнер с полями
+     * @returns {Object} Данные задания
+     */
+    getStandardTaskData(container) {
+        const data = {
+            taskType: container.querySelector('[name="taskType"]').value,
+            question: container.querySelector('[name="question"]').value
+        };
+        
+        const taskType = data.taskType;
+        
+        if (taskType === 'multiple_choice' || taskType === 'single_choice') {
+            const optionsText = container.querySelector('[name="options"]').value;
+            data.options = optionsText.split('\n').filter(opt => opt.trim() !== '');
+            data.correctAnswer = container.querySelector('[name="correctAnswer"]').value;
+        } else if (taskType === 'matching') {
+            const pairsText = container.querySelector('[name="pairs"]').value;
+            data.pairs = pairsText.split('\n')
+                .filter(pair => pair.trim() !== '')
+                .map(pair => {
+                    const [key, value] = pair.split('=');
+                    return {key: key?.trim(), value: value?.trim()};
+                });
+        }
+        
+        return data;
+    }
+}
+
+// Экспорт Renderer, если используется модульная система
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = Renderer;
+}
 
 
 // Экспортируем функцию для глобального использования
