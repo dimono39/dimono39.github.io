@@ -4,7 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>📊 Система анализа образовательных результатов</title>
-    
+    <script>
+		// Защита от встраивания скриптов расширений
+		if (typeof chrome !== 'undefined' && chrome.runtime && !chrome.runtime.id) {
+			// Это не расширение, а встраивание со стороны
+			console.warn('Обнаружено встраивание Chrome API без расширения');
+			// Создаем заглушку для problem API
+			chrome.runtime.sendMessage = undefined;
+		}
+	</script>
     <!-- Подключение библиотек -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@2.2.1/dist/chartjs-plugin-annotation.min.js"></script>

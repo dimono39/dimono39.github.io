@@ -58,37 +58,288 @@ class EducationAnalyticsApp {
     }
     
     // Резервные шаблоны на случай ошибки загрузки
-    getFallbackTemplate(name) {
-        const fallbacks = {
-            'header': `
-                <div class="header">
-                    <h1>📊 Система анализа образовательных результатов</h1>
-                    <p>Профессиональный анализ результатов контрольных, ВПР, ОГЭ, ЕГЭ и функциональной грамотности</p>
+	getFallbackTemplate(name) {
+		const templates = {
+			'header.html': `
+<header class="app-header">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-md-4">
+                <h1 class="app-title">📊 Education Analytics</h1>
+            </div>
+            <div class="col-md-8 text-md-end">
+                <nav class="main-nav">
+                    <a href="#" class="btn-nav" data-tab="setup">⚙️ Настройка</a>
+                    <a href="#" class="btn-nav" data-tab="tasks">📝 Задания</a>
+                    <a href="#" class="btn-nav" data-tab="students">👥 Учащиеся</a>
+                    <a href="#" class="btn-nav" data-tab="results">📊 Результаты</a>
+                    <a href="#" class="btn-nav" data-tab="analytics">📈 Аналитика</a>
+                    <a href="#" class="btn-nav" data-tab="viz">🎨 Визуализация</a>
+                    <a href="#" class="btn-nav" data-tab="recommend">💡 Рекомендации</a>
+                    <a href="#" class="btn-nav" data-tab="export">📤 Экспорт</a>
+                </nav>
+            </div>
+        </div>
+    </div>
+</header>`,
+
+			'tabs.html': `
+<div class="tabs-container">
+    <div class="tabs-header">
+        <div class="container">
+            <ul class="nav nav-tabs" id="mainTabs">
+                <li class="nav-item"><a class="nav-link active" data-tab="setup" href="#">⚙️ Настройка</a></li>
+                <li class="nav-item"><a class="nav-link" data-tab="tasks" href="#">📝 Задания</a></li>
+                <li class="nav-item"><a class="nav-link" data-tab="students" href="#">👥 Учащиеся</a></li>
+                <li class="nav-item"><a class="nav-link" data-tab="results" href="#">📊 Результаты</a></li>
+                <li class="nav-item"><a class="nav-link" data-tab="analytics" href="#">📈 Аналитика</a></li>
+                <li class="nav-item"><a class="nav-link" data-tab="viz" href="#">🎨 Визуализация</a></li>
+                <li class="nav-item"><a class="nav-link" data-tab="recommend" href="#">💡 Рекомендации</a></li>
+                <li class="nav-item"><a class="nav-link" data-tab="export" href="#">📤 Экспорт</a></li>
+            </ul>
+        </div>
+    </div>
+    <div class="tab-content container mt-4" id="tabContent"></div>
+</div>`,
+
+			'tab-setup.html': `
+<div class="tab-pane fade show active" id="tab-setup" role="tabpanel">
+    <h2>⚙️ Настройка анализа</h2>
+    <div class="card">
+        <div class="card-body">
+            <form id="setupForm">
+                <div class="mb-3">
+                    <label class="form-label">Название курса</label>
+                    <input type="text" class="form-control" placeholder="Введите название курса">
                 </div>
-            `,
-            'tabs': `
-                <div class="tabs no-print">
-                    <button class="tab-btn active" onclick="showTab('setup')">🎯 Настройки</button>
-                    <button class="tab-btn" onclick="showTab('tasks')">📝 Задания</button>
-                    <button class="tab-btn" onclick="showTab('students')">👥 Учащиеся</button>
-                    <button class="tab-btn" onclick="showTab('results')">📊 Результаты</button>
-                    <button class="tab-btn" onclick="showTab('analytics')">📈 Аналитика</button>
-                    <button class="tab-btn" onclick="showTab('visualization')">📊 Визуализация</button>
-                    <button class="tab-btn" onclick="showTab('recommendations')">💡 Рекомендации</button>
-                    <button class="tab-btn" onclick="showTab('export')">💾 Экспорт</button>
+                <div class="mb-3">
+                    <label class="form-label">Количество учащихся</label>
+                    <input type="number" class="form-control" value="25" min="1" max="100">
                 </div>
-            `,
-            'setup': `<div id="setup-content">Загрузка вкладки настроек...</div>`,
-            'modals': `
-                <div class="modal-overlay" id="modalOverlay">
-                    <div class="modal-content" id="modalContent"></div>
+                <button type="submit" class="btn btn-primary">Сохранить настройки</button>
+            </form>
+        </div>
+    </div>
+</div>`,
+
+			'tab-tasks.html': `
+<div class="tab-pane fade" id="tab-tasks" role="tabpanel">
+    <h2>📝 Управление заданиями</h2>
+    <div class="card">
+        <div class="card-body">
+            <button class="btn btn-success mb-3">+ Добавить задание</button>
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Название</th>
+                            <th>Тип</th>
+                            <th>Макс. балл</th>
+                            <th>Действия</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tasksList">
+                        <tr><td colspan="5" class="text-center">Задания не добавлены</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>`,
+
+			'tab-students.html': `
+<div class="tab-pane fade" id="tab-students" role="tabpanel">
+    <h2>👥 Список учащихся</h2>
+    <div class="card">
+        <div class="card-body">
+            <div class="mb-3">
+                <input type="text" class="form-control" placeholder="Поиск по имени или email...">
+            </div>
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Имя</th>
+                            <th>Email</th>
+                            <th>Группа</th>
+                            <th>Действия</th>
+                        </tr>
+                    </thead>
+                    <tbody id="studentsList">
+                        <tr><td colspan="5" class="text-center">Учащиеся не загружены</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>`,
+
+			'tab-results.html': `
+<div class="tab-pane fade" id="tab-results" role="tabpanel">
+    <h2>📊 Результаты выполнения</h2>
+    <div class="card">
+        <div class="card-body">
+            <div class="row mb-3">
+                <div class="col-md-4">
+                    <select class="form-select">
+                        <option>Все задания</option>
+                    </select>
                 </div>
-                <div class="notification" id="notification"></div>
-            `
-        };
-        
-        return fallbacks[name] || `<div>Шаблон "${name}" не загружен</div>`;
-    }
+                <div class="col-md-4">
+                    <select class="form-select">
+                        <option>Все учащиеся</option>
+                    </select>
+                </div>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Учащийся</th>
+                            <th>Задание</th>
+                            <th>Баллы</th>
+                            <th>Статус</th>
+                        </tr>
+                    </thead>
+                    <tbody id="resultsTable">
+                        <tr><td colspan="4" class="text-center">Нет данных для отображения</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>`,
+
+			'tab-analytics.html': `
+<div class="tab-pane fade" id="tab-analytics" role="tabpanel">
+    <h2>📈 Аналитика успеваемости</h2>
+    <div class="card">
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-8">
+                    <div class="chart-container">
+                        <canvas id="performanceChart"></canvas>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5>Статистика</h5>
+                            <ul class="list-unstyled">
+                                <li>Средний балл: <strong>--</strong></li>
+                                <li>Медиана: <strong>--</strong></li>
+                                <li>Завершено заданий: <strong>--</strong></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>`,
+
+			'tab-viz.html': `
+<div class="tab-pane fade" id="tab-viz" role="tabpanel">
+    <h2>🎨 Визуализация данных</h2>
+    <div class="card">
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="chart-container">
+                        <canvas id="distributionChart"></canvas>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="chart-container">
+                        <canvas id="progressChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>`,
+
+			'tab-recommend.html': `
+<div class="tab-pane fade" id="tab-recommend" role="tabpanel">
+    <h2>💡 Персонализированные рекомендации</h2>
+    <div class="card">
+        <div class="card-body">
+            <div class="alert alert-info">
+                <strong>Система рекомендаций</strong> анализирует успеваемость и предлагает индивидуальные задания.
+            </div>
+            <div id="recommendationsList">
+                <div class="card mb-2">
+                    <div class="card-body">
+                        <p class="mb-0">Загрузите данные учащихся и результаты для генерации рекомендаций.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>`,
+
+			'tab-export.html': `
+<div class="tab-pane fade" id="tab-export" role="tabpanel">
+    <h2>📤 Экспорт данных и отчетов</h2>
+    <div class="card">
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <div class="card h-100">
+                        <div class="card-body text-center">
+                            <h5>📄 CSV</h5>
+                            <p>Экспорт табличных данных</p>
+                            <button class="btn btn-outline-primary">Экспорт CSV</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <div class="card h-100">
+                        <div class="card-body text-center">
+                            <h5>📊 Excel</h5>
+                            <p>Полный отчет в Excel</p>
+                            <button class="btn btn-outline-success">Экспорт Excel</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <div class="card h-100">
+                        <div class="card-body text-center">
+                            <h5>📈 Графики</h5>
+                            <p>Изображения диаграмм</p>
+                            <button class="btn btn-outline-info">Экспорт PNG</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>`,
+
+			'modals.html': `
+<div class="modal fade" id="mainModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Модальное окно</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Содержимое модального окна</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+                <button type="button" class="btn btn-primary">Сохранить</button>
+            </div>
+        </div>
+    </div>
+</div>`
+		};
+		
+		return templates[name] || `<div class="alert alert-warning">Шаблон ${name} не найден</div>`;
+	}
     
     getAllFallbackTemplates() {
         return {
@@ -192,7 +443,7 @@ class EducationAnalyticsApp {
             console.log('🎉 Приложение успешно инициализировано!');
             
         } catch (error) {
-            console.error('❌ Критическая ошибка при инициализации:', throw error);
+            console.error('❌ Критическая ошибка при инициализации:', error);
             this.showError(error);
         }
     }
