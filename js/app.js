@@ -361,7 +361,7 @@ class EducationAnalyticsApp {
     buildAppStructure() {
         console.log('🏗️ Сборка HTML-структуры...');
         
-        const container = document.getElementById('app-container');
+        const container = document.querySelector('.container');
         if (!container) {
             console.error('❌ Контейнер приложения не найден');
             return false;
