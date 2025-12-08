@@ -720,6 +720,244 @@ function renderResults() {
     updateErrorsStats();
 }
 
+/**
+ * Рендерит настройки критериев по баллам
+ * @returns {string} HTML-разметка блока критериев по баллам
+ */
+function renderPointsCriteria() {
+    console.log('📊 Рендеринг критериев по баллам');
+    return `
+        <div class="criteria-settings">
+            <h4>Критерии по баллам</h4>
+            <div class="criteria-content">
+                <p>Настройте пороговые значения для оценки по количеству баллов:</p>
+                <div class="form-group">
+                    <label for="points-excellent">Отлично (от):</label>
+                    <input type="number" id="points-excellent" class="form-control" min="0" value="85">
+                </div>
+                <div class="form-group">
+                    <label for="points-good">Хорошо (от):</label>
+                    <input type="number" id="points-good" class="form-control" min="0" value="70">
+                </div>
+                <div class="form-group">
+                    <label for="points-satisfactory">Удовлетворительно (от):</label>
+                    <input type="number" id="points-satisfactory" class="form-control" min="0" value="50">
+                </div>
+                <button class="btn btn-primary btn-sm mt-2" onclick="savePointsCriteria()">Сохранить настройки</button>
+            </div>
+        </div>
+    `;
+}
+
+/**
+ * Рендерит настройки критериев по процентам
+ * @returns {string} HTML-разметка блока критериев по процентам
+ */
+function renderPercentageCriteria() {
+    console.log('📈 Рендеринг критериев по процентам');
+    return `
+        <div class="criteria-settings">
+            <h4>Критерии по процентам</h4>
+            <div class="criteria-content">
+                <p>Настройте процентные пороги для оценивания:</p>
+                <div class="form-group">
+                    <label for="percentage-excellent">Отлично (≥ %):</label>
+                    <input type="range" id="percentage-excellent" class="form-control-range" min="0" max="100" value="90">
+                    <span id="percentage-excellent-value">90%</span>
+                </div>
+                <div class="form-group">
+                    <label for="percentage-good">Хорошо (≥ %):</label>
+                    <input type="range" id="percentage-good" class="form-control-range" min="0" max="100" value="75">
+                    <span id="percentage-good-value">75%</span>
+                </div>
+                <div class="form-group">
+                    <label for="percentage-satisfactory">Удовлетворительно (≥ %):</label>
+                    <input type="range" id="percentage-satisfactory" class="form-control-range" min="0" max="100" value="60">
+                    <span id="percentage-satisfactory-value">60%</span>
+                </div>
+                <div class="alert alert-info mt-2">
+                    <small>Значения будут применяться ко всем заданиям автоматически</small>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+/**
+ * Рендерит пользовательские критерии оценивания
+ * @returns {string} HTML-разметка блока пользовательских критериев
+ */
+function renderCustomCriteria() {
+    console.log('🎨 Рендеринг пользовательских критериев');
+    return `
+        <div class="criteria-settings">
+            <h4>Пользовательские критерии</h4>
+            <div class="criteria-content">
+                <p>Создайте собственные критерии оценивания:</p>
+                <div id="custom-criteria-list">
+                    <div class="custom-criterion mb-3">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <input type="text" class="form-control form-control-sm" placeholder="Название критерия" value="Качество выполнения">
+                            <select class="form-control form-control-sm ml-2">
+                                <option value="points">Баллы</option>
+                                <option value="percentage">Проценты</option>
+                                <option value="text">Текстовый</option>
+                            </select>
+                            <input type="number" class="form-control form-control-sm ml-2" placeholder="Вес" value="1" min="0.1" step="0.1">
+                            <button class="btn btn-danger btn-sm ml-2" onclick="removeCriterion(this)">×</button>
+                        </div>
+                    </div>
+                </div>
+                <button class="btn btn-success btn-sm" onclick="addCustomCriterion()">+ Добавить критерий</button>
+                <div class="mt-3">
+                    <label>Способ агрегации:</label>
+                    <select class="form-control form-control-sm">
+                        <option value="average">Среднее значение</option>
+                        <option value="weighted">Взвешенная сумма</option>
+                        <option value="min">Минимальное значение</option>
+                        <option value="max">Максимальное значение</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+/**
+ * Рендерит стандартные критерии оценивания
+ * @returns {string} HTML-разметка блока стандартных критериев
+ */
+function renderStandardCriteria() {
+    console.log('🏛️ Рендеринг стандартных критериев');
+    return `
+        <div class="criteria-settings">
+            <h4>Стандартные критерии</h4>
+            <div class="criteria-content">
+                <p>Используются стандартные настройки оценивания.</p>
+                <ul class="list-group">
+                    <li class="list-group-item">5-балльная система (2-5)</li>
+                    <li class="list-group-item">Порог успешности: 60%</li>
+                    <li class="list-group-item">Автоматический пересчет в оценки</li>
+                    <li class="list-group-item">Учет веса заданий</li>
+                </ul>
+                <div class="alert alert-warning mt-3">
+                    <small><strong>Примечание:</strong> Эти настройки рекомендованы для большинства учебных курсов</small>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+/**
+ * Инициализирует настройки критериев оценивания
+ * @returns {void}
+ */
+function initCriteriaSettings() {
+    console.log('⚙️ Инициализация настроек критериев...');
+    
+    // Инициализация обработчиков событий
+    const initPercentageSliders = () => {
+        const sliders = ['percentage-excellent', 'percentage-good', 'percentage-satisfactory'];
+        sliders.forEach(sliderId => {
+            const slider = document.getElementById(sliderId);
+            const valueSpan = document.getElementById(sliderId + '-value');
+            if (slider && valueSpan) {
+                slider.addEventListener('input', function() {
+                    valueSpan.textContent = this.value + '%';
+                });
+            }
+        });
+    };
+    
+    // Инициализация после загрузки DOM
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initPercentageSliders);
+    } else {
+        initPercentageSliders();
+    }
+    
+    // Загрузка сохраненных настроек
+    setTimeout(() => {
+        const savedCriteria = localStorage.getItem('educationAnalytics_criteriaSettings');
+        if (savedCriteria) {
+            console.log('📂 Загружены сохраненные настройки критериев');
+            try {
+                const settings = JSON.parse(savedCriteria);
+                // Применение загруженных настроек
+                applyCriteriaSettings(settings);
+            } catch (e) {
+                console.error('Ошибка при загрузке настроек:', e);
+            }
+        }
+    }, 100);
+}
+
+// Вспомогательные функции для работы с критериями
+function savePointsCriteria() {
+    const excellent = document.getElementById('points-excellent')?.value || 85;
+    const good = document.getElementById('points-good')?.value || 70;
+    const satisfactory = document.getElementById('points-satisfactory')?.value || 50;
+    
+    const settings = {
+        type: 'points',
+        values: { excellent, good, satisfactory },
+        timestamp: new Date().toISOString()
+    };
+    
+    localStorage.setItem('educationAnalytics_criteriaSettings', JSON.stringify(settings));
+    console.log('💾 Настройки критериев по баллам сохранены:', settings);
+    showNotification('Настройки сохранены успешно!', 'success');
+}
+
+function addCustomCriterion() {
+    const container = document.getElementById('custom-criteria-list');
+    if (!container) return;
+    
+    const newCriterion = document.createElement('div');
+    newCriterion.className = 'custom-criterion mb-3';
+    newCriterion.innerHTML = `
+        <div class="d-flex justify-content-between align-items-center">
+            <input type="text" class="form-control form-control-sm" placeholder="Название критерия">
+            <select class="form-control form-control-sm ml-2">
+                <option value="points">Баллы</option>
+                <option value="percentage">Проценты</option>
+                <option value="text">Текстовый</option>
+            </select>
+            <input type="number" class="form-control form-control-sm ml-2" placeholder="Вес" value="1" min="0.1" step="0.1">
+            <button class="btn btn-danger btn-sm ml-2" onclick="removeCriterion(this)">×</button>
+        </div>
+    `;
+    
+    container.appendChild(newCriterion);
+}
+
+function removeCriterion(button) {
+    const criterion = button.closest('.custom-criterion');
+    if (criterion) {
+        criterion.remove();
+    }
+}
+
+function applyCriteriaSettings(settings) {
+    console.log('Применение настроек критериев:', settings);
+    // Здесь можно добавить логику применения настроек
+}
+
+function showNotification(message, type = 'info') {
+    // Простая реализация уведомлений
+    const notification = document.createElement('div');
+    notification.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+    notification.style.cssText = 'top: 20px; right: 20px; z-index: 9999;';
+    notification.innerHTML = `
+        ${message}
+        <button type="button" class="close" onclick="this.parentElement.remove()">
+            <span>&times;</span>
+        </button>
+    `;
+    document.body.appendChild(notification);
+    setTimeout(() => notification.remove(), 3000);
+}
+
 // 5. РЕНДЕР НАСТРОЕК КРИТЕРИЕВ (новая функция)
 function renderCriteriaSettings() {
     const container = document.getElementById('criteriaSettingsContainer');
