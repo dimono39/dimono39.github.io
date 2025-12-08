@@ -641,6 +641,9 @@ function hideModal() {
 }
 
 // Глобальный экспорт
+window.showTab = showTab;
+window.saveData = saveData;
+window.loadSampleData = loadSampleData;
 window.showModal = showModal;
 window.hideModal = hideModal;
 // Экспортируем функции в глобальную область видимости
