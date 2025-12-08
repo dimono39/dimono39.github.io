@@ -641,11 +641,6 @@ function hideModal() {
 }
 
 // Глобальный экспорт
-window.showTab = showTab;
-window.saveData = saveData;
-window.loadSampleData = loadSampleData;
-window.showModal = showModal;
-window.hideModal = hideModal;
 // Экспортируем функции в глобальную область видимости
 window.appData = appData;
 window.saveData = saveData;
@@ -664,6 +659,24 @@ window.updateCriteriaForWorkType = updateCriteriaForWorkType;
 window.getDefaultTaskCount = getDefaultTaskCount;
 window.updateTaskStatistics = updateTaskStatistics;
 window.updateStudentStatistics = updateStudentStatistics;
+// Экспорт глобальных функций
+window.showTab = showTab;
+window.saveData = saveData;
+window.loadSampleData = loadSampleData;
+window.addStudent = addStudent;
+window.removeStudent = removeStudent;
+window.addTask = addTask;
+window.removeTask = removeTask;
+window.showNotification = showNotification;
+window.showModal = showModal;
+window.hideModal = hideModal;
+window.clearAllData = function() {
+    if (confirm('Удалить все данные?')) {
+        localStorage.clear();
+        location.reload();
+    }
+};
+
 
 // Инициализируем при загрузке DOM
 if (!window.appInitialized) {

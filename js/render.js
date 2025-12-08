@@ -1111,6 +1111,27 @@ if (typeof module !== 'undefined' && module.exports) {
     module.exports = Renderer;
 }
 
+// Глобальная функция для совместимости
+function renderStandardTaskFields(task, index) {
+    // Простая заглушка для совместимости
+    const renderer = new Renderer();
+    const container = renderer.renderStandardTaskFields({
+        taskType: task.taskType || 'multiple_choice',
+        question: task.question || '',
+        options: task.options || [],
+        correctAnswer: task.correctAnswer || '',
+        pairs: task.pairs || []
+    });
+    return container.outerHTML;
+}
+
+// Экспортируем остальные нужные функции
+window.renderStandardTaskFields = renderStandardTaskFields;
+window.renderAll = renderAll;
+window.renderTestSettings = renderTestSettings;
+window.renderTasks = renderTasks;
+window.renderStudents = renderStudents;
+window.renderResults = renderResults;
 
 // Экспортируем функцию для глобального использования
 window.renderAll = renderAll;

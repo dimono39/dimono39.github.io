@@ -539,4 +539,4 @@ window.addEventListener('load', () => {
 });
 
 // Экспортируем для глобального использования
-window.app = window.EducationAnalytics;
+window.app = window.EducationAnalytics || {};
