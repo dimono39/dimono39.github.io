@@ -7392,27 +7392,18 @@
 		document.addEventListener('DOMContentLoaded', function() {
 			addVisualizationButton();
 		});
-
+		
 		function updateVisualization() {
+			console.log('=== ОБНОВЛЕНИЕ ВИЗУАЛИЗАЦИИ ===');
+			
 			try {
-				console.log('=== ОБНОВЛЕНИЕ ВИЗУАЛИЗАЦИИ ===');
+				// Проверяем, настроена ли вкладка visualization
+				const vizTab = document.getElementById('visualization');
+				const gradesChart = document.getElementById('gradesChart');
 				
-				// Проверяем, существуют ли canvas элементы
-				const requiredCanvasIds = ['gradesChart', 'solvabilityChart', 'complexityChart'];
-				const missingCanvas = requiredCanvasIds.filter(id => !document.getElementById(id));
-				
-				if (missingCanvas.length > 0) {
-					console.warn('Canvas элементы не найдены:', missingCanvas);
-					console.log('Создаем раздел с графиками...');
-					renderVisualizationSection();
-					return;
-				}
-				
-				console.log('Все canvas элементы найдены, продолжаем...');				
-				// Проверяем наличие данных
-				if (!appData.results || appData.results.length === 0) {
-					console.log('Нет данных для визуализации');
-					showNoDataMessage();
+				if (!gradesChart || !vizTab || vizTab.innerHTML.trim().length < 100) {
+					console.log('Вкладка visualization не настроена, настраиваем...');
+					setupVisualizationTab();
 					return;
 				}
 				
@@ -7433,7 +7424,7 @@
 							console.log('Инициализация графиков функциональной грамотности');
 							initLiteracyCharts();
 						} else if (appData.test.workType === 'psychology') {
-							console.log('Инициализация психологических графиков');
+							console.log('Инициализация психологических графики');
 							initPsychologyCharts();
 						}
 						
@@ -7454,8 +7445,35 @@
 				showNotification('Ошибка обновления визуализации', 'error');
 			}
 		}
-		// Добавьте эту функцию и вызовите ее в консоли
-		
+		// Найдите навигационные табы и добавьте обработчик
+		function setupTabsNavigation() {
+			const tabs = document.querySelectorAll('.nav-link');
+			tabs.forEach(tab => {
+				tab.addEventListener('click', function() {
+					const tabId = this.getAttribute('href')?.replace('#', '');
+					if (tabId === 'visualization') {
+						console.log('Переход на вкладку visualization');
+						
+						// Небольшая задержка для рендеринга DOM
+						setTimeout(() => {
+							if (document.getElementById('visualization').querySelectorAll('canvas').length === 0) {
+								console.log('Вкладка пустая, настраиваем...');
+								setupVisualizationTab();
+							} else {
+								console.log('Обновляем существующие графики...');
+								updateVisualization();
+							}
+						}, 100);
+					}
+				});
+			});
+		}
+
+		// Вызовите при загрузке
+		document.addEventListener('DOMContentLoaded', function() {
+			setupTabsNavigation();
+			console.log('Навигация по вкладкам настроена');
+		});
 
         // Обновление графиков
 		function updateCharts() {
@@ -7667,7 +7685,203 @@
 				}
 			});
 		}
+		function createAllCharts() {
+			// Проверяем наличие всех canvas элементов
+			const chartIds = ['gradesChart', 'solvabilityChart', 'complexityChart'];
+			
+			chartIds.forEach(id => {
+				if (!document.getElementById(id)) {
+					console.log(`Создаем canvas для ${id}...`);
+					createChartContainer(id);
+				}
+			});
+		}
 
+		function createChartContainer(chartId) {
+			const container = document.getElementById('chartsContainer') || createChartsSection();
+			
+			const chartContainer = document.createElement('div');
+			chartContainer.className = 'chart-container';
+			chartContainer.innerHTML = `
+				<h3>${getChartTitle(chartId)}</h3>
+				<div class="chart-wrapper">
+					<canvas id="${chartId}"></canvas>
+				</div>
+			`;
+			
+			container.appendChild(chartContainer);
+			return chartContainer;
+		}
+
+		function getChartTitle(chartId) {
+			const titles = {
+				'gradesChart': '📊 Распределение оценок',
+				'solvabilityChart': '📈 Решаемость заданий',
+				'complexityChart': '🎯 Сложность vs Решаемость'
+			};
+			return titles[chartId] || chartId;
+		}
+		// Добавьте в консоли
+		function findChartsContainer() {
+			console.log('=== ПОИСК КОНТЕЙНЕРА ГРАФИКОВ ===');
+			
+			// Возможные контейнеры
+			const possibleIds = [
+				'visualizationContainer', 'chartsContainer', 'graphsContainer',
+				'analyticsContainer', 'statisticsContainer', 'resultsCharts'
+			];
+			
+			const possibleClasses = [
+				'charts-section', 'graphs-section', 'visualization-section',
+				'analytics-tab', 'statistics-tab', 'chart-container'
+			];
+			
+			// Ищем по ID
+			console.log('Поиск по ID:');
+			possibleIds.forEach(id => {
+				const element = document.getElementById(id);
+				if (element) {
+					console.log(`✓ Найден: #${id}`, element);
+					console.log('  Внутренний HTML:', element.innerHTML.substring(0, 200) + '...');
+				}
+			});
+			
+			// Ищем по классам
+			console.log('\nПоиск по классам:');
+			possibleClasses.forEach(className => {
+				const elements = document.getElementsByClassName(className);
+				if (elements.length > 0) {
+					console.log(`✓ Найдены элементы с классом .${className}:`, elements.length);
+					console.log('  Первый элемент:', elements[0]);
+				}
+			});
+			
+			// Ищем все canvas
+			console.log('\nВсе canvas на странице:');
+			const allCanvas = document.getElementsByTagName('canvas');
+			console.log(`Всего canvas: ${allCanvas.length}`);
+			for (let i = 0; i < allCanvas.length; i++) {
+				const canvas = allCanvas[i];
+				console.log(`${i+1}. id="${canvas.id}", родитель:`, canvas.parentElement);
+			}
+			
+			// Ищем вкладки/табы
+			console.log('\nВсе вкладки (tabs):');
+			const tabs = document.querySelectorAll('[role="tab"], .tab-pane, .tab-content');
+			tabs.forEach(tab => {
+				console.log('Вкладка:', tab.id || tab.className, tab);
+			});
+		}
+
+		function setupVisualizationTab() {
+			console.log('=== НАСТРОЙКА ВКЛАДКИ ВИЗУАЛИЗАЦИИ ===');
+			
+			const vizTab = document.getElementById('visualization');
+			if (!vizTab) {
+				console.error('Вкладка visualization не найдена!');
+				return;
+			}
+			
+			// Очищаем вкладку
+			vizTab.innerHTML = '';
+			
+			// Заголовок
+			vizTab.innerHTML += `
+				<h2>📈 Визуализация результатов</h2>
+				
+				<div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+					<button class="btn btn-primary" onclick="updateVisualization()" style="margin-right: 10px;">
+						🔄 Обновить графики
+					</button>
+					<button class="btn btn-warning" onclick="exportAllCharts()" style="margin-right: 10px;">
+						📥 Экспорт всех графиков
+					</button>
+					<button class="btn" onclick="toggleDarkMode()" style="margin-right: 10px;">
+						🌙 Темный режим
+					</button>
+					<button class="btn" onclick="debugCharts()">
+						🐛 Отладка
+					</button>
+				</div>
+				
+				<div class="charts-grid" id="chartsGrid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 20px; margin-bottom: 30px;">
+					<!-- График 1: Распределение оценок -->
+					<div class="chart-card" style="background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+						<h3 style="margin-top: 0; margin-bottom: 15px; color: #2c3e50;">
+							📊 Распределение оценок
+						</h3>
+						<div style="position: relative; height: 300px;">
+							<canvas id="gradesChart"></canvas>
+						</div>
+						<p style="margin-top: 10px; font-size: 12px; color: #666; text-align: center;">
+							Распределение учащихся по полученным оценкам
+						</p>
+					</div>
+					
+					<!-- График 2: Решаемость заданий -->
+					<div class="chart-card" style="background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+						<h3 style="margin-top: 0; margin-bottom: 15px; color: #2c3e50;">
+							📈 Решаемость заданий
+						</h3>
+						<div style="position: relative; height: 300px;">
+							<canvas id="solvabilityChart"></canvas>
+						</div>
+						<p style="margin-top: 10px; font-size: 12px; color: #666; text-align: center;">
+							Процент выполнения каждого задания
+						</p>
+					</div>
+					
+					<!-- График 3: Сложность vs Решаемость -->
+					<div class="chart-card" style="background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+						<h3 style="margin-top: 0; margin-bottom: 15px; color: #2c3e50;">
+							🎯 Сложность vs Решаемость
+						</h3>
+						<div style="position: relative; height: 300px;">
+							<canvas id="complexityChart"></canvas>
+						</div>
+						<p style="margin-top: 10px; font-size: 12px; color: #666; text-align: center;">
+							Зависимость между уровнем сложности и процентом выполнения
+						</p>
+					</div>
+				</div>
+				
+				<!-- Тепловая карта -->
+				<div class="chart-card" style="background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin-bottom: 30px;">
+					<h3 style="margin-top: 0; margin-bottom: 15px; color: #2c3e50;">
+						🔥 Тепловая карта результатов
+					</h3>
+					<div id="heatmapContainer"></div>
+					<p style="margin-top: 10px; font-size: 12px; color: #666; text-align: center;">
+						Визуализация выполнения заданий каждым учащимся
+					</p>
+				</div>
+				
+				<!-- Дополнительные графики -->
+				<div id="additionalCharts"></div>
+			`;
+			
+			console.log('Вкладка visualization настроена');
+			
+			// Обновляем графики
+			setTimeout(() => {
+				updateVisualization();
+				console.log('Графики обновлены');
+			}, 500);
+		}
+
+		// Функция для экспорта графиков
+		function exportAllCharts() {
+			console.log('Экспорт графиков...');
+			// Реализуйте экспорт при необходимости
+			showNotification('Экспорт графиков', 'info');
+		}
+
+		// Функция для переключения темы
+		function toggleDarkMode() {
+			document.body.classList.toggle('dark-mode');
+			updateVisualization();
+			showNotification('Тема переключена', 'info');
+		}
 		function updateComplexityChart() {
 			const canvas = document.getElementById('complexityChart');
 			if (!canvas) {
