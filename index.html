@@ -9,7 +9,85 @@
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
-
+		/* Стили для QR-кода */
+		.qr-code-container {
+			position: fixed;
+			top: 20px;
+			right: 20px;
+			z-index: 9999;
+		}
+		
+		.qr-code-tooltip {
+			position: relative;
+			background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+			color: white;
+			padding: 10px 15px;
+			border-radius: 8px;
+			font-size: 12px;
+			font-weight: bold;
+			box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+			cursor: help;
+			transition: all 0.3s;
+			text-align: center;
+		}
+		
+		.qr-code-tooltip:hover {
+			transform: scale(1.05);
+			box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+		}
+		
+		.qr-code-tooltip:hover .qr-code-image {
+			opacity: 1;
+			visibility: visible;
+			transform: translateY(0);
+		}
+		
+		.qr-code-image {
+			position: absolute;
+			top: 100%;
+			right: 0;
+			margin-top: 10px;
+			opacity: 0;
+			visibility: hidden;
+			transform: translateY(-10px);
+			transition: all 0.3s;
+			z-index: 10000;
+			background: white;
+			padding: 10px;
+			border-radius: 8px;
+			box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+		}
+		
+		.qr-code-image img {
+			width: 150px;
+			height: 150px;
+			border: 2px solid #3498db;
+			border-radius: 5px;
+		}
+		
+		/* Адаптивность */
+		@media (max-width: 768px) {
+			.qr-code-container {
+				top: 10px;
+				right: 10px;
+			}
+			
+			.qr-code-tooltip {
+				font-size: 11px;
+				padding: 8px 12px;
+			}
+			
+			.qr-code-image {
+				position: fixed;
+				top: 50%;
+				left: 50%;
+				transform: translate(-50%, -50%) scale(0.9);
+			}
+			
+			.qr-code-tooltip:hover .qr-code-image {
+				transform: translate(-50%, -50%) scale(1);
+			}
+		}
         * {
             box-sizing: border-box;
             margin: 0;
@@ -909,7 +987,7 @@
             <h1>📊 Система анализа образовательных результатов</h1>
             <p>Профессиональный анализ результатов контрольных, ВПР, ОГЭ, ЕГЭ и функциональной грамотности</p>
         </div>
-
+		
         <div class="tabs no-print">
             <button class="tab-btn active" onclick="showTab('setup')">🎯 Настройки работы</button>
             <button class="tab-btn" onclick="showTab('tasks')">📝 Таксономия заданий</button>
@@ -921,6 +999,19 @@
             <button class="tab-btn" onclick="showTab('export')">💾 Экспорт</button>
         </div>
 
+		<!-- QR-код для поддержки автора -->
+		<div class="qr-code-container no-print">
+			<div class="qr-code-tooltip">
+				Поддержать автора 💖
+				<div class="qr-code-image">
+					<!-- Вставьте URL вашего QR-кода или сгенерируйте его -->
+					<img src="qr.jpg" 
+						 alt="QR-код для поддержки автора" 
+						 title="Сканируйте QR-код для поддержки проекта">
+				</div>
+			</div>
+		</div>
+		
         <!-- Вкладка настройки теста -->
         <div id="setup" class="tab-content active">
             <h2>🎯 Настройки диагностической работы</h2>
