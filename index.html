@@ -699,6 +699,199 @@
             background: #d1ecf1; 
             border-left-color: #3498db; 
         }
+		
+		/* ==================== УЛУЧШЕННЫЕ СТИЛИ ДЛЯ ПЕЧАТИ ==================== */
+		@media print {
+			/* Скрываем непечатаемые элементы */
+			.no-print, .tabs, .tab-btn, .btn, .search-box, 
+			input, select, textarea, .modal-overlay, .notification {
+				display: none !important;
+			}
+			
+			/* Базовые настройки страницы */
+			@page {
+				size: A4;
+				margin: 15mm;
+				orphans: 3;
+				widows: 3;
+			}
+			
+			/* Настройки для всех страниц */
+			body {
+				font-size: 12pt !important;
+				line-height: 1.4 !important;
+				color: black !important;
+				background: white !important;
+				padding: 0 !important;
+				margin: 0 !important;
+			}
+			
+			/* Контейнер для А4 */
+			.container {
+				width: 210mm !important;
+				max-width: 210mm !important;
+				min-height: 297mm !important;
+				margin: 0 !important;
+				padding: 0 !important;
+				box-shadow: none !important;
+				border: none !important;
+				background: white !important;
+			}
+			
+			/* Управление разрывами страниц */
+			.page-break-before {
+				page-break-before: always;
+			}
+			
+			.page-break-after {
+				page-break-after: always;
+			}
+			
+			.avoid-break-inside {
+				page-break-inside: avoid;
+				break-inside: avoid;
+			}
+			
+			/* Заголовки */
+			.header {
+				background: #2c3e50 !important;
+				color: white !important;
+				padding: 10mm !important;
+				margin-bottom: 5mm !important;
+				text-align: center !important;
+				page-break-after: avoid;
+			}
+			
+			.header h1 {
+				font-size: 18pt !important;
+				margin-bottom: 3mm !important;
+			}
+			
+			/* Контент вкладок */
+			.tab-content {
+				display: block !important;
+				padding: 0 !important;
+				min-height: auto !important;
+				page-break-after: always;
+			}
+			
+			.tab-content:last-of-type {
+				page-break-after: auto;
+			}
+			
+			/* Заголовки разделов */
+			.section-title {
+				color: #2c3e50 !important;
+				font-size: 14pt !important;
+				font-weight: bold !important;
+				margin: 8mm 0 4mm 0 !important;
+				padding-bottom: 2mm !important;
+				border-bottom: 1pt solid #3498db !important;
+				page-break-after: avoid;
+			}
+			
+			/* Графики */
+			.chart-container {
+				page-break-inside: avoid;
+				break-inside: avoid;
+				margin: 5mm 0 !important;
+				padding: 3mm !important;
+				border: 0.5pt solid #ddd !important;
+				background: white !important;
+			}
+			
+			canvas {
+				max-width: 100% !important;
+				height: auto !important;
+			}
+			
+			/* Таблицы */
+			table {
+				font-size: 10pt !important;
+				page-break-inside: avoid;
+				break-inside: avoid;
+				width: 100% !important;
+				margin: 3mm 0 !important;
+			}
+			
+			th, td {
+				padding: 1.5mm 2mm !important;
+				border: 0.5pt solid #ddd !important;
+				text-align: left !important;
+			}
+			
+			th {
+				background: #f8f9fa !important;
+				color: black !important;
+				font-weight: bold !important;
+				border-bottom: 1pt solid #2c3e50 !important;
+			}
+			
+			/* KPI карточки */
+			.kpi-grid {
+				grid-template-columns: repeat(4, 1fr) !important;
+				gap: 3mm !important;
+				margin: 3mm 0 !important;
+				page-break-inside: avoid;
+			}
+			
+			.kpi-card {
+				padding: 3mm !important;
+				margin: 2mm 0 !important;
+				border-left: 3pt solid #3498db !important;
+				page-break-inside: avoid;
+			}
+			
+			/* Тепловая карта */
+			.heatmap-cell {
+				font-size: 9pt !important;
+				padding: 1mm !important;
+				text-align: center !important;
+			}
+			
+			/* Рекомендации */
+			.recommendation-card {
+				background: #f8f9fa !important;
+				padding: 3mm !important;
+				margin: 2mm 0 !important;
+				border-left: 3pt solid #3498db !important;
+				page-break-inside: avoid;
+			}
+			
+			/* Нумерация страниц */
+			.page-number {
+				position: fixed;
+				bottom: 10mm;
+				right: 15mm;
+				font-size: 10pt;
+				color: #666;
+			}
+			
+			/* Оптимизация для плотных отчетов */
+			.compact-table {
+				font-size: 9pt !important;
+			}
+			
+			.compact-table th, 
+			.compact-table td {
+				padding: 1mm !important;
+			}
+			
+			/* Скрыть пустые элементы */
+			.empty-section {
+				display: none !important;
+			}
+			
+			/* Оптимизация для графиков */
+			.chart-legend {
+				font-size: 9pt !important;
+				margin-top: 2mm !important;
+			}
+			
+			.legend-item {
+				margin-bottom: 1mm !important;
+			}
+		}		
     </style>
 </head>
 <body>
@@ -875,6 +1068,7 @@
             <button class="btn btn-success" onclick="saveTestSettings()">💾 Сохранить настройки</button>
             <button class="btn btn-warning" onclick="loadSampleData()">🔄 Загрузить пример</button>
             <button class="btn" onclick="restoreBackupDialog()">💾 Восстановить резервную копию</button>
+			<button class="btn btn-danger" onclick="showResetDialog()">⚠️ Сброс всех данных</button>
         </div>
 
         <!-- Вкладка таксономии заданий -->
@@ -1018,6 +1212,13 @@
                 <button class="btn" onclick="showBulkEditScores()">📝 Массовое редактирование</button>
                 <button class="btn" onclick="initAdvancedSearch()">🔍 Расширенный поиск</button>
 				<button class="btn" onclick="printPsychologyReport()">🧠 Печать псих. заключения</button>
+				<button class="btn" onclick="exportAppData('json')">💾 Экспорт всех данных (JSON)</button>
+				<button class="btn btn-danger" onclick="showResetDialog()">⚠️ Сброс всех данных</button>
+				<button class="btn btn-danger" onclick="showResetDialog()">⚠️ Сброс всех данных</button>
+
+				<!-- Скрытый input для импорта -->
+				<input type="file" id="fileImport" accept=".json" style="display: none;" onchange="handleFileImport(event)">
+				<button class="btn" onclick="document.getElementById('fileImport').click()">📤 Импорт данных</button>
             </div>
 
             <div class="chart-container">
@@ -1140,6 +1341,64 @@
         };
 
         // ==================== ФУНКЦИОНАЛЬНЫЕ РЕШЕНИЯ ====================
+
+		// ==================== ЗАЩИТА ОТ ОШИБОК В ВЫЧИСЛЕНИЯХ ====================
+		function safeCalculateGrade(totalScore) {
+			try {
+				if (typeof totalScore !== 'number' || isNaN(totalScore)) {
+					return 2;
+				}
+				
+				if (!appData.test || !appData.test.criteria) {
+					return 2;
+				}
+				
+				// Ищем подходящую оценку
+				for (let grade of [5, 4, 3, 2]) {
+					const criteria = appData.test.criteria[grade];
+					if (criteria && 
+						typeof criteria.min === 'number' && 
+						typeof criteria.max === 'number' &&
+						totalScore >= criteria.min && 
+						totalScore <= criteria.max) {
+						return grade;
+					}
+				}
+				
+				return 2; // По умолчанию
+			} catch (error) {
+				console.warn('Ошибка расчета оценки:', error);
+				return 2;
+			}
+		}
+
+		function safeCalculatePercentage(score, max) {
+			try {
+				if (typeof score !== 'number' || isNaN(score) || 
+					typeof max !== 'number' || isNaN(max) || max <= 0) {
+					return 0;
+				}
+				
+				const percentage = (score / max) * 100;
+				return Math.min(Math.max(percentage, 0), 100); // Ограничиваем 0-100%
+			} catch (error) {
+				console.warn('Ошибка расчета процента:', error);
+				return 0;
+			}
+		}
+
+		function safeArrayReduce(arr, callback, initialValue) {
+			try {
+				if (!Array.isArray(arr) || arr.length === 0) {
+					return initialValue || 0;
+				}
+				
+				return arr.reduce(callback, initialValue);
+			} catch (error) {
+				console.warn('Ошибка в reduce:', error);
+				return initialValue || 0;
+			}
+		}
 
         // 1. АВТОСОХРАНЕНИЕ И РЕЗЕРВНОЕ КОПИРОВАНИЕ
         let saveTimeout;
@@ -5813,37 +6072,221 @@
 			}
 		}
 
+		// ==================== ЕДИНАЯ СИСТЕМА ЭКСПОРТА/ИМПОРТА ====================
+		function exportAppData(format = 'json') {
+			try {
+				// Создаем копию данных
+				const exportData = {
+					version: '2.0',
+					timestamp: new Date().toISOString(),
+					appData: JSON.parse(JSON.stringify(appData)),
+					metadata: {
+						testCount: appData.tasks.length,
+						studentCount: appData.students.length,
+						errorCount: appData.errors.length,
+						avgScore: calculateAverageScore().toFixed(2)
+					}
+				};
+				
+				const dataStr = JSON.stringify(exportData, null, 2);
+				
+				if (format === 'json') {
+					// Создаем и скачиваем файл
+					const blob = new Blob([dataStr], { type: 'application/json' });
+					const url = URL.createObjectURL(blob);
+					const a = document.createElement('a');
+					a.href = url;
+					a.download = `анализ_${appData.test.subject || 'данные'}_${new Date().toISOString().slice(0, 10)}.json`;
+					a.click();
+					URL.revokeObjectURL(url);
+					
+					showNotification('Данные экспортированы в JSON', 'success');
+					return true;
+				}
+				
+				return false;
+				
+			} catch (error) {
+				console.error('Ошибка экспорта:', error);
+				showNotification('Ошибка экспорта данных', 'error');
+				return false;
+			}
+		}
+
+		function importAppData(jsonString) {
+			try {
+				const importedData = JSON.parse(jsonString);
+				
+				// Проверяем версию и структуру
+				if (!importedData.appData) {
+					throw new Error('Некорректный формат данных');
+				}
+				
+				// Создаем резервную копию
+				createBackup();
+				
+				// Обновляем данные
+				Object.assign(appData, importedData.appData);
+				
+				// Инициализируем недостающие поля
+				initializeAppData();
+				
+				// Сохраняем
+				saveData();
+				renderAll();
+				
+				showNotification('Данные успешно импортированы', 'success');
+				return true;
+				
+			} catch (error) {
+				console.error('Ошибка импорта:', error);
+				showNotification('Ошибка импорта данных. Проверьте формат файла.', 'error');
+				return false;
+			}
+		}
+
+		function handleFileImport(event) {
+			const file = event.target.files[0];
+			if (!file) return;
+			
+			const reader = new FileReader();
+			reader.onload = function(e) {
+				if (confirm('Импортировать данные из файла? Текущие данные будут заменены.')) {
+					importAppData(e.target.result);
+				}
+			};
+			reader.readAsText(file);
+			
+			// Сбрасываем input
+			event.target.value = '';
+		}
+		
+		// ==================== НАДЕЖНАЯ ИНИЦИАЛИЗАЦИЯ ДАННЫХ ====================
+		function initializeAppData() {
+			try {
+				// Проверяем существование appData
+				if (!window.appData) {
+					window.appData = {
+						test: {},
+						tasks: [],
+						students: [],
+						results: [],
+						errors: [],
+						psychologyFeatures: []
+					};
+				}
+				
+				// Инициализируем обязательные поля теста
+				const defaultTest = {
+					subject: "",
+					class: "",
+					testDate: new Date().toISOString().split('T')[0],
+					theme: "",
+					goals: "",
+					workType: "current",
+					workFormat: "mixed",
+					timeLimit: 45,
+					totalStudents: 25,
+					presentStudents: 23,
+					absentReason: "",
+					criteria: {
+						5: { min: 18, max: 20 },
+						4: { min: 15, max: 17 },
+						3: { min: 10, max: 14 },
+						2: { min: 0, max: 9 }
+					},
+					criteriaType: 'points',
+					criteriaSystem: 'standard',
+					customCriteria: [],
+					criteriaCount: 4,
+					criteriaScale: '2-5'
+				};
+				
+				// Объединяем с существующими данными
+				appData.test = { ...defaultTest, ...(appData.test || {}) };
+				
+				// Убеждаемся, что все массивы существуют
+				appData.tasks = appData.tasks || [];
+				appData.students = appData.students || [];
+				appData.results = appData.results || [];
+				appData.errors = appData.errors || [];
+				appData.psychologyFeatures = appData.psychologyFeatures || [];
+				
+				console.log('Данные успешно инициализированы');
+				return true;
+				
+			} catch (error) {
+				console.error('Ошибка инициализации данных:', error);
+				// Создаем минимальную структуру при критической ошибке
+				window.appData = {
+					test: {
+						subject: "Новый тест",
+						class: "5А",
+						testDate: new Date().toISOString().split('T')[0],
+						criteria: {
+							5: { min: 18, max: 20 },
+							4: { min: 15, max: 17 },
+							3: { min: 10, max: 14 },
+							2: { min: 0, max: 9 }
+						}
+					},
+					tasks: [],
+					students: [],
+					results: [],
+					errors: [],
+					psychologyFeatures: []
+				};
+				return false;
+			}
+		}		
+		
 		// ОБНОВЛЯЕМ ИНИЦИАЛИЗАЦИЮ ПРИ ЗАГРУЗКЕ
 		document.addEventListener('DOMContentLoaded', function() {
 			try {
-				// Даем время на полную загрузку DOM
-				setTimeout(() => {
-					initializeDefaultData();
-					loadData();
-					
-					// Проверяем, есть ли данные
-					if (appData.tasks.length === 0 || appData.students.length === 0) {
-						loadSampleData();
-					} else {
-						renderAll();
-					}
-					
-					// Показываем первую вкладку
-					showTab('setup');
-					
-					console.log('Система успешно инициализирована');
-				}, 100);
+				// Инициализируем данные
+				initializeAppData();
+				
+				// Загружаем сохраненные данные
+				loadData();
+				
+				// Проверяем целостность данных
+				if (appData.tasks.length === 0 || appData.students.length === 0) {
+					console.log('Загружаем пример данных...');
+					loadSampleData();
+				} else {
+					console.log('Восстанавливаем сохраненные данные...');
+					renderAll();
+				}
+				
+				// Показываем первую вкладку
+				showTab('setup');
+				
+				// Добавляем глобальный обработчик ошибок
+				window.addEventListener('error', function(event) {
+					console.error('Глобальная ошибка:', event.error);
+					showNotification('Обнаружена ошибка в системе', 'error');
+				});
+				
+				// Обработчик ошибок Promise
+				window.addEventListener('unhandledrejection', function(event) {
+					console.error('Необработанная ошибка Promise:', event.reason);
+					showNotification('Ошибка выполнения операции', 'error');
+				});
+				
+				console.log('✅ Система успешно инициализирована');
 				
 			} catch (error) {
-				console.error('Критическая ошибка при загрузке:', error);
-				showNotification('Ошибка загрузки системы. Попробуйте обновить страницу.', 'error');
+				console.error('❌ Критическая ошибка при загрузке:', error);
 				
-				// Пробуем восстановить данные
+				// Пытаемся восстановить
 				try {
-					initializeDefaultData();
-					renderAll();
+					localStorage.removeItem('testAnalyticsData');
+					initializeAppData();
+					loadSampleData();
+					showNotification('Система восстановлена после сбоя', 'warning');
 				} catch (recoveryError) {
-					console.error('Не удалось восстановить данные:', recoveryError);
+					console.error('Не удалось восстановить:', recoveryError);
+					alert('Критическая ошибка системы. Пожалуйста, обновите страницу.');
 				}
 			}
 		});
@@ -6855,20 +7298,53 @@
 
         // ==================== ВИЗУАЛИЗАЦИЯ ====================
 
-        function updateVisualization() {
-            setTimeout(() => {
-                updateCharts();
-                updateHeatmap();
-                updateSolvabilityChart();
-                
-                if (appData.test.workType === 'func_literacy') {
-                    updateLiteracyVisualization();
-                }
-            }, 100);
-			if (appData.test.workType === 'psychology') {
-				updatePsychologyVisualization();
+		function updateVisualization() {
+			try {
+				// Уничтожаем старые графики
+				destroyAllCharts();
+				
+				// Ждем рендеринга DOM
+				setTimeout(() => {
+					// Проверяем существование canvas элементов
+					const chartsToInitialize = [
+						{ id: 'gradesChart', func: initGradesChart },
+						{ id: 'solvabilityChart', func: initSolvabilityChart },
+						{ id: 'complexityChart', func: initComplexityChart }
+					];
+					
+					chartsToInitialize.forEach(({ id, func }) => {
+						const canvas = document.getElementById(id);
+						if (canvas) {
+							try {
+								func();
+							} catch (error) {
+								console.error(`Ошибка инициализации графика ${id}:`, error);
+								canvas.parentElement.innerHTML += 
+									`<p style="color: #e74c3c;">Ошибка отображения графика</p>`;
+							}
+						}
+					});
+					
+					// Обновляем тепловую карту
+					updateHeatmap();
+					
+					// Проверяем специализированные графики
+					if (appData.test.workType === 'func_literacy') {
+						initLiteracyCharts();
+					} else if (appData.test.workType === 'psychology') {
+						initPsychologyCharts();
+					}
+					
+					// Принудительный ресайз после загрузки
+					setTimeout(safeResizeCharts, 500);
+					
+				}, 100);
+				
+			} catch (error) {
+				console.error('Критическая ошибка в updateVisualization:', error);
+				showNotification('Ошибка обновления визуализации', 'error');
 			}
-        }
+		}
 
         // Обновление графиков
         function updateCharts() {
@@ -7024,38 +7500,144 @@
             }
         }
 
-        function destroyAllCharts() {
-            const chartInstances = [
-                window.gradesChartInstance,
-                window.complexityChartInstance,
-                window.solvabilityChartInstance,
-                window.literacyChartInstance,
-                window.literacyRadarChartInstance,
-                window.trendChartInstance
-            ];
-            
-            chartInstances.forEach(instance => {
-                if (instance) {
-                    instance.destroy();
-                }
-            });
-            
-            window.gradesChartInstance = null;
-            window.complexityChartInstance = null;
-            window.solvabilityChartInstance = null;
-            window.literacyChartInstance = null;
-            window.literacyRadarChartInstance = null;
-            window.trendChartInstance = null;
-            
-            const canvases = document.querySelectorAll('canvas');
-            canvases.forEach(canvas => {
-                const ctx = canvas.getContext('2d');
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-                canvas.width = canvas.offsetWidth;
-                canvas.height = canvas.offsetHeight;
-            });
-        }
+		function destroyAllCharts() {
+			// Список всех возможных графиков
+			const chartInstances = [
+				'gradesChartInstance',
+				'complexityChartInstance',
+				'solvabilityChartInstance',
+				'literacyChartInstance',
+				'literacyRadarChartInstance',
+				'trendChartInstance',
+				'psychologyProfileChartInstance',
+				'normDistributionChartInstance',
+				'radarChartInstance'
+			];
+			
+			chartInstances.forEach(chartName => {
+				if (window[chartName]) {
+					try {
+						window[chartName].destroy();
+						window[chartName] = null;
+					} catch (error) {
+						console.warn(`Не удалось удалить график ${chartName}:`, error);
+					}
+				}
+			});
+		}
 
+		// Добавить обработчик resize
+		window.addEventListener('resize', debounce(safeResizeCharts, 250));
+
+		function debounce(func, wait) {
+			let timeout;
+			return function executedFunction(...args) {
+				const later = () => {
+					clearTimeout(timeout);
+					func(...args);
+				};
+				clearTimeout(timeout);
+				timeout = setTimeout(later, wait);
+			};
+		}
+
+		// ==================== СБРОС ДАННЫХ ====================
+		function resetAppData() {
+			if (confirm('Вы уверены, что хотите сбросить все данные?\nЭто действие невозможно отменить.')) {
+				try {
+					// Создаем резервную копию перед сбросом
+					const backupKey = `backup_pre_reset_${new Date().toISOString().replace(/[:.]/g, '-')}`;
+					localStorage.setItem(backupKey, JSON.stringify({
+						data: JSON.parse(JSON.stringify(appData)),
+						timestamp: new Date().toLocaleString(),
+						reason: 'pre-reset'
+					}));
+					
+					// Полностью очищаем данные
+					localStorage.removeItem('testAnalyticsData');
+					
+					// Удаляем все резервные копии, кроме последней
+					const backups = Object.keys(localStorage)
+						.filter(key => key.startsWith('backup_'))
+						.sort()
+						.reverse()
+						.slice(1);
+					
+					backups.forEach(key => localStorage.removeItem(key));
+					
+					// Перезагружаем страницу
+					location.reload();
+					
+				} catch (error) {
+					console.error('Ошибка при сбросе данных:', error);
+					showNotification('Ошибка при сбросе данных', 'error');
+				}
+			}
+		}
+
+		function showResetDialog() {
+			const html = `
+				<h3>⚠️ Сброс данных системы</h3>
+				
+				<div style="background: #fff3cd; padding: 15px; border-radius: 8px; margin: 15px 0;">
+					<h4 style="color: #856404;">Внимание!</h4>
+					<p>Это действие удалит:</p>
+					<ul style="margin: 10px 0; padding-left: 20px;">
+						<li>Все настройки тестов</li>
+						<li>Списки учащихся</li>
+						<li>Результаты и оценки</li>
+						<li>Аналитику и отчеты</li>
+					</ul>
+					<p><strong>Данное действие необратимо!</strong></p>
+				</div>
+				
+				<div style="background: #d1ecf1; padding: 15px; border-radius: 8px; margin: 15px 0;">
+					<h4>📋 Рекомендуемые действия перед сбросом:</h4>
+					<ol style="margin: 10px 0; padding-left: 20px;">
+						<li>Экспортируйте важные данные</li>
+						<li>Сохраните нужные отчеты</li>
+						<li>Убедитесь, что у вас есть резервные копии</li>
+					</ol>
+				</div>
+				
+				<div style="margin-top: 20px;">
+					<button class="btn" onclick="exportAppData('json')" style="margin-right: 10px;">
+						💾 Сначала экспортировать данные
+					</button>
+					<button class="btn btn-danger" onclick="resetAppData()">
+						⚠️ Сбросить все данные
+					</button>
+				</div>
+			`;
+			
+			showModal('Сброс данных системы', html);
+		}
+
+		
+		function safeResizeCharts() {
+			// Ждем следующего кадра анимации
+			requestAnimationFrame(() => {
+				const chartInstances = [
+					window.gradesChartInstance,
+					window.complexityChartInstance,
+					window.solvabilityChartInstance,
+					window.trendChartInstance,
+					window.psychologyProfileChartInstance,
+					window.normDistributionChartInstance,
+					window.radarChartInstance
+				];
+				
+				chartInstances.forEach(chart => {
+					if (chart) {
+						try {
+							chart.resize();
+						} catch (error) {
+							console.warn('Ошибка при изменении размера графика:', error);
+						}
+					}
+				});
+			});
+		}
         // Улучшенный график коридора решаемости
         function updateSolvabilityChart() {
             const taskStats = [];
@@ -10800,6 +11382,7 @@
 					<button class="btn btn-warning" onclick="simpleImport()">📥 Импорт (простой)</button>
 					<button class="btn" onclick="simpleImportExport()">🔄 Простой импорт/экспорт</button>
 					<button class="btn" onclick="createTestImportFile()">🧪 Тестовый файл</button>
+					<button class="btn btn-danger" onclick="showResetDialog()">⚠️ Сброс всех данных</button>
 				`;
 			}
 		}
@@ -12875,6 +13458,9 @@
         <p>Отчет сгенерирован ${new Date().toLocaleDateString()}</p>
         <p>Система анализа образовательных результатов</p>
     </div>
+	<div id="globalError" style="display: none; position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: #e74c3c; color: white; padding: 15px; border-radius: 8px; z-index: 9999; box-shadow: 0 5px 15px rgba(0,0,0,0.3);">
+    ⚠️ Произошла ошибка. Пожалуйста, обновите страницу.
+</div>
 </body>
 </html>`;
         }
