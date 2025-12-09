@@ -9,6 +9,7 @@
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
+
         * {
             box-sizing: border-box;
             margin: 0;
@@ -7513,6 +7514,23 @@
 			
 			console.log('Создание графика оценок...');
 			
+			// Проверяем, нет ли уже активного графика на этом canvas
+			const existingChart = Chart.getChart(canvas);
+			if (existingChart) {
+				console.log(`На canvas ${canvas.id} уже есть график с ID ${existingChart.id}, уничтожаем...`);
+				existingChart.destroy();
+			}
+			
+			// Проверяем canvas контекст
+			if (!canvas.getContext) {
+				console.error('Canvas не поддерживает getContext');
+				return;
+			}
+			
+
+			
+			console.log('Создание графика оценок...');
+			
 			const totalScores = appData.results.map(scores => 
 				scores.reduce((sum, score) => sum + (parseInt(score) || 0), 0)
 			);
@@ -7870,10 +7888,535 @@
 		}
 
 		// Функция для экспорта графиков
-		function exportAllCharts() {
-			console.log('Экспорт графиков...');
-			// Реализуйте экспорт при необходимости
-			showNotification('Экспорт графиков', 'info');
+		// Основная функция экспорта всех графиков
+		async function exportAllCharts() {
+			try {
+				console.log('=== ЭКСПОРТ ГРАФИКОВ ===');
+				
+				// Показываем меню выбора формата
+				showExportMenu();
+				
+			} catch (error) {
+				console.error('Ошибка экспорта графиков:', error);
+				showNotification('Ошибка экспорта графиков', 'error');
+			}
+		}
+
+		// Меню выбора формата экспорта
+		function showExportMenu() {
+			const menuHtml = `
+				<div class="modal" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; display: flex; align-items: center; justify-content: center;">
+					<div style="background: white; padding: 25px; border-radius: 10px; max-width: 500px; width: 90%; max-height: 90vh; overflow-y: auto;">
+						<h3 style="margin-top: 0; color: #2c3e50;">📥 Экспорт графиков</h3>
+						
+						<div style="margin-bottom: 20px;">
+							<p style="color: #666; margin-bottom: 15px;">Выберите формат экспорта:</p>
+							
+							<div class="export-options" style="display: grid; grid-template-columns: 1fr; gap: 10px;">
+								<button class="btn btn-primary" onclick="exportChartsAsPNG()" style="text-align: left; padding: 15px;">
+									<div style="display: flex; align-items: center;">
+										<span style="font-size: 24px; margin-right: 10px;">🖼️</span>
+										<div>
+											<strong>PNG изображения</strong><br>
+											<small>Отдельные файлы для каждого графика</small>
+										</div>
+									</div>
+								</button>
+								
+								<button class="btn btn-primary" onclick="exportChartsAsPDF()" style="text-align: left; padding: 15px;">
+									<div style="display: flex; align-items: center;">
+										<span style="font-size: 24px; margin-right: 10px;">📄</span>
+										<div>
+											<strong>PDF отчет</strong><br>
+											<small>Все графики в одном PDF файле</small>
+										</div>
+									</div>
+								</button>
+								
+								<button class="btn btn-primary" onclick="exportChartsAsSingleImage()" style="text-align: left; padding: 15px;">
+									<div style="display: flex; align-items: center;">
+										<span style="font-size: 24px; margin-right: 10px;">🖼️</span>
+										<div>
+											<strong>Одно изображение</strong><br>
+											<small>Все графики в одном PNG файле</small>
+										</div>
+									</div>
+								</button>
+								
+								<button class="btn" onclick="copyChartsToClipboard()" style="text-align: left; padding: 15px;">
+									<div style="display: flex; align-items: center;">
+										<span style="font-size: 24px; margin-right: 10px;">📋</span>
+										<div>
+											<strong>В буфер обмена</strong><br>
+											<small>Копировать как изображение</small>
+										</div>
+									</div>
+								</button>
+							</div>
+						</div>
+						
+						<div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
+							<button class="btn" onclick="closeExportMenu()" style="padding: 8px 20px;">
+								Отмена
+							</button>
+						</div>
+					</div>
+				</div>
+			`;
+			
+			document.body.insertAdjacentHTML('beforeend', menuHtml);
+		}
+
+		function closeExportMenu() {
+			const modal = document.querySelector('.modal');
+			if (modal) modal.remove();
+		}
+
+		// Экспорт как отдельные PNG файлы
+		async function exportChartsAsPNG() {
+			closeExportMenu();
+			
+			const charts = [
+				{ id: 'gradesChart', name: 'Распределение_оценок' },
+				{ id: 'solvabilityChart', name: 'Решаемость_заданий' },
+				{ id: 'complexityChart', name: 'Сложность_и_решаемость' }
+			];
+			
+			// Добавляем дополнительные графики если есть
+			const additionalCharts = ['literacyChart', 'psychologyProfileChart', 'normDistributionChart'];
+			additionalCharts.forEach(id => {
+				if (document.getElementById(id)) {
+					charts.push({ id, name: id });
+				}
+			});
+			
+			const exportPromises = charts.map(chart => exportSingleChart(chart.id, chart.name));
+			
+			try {
+				showNotification('Начинаем экспорт PNG...', 'info');
+				
+				// Если есть несколько файлов, предлагаем скачать архив
+				if (exportPromises.length > 1) {
+					const files = await Promise.all(exportPromises);
+					await downloadAsZip(files, 'charts_export');
+				} else if (exportPromises.length === 1) {
+					await exportPromises[0];
+				}
+				
+				showNotification('Экспорт PNG завершен', 'success');
+				
+			} catch (error) {
+				console.error('Ошибка экспорта PNG:', error);
+				showNotification('Ошибка экспорта PNG', 'error');
+			}
+		}
+
+		// Экспорт одного графика
+		async function exportSingleChart(canvasId, fileName) {
+			const canvas = document.getElementById(canvasId);
+			if (!canvas) {
+				console.warn(`Canvas ${canvasId} не найден`);
+				return null;
+			}
+			
+			return new Promise((resolve, reject) => {
+				try {
+					// Создаем временный canvas с увеличенным разрешением
+					const tempCanvas = document.createElement('canvas');
+					const ctx = tempCanvas.getContext('2d');
+					const scale = 2; // Увеличиваем разрешение в 2 раза
+					
+					tempCanvas.width = canvas.width * scale;
+					tempCanvas.height = canvas.height * scale;
+					
+					// Настраиваем контекст для высокого качества
+					ctx.scale(scale, scale);
+					ctx.imageSmoothingEnabled = true;
+					ctx.imageSmoothingQuality = 'high';
+					
+					// Копируем оригинальный canvas
+					ctx.drawImage(canvas, 0, 0);
+					
+					// Конвертируем в blob
+					tempCanvas.toBlob(blob => {
+						if (!blob) {
+							reject(new Error('Не удалось создать изображение'));
+							return;
+						}
+						
+						const url = URL.createObjectURL(blob);
+						const link = document.createElement('a');
+						link.download = `${fileName}_${getTimestamp()}.png`;
+						link.href = url;
+						link.style.display = 'none';
+						
+						document.body.appendChild(link);
+						link.click();
+						
+						// Очистка
+						setTimeout(() => {
+							document.body.removeChild(link);
+							URL.revokeObjectURL(url);
+						}, 100);
+						
+						resolve({ name: link.download, blob });
+						
+					}, 'image/png', 1.0); // Максимальное качество
+				} catch (error) {
+					reject(error);
+				}
+			});
+		}
+
+		// Экспорт как PDF
+		async function exportChartsAsPDF() {
+			closeExportMenu();
+			
+			try {
+				showNotification('Создаем PDF отчет...', 'info');
+				
+				// Динамически загружаем jsPDF если нет
+				if (typeof window.jspdf === 'undefined') {
+					await loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');
+					await loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js');
+				}
+				
+				const { jsPDF } = window.jspdf;
+				const pdf = new jsPDF('p', 'mm', 'a4');
+				let yOffset = 20;
+				
+				// Заголовок
+				pdf.setFontSize(20);
+				pdf.setTextColor(40, 40, 40);
+				pdf.text('Аналитический отчет', 105, yOffset, { align: 'center' });
+				
+				yOffset += 10;
+				
+				// Информация о тесте
+				pdf.setFontSize(12);
+				pdf.setTextColor(100, 100, 100);
+				const testInfo = [
+					`Предмет: ${appData.test.subject || 'Не указан'}`,
+					`Класс: ${appData.test.class || 'Не указан'}`,
+					`Тема: ${appData.test.theme || 'Не указана'}`,
+					`Дата: ${appData.test.testDate || 'Не указана'}`,
+					`Учащихся: ${appData.students.length}`
+				];
+				
+				testInfo.forEach((line, i) => {
+					pdf.text(line, 20, yOffset + (i * 7));
+				});
+				
+				yOffset += testInfo.length * 7 + 10;
+				
+				// Экспорт каждого графика
+				const charts = [
+					{ id: 'gradesChart', title: 'Распределение оценок' },
+					{ id: 'solvabilityChart', title: 'Решаемость заданий' },
+					{ id: 'complexityChart', title: 'Связь сложности и решаемости' }
+				];
+				
+				for (const chart of charts) {
+					const canvas = document.getElementById(chart.id);
+					if (!canvas) continue;
+					
+					// Добавляем новый лист если нужно
+					if (yOffset > 250) {
+						pdf.addPage();
+						yOffset = 20;
+					}
+					
+					// Заголовок графика
+					pdf.setFontSize(16);
+					pdf.setTextColor(40, 40, 40);
+					pdf.text(chart.title, 20, yOffset);
+					yOffset += 10;
+					
+					try {
+						// Конвертируем canvas в изображение
+						const imageData = canvas.toDataURL('image/png', 1.0);
+						
+						// Рассчитываем размеры для вставки
+						const pageWidth = pdf.internal.pageSize.getWidth();
+						const maxWidth = pageWidth - 40; // Отступы по 20мм с каждой стороны
+						const canvasRatio = canvas.width / canvas.height;
+						const imgWidth = Math.min(maxWidth, 150);
+						const imgHeight = imgWidth / canvasRatio;
+						
+						// Вставляем изображение
+						pdf.addImage(imageData, 'PNG', 20, yOffset, imgWidth, imgHeight);
+						yOffset += imgHeight + 15;
+						
+					} catch (error) {
+						console.error(`Ошибка добавления графика ${chart.id}:`, error);
+						pdf.setFontSize(10);
+						pdf.setTextColor(200, 0, 0);
+						pdf.text(`Ошибка загрузки графика: ${chart.title}`, 20, yOffset);
+						yOffset += 10;
+					}
+				}
+				
+				// Добавляем статистику
+				if (yOffset > 200) {
+					pdf.addPage();
+					yOffset = 20;
+				}
+				
+				pdf.setFontSize(16);
+				pdf.setTextColor(40, 40, 40);
+				pdf.text('Статистика', 20, yOffset);
+				yOffset += 10;
+				
+				pdf.setFontSize(11);
+				pdf.setTextColor(80, 80, 80);
+				
+				const stats = generateStatsSummary();
+				stats.forEach((stat, i) => {
+					if (yOffset > 270) {
+						pdf.addPage();
+						yOffset = 20;
+					}
+					pdf.text(stat, 20, yOffset + (i * 6));
+				});
+				
+				// Сохраняем PDF
+				pdf.save(`Аналитический_отчет_${getTimestamp()}.pdf`);
+				
+				showNotification('PDF отчет создан успешно', 'success');
+				
+			} catch (error) {
+				console.error('Ошибка экспорта PDF:', error);
+				showNotification('Ошибка создания PDF', 'error');
+			}
+		}
+
+		// Экспорт всех графиков как одно изображение
+		async function exportChartsAsSingleImage() {
+			closeExportMenu();
+			
+			try {
+				showNotification('Создаем общее изображение...', 'info');
+				
+				// Загружаем html2canvas если нужно
+				if (typeof html2canvas === 'undefined') {
+					await loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js');
+				}
+				
+				// Находим контейнер с графиками
+				const container = document.getElementById('chartsGrid') || 
+								 document.querySelector('.charts-grid') ||
+								 document.getElementById('visualization');
+				
+				if (!container) {
+					throw new Error('Контейнер графиков не найден');
+				}
+				
+				// Создаем копию контейнера для рендеринга
+				const clone = container.cloneNode(true);
+				clone.style.width = container.offsetWidth + 'px';
+				clone.style.background = 'white';
+				clone.style.padding = '20px';
+				clone.style.borderRadius = '10px';
+				clone.style.boxShadow = '0 2px 10px rgba(0,0,0,0.1)';
+				
+				// Добавляем заголовок
+				const title = document.createElement('h2');
+				title.textContent = 'Аналитические графики';
+				title.style.marginTop = '0';
+				title.style.marginBottom = '20px';
+				title.style.color = '#2c3e50';
+				clone.insertBefore(title, clone.firstChild);
+				
+				// Добавляем информацию
+				const info = document.createElement('div');
+				info.style.marginBottom = '20px';
+				info.style.padding = '10px';
+				info.style.background = '#f8f9fa';
+				info.style.borderRadius = '5px';
+				info.style.fontSize = '12px';
+				info.innerHTML = `
+					<strong>Предмет:</strong> ${appData.test.subject || 'Не указан'} | 
+					<strong>Класс:</strong> ${appData.test.class || 'Не указан'} | 
+					<strong>Дата:</strong> ${appData.test.testDate || 'Не указана'} |
+					<strong>Учащихся:</strong> ${appData.students.length}
+				`;
+				clone.insertBefore(info, clone.children[1]);
+				
+				// Скрываем оригинальный элемент
+				clone.style.position = 'fixed';
+				clone.style.top = '-9999px';
+				clone.style.left = '-9999px';
+				clone.style.zIndex = '-1000';
+				document.body.appendChild(clone);
+				
+				// Конвертируем в изображение
+				const canvas = await html2canvas(clone, {
+					scale: 2,
+					useCORS: true,
+					backgroundColor: '#ffffff',
+					logging: false
+				});
+				
+				// Удаляем клон
+				document.body.removeChild(clone);
+				
+				// Создаем ссылку для скачивания
+				const link = document.createElement('a');
+				link.download = `Все_графики_${getTimestamp()}.png`;
+				link.href = canvas.toDataURL('image/png', 1.0);
+				link.style.display = 'none';
+				
+				document.body.appendChild(link);
+				link.click();
+				
+				// Очистка
+				setTimeout(() => {
+					document.body.removeChild(link);
+				}, 100);
+				
+				showNotification('Общее изображение создано', 'success');
+				
+			} catch (error) {
+				console.error('Ошибка создания общего изображения:', error);
+				showNotification('Ошибка создания изображения', 'error');
+			}
+		}
+
+		// Копирование графика в буфер обмена
+		async function copyChartsToClipboard() {
+			closeExportMenu();
+			
+			try {
+				// Берем первый график или complexityChart как наиболее информативный
+				const canvas = document.getElementById('complexityChart') || 
+							  document.getElementById('gradesChart') || 
+							  document.getElementById('solvabilityChart');
+				
+				if (!canvas) {
+					showNotification('Нет графиков для копирования', 'warning');
+					return;
+				}
+				
+				// Создаем blob из canvas
+				const blob = await new Promise(resolve => {
+					canvas.toBlob(resolve, 'image/png', 1.0);
+				});
+				
+				// Копируем в буфер обмена
+				await navigator.clipboard.write([
+					new ClipboardItem({
+						[blob.type]: blob
+					})
+				]);
+				
+				showNotification('График скопирован в буфер обмена', 'success');
+				
+			} catch (error) {
+				console.error('Ошибка копирования в буфер обмена:', error);
+				
+				// Fallback для браузеров без поддержки Clipboard API
+				const canvas = document.getElementById('complexityChart');
+				if (canvas) {
+					canvas.toBlob(blob => {
+						const item = new ClipboardItem({ [blob.type]: blob });
+						navigator.clipboard.write([item])
+							.then(() => showNotification('График скопирован', 'success'))
+							.catch(() => showNotification('Используйте Ctrl+C или экспорт', 'warning'));
+					});
+				} else {
+					showNotification('Не удалось скопировать график', 'error');
+				}
+			}
+		}
+
+		// Вспомогательные функции
+
+		function loadScript(src) {
+			return new Promise((resolve, reject) => {
+				const script = document.createElement('script');
+				script.src = src;
+				script.onload = resolve;
+				script.onerror = reject;
+				document.head.appendChild(script);
+			});
+		}
+
+		function getTimestamp() {
+			const now = new Date();
+			return `${now.getFullYear()}-${(now.getMonth()+1).toString().padStart(2,'0')}-${now.getDate().toString().padStart(2,'0')}_${now.getHours().toString().padStart(2,'0')}-${now.getMinutes().toString().padStart(2,'0')}`;
+		}
+
+		function generateStatsSummary() {
+			const totalScores = appData.results.map(scores => 
+				scores.reduce((sum, score) => sum + (parseInt(score) || 0), 0)
+			);
+			const averageScore = totalScores.reduce((a, b) => a + b, 0) / totalScores.length;
+			const maxPossible = appData.tasks.reduce((sum, task) => sum + task.maxScore, 0);
+			const averagePercentage = (averageScore / maxPossible) * 100;
+			
+			return [
+				`Всего учащихся: ${appData.students.length}`,
+				`Средний балл: ${averageScore.toFixed(1)} из ${maxPossible}`,
+				`Средний процент: ${averagePercentage.toFixed(1)}%`,
+				`Заданий: ${appData.tasks.length}`,
+				`Уровни сложности: ${[...new Set(appData.tasks.map(t => t.level))].join(', ')}`
+			];
+		}
+
+		// Функция для скачивания архива (использует JSZip)
+		async function downloadAsZip(files, zipName) {
+			try {
+				// Динамически загружаем JSZip
+				if (typeof JSZip === 'undefined') {
+					await loadScript('https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js');
+				}
+				
+				const zip = new JSZip();
+				
+				// Добавляем файлы в архив
+				files.filter(f => f && f.blob).forEach(file => {
+					zip.file(file.name, file.blob);
+				});
+				
+				// Добавляем README файл
+				const readmeText = `
+Аналитические графики
+Дата экспорта: ${new Date().toLocaleString()}
+Предмет: ${appData.test.subject || 'Не указан'}
+Класс: ${appData.test.class || 'Не указан'}
+Тема: ${appData.test.theme || 'Не указана'}
+Всего учащихся: ${appData.students.length}
+Всего заданий: ${appData.tasks.length}
+
+Содержимое архива:
+${files.map(f => f ? `- ${f.name}` : '').join('\n')}
+				`.trim();
+				
+				zip.file('README.txt', readmeText);
+				
+				// Генерируем архив
+				const content = await zip.generateAsync({ type: 'blob' });
+				
+				// Скачиваем архив
+				const link = document.createElement('a');
+				link.href = URL.createObjectURL(content);
+				link.download = `${zipName}_${getTimestamp()}.zip`;
+				link.style.display = 'none';
+				
+				document.body.appendChild(link);
+				link.click();
+				
+				// Очистка
+				setTimeout(() => {
+					document.body.removeChild(link);
+					URL.revokeObjectURL(link.href);
+				}, 100);
+				
+			} catch (error) {
+				console.error('Ошибка создания архива:', error);
+				showNotification('Ошибка создания архива', 'error');
+				throw error;
+			}
 		}
 
 		// Функция для переключения темы
@@ -8124,7 +8667,9 @@
 		}
 
 		function destroyAllCharts() {
-			// Список всех возможных графиков
+			console.log('=== УНИЧТОЖЕНИЕ ВСЕХ ГРАФИКОВ ===');
+			
+			// Список всех возможных экземпляров графиков
 			const chartInstances = [
 				'gradesChartInstance',
 				'complexityChartInstance',
@@ -8137,9 +8682,14 @@
 				'radarChartInstance'
 			];
 			
+			// Также получаем все зарегистрированные в Chart.js графики
+			const chartRegistry = Chart.registry || {};
+			
+			// Уничтожаем экземпляры в window
 			chartInstances.forEach(chartName => {
-				if (window[chartName]) {
+				if (window[chartName] && typeof window[chartName].destroy === 'function') {
 					try {
+						console.log(`Уничтожаем график: ${chartName}`);
 						window[chartName].destroy();
 						window[chartName] = null;
 					} catch (error) {
@@ -8147,6 +8697,98 @@
 					}
 				}
 			});
+			
+			// Уничтожаем все графики зарегистрированные в Chart.js
+			try {
+				const charts = Chart.instances || [];
+				console.log(`Всего графиков в Chart.registry: ${Object.keys(chartRegistry).length}`);
+				
+				// Альтернативный способ: перебираем все canvas и смотрим есть ли у них графики
+				document.querySelectorAll('canvas').forEach(canvas => {
+					const chartId = canvas.id;
+					if (chartId) {
+						const chartInstance = Chart.getChart(canvas);
+						if (chartInstance) {
+							console.log(`Уничтожаем график на canvas: ${chartId}`);
+							chartInstance.destroy();
+						}
+					}
+				});
+			} catch (error) {
+				console.warn('Ошибка при очистке реестра Chart.js:', error);
+			}
+			
+			// Очищаем все canvas
+			document.querySelectorAll('canvas').forEach(canvas => {
+				const ctx = canvas.getContext('2d');
+				if (ctx) {
+					ctx.clearRect(0, 0, canvas.width, canvas.height);
+				}
+			});
+			
+			console.log('Все графики уничтожены');
+		}
+		function destroyAllCharts() {
+			console.log('=== УНИЧТОЖЕНИЕ ВСЕХ ГРАФИКОВ ===');
+			
+			// Список всех возможных экземпляров графиков
+			const chartInstances = [
+				'gradesChartInstance',
+				'complexityChartInstance',
+				'solvabilityChartInstance',
+				'literacyChartInstance',
+				'literacyRadarChartInstance',
+				'trendChartInstance',
+				'psychologyProfileChartInstance',
+				'normDistributionChartInstance',
+				'radarChartInstance'
+			];
+			
+			// Также получаем все зарегистрированные в Chart.js графики
+			const chartRegistry = Chart.registry || {};
+			
+			// Уничтожаем экземпляры в window
+			chartInstances.forEach(chartName => {
+				if (window[chartName] && typeof window[chartName].destroy === 'function') {
+					try {
+						console.log(`Уничтожаем график: ${chartName}`);
+						window[chartName].destroy();
+						window[chartName] = null;
+					} catch (error) {
+						console.warn(`Не удалось удалить график ${chartName}:`, error);
+					}
+				}
+			});
+			
+			// Уничтожаем все графики зарегистрированные в Chart.js
+			try {
+				const charts = Chart.instances || [];
+				console.log(`Всего графиков в Chart.registry: ${Object.keys(chartRegistry).length}`);
+				
+				// Альтернативный способ: перебираем все canvas и смотрим есть ли у них графики
+				document.querySelectorAll('canvas').forEach(canvas => {
+					const chartId = canvas.id;
+					if (chartId) {
+						const chartInstance = Chart.getChart(canvas);
+						if (chartInstance) {
+							console.log(`Уничтожаем график на canvas: ${chartId}`);
+							chartInstance.destroy();
+						}
+					}
+				});
+			} catch (error) {
+				console.warn('Ошибка при очистке реестра Chart.js:', error);
+			}
+			
+			// Очищаем все canvas
+			document.querySelectorAll('canvas').forEach(canvas => {
+				const ctx = canvas.getContext('2d');
+				if (ctx) {
+					ctx.clearRect(0, 0, canvas.width, canvas.height);
+				}
+			});
+			
+			console.log('Все графики уничтожены');
 		}
 
 		// Добавить обработчик resize
