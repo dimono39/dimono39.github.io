@@ -7294,452 +7294,205 @@
 
 		function updateVisualization() {
 			try {
-				console.log('=== ОБНОВЛЕНИЕ ВИЗУАЛИЗАЦИИ ===');
-				
-				// Проверяем наличие данных
-				if (!appData.results || appData.results.length === 0) {
-					console.log('Нет данных для визуализации');
-					showNoDataMessage();
-					return;
-				}
-				
 				// Уничтожаем старые графики
 				destroyAllCharts();
 				
 				// Ждем рендеринга DOM
 				setTimeout(() => {
-					try {
-						// Обновляем все графики
-						updateCharts();
-						
-						// Обновляем тепловую карту
-						updateHeatmap();
-						
-						// Проверяем специализированные графики
-						if (appData.test.workType === 'func_literacy') {
-							console.log('Инициализация графиков функциональной грамотности');
-							initLiteracyCharts();
-						} else if (appData.test.workType === 'psychology') {
-							console.log('Инициализация психологических графиков');
-							initPsychologyCharts();
+					// Проверяем существование canvas элементов
+					const chartsToInitialize = [
+						{ id: 'gradesChart', func: initGradesChart },
+						{ id: 'solvabilityChart', func: initSolvabilityChart },
+						{ id: 'complexityChart', func: initComplexityChart }
+					];
+					
+					chartsToInitialize.forEach(({ id, func }) => {
+						const canvas = document.getElementById(id);
+						if (canvas) {
+							try {
+								func();
+							} catch (error) {
+								console.error(`Ошибка инициализации графика ${id}:`, error);
+								canvas.parentElement.innerHTML += 
+									`<p style="color: #e74c3c;">Ошибка отображения графика</p>`;
+							}
 						}
-						
-						// Принудительный ресайз после загрузки
-						setTimeout(() => {
-							safeResizeCharts();
-							console.log('Все графики обновлены');
-						}, 300);
-						
-					} catch (error) {
-						console.error('Ошибка при создании графиков:', error);
-						showChartError();
+					});
+					
+					// Обновляем тепловую карту
+					updateHeatmap();
+					
+					// Проверяем специализированные графики
+					if (appData.test.workType === 'func_literacy') {
+						initLiteracyCharts();
+					} else if (appData.test.workType === 'psychology') {
+						initPsychologyCharts();
 					}
-				}, 150);
+					
+					// Принудительный ресайз после загрузки
+					setTimeout(safeResizeCharts, 500);
+					
+				}, 100);
 				
 			} catch (error) {
 				console.error('Критическая ошибка в updateVisualization:', error);
 				showNotification('Ошибка обновления визуализации', 'error');
 			}
 		}
-		// Добавьте эту функцию и вызовите ее в консоли
-		function debugCharts() {
-			console.log('=== ОТЛАДКА ГРАФИКОВ ===');
-			console.log('Chart.js доступен:', typeof Chart !== 'undefined');
-			console.log('Canvas элементы:');
-			console.log('- gradesChart:', document.getElementById('gradesChart'));
-			console.log('- solvabilityChart:', document.getElementById('solvabilityChart'));
-			console.log('- complexityChart:', document.getElementById('complexityChart'));
-			console.log('Данные:');
-			console.log('- Результаты:', appData.results.length);
-			console.log('- Задания:', appData.tasks.length);
-			console.log('complexityLevels:', complexityLevels);
-		}		
 
         // Обновление графиков
-		function updateCharts() {
-			console.log('updateCharts вызвана, данные:', {
-				results: appData.results.length,
-				tasks: appData.tasks.length
-			});
-			
-			if (appData.results.length === 0 || appData.tasks.length === 0) {
-				console.log('Нет данных для построения графиков');
-				showNoDataMessage();
-				return;
-			}
-			
-			try {
-				// 1. График распределения оценок
-				updateGradesChart();
-				
-				// 2. График решаемости заданий
-				updateSolvabilityChart();
-				
-				// 3. График связи сложности и решаемости
-				updateComplexityChart();
-				
-			} catch (error) {
-				console.error('Ошибка в updateCharts:', error);
-				throw error;
-			}
-		}
-
-		function updateGradesChart() {
-			const canvas = document.getElementById('gradesChart');
-			if (!canvas) {
-				console.warn('Canvas gradesChart не найден');
-				return;
-			}
-			
-			console.log('Создание графика оценок...');
-			
-			const totalScores = appData.results.map(scores => 
-				scores.reduce((sum, score) => sum + (parseInt(score) || 0), 0)
-			);
-			
-			const grades = totalScores.map(score => {
-				const grade = calculateGrade(score);
-				console.log(`Баллы: ${score}, Оценка: ${grade}`);
-				return grade;
-			});
-			
-			console.log('Все оценки:', grades);
-			
-			// Считаем распределение оценок
-			const gradeCounts = {};
-			grades.forEach(grade => {
-				if (grade && grade !== '?') {
-					gradeCounts[grade] = (gradeCounts[grade] || 0) + 1;
-				}
-			});
-			
-			console.log('Распределение оценок:', gradeCounts);
-			
-			// Создаем массив для Chart.js
-			const labels = Object.keys(gradeCounts).sort();
-			const data = labels.map(label => gradeCounts[label]);
-			const backgroundColors = labels.map(label => getGradeColor(label));
-			
-			if (labels.length === 0) {
-				canvas.parentElement.innerHTML = '<p style="color: #666; text-align: center; padding: 20px;">Нет данных для построения графика оценок</p>';
-				return;
-			}
-			
-			const ctx = canvas.getContext('2d');
-			window.gradesChartInstance = new Chart(ctx, {
-				type: 'doughnut',
-				data: {
-					labels: labels.map(label => `Оценка ${label}`),
-					datasets: [{
-						data: data,
-						backgroundColor: backgroundColors,
-						borderWidth: 2,
-						borderColor: '#fff',
-						hoverOffset: 10
-					}]
-				},
-				options: {
-					responsive: true,
-					maintainAspectRatio: false,
-					plugins: {
-						legend: { 
-							position: 'bottom',
-							labels: {
-								padding: 20,
-								usePointStyle: true,
-								font: { size: 12 }
-							}
-						},
-						tooltip: {
-							callbacks: {
-								label: function(context) {
-									const label = context.label || '';
-									const value = context.raw || 0;
-									const total = context.dataset.data.reduce((a, b) => a + b, 0);
-									const percentage = Math.round((value / total) * 100);
-									return `${label}: ${value} уч. (${percentage}%)`;
-								}
-							}
-						},
-						title: {
-							display: true,
-							text: 'Распределение оценок',
-							font: { size: 16, weight: 'bold' },
-							padding: { top: 10, bottom: 20 }
-						}
-					},
-					cutout: '50%'
-				}
-			});
-		}
-
-		function updateSolvabilityChart() {
-			const canvas = document.getElementById('solvabilityChart');
-			if (!canvas) {
-				console.warn('Canvas solvabilityChart не найден');
-				return;
-			}
-			
-			console.log('Создание графика решаемости...');
-			
-			// Рассчитываем решаемость каждого задания
-			const taskStats = [];
-			for (let i = 0; i < appData.tasks.length; i++) {
-				const task = appData.tasks[i];
-				const maxScore = parseInt(task.maxScore) || 1;
-				const actualScores = appData.results.map(student => parseInt(student[i]) || 0);
-				const actualTotal = actualScores.reduce((sum, score) => sum + score, 0);
-				const completion = maxScore > 0 ? (actualTotal / (maxScore * appData.results.length)) * 100 : 0;
-				
-				taskStats.push({
-					taskNumber: i + 1,
-					completion: completion,
-					type: task.type,
-					level: task.level
-				});
-			}
-			
-			console.log('Статистика заданий:', taskStats);
-			
-			const ctx = canvas.getContext('2d');
-			window.solvabilityChartInstance = new Chart(ctx, {
-				type: 'bar',
-				data: {
-					labels: taskStats.map(t => `Зад. ${t.taskNumber}`),
-					datasets: [{
-						label: '% выполнения',
-						data: taskStats.map(t => t.completion),
-						backgroundColor: taskStats.map(t => complexityLevels[t.level]?.color || '#3498db'),
-						borderColor: '#2c3e50',
-						borderWidth: 1
-					}]
-				},
-				options: {
-					responsive: true,
-					maintainAspectRatio: false,
-					scales: {
-						x: {
-							title: { 
-								display: true, 
-								text: 'Номер задания',
-								font: { size: 14, weight: 'bold' }
-							},
-							grid: { display: false }
-						},
-						y: {
-							title: { 
-								display: true, 
-								text: 'Процент выполнения',
-								font: { size: 14, weight: 'bold' }
-							},
-							min: 0,
-							max: 100,
-							ticks: {
-								callback: function(value) {
-									return value + '%';
-								}
-							}
-						}
-					},
-					plugins: {
-						legend: { display: false },
-						tooltip: {
-							callbacks: {
-								label: function(context) {
-									const task = taskStats[context.dataIndex];
-									return [
-										`Задание ${task.taskNumber}: ${task.type}`,
-										`Уровень сложности: ${task.level}`,
-										`Выполнение: ${context.raw.toFixed(1)}%`
-									];
-								}
-							}
-						},
-						title: {
-							display: true,
-							text: 'Решаемость заданий',
-							font: { size: 16, weight: 'bold' },
-							padding: { top: 10, bottom: 20 }
-						}
-					}
-				}
-			});
-		}
-
-		function updateComplexityChart() {
-			const canvas = document.getElementById('complexityChart');
-			if (!canvas) {
-				console.warn('Canvas complexityChart не найден');
-				return;
-			}
-			
-			console.log('Создание графика сложности...');
-			
-			// Подготавливаем данные
-			const taskStats = [];
-			for (let i = 0; i < appData.tasks.length; i++) {
-				const task = appData.tasks[i];
-				const maxScore = parseInt(task.maxScore) || 1;
-				const actualScores = appData.results.map(student => parseInt(student[i]) || 0);
-				const actualTotal = actualScores.reduce((sum, score) => sum + score, 0);
-				const completion = maxScore > 0 ? (actualTotal / (maxScore * appData.results.length)) * 100 : 0;
-				
-				taskStats.push({
-					taskNumber: i + 1,
-					completion: completion,
-					level: parseInt(task.level) || 1,
-					type: task.type
-				});
-			}
-			
-			const ctx = canvas.getContext('2d');
-			window.complexityChartInstance = new Chart(ctx, {
-				type: 'scatter',
-				data: {
-					datasets: [{
-						label: 'Задания',
-						data: taskStats.map(t => ({
-							x: t.level,
-							y: t.completion,
-							taskNumber: t.taskNumber,
-							type: t.type
-						})),
-						backgroundColor: taskStats.map(t => complexityLevels[t.level]?.color || '#3498db'),
-						pointRadius: 8,
-						pointHoverRadius: 10,
-						pointBorderWidth: 2,
-						pointBorderColor: '#fff'
-					}]
-				},
-				options: {
-					responsive: true,
-					maintainAspectRatio: false,
-					scales: {
-						x: {
-							title: { 
-								display: true, 
-								text: 'Уровень сложности',
-								font: { size: 14, weight: 'bold' }
-							},
-							min: 0.5,
-							max: 4.5,
-							ticks: {
-								stepSize: 1,
-								callback: function(value) {
-									if (Number.isInteger(value) && complexityLevels[value]) {
-										return `${value}. ${complexityLevels[value].name}`;
-									}
-									return value;
-								}
-							}
-						},
-						y: {
-							title: { 
-								display: true, 
-								text: '% выполнения',
-								font: { size: 14, weight: 'bold' }
-							},
-							min: 0,
-							max: 100,
-							ticks: {
-								callback: function(value) {
-									return value + '%';
-								}
-							}
-						}
-					},
-					plugins: {
-						tooltip: {
-							callbacks: {
-								label: function(context) {
-									const point = context.raw;
-									return [
-										`Задание ${point.taskNumber}: ${point.type}`,
-										`Уровень: ${complexityLevels[point.x]?.name || point.x}`,
-										`Выполнение: ${point.y.toFixed(1)}%`
-									];
-								}
-							}
-						},
-						legend: { display: false },
-						title: {
-							display: true,
-							text: 'Связь сложности и решаемости',
-							font: { size: 16, weight: 'bold' },
-							padding: { top: 10, bottom: 20 }
-						}
-					}
-				}
-			});
-		}
-
-		// Вспомогательные функции
-		function getGradeColor(grade) {
-			const colorMap = {
-				'1': '#c0392b', '2': '#e74c3c', '3': '#f39c12',
-				'4': '#3498db', '5': '#27ae60',
-				'?': '#95a5a6'
-			};
-			return colorMap[grade] || '#3498db';
-		}
-
-		function safeResizeCharts() {
-			const charts = [
-				window.gradesChartInstance,
-				window.complexityChartInstance,
-				window.solvabilityChartInstance
-			];
-			
-			charts.forEach(chart => {
-				if (chart) {
-					try {
-						chart.resize();
-					} catch (error) {
-						console.warn('Ошибка ресайза графика:', error);
-					}
-				}
-			});
-		}
-
-		function showNoDataMessage() {
-			const containers = [
-				document.getElementById('gradesChart')?.parentElement,
-				document.getElementById('solvabilityChart')?.parentElement,
-				document.getElementById('complexityChart')?.parentElement
-			];
-			
-			containers.forEach(container => {
-				if (container) {
-					container.innerHTML = `
-						<div style="text-align: center; padding: 40px 20px; color: #666;">
-							<div style="font-size: 48px; margin-bottom: 10px;">📊</div>
-							<h4 style="margin-bottom: 10px;">Нет данных для отображения</h4>
-							<p style="font-size: 14px;">Введите результаты тестирования в таблице</p>
-						</div>
-					`;
-				}
-			});
-		}
-
-		function showChartError() {
-			const containers = [
-				document.getElementById('gradesChart')?.parentElement,
-				document.getElementById('solvabilityChart')?.parentElement,
-				document.getElementById('complexityChart')?.parentElement
-			];
-			
-			containers.forEach(container => {
-				if (container) {
-					container.innerHTML = `
-						<div style="text-align: center; padding: 40px 20px; color: #e74c3c;">
-							<div style="font-size: 48px; margin-bottom: 10px;">❌</div>
-							<h4 style="margin-bottom: 10px;">Ошибка построения графика</h4>
-							<p style="font-size: 14px;">Попробуйте обновить страницу</p>
-						</div>
-					`;
-				}
-			});
-		}
+        function updateCharts() {
+            if (appData.results.length === 0 || appData.tasks.length === 0) {
+                console.log('Нет данных для построения графиков');
+                return;
+            }
+            
+            destroyAllCharts();
+            
+            const totalScores = appData.results.map(scores => scores.reduce((sum, score) => sum + score, 0));
+            const grades = totalScores.map(score => calculateGrade(score));
+            
+            // График распределения оценок
+            const gradeCounts = [0, 0, 0, 0];
+            grades.forEach(grade => {
+                if (grade >= 2 && grade <= 5) {
+                    gradeCounts[5-grade]++;
+                }
+            });
+            
+            const gradesCanvas = document.getElementById('gradesChart');
+            if (gradesCanvas) {
+                const gradesCtx = gradesCanvas.getContext('2d');
+                window.gradesChartInstance = new Chart(gradesCtx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Оценка 5', 'Оценка 4', 'Оценка 3', 'Оценка 2'],
+                        datasets: [{
+                            data: gradeCounts,
+                            backgroundColor: ['#27ae60', '#2ecc71', '#f39c12', '#e74c3c'],
+                            borderWidth: 2,
+                            borderColor: '#fff'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: true,
+                        plugins: {
+                            legend: { 
+                                position: 'bottom',
+                                labels: {
+                                    padding: 20,
+                                    usePointStyle: true
+                                }
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        const label = context.label || '';
+                                        const value = context.raw || 0;
+                                        const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                        const percentage = Math.round((value / total) * 100);
+                                        return `${label}: ${value} (${percentage}%)`;
+                                    }
+                                }
+                            }
+                        },
+                        cutout: '50%'
+                    }
+                });
+            }
+            
+            // График связи сложности и решаемости
+            const complexityCanvas = document.getElementById('complexityChart');
+            if (complexityCanvas) {
+                const taskStats = [];
+                for (let i = 0; i < appData.tasks.length; i++) {
+                    const task = appData.tasks[i];
+                    const maxScore = task.maxScore;
+                    const actualScores = appData.results.map(student => student[i] || 0);
+                    const actualTotal = actualScores.reduce((sum, score) => sum + score, 0);
+                    const completion = (actualTotal / (maxScore * appData.results.length)) * 100;
+                    
+                    taskStats.push({
+                        task: i + 1,
+                        completion: completion,
+                        level: task.level,
+                        type: task.type
+                    });
+                }
+                
+                const complexityCtx = complexityCanvas.getContext('2d');
+                window.complexityChartInstance = new Chart(complexityCtx, {
+                    type: 'scatter',
+                    data: {
+                        datasets: [{
+                            label: 'Задания',
+                            data: taskStats.map(t => ({
+                                x: t.level,
+                                y: t.completion,
+                                task: t.task,
+                                type: t.type
+                            })),
+                            backgroundColor: taskStats.map(t => complexityLevels[t.level].color),
+                            pointRadius: 8,
+                            pointHoverRadius: 10
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: true,
+                        scales: {
+                            x: {
+                                title: { 
+                                    display: true, 
+                                    text: 'Уровень сложности',
+                                    font: { size: 14, weight: 'bold' }
+                                },
+                                min: 0.5,
+                                max: 4.5,
+                                ticks: {
+                                    stepSize: 1,
+                                    callback: function(value) {
+                                        return complexityLevels[value] ? `${value}. ${complexityLevels[value].name}` : value;
+                                    }
+                                }
+                            },
+                            y: {
+                                title: { 
+                                    display: true, 
+                                    text: '% выполнения',
+                                    font: { size: 14, weight: 'bold' }
+                                },
+                                min: 0,
+                                max: 100,
+                                ticks: {
+                                    callback: function(value) {
+                                        return value + '%';
+                                    }
+                                }
+                            }
+                        },
+                        plugins: {
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        const point = context.raw;
+                                        return [
+                                            `Задание ${point.task}: ${point.type}`,
+                                            `Уровень: ${complexityLevels[point.x].name}`,
+                                            `Выполнение: ${point.y.toFixed(1)}%`
+                                        ];
+                                    }
+                                }
+                            },
+                            legend: {
+                                display: false
+                            }
+                        }
+                    }
+                });
+            }
+        }
 
 		function destroyAllCharts() {
 			// Список всех возможных графиков
