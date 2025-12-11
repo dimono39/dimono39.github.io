@@ -14,6 +14,57 @@
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 	<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
     <style>
+		/* Стили для элементов печати */
+		@media print {
+			.no-print {
+				display: none !important;
+			}
+			
+			.print-only {
+				display: block !important;
+			}
+			
+			.avoid-page-break {
+				page-break-inside: avoid;
+			}
+			
+			.force-page-break {
+				page-break-before: always;
+			}
+		}
+
+		/* Классы для управления печатью в основном интерфейсе */
+		.print-ignore {
+			display: none !important;
+		}
+
+		.print-chart {
+			max-width: 100%;
+			height: auto;
+		}	
+		/* Основные стили для печати на странице отчета */
+		@media print {
+			@page {
+				margin: 15mm;
+			}
+			
+			body {
+				font-size: 12pt !important;
+				line-height: 1.5 !important;
+			}
+			
+			.no-print {
+				display: none !important;
+			}
+			
+			.print-break {
+				page-break-before: always;
+			}
+			
+			.avoid-break {
+				page-break-inside: avoid;
+			}
+		}	
 		/* Стили для управления классами */
 		.class-manager-container {
 			padding: 20px;
@@ -11666,12 +11717,1092 @@
 			}
 		}
 
+
+		// Основная функция печати и экспорта
+		function exportReport(type = 'print') {
+			const reportContent = document.getElementById('reportContent');
+			if (!reportContent) {
+				showNotification('Отчет не найден', 'error');
+				return;
+			}
+
+			if (type === 'html') {
+				exportToHTML();
+				return;
+			}
+			
+			if (type === 'docx') {
+				exportToDOCX();
+				return;
+			}
+			
+			// Для печати
+			printReport();
+		}
+
+		// Функция печати
+		async function printReport() {
+			const reportContent = document.getElementById('reportContent');
+			if (!reportContent) return;
+			
+			try {
+				showNotification('Подготовка отчета к печати...', 'info');
+				
+				// Сохраняем оригинальное состояние
+				const originalHtml = reportContent.innerHTML;
+				const originalDisplay = reportContent.style.display;
+				
+				// Скрываем оригинальный контент
+				reportContent.style.display = 'none';
+				
+				// Создаем контейнер для печати
+				const printContainer = document.createElement('div');
+				printContainer.id = 'printContainer';
+				printContainer.style.cssText = `
+					position: fixed;
+					left: -10000px;
+					top: 0;
+					width: 210mm;
+					min-height: 100%;
+					background: white;
+					z-index: 99999;
+					padding: 15mm;
+					box-sizing: border-box;
+					font-family: 'Arial', sans-serif;
+					font-size: 11pt;
+					line-height: 1.4;
+					color: #000 !important;
+					visibility: hidden;
+				`;
+				
+				// Получаем данные canvas и конвертируем в изображения с высоким качеством
+				const canvasPromises = [];
+				const canvases = reportContent.querySelectorAll('canvas');
+				
+				canvases.forEach((canvas, index) => {
+					const promise = new Promise((resolve) => {
+						try {
+							// Для Chart.js
+							if (canvas.chart && typeof canvas.chart.toBase64Image === 'function') {
+								// Сохраняем текущие размеры
+								const originalWidth = canvas.width;
+								const originalHeight = canvas.height;
+								
+								// Временно увеличиваем размер для лучшего качества
+								canvas.width = originalWidth * 3;
+								canvas.height = originalHeight * 3;
+								canvas.chart.resize();
+								
+								const dataUrl = canvas.chart.toBase64Image();
+								
+								// Восстанавливаем размеры
+								canvas.width = originalWidth;
+								canvas.height = originalHeight;
+								canvas.chart.resize();
+								
+								resolve({
+									index: index,
+									dataUrl: dataUrl,
+									type: 'chartjs'
+								});
+							} else {
+								// Обычный canvas
+								const tempCanvas = document.createElement('canvas');
+								const ctx = tempCanvas.getContext('2d');
+								
+								// Увеличиваем в 3 раза для лучшего качества
+								tempCanvas.width = canvas.width * 3;
+								tempCanvas.height = canvas.height * 3;
+								
+								// Масштабируем и рисуем с высоким качеством
+								ctx.scale(3, 3);
+								ctx.drawImage(canvas, 0, 0);
+								
+								const dataUrl = tempCanvas.toDataURL('image/png', 1.0);
+								resolve({
+									index: index,
+									dataUrl: dataUrl,
+									type: 'canvas'
+								});
+							}
+						} catch (error) {
+							console.warn('Ошибка при обработке canvas:', error);
+							resolve(null);
+						}
+					});
+					canvasPromises.push(promise);
+				});
+				
+				// Ждем обработки всех canvas
+				const canvasResults = await Promise.all(canvasPromises);
+				
+				// Клонируем контент
+				const contentClone = reportContent.cloneNode(true);
+				
+				// Заменяем canvas на изображения
+				canvasResults.forEach(result => {
+					if (result && result.dataUrl) {
+						const canvas = contentClone.querySelectorAll('canvas')[result.index];
+						if (canvas) {
+							const img = document.createElement('img');
+							img.src = result.dataUrl;
+							img.style.width = '100%';
+							img.style.maxWidth = '100%';
+							img.style.height = 'auto';
+							img.style.display = 'block';
+							img.style.margin = '10px 0';
+							img.alt = 'График';
+							img.style.pageBreakInside = 'avoid';
+							img.style.breakInside = 'avoid';
+							
+							// Сохраняем размер если есть
+							if (canvas.style.width) img.style.width = canvas.style.width;
+							if (canvas.style.height) img.style.height = canvas.style.height;
+							
+							canvas.parentNode.replaceChild(img, canvas);
+						}
+					}
+				});
+				
+				// Удаляем ненужные элементы
+				const elementsToRemove = contentClone.querySelectorAll(
+					'.btn, .no-print, .modal-footer, .spinner-border, .alert:not(.print-show), ' +
+					'button, .navbar, .sidebar, .dropdown, .tooltip, .popover'
+				);
+				elementsToRemove.forEach(el => el.remove());
+				
+				// Исправляем оценки (1 становится 2)
+				const fixGrades = (text) => {
+					return text.replace(/\b1\b/g, '2');
+				};
+				
+				// Обрабатываем текстовые узлы
+				const walker = document.createTreeWalker(contentClone, NodeFilter.SHOW_TEXT, null, false);
+				let node;
+				while (node = walker.nextNode()) {
+					if (node.nodeType === Node.TEXT_NODE && node.textContent.trim()) {
+						node.textContent = fixGrades(node.textContent);
+					}
+				}
+				
+				// Создаем структуру отчета
+				const reportSections = [];
+				
+				// Разбиваем контент на логические секции для многостраничности
+				const sections = contentClone.querySelectorAll('.card, .section, table, .chart-container');
+				
+				let currentSection = [];
+				let currentHeight = 0;
+				const maxPageHeight = 250; // мм (примерно для A4 с учетом отступов)
+				
+				sections.forEach((section, index) => {
+					// Простая оценка высоты (можно улучшить)
+					const estimatedHeight = section.tagName === 'TABLE' ? 100 : 
+										  section.classList.contains('chart-container') ? 120 : 80;
+					
+					if (currentHeight + estimatedHeight > maxPageHeight && currentSection.length > 0) {
+						reportSections.push(currentSection);
+						currentSection = [section];
+						currentHeight = estimatedHeight;
+					} else {
+						currentSection.push(section);
+						currentHeight += estimatedHeight;
+					}
+				});
+				
+				if (currentSection.length > 0) {
+					reportSections.push(currentSection);
+				}
+				
+				// Создаем HTML для печати
+				let printHTML = `
+					<!DOCTYPE html>
+					<html lang="ru">
+					<head>
+						<meta charset="UTF-8">
+						<meta name="viewport" content="width=device-width, initial-scale=1.0">
+						<title>Аналитический отчет</title>
+						<style>
+							@page {
+								margin: 15mm;
+								size: A4 portrait;
+							}
+							
+							@media print {
+								body {
+									font-family: 'Arial', sans-serif;
+									font-size: 11pt;
+									line-height: 1.4;
+									color: #000 !important;
+									background: white !important;
+									margin: 0;
+									padding: 0;
+								}
+								
+								.print-page {
+									width: 210mm;
+									min-height: 297mm;
+									padding: 15mm;
+									box-sizing: border-box;
+									page-break-after: always;
+									position: relative;
+								}
+								
+								.print-page:last-child {
+									page-break-after: auto;
+								}
+								
+								.print-header {
+									text-align: center;
+									margin-bottom: 20mm;
+									border-bottom: 2px solid #000;
+									padding-bottom: 5mm;
+								}
+								
+								.print-header h1 {
+									font-size: 18pt;
+									margin: 0 0 3mm 0;
+									font-weight: bold;
+								}
+								
+								.print-header .subtitle {
+									font-size: 12pt;
+									margin: 2mm 0;
+								}
+								
+								.print-footer {
+									position: fixed;
+									bottom: 0;
+									left: 0;
+									width: 100%;
+									text-align: center;
+									font-size: 9pt;
+									color: #666;
+									padding: 5mm;
+									border-top: 1px solid #ddd;
+								}
+								
+								.section {
+									margin-bottom: 10mm;
+									page-break-inside: avoid;
+								}
+								
+								.card {
+									border: 1px solid #000;
+									border-radius: 3mm;
+									margin-bottom: 5mm;
+									page-break-inside: avoid;
+									overflow: hidden;
+								}
+								
+								.card-header {
+									background: #f5f5f5;
+									padding: 3mm;
+									border-bottom: 1px solid #000;
+									font-weight: bold;
+								}
+								
+								.card-body {
+									padding: 3mm;
+								}
+								
+								table {
+									width: 100%;
+									border-collapse: collapse;
+									margin: 3mm 0;
+									page-break-inside: avoid;
+									font-size: 10pt;
+								}
+								
+								th, td {
+									border: 1px solid #000;
+									padding: 2mm;
+									text-align: left;
+								}
+								
+								th {
+									background: #f5f5f5;
+									font-weight: bold;
+								}
+								
+								img {
+									max-width: 100%;
+									height: auto;
+									display: block;
+									margin: 2mm auto;
+									page-break-inside: avoid;
+								}
+								
+								.progress {
+									height: 4mm;
+									background: #eee;
+									border-radius: 2mm;
+									overflow: hidden;
+									margin: 2mm 0;
+								}
+								
+								.progress-bar {
+									height: 100%;
+									background: #007bff;
+								}
+								
+								.no-print, .btn, button {
+									display: none !important;
+								}
+								
+								/* Стили для цветной печати */
+								.print-color * {
+									-webkit-print-color-adjust: exact;
+									print-color-adjust: exact;
+								}
+								
+								.text-primary { color: #007bff !important; }
+								.text-success { color: #28a745 !important; }
+								.text-warning { color: #ffc107 !important; }
+								.text-danger { color: #dc3545 !important; }
+								.text-info { color: #17a2b8 !important; }
+								
+								.bg-primary { background-color: #007bff !important; color: white !important; }
+								.bg-success { background-color: #28a745 !important; color: white !important; }
+								.bg-warning { background-color: #ffc107 !important; color: #000 !important; }
+								.bg-danger { background-color: #dc3545 !important; color: white !important; }
+								.bg-info { background-color: #17a2b8 !important; color: white !important; }
+							}
+							
+							@media screen {
+								body {
+									background: #f0f0f0;
+									padding: 20px;
+								}
+								
+								.print-page {
+									background: white;
+									margin: 0 auto 20px;
+									box-shadow: 0 0 20px rgba(0,0,0,0.1);
+									min-height: auto;
+								}
+							}
+						</style>
+					</head>
+					<body>
+				`;
+				
+				// Добавляем страницы
+				reportSections.forEach((sections, pageIndex) => {
+					printHTML += `
+						<div class="print-page">
+							<div class="print-header">
+								<h1>Аналитический отчет</h1>
+								<div class="subtitle">${document.title || 'Отчет'}</div>
+								<div>Страница ${pageIndex + 1} из ${reportSections.length}</div>
+								<div>Дата: ${new Date().toLocaleDateString('ru-RU')}</div>
+							</div>
+							
+							<div class="print-content">
+					`;
+					
+					sections.forEach(section => {
+						printHTML += `<div class="section">${section.outerHTML}</div>`;
+					});
+					
+					printHTML += `
+							</div>
+							
+							<div class="print-footer">
+								Отчет сгенерирован системой • Страница ${pageIndex + 1} из ${reportSections.length}
+							</div>
+						</div>
+					`;
+				});
+				
+				printHTML += `
+						</body>
+						</html>
+					`;
+				
+				// Открываем в новом окне для печати
+				const printWindow = window.open('', '_blank');
+				if (printWindow) {
+					printWindow.document.write(printHTML);
+					printWindow.document.close();
+					
+					// Даем время на загрузку изображений
+					setTimeout(() => {
+						printWindow.focus();
+						
+						// Показываем диалог выбора типа печати
+						const printDialog = `
+							<div style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); 
+									   background: white; padding: 30px; border-radius: 10px; box-shadow: 0 0 30px rgba(0,0,0,0.3);
+									   z-index: 100000; text-align: center;">
+								<h3 style="margin-bottom: 20px;">Выберите тип печати</h3>
+								<div style="display: flex; gap: 15px; justify-content: center; margin-bottom: 20px;">
+									<button onclick="window.print(); this.parentNode.parentNode.style.display=\'none\';" 
+											style="padding: 10px 20px; background: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer;">
+										🖨 Печать
+									</button>
+									<button onclick="window.close();" 
+											style="padding: 10px 20px; background: #dc3545; color: white; border: none; border-radius: 5px; cursor: pointer;">
+										✕ Отмена
+									</button>
+								</div>
+								<div style="display: flex; gap: 10px; justify-content: center;">
+									<button onclick="document.body.classList.add(\'print-color\'); window.print(); this.parentNode.parentNode.style.display=\'none\';" 
+											style="padding: 8px 15px; background: linear-gradient(45deg, #FF6B6B, #4ECDC4); color: white; border: none; border-radius: 5px; cursor: pointer;">
+										🌈 Цветная
+									</button>
+									<button onclick="document.body.classList.remove(\'print-color\'); window.print(); this.parentNode.parentNode.style.display=\'none\';" 
+											style="padding: 8px 15px; background: #333; color: white; border: none; border-radius: 5px; cursor: pointer;">
+										⚫ Ч/Б
+									</button>
+								</div>
+							</div>
+						`;
+						
+						printWindow.document.body.insertAdjacentHTML('beforeend', printDialog);
+						
+					}, 1000);
+					
+					// Восстанавливаем оригинальный контент
+					reportContent.style.display = originalDisplay;
+					
+				} else {
+					showNotification('Разрешите всплывающие окна для печати', 'warning');
+					reportContent.style.display = originalDisplay;
+				}
+				
+			} catch (error) {
+				console.error('Ошибка печати:', error);
+				showNotification('Ошибка при печати', 'error');
+			}
+		}
+
+		// Экспорт в HTML
+		async function exportToHTML() {
+			const reportContent = document.getElementById('reportContent');
+			if (!reportContent) return;
+			
+			try {
+				showNotification('Подготовка HTML экспорта...', 'info');
+				
+				// Клонируем контент
+				const contentClone = reportContent.cloneNode(true);
+				
+				// Обрабатываем canvas
+				const canvasPromises = [];
+				const canvases = contentClone.querySelectorAll('canvas');
+				
+				canvases.forEach((canvas, index) => {
+					const promise = new Promise((resolve) => {
+						try {
+							if (canvas.chart && typeof canvas.chart.toBase64Image === 'function') {
+								// Увеличиваем качество для Chart.js
+								const originalWidth = canvas.width;
+								const originalHeight = canvas.height;
+								canvas.width = originalWidth * 2;
+								canvas.height = originalHeight * 2;
+								canvas.chart.resize();
+								
+								const dataUrl = canvas.chart.toBase64Image();
+								
+								canvas.width = originalWidth;
+								canvas.height = originalHeight;
+								canvas.chart.resize();
+								
+								resolve({ canvas, dataUrl });
+							} else {
+								const dataUrl = canvas.toDataURL('image/png', 1.0);
+								resolve({ canvas, dataUrl });
+							}
+						} catch (error) {
+							resolve(null);
+						}
+					});
+					canvasPromises.push(promise);
+				});
+				
+				const canvasResults = await Promise.all(canvasPromises);
+				
+				// Заменяем canvas на изображения
+				canvasResults.forEach(result => {
+					if (result && result.dataUrl) {
+						const img = document.createElement('img');
+						img.src = result.dataUrl;
+						img.style.width = '100%';
+						img.style.maxWidth = '100%';
+						img.style.height = 'auto';
+						result.canvas.parentNode.replaceChild(img, result.canvas);
+					}
+				});
+				
+				// Удаляем ненужные элементы
+				const elementsToRemove = contentClone.querySelectorAll(
+					'.btn, .no-export, .modal-footer, .spinner-border, button, .navbar, .sidebar'
+				);
+				elementsToRemove.forEach(el => el.remove());
+				
+				// Исправляем оценки
+				const fixGrades = (text) => text.replace(/\b1\b/g, '2');
+				
+				const walker = document.createTreeWalker(contentClone, NodeFilter.SHOW_TEXT, null, false);
+				let node;
+				while (node = walker.nextNode()) {
+					if (node.nodeType === Node.TEXT_NODE && node.textContent.trim()) {
+						node.textContent = fixGrades(node.textContent);
+					}
+				}
+				
+				// Создаем HTML документ
+				const htmlContent = `
+					<!DOCTYPE html>
+					<html lang="ru">
+					<head>
+						<meta charset="UTF-8">
+						<meta name="viewport" content="width=device-width, initial-scale=1.0">
+						<title>${document.title || 'Аналитический отчет'}</title>
+						<link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.1.3/css/bootstrap.min.css" rel="stylesheet">
+						<style>
+							body {
+								font-family: Arial, sans-serif;
+								padding: 20px;
+								max-width: 1200px;
+								margin: 0 auto;
+							}
+							.report-header {
+								text-align: center;
+								margin-bottom: 30px;
+								padding-bottom: 20px;
+								border-bottom: 2px solid #007bff;
+							}
+							.card {
+								margin-bottom: 20px;
+								box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+							}
+							img {
+								max-width: 100%;
+								height: auto;
+							}
+							table {
+								width: 100%;
+								margin-bottom: 20px;
+							}
+							.export-info {
+								text-align: center;
+								margin-top: 40px;
+								padding-top: 20px;
+								border-top: 1px solid #ddd;
+								color: #666;
+								font-size: 12px;
+							}
+						</style>
+					</head>
+					<body>
+						<div class="report-header">
+							<h1>Аналитический отчет</h1>
+							<h3>${document.title || ''}</h3>
+							<p>Экспортировано: ${new Date().toLocaleDateString('ru-RU')} ${new Date().toLocaleTimeString('ru-RU')}</p>
+						</div>
+						
+						<div class="report-content">
+							${contentClone.innerHTML}
+						</div>
+						
+						<div class="export-info">
+							<p>Отчет экспортирован из системы аналитики</p>
+							<p>© ${new Date().getFullYear()}</p>
+						</div>
+					</body>
+					</html>
+				`;
+				
+				// Создаем и скачиваем файл
+				const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
+				const url = URL.createObjectURL(blob);
+				const a = document.createElement('a');
+				a.href = url;
+				a.download = `отчет_${new Date().toISOString().slice(0,10)}.html`;
+				document.body.appendChild(a);
+				a.click();
+				document.body.removeChild(a);
+				URL.revokeObjectURL(url);
+				
+				showNotification('HTML файл успешно экспортирован', 'success');
+				
+			} catch (error) {
+				console.error('Ошибка экспорта в HTML:', error);
+				showNotification('Ошибка при экспорте в HTML', 'error');
+			}
+		}
+
+		// Экспорт в DOCX (упрощенный через HTML)
+		async function exportToDOCX() {
+			const reportContent = document.getElementById('reportContent');
+			if (!reportContent) return;
+			
+			try {
+				showNotification('Подготовка DOCX экспорта...', 'info');
+				
+				// Используем библиотеку html-docx-js если доступна
+				if (typeof htmlDocx !== 'undefined') {
+					// Создаем HTML для DOCX
+					const htmlForDocx = await createHTMLForDOCX();
+					const converted = htmlDocx.asBlob(htmlForDocx);
+					
+					const url = URL.createObjectURL(converted);
+					const a = document.createElement('a');
+					a.href = url;
+					a.download = `отчет_${new Date().toISOString().slice(0,10)}.docx`;
+					document.body.appendChild(a);
+					a.click();
+					document.body.removeChild(a);
+					URL.revokeObjectURL(url);
+					
+					showNotification('DOCX файл успешно экспортирован', 'success');
+				} else {
+					// Fallback: экспорт как HTML
+					showNotification('Библиотека для DOCX не найдена, экспортируем как HTML', 'warning');
+					exportToHTML();
+				}
+				
+			} catch (error) {
+				console.error('Ошибка экспорта в DOCX:', error);
+				showNotification('Ошибка при экспорте в DOCX', 'error');
+			}
+		}
+
+		// Вспомогательная функция для создания HTML для DOCX
+		async function createHTMLForDOCX() {
+			const reportContent = document.getElementById('reportContent');
+			const contentClone = reportContent.cloneNode(true);
+			
+			// Обрабатываем canvas
+			const canvasPromises = [];
+			const canvases = contentClone.querySelectorAll('canvas');
+			
+			canvases.forEach((canvas, index) => {
+				const promise = new Promise((resolve) => {
+					try {
+						if (canvas.chart && typeof canvas.chart.toBase64Image === 'function') {
+							// Увеличиваем качество для Chart.js
+							const originalWidth = canvas.width;
+							const originalHeight = canvas.height;
+							canvas.width = originalWidth * 2;
+							canvas.height = originalHeight * 2;
+							canvas.chart.resize();
+							
+							const dataUrl = canvas.chart.toBase64Image();
+							
+							canvas.width = originalWidth;
+							canvas.height = originalHeight;
+							canvas.chart.resize();
+							
+							resolve({ canvas, dataUrl });
+						} else {
+							const dataUrl = canvas.toDataURL('image/png', 1.0);
+							resolve({ canvas, dataUrl });
+						}
+					} catch (error) {
+						resolve(null);
+					}
+				});
+				canvasPromises.push(promise);
+			});
+			
+			const canvasResults = await Promise.all(canvasPromises);
+			
+			// Заменяем canvas на изображения
+			canvasResults.forEach(result => {
+				if (result && result.dataUrl) {
+					const img = document.createElement('img');
+					img.src = result.dataUrl;
+					img.style.width = '100%';
+					img.style.maxWidth = '100%';
+					img.style.height = 'auto';
+					result.canvas.parentNode.replaceChild(img, result.canvas);
+				}
+			});
+			
+			// Удаляем ненужные элементы
+			const elementsToRemove = contentClone.querySelectorAll(
+				'.btn, .no-export, .modal-footer, .spinner-border, button, .navbar, .sidebar'
+			);
+			elementsToRemove.forEach(el => el.remove());
+			
+			// Исправляем оценки
+			const fixGrades = (text) => text.replace(/\b1\b/g, '2');
+			
+			const walker = document.createTreeWalker(contentClone, NodeFilter.SHOW_TEXT, null, false);
+			let node;
+			while (node = walker.nextNode()) {
+				if (node.nodeType === Node.TEXT_NODE && node.textContent.trim()) {
+					node.textContent = fixGrades(node.textContent);
+				}
+			}
+
+			return `
+				<!DOCTYPE html>
+				<html>
+				<head>
+					<meta charset="UTF-8">
+					<style>
+						body {
+							font-family: 'Times New Roman', Times, serif;
+							font-size: 12pt;
+							line-height: 1.5;
+						}
+						h1 { font-size: 16pt; }
+						h2 { font-size: 14pt; }
+						h3 { font-size: 12pt; }
+						table { border-collapse: collapse; width: 100%; }
+						th, td { border: 1px solid black; padding: 5px; }
+						th { background: #f0f0f0; }
+						img { max-width: 100%; height: auto; }
+					</style>
+				</head>
+				<body>
+					<h1>Аналитический отчет</h1>
+					<p>Дата: ${new Date().toLocaleDateString('ru-RU')}</p>
+					${contentClone.innerHTML}
+				</body>
+				</html>
+			`;
+		}
+
+		// Добавьте кнопки в интерфейс для вызова этих функций
+		// Добавление кнопок экспорта в интерфейс
+		function addExportButtons() {
+			try {
+				// Ищем различные возможные места для размещения кнопок
+				let container = null;
+				
+				// Вариант 1: Ищем уже существующий контейнер для кнопок
+				const possibleSelectors = [
+					'.report-header',
+					'.card-header:has(h1, h2, h3)',
+					'.d-flex.justify-content-between',
+					'.btn-toolbar',
+					'.actions',
+					'.toolbar',
+					'#reportActions',
+					'.container-fluid:first-child'
+				];
+				
+				for (const selector of possibleSelectors) {
+					const element = document.querySelector(selector);
+					if (element) {
+						container = element;
+						break;
+					}
+				}
+				
+				// Вариант 2: Ищем reportContent и размещаем кнопки перед ним или после
+				if (!container) {
+					const reportContent = document.getElementById('reportContent');
+					if (reportContent) {
+						// Создаем контейнер для кнопок перед отчетом
+						const buttonContainer = document.createElement('div');
+						buttonContainer.className = 'report-export-buttons mb-4';
+						buttonContainer.style.cssText = `
+							display: flex;
+							justify-content: flex-end;
+							gap: 10px;
+							padding: 15px;
+							background: #f8f9fa;
+							border-radius: 8px;
+							border: 1px solid #dee2e6;
+						`;
+						
+						reportContent.parentNode.insertBefore(buttonContainer, reportContent);
+						container = buttonContainer;
+					}
+				}
+				
+				// Вариант 3: Создаем плавающую панель кнопок
+				if (!container) {
+					container = document.createElement('div');
+					container.id = 'floatingExportButtons';
+					container.style.cssText = `
+						position: fixed;
+						top: 100px;
+						right: 20px;
+						z-index: 1000;
+						background: white;
+						padding: 10px;
+						border-radius: 8px;
+						box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+						display: flex;
+						flex-direction: column;
+						gap: 8px;
+						border: 1px solid #dee2e6;
+					`;
+					document.body.appendChild(container);
+				}
+				
+				// Создаем кнопки
+				const buttonsHTML = `
+					<div class="btn-group" role="group" aria-label="Экспорт отчета">
+						<button type="button" class="btn btn-primary btn-sm" onclick="exportReport('print')" 
+								title="Печать отчета">
+							<i class="fas fa-print"></i> Печать
+						</button>
+						<button type="button" class="btn btn-success btn-sm" onclick="exportReport('html')"
+								title="Экспорт в HTML">
+							<i class="fas fa-file-code"></i> HTML
+						</button>
+						<button type="button" class="btn btn-info btn-sm" onclick="exportReport('docx')"
+								title="Экспорт в Word">
+							<i class="fas fa-file-word"></i> DOCX
+						</button>
+					</div>
+					
+					<style>
+						.report-export-buttons .btn {
+							min-width: 100px;
+						}
+						
+						#floatingExportButtons .btn {
+							min-width: 120px;
+							justify-content: flex-start;
+						}
+						
+						@media (max-width: 768px) {
+							#floatingExportButtons {
+								position: fixed;
+								bottom: 20px;
+								top: auto;
+								right: 20px;
+								left: 20px;
+								flex-direction: row;
+								justify-content: center;
+							}
+							
+							#floatingExportButtons .btn {
+								min-width: auto;
+								flex: 1;
+							}
+						}
+					</style>
+				`;
+				
+				// Добавляем кнопки в контейнер
+				if (container.id === 'floatingExportButtons') {
+					container.innerHTML = buttonsHTML;
+				} else {
+					// Если контейнер уже существует, добавляем кнопки в него
+					if (container.querySelector('.btn-group')) {
+						// Уже есть кнопки, обновляем их
+						container.querySelector('.btn-group').outerHTML = buttonsHTML;
+					} else {
+						// Создаем новую группу кнопок
+						container.insertAdjacentHTML('beforeend', buttonsHTML);
+					}
+				}
+				
+				console.log('Кнопки экспорта добавлены в:', container);
+				
+			} catch (error) {
+				console.error('Ошибка при добавлении кнопок экспорта:', error);
+				
+				// Fallback: создаем плавающую кнопку
+				createFloatingExportButton();
+			}
+		}
+
+		// Альтернативная функция: плавающая кнопка
+		function createFloatingExportButton() {
+			const floatingBtn = document.createElement('button');
+			floatingBtn.id = 'floatingExportBtn';
+			floatingBtn.innerHTML = '<i class="fas fa-download"></i>';
+			floatingBtn.title = 'Экспорт отчета';
+			floatingBtn.style.cssText = `
+				position: fixed;
+				bottom: 30px;
+				right: 30px;
+				width: 60px;
+				height: 60px;
+				border-radius: 50%;
+				background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+				color: white;
+				border: none;
+				font-size: 24px;
+				cursor: pointer;
+				z-index: 1000;
+				box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				transition: all 0.3s ease;
+			`;
+			
+			// Добавляем hover эффект
+			floatingBtn.addEventListener('mouseenter', () => {
+				floatingBtn.style.transform = 'scale(1.1)';
+				floatingBtn.style.boxShadow = '0 8px 25px rgba(0,0,0,0.4)';
+			});
+			
+			floatingBtn.addEventListener('mouseleave', () => {
+				floatingBtn.style.transform = 'scale(1)';
+				floatingBtn.style.boxShadow = '0 6px 20px rgba(0,0,0,0.3)';
+			});
+			
+			// Меню экспорта
+			let menuVisible = false;
+			const exportMenu = document.createElement('div');
+			exportMenu.id = 'exportMenu';
+			exportMenu.style.cssText = `
+				position: absolute;
+				bottom: 70px;
+				right: 0;
+				background: white;
+				border-radius: 10px;
+				box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+				padding: 10px;
+				min-width: 150px;
+				display: none;
+				flex-direction: column;
+				gap: 5px;
+				z-index: 1001;
+				border: 1px solid #dee2e6;
+			`;
+			
+			const menuItems = [
+				{ text: '🖨 Печать', action: 'print', color: '#007bff' },
+				{ text: '📄 HTML', action: 'html', color: '#28a745' },
+				{ text: '📝 Word', action: 'docx', color: '#17a2b8' }
+			];
+			
+			menuItems.forEach(item => {
+				const menuItem = document.createElement('button');
+				menuItem.textContent = item.text;
+				menuItem.style.cssText = `
+					padding: 8px 12px;
+					background: ${item.color};
+					color: white;
+					border: none;
+					border-radius: 5px;
+					cursor: pointer;
+					text-align: left;
+					font-size: 14px;
+					transition: all 0.2s;
+				`;
+				
+				menuItem.addEventListener('mouseenter', () => {
+					menuItem.style.opacity = '0.9';
+					menuItem.style.transform = 'translateX(-5px)';
+				});
+				
+				menuItem.addEventListener('mouseleave', () => {
+					menuItem.style.opacity = '1';
+					menuItem.style.transform = 'translateX(0)';
+				});
+				
+				menuItem.addEventListener('click', () => {
+					exportReport(item.action);
+					exportMenu.style.display = 'none';
+					menuVisible = false;
+				});
+				
+				exportMenu.appendChild(menuItem);
+			});
+			
+			floatingBtn.appendChild(exportMenu);
+			
+			// Показ/скрытие меню
+			floatingBtn.addEventListener('click', (e) => {
+				e.stopPropagation();
+				menuVisible = !menuVisible;
+				exportMenu.style.display = menuVisible ? 'flex' : 'none';
+			});
+			
+			// Закрытие меню при клике вне
+			document.addEventListener('click', () => {
+				if (menuVisible) {
+					exportMenu.style.display = 'none';
+					menuVisible = false;
+				}
+			});
+			
+			document.body.appendChild(floatingBtn);
+		}
+
+		// Улучшенная инициализация
+		function initExportButtons() {
+			// Ждем полной загрузки DOM
+			if (document.readyState === 'loading') {
+				document.addEventListener('DOMContentLoaded', () => {
+					setTimeout(addExportButtons, 1500);
+				});
+			} else {
+				setTimeout(addExportButtons, 1500);
+			}
+			
+			// Также пытаемся добавить кнопки после AJAX-загрузки контента
+			// Если у вас динамическая загрузка, добавьте вызов addExportButtons после загрузки отчета
+		}
+
+		// Автоматическая инициализация
+		initExportButtons();
+
+
+		function exportChartsForPrint() {
+			const charts = [];
+			document.querySelectorAll('canvas').forEach((canvas, index) => {
+				try {
+					const dataUrl = canvas.toDataURL('image/png', 1.0);
+					charts.push({
+						id: canvas.id || `chart-${index}`,
+						dataUrl: dataUrl,
+						width: canvas.width,
+						height: canvas.height
+					});
+				} catch (e) {
+					console.warn('Ошибка экспорта графика:', e);
+				}
+			});
+			return charts;
+		}
+
+		// Вспомогательная функция для оптимизации контента для печати
+		function optimizeForPrint(container) {
+			// Разбиваем большие таблицы
+			const tables = container.querySelectorAll('table');
+			tables.forEach(table => {
+				if (table.offsetHeight > 500) { // Если таблица слишком высокая
+					table.classList.add('no-break');
+				}
+			});
+			
+			// Убедимся, что изображения не выходят за границы
+			const images = container.querySelectorAll('img');
+			images.forEach(img => {
+				img.style.maxWidth = '100%';
+				img.style.height = 'auto';
+			});
+			
+			// Добавляем разрывы страниц перед большими секциями
+			const sections = container.querySelectorAll('.card, .section');
+			sections.forEach((section, index) => {
+				if (index > 0 && section.offsetHeight > 400) {
+					section.classList.add('no-break');
+				}
+			});
+			
+			// Удаляем пустые элементы
+			const emptyElements = container.querySelectorAll(':empty');
+			emptyElements.forEach(el => {
+				if (!el.hasChildNodes() && el.tagName !== 'INPUT' && el.tagName !== 'BR' && el.tagName !== 'HR') {
+					el.remove();
+				}
+			});
+		}
 		// Загрузка необходимых библиотек
 		async function loadReportLibraries() {
 			if (typeof html2canvas === 'undefined') {
 				await loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js');
 			}
 		}
+
+
 
 		// Генерация контента отчета
 		async function generateReportContent() {
