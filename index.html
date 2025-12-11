@@ -7209,7 +7209,46 @@
             renderResults();
             showNotification(`Добавлено задание №${newTask.number}`, "success");
         }
+		
+		// Проверяем, что все необходимые функции определены
+		function ensureFunctionsExist() {
+			const requiredFunctions = [
+				'selectClass',
+				'addWholeClassToTestingFromCard',
+				'showQRForClass',
+				'deleteClass',
+				'addSelectedToTesting',
+				'addWholeClassToTesting',
+				'toggleAllStudents',
+				'addSingleStudent',
+				'renderClassStudents',
+				'importSchoolFile'
+			];
+			
+			const missingFunctions = [];
+			
+			requiredFunctions.forEach(funcName => {
+				if (typeof window[funcName] !== 'function') {
+					missingFunctions.push(funcName);
+				}
+			});
+			
+			if (missingFunctions.length > 0) {
+				console.error('Не найдены функции:', missingFunctions);
+				showNotification(`Ошибка: отсутствуют функции: ${missingFunctions.join(', ')}`, 'error');
+				return false;
+			}
+			
+			return true;
+		}
 
+		// Вызывайте эту функцию при загрузке
+		document.addEventListener('DOMContentLoaded', function() {
+			if (ensureFunctionsExist()) {
+				console.log('Все функции управления классами загружены');
+			}
+		});	
+		
         // Функция для удаления задания
         function removeTask(taskIndex) {
             if (appData.tasks.length <= 1) {
@@ -7604,7 +7643,21 @@
 				studentsContainer.style.display = 'none';
 				classManagerContainer.style.display = 'block';
 				viewModeText.textContent = 'Перейти к списку тестируемых';
+				
+				// Загружаем данные школы
+				loadSchoolData();
+				
+				// Рендерим менеджер классов
 				renderClassManager();
+				
+				// Добавляем обработчики после рендеринга
+				setTimeout(() => {
+					const classesGrid = document.getElementById('classesGrid');
+					if (classesGrid) {
+						classesGrid.addEventListener('click', handleClassAction);
+					}
+				}, 100);
+				
 			} else {
 				studentsContainer.style.display = 'block';
 				classManagerContainer.style.display = 'none';
@@ -8320,11 +8373,14 @@
 			
 			container.innerHTML = '';
 			
+			// Очищаем старые обработчики
+			container.onclick = null;
+			
 			schoolData.classes.forEach(cls => {
 				const classCard = document.createElement('div');
 				classCard.className = 'col-md-4 col-lg-3 mb-3';
+				classCard.dataset.classId = cls.id; // Сохраняем ID класса в data-атрибут
 				
-				// ОБНОВЛЕННЫЙ HTML с правильными вызовами функций
 				classCard.innerHTML = `
 					<div class="card h-100">
 						<div class="card-header py-2">
@@ -8351,16 +8407,16 @@
 						</div>
 						<div class="card-footer p-2">
 							<div class="btn-group w-100">
-								<button class="btn btn-sm btn-outline-primary" onclick="selectClass('${cls.id}')" title="Выбрать">
+								<button class="btn btn-sm btn-outline-primary class-action-btn" data-action="select" data-class-id="${cls.id}" title="Выбрать">
 									<i class="fas fa-check"></i>
 								</button>
-								<button class="btn btn-sm btn-outline-success" onclick="addWholeClassToTestingFromCard('${cls.id}')" title="Добавить весь класс">
+								<button class="btn btn-sm btn-outline-success class-action-btn" data-action="add-all" data-class-id="${cls.id}" title="Добавить весь класс">
 									<i class="fas fa-user-plus"></i>
 								</button>
-								<button class="btn btn-sm btn-outline-info" onclick="showQRForClass('${cls.id}')" title="QR-код класса">
+								<button class="btn btn-sm btn-outline-info class-action-btn" data-action="qr" data-class-id="${cls.id}" title="QR-код класса">
 									<i class="fas fa-qrcode"></i>
 								</button>
-								<button class="btn btn-sm btn-outline-danger" onclick="deleteClass('${cls.id}')" title="Удалить класс">
+								<button class="btn btn-sm btn-outline-danger class-action-btn" data-action="delete" data-class-id="${cls.id}" title="Удалить класс">
 									<i class="fas fa-trash"></i>
 								</button>
 							</div>
@@ -8369,7 +8425,37 @@
 				`;
 				container.appendChild(classCard);
 			});
+			
+			// Добавляем единый обработчик для всех кнопок
+			container.addEventListener('click', handleClassAction);
 		}
+		
+		// Обработчик действий с классами
+		function handleClassAction(event) {
+			const button = event.target.closest('.class-action-btn');
+			if (!button) return;
+			
+			const classId = button.dataset.classId;
+			const action = button.dataset.action;
+			
+			if (!classId) return;
+			
+			switch(action) {
+				case 'select':
+					selectClass(classId);
+					break;
+				case 'add-all':
+					addWholeClassToTestingFromCard(classId);
+					break;
+				case 'qr':
+					showQRForClass(classId);
+					break;
+				case 'delete':
+					deleteClass(classId);
+					break;
+			}
+		}
+
 
 		// Функция для отображения учеников выбранного класса
 		// Также обновите renderClassStudents:
