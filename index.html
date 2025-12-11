@@ -8158,7 +8158,27 @@
 					});
 			}
 		}		
-		
+		// Проверка загрузки зависимостей
+		document.addEventListener('DOMContentLoaded', function() {
+			// Проверяем Bootstrap
+			if (typeof bootstrap === 'undefined') {
+				console.error('Bootstrap не загружен');
+				showNotification('Ошибка: Bootstrap не загружен', 'error');
+			}
+			
+			// Проверяем XLSX для работы с Excel
+			if (typeof XLSX === 'undefined') {
+				console.warn('Библиотека XLSX не загружена - импорт Excel недоступен');
+			}
+			
+			// Проверяем QRCode
+			if (typeof QRCode === 'undefined') {
+				console.warn('Библиотека QRCode не загружена - генерация QR-кодов недоступен');
+			}
+			
+			// Загружаем данные школы
+			loadSchoolData();
+		});		
 		// классы
 		function renderClassManager() {
 			const container = document.getElementById('classManagerContainer');
@@ -8303,6 +8323,8 @@
 			schoolData.classes.forEach(cls => {
 				const classCard = document.createElement('div');
 				classCard.className = 'col-md-4 col-lg-3 mb-3';
+				
+				// ОБНОВЛЕННЫЙ HTML с правильными вызовами функций
 				classCard.innerHTML = `
 					<div class="card h-100">
 						<div class="card-header py-2">
@@ -8350,21 +8372,24 @@
 		}
 
 		// Функция для отображения учеников выбранного класса
+		// Также обновите renderClassStudents:
 		function renderClassStudents() {
 			const classId = document.getElementById('classSelector').value;
 			const container = document.getElementById('classStudentsContainer');
 			const addSelectedBtn = document.getElementById('addSelectedBtn');
 			const addWholeClassBtn = document.getElementById('addWholeClassBtn');
 			
-			if (!classId) {
-				container.innerHTML = `
-					<div class="text-center text-muted py-4">
-						<i class="fas fa-users fa-2x mb-2"></i>
-						<p>Выберите класс для просмотра учеников</p>
-					</div>
-				`;
-				addSelectedBtn.disabled = true;
-				addWholeClassBtn.disabled = true;
+			if (!classId || !container) {
+				if (container) {
+					container.innerHTML = `
+						<div class="text-center text-muted py-4">
+							<i class="fas fa-users fa-2x mb-2"></i>
+							<p>Выберите класс для просмотра учеников</p>
+						</div>
+					`;
+				}
+				if (addSelectedBtn) addSelectedBtn.disabled = true;
+				if (addWholeClassBtn) addWholeClassBtn.disabled = true;
 				return;
 			}
 			
@@ -8423,11 +8448,8 @@
 			container.innerHTML = html;
 			
 			// Активируем кнопки
-			addSelectedBtn.disabled = false;
-			addWholeClassBtn.disabled = false;
-			
-			// Обновляем селектор
-			document.getElementById('classSelector').value = classId;
+			if (addSelectedBtn) addSelectedBtn.disabled = false;
+			if (addWholeClassBtn) addWholeClassBtn.disabled = false;
 		}
 		
 		// Загрузка данных школы из localStorage
