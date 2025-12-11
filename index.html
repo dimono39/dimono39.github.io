@@ -10,6 +10,8 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 	<link href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/css/bootstrap.min.css" rel="stylesheet">
+	<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
 		/* Добавьте в ваш CSS */
 		.task-card {
@@ -1222,6 +1224,12 @@
         <!-- Вкладка учащихся -->
         <div id="students" class="tab-content">
             <h2>👥 Список учащихся</h2>
+			<button class="btn btn-info mb-3" onclick="toggleViewMode()">
+				<i class="fas fa-exchange-alt me-2"></i>
+				<span id="viewModeText">Перейти к управлению классами</span>
+			</button>
+
+			<div id="classManagerContainer" style="display: none;"></div>			
             <div id="studentsContainer"></div>
             <button class="btn btn-success" onclick="saveStudents()">💾 Сохранить список</button>
         </div>
@@ -1410,6 +1418,38 @@
 				availableSubjects: []
 			}
 		};
+		
+		// Структура для хранения классов и всех учеников школы
+		const schoolData = {
+			classes: [], // Массив классов
+			lastImportDate: null, // Дата последнего импорта
+			schoolName: '' // Название школы
+		};
+
+		// Структура одного класса
+		class SchoolClass {
+			constructor(name, grade, teacher = '') {
+				this.id = Date.now() + Math.random();
+				this.name = name; // Например, "5А", "10Б"
+				this.grade = grade; // Числовой класс: 5, 10
+				this.teacher = teacher;
+				this.students = []; // Массив учеников
+				this.createdAt = new Date().toISOString();
+			}
+		}
+
+		// Структура ученика школы
+		class SchoolStudent {
+			constructor(lastName, firstName, middleName = '', id = '') {
+				this.id = id || Date.now() + Math.random();
+				this.lastName = lastName;
+				this.firstName = firstName;
+				this.middleName = middleName;
+				this.fullName = `${lastName} ${firstName} ${middleName}`.trim();
+				this.classId = null; // Ссылка на класс
+				this.isPresent = true; // Присутствовал на тестировании
+			}
+		}	
 		
 		// Глобальные переменные для хранения экземпляров графиков
 		window.gradesChartInstance = null;
@@ -7547,6 +7587,29 @@
 			}
 		}
 
+		// Функция переключения режимов
+		let isClassManagerView = false;
+
+		function toggleViewMode() {
+			isClassManagerView = !isClassManagerView;
+			
+			const studentsContainer = document.getElementById('studentsContainer');
+			const classManagerContainer = document.getElementById('classManagerContainer');
+			const viewModeText = document.getElementById('viewModeText');
+			
+			if (isClassManagerView) {
+				studentsContainer.style.display = 'none';
+				classManagerContainer.style.display = 'block';
+				viewModeText.textContent = 'Перейти к списку тестируемых';
+				renderClassManager();
+			} else {
+				studentsContainer.style.display = 'block';
+				classManagerContainer.style.display = 'none';
+				viewModeText.textContent = 'Перейти к управлению классами';
+				renderStudents();
+			}
+		}
+		
 		function renderStudents() {
 			const container = document.getElementById('studentsContainer');
 			container.innerHTML = '';
@@ -7577,7 +7640,7 @@
 					</h4>
 					<span style="background: rgba(255,255,255,0.2); color: white; font-size: 14px; padding: 4px 8px; border-radius: 12px;">
 						${appData.students.length} учащихся
-					</span>
+					</span>					
 				</div>
 				
 				<div style="display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 15px; align-items: center;">
@@ -7775,7 +7838,624 @@
 			`;
 			container.appendChild(quickActionsDiv);
 		}
+		// классы
+		function renderClassManager() {
+			const container = document.getElementById('classManagerContainer');
+			if (!container) return;
+			
+			container.innerHTML = '';
+			
+			// Основной интерфейс управления классами
+			const mainCard = document.createElement('div');
+			mainCard.className = 'card mb-4';
+			mainCard.innerHTML = `
+				<div class="card-header bg-info text-white">
+					<h5 class="mb-0"><i class="fas fa-school me-2"></i>Управление классами и учащимися</h5>
+				</div>
+				<div class="card-body">
+					<div class="row">
+						<div class="col-md-6 mb-3">
+							<div class="card h-100">
+								<div class="card-header">
+									<h6 class="mb-0"><i class="fas fa-file-import me-2"></i>Импорт данных школы</h6>
+								</div>
+								<div class="card-body">
+									<div class="mb-3">
+										<label class="form-label">Название школы:</label>
+										<input type="text" id="schoolName" class="form-control" 
+											   value="${schoolData.schoolName}" 
+											   placeholder="Введите название школы">
+									</div>
+									
+									<div class="mb-3">
+										<label class="form-label">Выберите файл для импорта:</label>
+										<div class="input-group">
+											<input type="file" id="schoolFileInput" class="form-control" 
+												   accept=".xlsx,.xls,.csv,.txt">
+											<button class="btn btn-outline-info" type="button" 
+													onclick="document.getElementById('schoolFileInput').click()">
+												<i class="fas fa-folder-open"></i>
+											</button>
+										</div>
+										<small class="form-text text-muted">
+											Поддерживаемые форматы: Excel (.xlsx, .xls), CSV, TXT
+										</small>
+									</div>
+									
+									<div class="mb-3">
+										<label class="form-label">Формат файла:</label>
+										<select id="fileFormat" class="form-select">
+											<option value="auto">Автоопределение</option>
+											<option value="excel">Excel (столбцы: Класс, Фамилия, Имя, Отчество)</option>
+											<option value="csv">CSV с разделителем</option>
+										</select>
+									</div>
+									
+									<button class="btn btn-primary w-100" onclick="importSchoolFile()">
+										<i class="fas fa-upload me-2"></i>Импортировать данные школы
+									</button>
+									
+									${schoolData.lastImportDate ? `
+										<div class="alert alert-info mt-3 p-2 small">
+											<i class="fas fa-info-circle me-1"></i>
+											Последний импорт: ${new Date(schoolData.lastImportDate).toLocaleDateString('ru-RU')}
+										</div>
+									` : ''}
+								</div>
+							</div>
+						</div>
+						
+						<div class="col-md-6 mb-3">
+							<div class="card h-100">
+								<div class="card-header">
+									<h6 class="mb-0"><i class="fas fa-users me-2"></i>Быстрый выбор</h6>
+								</div>
+								<div class="card-body">
+									<div class="mb-3">
+										<label class="form-label">Выберите класс:</label>
+										<select id="classSelector" class="form-select" onchange="renderClassStudents()">
+											<option value="">-- Выберите класс --</option>
+											${schoolData.classes.map(cls => `
+												<option value="${cls.id}">${cls.grade}${cls.name}</option>
+											`).join('')}
+										</select>
+									</div>
+									
+									<div id="classStudentsContainer" class="mb-3" style="max-height: 300px; overflow-y: auto;">
+										<!-- Здесь будут отображаться ученики выбранного класса -->
+										<div class="text-center text-muted py-4">
+											<i class="fas fa-users fa-2x mb-2"></i>
+											<p>Выберите класс для просмотра учеников</p>
+										</div>
+									</div>
+									
+									<div class="d-grid gap-2">
+										<button class="btn btn-success" onclick="addSelectedToTesting()" disabled id="addSelectedBtn">
+											<i class="fas fa-user-plus me-2"></i>Добавить выбранных к тестированию
+										</button>
+										<button class="btn btn-outline-info" onclick="addWholeClassToTesting()" disabled id="addWholeClassBtn">
+											<i class="fas fa-users me-2"></i>Добавить весь класс
+										</button>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+					
+					<!-- Список всех классов -->
+					<div class="card mt-3">
+						<div class="card-header">
+							<h6 class="mb-0"><i class="fas fa-list me-2"></i>Все классы школы (${schoolData.classes.length})</h6>
+						</div>
+						<div class="card-body">
+							${schoolData.classes.length === 0 ? `
+								<div class="text-center py-4 text-muted">
+									<i class="fas fa-school fa-3x mb-3"></i>
+									<h5>Нет данных о классах</h5>
+									<p>Импортируйте файл со списком учащихся школы</p>
+								</div>
+							` : `
+								<div class="row" id="classesGrid">
+									<!-- Классы будут отображаться здесь -->
+								</div>
+							`}
+						</div>
+					</div>
+				</div>
+			`;
+			
+			container.appendChild(mainCard);
+			
+			// Отображаем сетку классов, если они есть
+			if (schoolData.classes.length > 0) {
+				renderClassesGrid();
+			}
+		}
 
+		// Функция для отображения сетки классов
+		function renderClassesGrid() {
+			const container = document.getElementById('classesGrid');
+			if (!container) return;
+			
+			container.innerHTML = '';
+			
+			schoolData.classes.forEach(cls => {
+				const classCard = document.createElement('div');
+				classCard.className = 'col-md-4 col-lg-3 mb-3';
+				classCard.innerHTML = `
+					<div class="card h-100">
+						<div class="card-header py-2">
+							<div class="d-flex justify-content-between align-items-center">
+								<h6 class="mb-0">${cls.grade}${cls.name}</h6>
+								<span class="badge bg-primary">${cls.students.length} уч.</span>
+							</div>
+							${cls.teacher ? `<small class="text-muted">${cls.teacher}</small>` : ''}
+						</div>
+						<div class="card-body p-3">
+							<div style="max-height: 150px; overflow-y: auto;">
+								${cls.students.slice(0, 8).map(student => `
+									<div class="d-flex justify-content-between align-items-center py-1">
+										<span class="small">${student.lastName} ${student.firstName.charAt(0)}.</span>
+										${student.middleName ? `<span class="small text-muted">${student.middleName.charAt(0)}.</span>` : ''}
+									</div>
+								`).join('')}
+								${cls.students.length > 8 ? `
+									<div class="text-center mt-2">
+										<span class="badge bg-secondary">+${cls.students.length - 8} еще</span>
+									</div>
+								` : ''}
+							</div>
+						</div>
+						<div class="card-footer p-2">
+							<div class="btn-group w-100">
+								<button class="btn btn-sm btn-outline-primary" onclick="selectClass('${cls.id}')" title="Выбрать">
+									<i class="fas fa-check"></i>
+								</button>
+								<button class="btn btn-sm btn-outline-success" onclick="addWholeClassToTestingFromCard('${cls.id}')" title="Добавить весь класс">
+									<i class="fas fa-user-plus"></i>
+								</button>
+								<button class="btn btn-sm btn-outline-info" onclick="showQRForClass('${cls.id}')" title="QR-код класса">
+									<i class="fas fa-qrcode"></i>
+								</button>
+								<button class="btn btn-sm btn-outline-danger" onclick="deleteClass('${cls.id}')" title="Удалить класс">
+									<i class="fas fa-trash"></i>
+								</button>
+							</div>
+						</div>
+					</div>
+				`;
+				container.appendChild(classCard);
+			});
+		}
+
+		// Функция для отображения учеников выбранного класса
+		function renderClassStudents() {
+			const classId = document.getElementById('classSelector').value;
+			const container = document.getElementById('classStudentsContainer');
+			const addSelectedBtn = document.getElementById('addSelectedBtn');
+			const addWholeClassBtn = document.getElementById('addWholeClassBtn');
+			
+			if (!classId) {
+				container.innerHTML = `
+					<div class="text-center text-muted py-4">
+						<i class="fas fa-users fa-2x mb-2"></i>
+						<p>Выберите класс для просмотра учеников</p>
+					</div>
+				`;
+				addSelectedBtn.disabled = true;
+				addWholeClassBtn.disabled = true;
+				return;
+			}
+			
+			const schoolClass = schoolData.classes.find(c => c.id === classId);
+			if (!schoolClass) return;
+			
+			let html = `
+				<div class="mb-2">
+					<div class="d-flex justify-content-between align-items-center mb-2">
+						<h6 class="mb-0">${schoolClass.grade}${schoolClass.name}</h6>
+						<span class="badge bg-primary">${schoolClass.students.length} учеников</span>
+					</div>
+					<div class="form-check mb-2">
+						<input class="form-check-input" type="checkbox" id="selectAllStudents" 
+							   onchange="toggleAllStudents(this.checked)">
+						<label class="form-check-label" for="selectAllStudents">
+							Выбрать всех
+						</label>
+					</div>
+				</div>
+				<div class="list-group" style="max-height: 200px; overflow-y: auto;">
+			`;
+			
+			schoolClass.students.forEach((student, index) => {
+				const isInTesting = appData.students.some(s => 
+					s.includes(student.lastName) && s.includes(student.firstName)
+				);
+				
+				html += `
+					<div class="list-group-item list-group-item-action py-2">
+						<div class="form-check d-flex justify-content-between align-items-center">
+							<div>
+								<input class="form-check-input student-checkbox" type="checkbox" 
+									   value="${student.id}" id="student_${student.id}"
+									   ${isInTesting ? 'disabled' : ''}>
+								<label class="form-check-label ms-2 ${isInTesting ? 'text-muted' : ''}" 
+									   for="student_${student.id}">
+									<strong>${student.lastName} ${student.firstName}</strong>
+									${student.middleName ? ` ${student.middleName}` : ''}
+								</label>
+							</div>
+							<div>
+								${isInTesting ? 
+									`<span class="badge bg-success">Уже добавлен</span>` : 
+									`<button class="btn btn-sm btn-outline-primary" onclick="addSingleStudent('${student.id}')">
+										<i class="fas fa-plus"></i>
+									</button>`
+								}
+							</div>
+						</div>
+					</div>
+				`;
+			});
+			
+			html += '</div>';
+			container.innerHTML = html;
+			
+			// Активируем кнопки
+			addSelectedBtn.disabled = false;
+			addWholeClassBtn.disabled = false;
+			
+			// Обновляем селектор
+			document.getElementById('classSelector').value = classId;
+		}
+		
+		// Загрузка данных школы из localStorage
+		function loadSchoolData() {
+			try {
+				const saved = localStorage.getItem('schoolData');
+				if (saved) {
+					const parsed = JSON.parse(saved);
+					Object.assign(schoolData, parsed);
+					
+					// Восстанавливаем прототипы
+					if (schoolData.classes && schoolData.classes.length > 0) {
+						schoolData.classes = schoolData.classes.map(clsData => {
+							const schoolClass = new SchoolClass(clsData.name, clsData.grade, clsData.teacher);
+							Object.assign(schoolClass, clsData);
+							return schoolClass;
+						});
+					}
+				}
+			} catch (error) {
+				console.error('Ошибка загрузки данных школы:', error);
+			}
+		}
+
+		// Удаление класса
+		function deleteClass(classId) {
+			if (!confirm('Удалить этот класс? Все данные об учениках будут удалены.')) {
+				return;
+			}
+			
+			const index = schoolData.classes.findIndex(c => c.id === classId);
+			if (index !== -1) {
+				schoolData.classes.splice(index, 1);
+				localStorage.setItem('schoolData', JSON.stringify(schoolData));
+				renderClassManager();
+				showNotification('Класс удален', 'success');
+			}
+		}	
+		
+		// Генерация QR-кода для класса
+		function showQRForClass(classId) {
+			const schoolClass = schoolData.classes.find(c => c.id === classId);
+			if (!schoolClass) return;
+			
+			// Создаем уникальную ссылку для класса
+			const classData = {
+				classId: schoolClass.id,
+				className: `${schoolClass.grade}${schoolClass.name}`,
+				students: schoolClass.students.map(s => ({
+					lastName: s.lastName,
+					firstName: s.firstName,
+					middleName: s.middleName
+				})),
+				timestamp: new Date().toISOString()
+			};
+			
+			const dataStr = JSON.stringify(classData);
+			const dataUrl = `data:application/json;charset=utf-8,${encodeURIComponent(dataStr)}`;
+			
+			// Создаем модальное окно с QR-кодом
+			const modal = document.createElement('div');
+			modal.className = 'modal fade';
+			modal.id = 'qrModal';
+			modal.innerHTML = `
+				<div class="modal-dialog modal-dialog-centered">
+					<div class="modal-content">
+						<div class="modal-header">
+							<h5 class="modal-title">QR-код класса ${schoolClass.grade}${schoolClass.name}</h5>
+							<button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+						</div>
+						<div class="modal-body text-center">
+							<div id="qrCodeContainer" class="mb-3"></div>
+							<p class="text-muted small">
+								Отсканируйте QR-код для быстрого импорта данных класса
+							</p>
+							<div class="d-grid gap-2">
+								<button class="btn btn-outline-primary" onclick="downloadQRCode()">
+									<i class="fas fa-download me-2"></i>Скачать QR-код
+								</button>
+								<button class="btn btn-outline-secondary" onclick="shareClassData('${classId}')">
+									<i class="fas fa-share-alt me-2"></i>Поделиться
+								</button>
+							</div>
+						</div>
+					</div>
+				</div>
+			`;
+			
+			document.body.appendChild(modal);
+			
+			// Инициализируем модальное окно Bootstrap
+			const modalInstance = new bootstrap.Modal(modal);
+			modalInstance.show();
+			
+			// Генерируем QR-код после отображения модального окна
+			setTimeout(() => {
+				QRCode.toCanvas(document.getElementById('qrCodeContainer'), dataUrl, {
+					width: 200,
+					margin: 2,
+					color: {
+						dark: '#000000',
+						light: '#FFFFFF'
+					}
+				}, function(error) {
+					if (error) {
+						console.error('Ошибка генерации QR-кода:', error);
+						showNotification('Ошибка генерации QR-кода', 'error');
+					}
+				});
+			}, 100);
+			
+			// Удаляем модальное окно после закрытия
+			modal.addEventListener('hidden.bs.modal', function() {
+				modal.remove();
+			});
+		}
+
+		// Скачивание QR-кода
+		function downloadQRCode() {
+			const canvas = document.querySelector('#qrModal canvas');
+			if (!canvas) return;
+			
+			const link = document.createElement('a');
+			link.download = `qr-code-класс-${new Date().toISOString().slice(0, 10)}.png`;
+			link.href = canvas.toDataURL('image/png');
+			link.click();
+			
+			showNotification('QR-код скачан', 'success');
+		}
+
+		// Поделиться данными класса
+		function shareClassData(classId) {
+			const schoolClass = schoolData.classes.find(c => c.id === classId);
+			if (!schoolClass) return;
+			
+			const shareText = `Класс: ${schoolClass.grade}${schoolClass.name}\n` +
+							 `Учеников: ${schoolClass.students.length}\n` +
+							 `Список учеников:\n` +
+							 schoolClass.students.map(s => 
+								 `- ${s.lastName} ${s.firstName} ${s.middleName || ''}`
+							 ).join('\n');
+			
+			if (navigator.share) {
+				navigator.share({
+					title: `Класс ${schoolClass.grade}${schoolClass.name}`,
+					text: shareText,
+					url: window.location.href
+				}).catch(console.error);
+			} else {
+				// Копируем в буфер обмена
+				navigator.clipboard.writeText(shareText)
+					.then(() => showNotification('Список класса скопирован в буфер обмена', 'success'))
+					.catch(() => {
+						// Fallback для старых браузеров
+						const textarea = document.createElement('textarea');
+						textarea.value = shareText;
+						document.body.appendChild(textarea);
+						textarea.select();
+						document.execCommand('copy');
+						document.body.removeChild(textarea);
+						showNotification('Список класса скопирован в буфер обмена', 'success');
+					});
+			}
+		}		
+		// Импорт данных школы из файла
+		async function importSchoolFile() {
+			const fileInput = document.getElementById('schoolFileInput');
+			const fileFormat = document.getElementById('fileFormat').value;
+			const schoolNameInput = document.getElementById('schoolName');
+			
+			if (!fileInput.files.length) {
+				showNotification('Выберите файл для импорта', 'warning');
+				return;
+			}
+			
+			const file = fileInput.files[0];
+			const schoolName = schoolNameInput.value.trim() || 'Без названия';
+			
+			try {
+				showNotification('Импорт данных...', 'info');
+				
+				let classes = [];
+				
+				if (file.name.toLowerCase().endsWith('.xlsx') || file.name.toLowerCase().endsWith('.xls')) {
+					classes = await importFromExcel(file);
+				} else if (file.name.toLowerCase().endsWith('.csv') || file.name.toLowerCase().endsWith('.txt')) {
+					classes = await importFromCSV(file);
+				} else {
+					showNotification('Неподдерживаемый формат файла', 'error');
+					return;
+				}
+				
+				if (classes.length === 0) {
+					showNotification('Не удалось распознать данные в файле', 'warning');
+					return;
+				}
+				
+				// Обновляем данные школы
+				schoolData.schoolName = schoolName;
+				schoolData.classes = classes;
+				schoolData.lastImportDate = new Date().toISOString();
+				
+				// Сохраняем данные школы в localStorage
+				localStorage.setItem('schoolData', JSON.stringify(schoolData));
+				
+				// Обновляем интерфейс
+				renderClassManager();
+				
+				showNotification(`Импортировано ${classes.length} классов, ${countTotalStudents(classes)} учеников`, 'success');
+				
+			} catch (error) {
+				console.error('Ошибка импорта:', error);
+				showNotification('Ошибка при импорте файла: ' + error.message, 'error');
+			}
+		}
+
+		// Импорт из Excel
+		async function importFromExcel(file) {
+			return new Promise((resolve, reject) => {
+				const reader = new FileReader();
+				
+				reader.onload = function(e) {
+					try {
+						const data = new Uint8Array(e.target.result);
+						const workbook = XLSX.read(data, { type: 'array' });
+						const sheetName = workbook.SheetNames[0];
+						const worksheet = workbook.Sheets[sheetName];
+						const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+						
+						const classes = parseSchoolData(jsonData);
+						resolve(classes);
+					} catch (error) {
+						reject(error);
+					}
+				};
+				
+				reader.onerror = function() {
+					reject(new Error('Ошибка чтения файла'));
+				};
+				
+				reader.readAsArrayBuffer(file);
+			});
+		}
+
+		// Импорт из CSV
+		async function importFromCSV(file) {
+			return new Promise((resolve, reject) => {
+				const reader = new FileReader();
+				
+				reader.onload = function(e) {
+					try {
+						const text = e.target.result;
+						const lines = text.split('\n');
+						const data = lines.map(line => {
+							// Пробуем разные разделители
+							if (line.includes(';')) return line.split(';');
+							if (line.includes(',')) return line.split(',');
+							if (line.includes('\t')) return line.split('\t');
+							return [line];
+						});
+						
+						const classes = parseSchoolData(data);
+						resolve(classes);
+					} catch (error) {
+						reject(error);
+					}
+				};
+				
+				reader.onerror = function() {
+					reject(new Error('Ошибка чтения файла'));
+				};
+				
+				reader.readAsText(file);
+			});
+		}
+
+		// Парсинг данных школы из массива
+		function parseSchoolData(data) {
+			const classesMap = new Map();
+			
+			// Пропускаем заголовок, если есть
+			let startRow = 0;
+			if (data.length > 0) {
+				const firstRow = data[0];
+				if (firstRow.some(cell => 
+					typeof cell === 'string' && 
+					['класс', 'фамилия', 'имя', 'отчество'].includes(cell.toLowerCase())
+				)) {
+					startRow = 1;
+				}
+			}
+			
+			for (let i = startRow; i < data.length; i++) {
+				const row = data[i];
+				if (!row || row.length < 3) continue;
+				
+				// Ищем данные в разных форматах
+				let className = '';
+				let lastName = '';
+				let firstName = '';
+				let middleName = '';
+				
+				// Формат 1: Класс, Фамилия, Имя, Отчество
+				if (row[0] && typeof row[0] === 'string' && row[0].match(/[0-9]+[А-Яа-я]/)) {
+					className = row[0].trim();
+					lastName = row[1] ? String(row[1]).trim() : '';
+					firstName = row[2] ? String(row[2]).trim() : '';
+					middleName = row[3] ? String(row[3]).trim() : '';
+				}
+				// Формат 2: Фамилия, Имя, Отчество, Класс
+				else if (row[3] && typeof row[3] === 'string' && row[3].match(/[0-9]+[А-Яа-я]/)) {
+					className = row[3].trim();
+					lastName = row[0] ? String(row[0]).trim() : '';
+					firstName = row[1] ? String(row[1]).trim() : '';
+					middleName = row[2] ? String(row[2]).trim() : '';
+				}
+				
+				if (!className || !lastName || !firstName) continue;
+				
+				// Извлекаем номер класса и букву
+				const match = className.match(/([0-9]+)([А-Яа-я]+)/);
+				if (!match) continue;
+				
+				const grade = parseInt(match[1]);
+				const letter = match[2].toUpperCase();
+				const classKey = `${grade}-${letter}`;
+				
+				// Создаем или получаем класс
+				if (!classesMap.has(classKey)) {
+					const schoolClass = new SchoolClass(letter, grade);
+					classesMap.set(classKey, schoolClass);
+				}
+				
+				const schoolClass = classesMap.get(classKey);
+				
+				// Добавляем ученика
+				const student = new SchoolStudent(lastName, firstName, middleName);
+				student.classId = schoolClass.id;
+				schoolClass.students.push(student);
+			}
+			
+			return Array.from(classesMap.values());
+		}
+
+		// Подсчет общего количества учеников
+		function countTotalStudents(classes) {
+			return classes.reduce((total, cls) => total + cls.students.length, 0);
+		}		
+		
 		// ==================== ФУНКЦИИ ПЕРЕТАСКИВАНИЯ ====================
 
 		function handleDragStart(e) {
@@ -8974,6 +9654,8 @@
 				
 				// Загружаем сохраненные данные
 				loadData();
+				loadSchoolData();
+				validateStudentData();
 				onDataLoad();
 				// Проверяем целостность данных
 				if (appData.tasks.length === 0 || appData.students.length === 0) {
