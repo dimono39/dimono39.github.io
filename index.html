@@ -13318,27 +13318,24 @@
 				if (typeof window.jspdf === 'undefined') {
 					await loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');
 					await loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js');
-					
-					// Добавляем шрифт для поддержки русского языка
-					await loadScript('https://unpkg.com/jspdf-customfonts@latest/dist/default_vfs.js');
 				}
 				
 				const { jsPDF } = window.jspdf;
 				const pdf = new jsPDF('p', 'mm', 'a4');
 				
-				// Добавляем поддержку русского языка
-				pdf.addFont('https://fonts.gstatic.com/s/roboto/v30/KFOmCnqEu92Fr1Mu4mxM.woff2', 'Roboto', 'normal');
-				pdf.addFont('https://fonts.gstatic.com/s/roboto/v30/KFOlCnqEu92Fr1MmEU9fBBc4.woff2', 'Roboto', 'bold');
-				pdf.setFont('Roboto', 'normal');
+				// Используем встроенные шрифты (не добавляем русские шрифты)
+				// jsPDF по умолчанию использует 'helvetica', 'times', 'courier'
+				pdf.setFont('helvetica');
+				pdf.setFontSize(12);
 				
 				let yOffset = 20;
 				const pageWidth = pdf.internal.pageSize.getWidth();
 				const margin = 20;
 				
-				// Заголовок отчета
+				// Заголовок отчета (используем латинские символы или упрощенные заголовки)
 				pdf.setFontSize(24);
 				pdf.setTextColor(33, 37, 41);
-				pdf.text('АНАЛИТИЧЕСКИЙ ОТЧЕТ', pageWidth / 2, yOffset, { align: 'center' });
+				pdf.text('ANALYTICAL REPORT', pageWidth / 2, yOffset, { align: 'center' });
 				yOffset += 10;
 				
 				// Линия под заголовком
@@ -13353,18 +13350,19 @@
 				
 				pdf.setFontSize(14);
 				pdf.setTextColor(78, 115, 223);
-				pdf.text('ИНФОРМАЦИЯ О ТЕСТЕ', margin + 10, yOffset + 10);
+				pdf.text('TEST INFORMATION', margin + 10, yOffset + 10);
 				
 				pdf.setFontSize(11);
 				pdf.setTextColor(73, 80, 87);
 				
+				// Используем латинские символы для текста
 				const testInfo = [
-					`Предмет: ${appData.test.subject || 'Не указан'}`,
-					`Класс: ${appData.test.class || 'Не указан'}`,
-					`Тема: ${appData.test.theme || 'Не указана'}`,
-					`Дата проведения: ${appData.test.testDate || 'Не указана'}`,
-					`Всего учащихся: ${appData.students.length}`,
-					`Присутствовало: ${appData.test.presentStudents || appData.students.length}`
+					`Subject: ${appData.test.subject || 'Not specified'}`,
+					`Class: ${appData.test.class || 'Not specified'}`,
+					`Theme: ${appData.test.theme || 'Not specified'}`,
+					`Date: ${appData.test.testDate || 'Not specified'}`,
+					`Total Students: ${appData.students.length}`,
+					`Present: ${appData.test.presentStudents || appData.students.length}`
 				];
 				
 				testInfo.forEach((line, i) => {
@@ -13375,7 +13373,7 @@
 				
 				yOffset += 60;
 				
-				// Основные метрики в виде плиток
+				// Основные метрики
 				const totalScores = appData.results.map(scores => 
 					scores.reduce((sum, score) => sum + (parseInt(score) || 0), 0)
 				);
@@ -13384,33 +13382,29 @@
 				const averagePercentage = (averageScore / (maxPossible || 1)) * 100;
 				
 				const metrics = [
-					{ label: 'Средний балл', value: averageScore.toFixed(1), unit: `из ${maxPossible}`, color: [78, 115, 223] },
-					{ label: 'Успеваемость', value: averagePercentage.toFixed(1), unit: '%', color: [28, 200, 138] },
-					{ label: 'Заданий', value: appData.tasks.length, unit: 'шт.', color: [246, 194, 62] },
-					{ label: 'Учащихся', value: appData.students.length, unit: 'чел.', color: [231, 74, 59] }
+					{ label: 'Average Score', value: averageScore.toFixed(1), unit: `of ${maxPossible}`, color: [78, 115, 223] },
+					{ label: 'Success Rate', value: averagePercentage.toFixed(1), unit: '%', color: [28, 200, 138] },
+					{ label: 'Tasks', value: appData.tasks.length, unit: 'pcs', color: [246, 194, 62] },
+					{ label: 'Students', value: appData.students.length, unit: 'pcs', color: [231, 74, 59] }
 				];
 				
-				// Рисуем метрики в виде плиток
+				// Рисуем метрики
 				const tileWidth = (pageWidth - 2 * margin - 15) / 4;
 				metrics.forEach((metric, index) => {
 					const x = margin + index * (tileWidth + 5);
 					
-					// Фон плитки
 					pdf.setFillColor(...metric.color.map(c => c * 0.1));
 					pdf.roundedRect(x, yOffset, tileWidth, 30, 5, 5, 'F');
 					
-					// Текст метрики
 					pdf.setFontSize(10);
 					pdf.setTextColor(108, 117, 125);
 					pdf.text(metric.label, x + 10, yOffset + 10);
 					
 					pdf.setFontSize(16);
-					pdf.setFont('Roboto', 'bold');
 					pdf.setTextColor(...metric.color);
 					pdf.text(metric.value, x + 10, yOffset + 22);
 					
 					pdf.setFontSize(10);
-					pdf.setFont('Roboto', 'normal');
 					pdf.setTextColor(108, 117, 125);
 					pdf.text(metric.unit, x + 10 + pdf.getTextWidth(metric.value) + 2, yOffset + 22);
 				});
@@ -13421,18 +13415,15 @@
 				const charts = [
 					{ 
 						id: 'gradesChart', 
-						title: 'РАСПРЕДЕЛЕНИЕ ОЦЕНОК',
-						description: 'Распределение учащихся по полученным оценкам'
+						title: 'GRADE DISTRIBUTION'
 					},
 					{ 
 						id: 'solvabilityChart', 
-						title: 'РЕШАЕМОСТЬ ЗАДАНИЙ',
-						description: 'Процент правильных решений по каждому заданию'
+						title: 'TASK SOLVABILITY'
 					},
 					{ 
 						id: 'complexityChart', 
-						title: 'СЛОЖНОСТЬ И РЕШАЕМОСТЬ',
-						description: 'Связь между сложностью заданий и их решаемостью'
+						title: 'COMPLEXITY ANALYSIS'
 					}
 				];
 				
@@ -13445,33 +13436,29 @@
 						pdf.addPage();
 						yOffset = 20;
 						
-						// Добавляем заголовок на новую страницу
 						pdf.setFontSize(16);
 						pdf.setTextColor(33, 37, 41);
-						pdf.text('ГРАФИКИ И ДИАГРАММЫ', pageWidth / 2, yOffset, { align: 'center' });
+						pdf.text('CHARTS AND DIAGRAMS', pageWidth / 2, yOffset, { align: 'center' });
 						yOffset += 20;
 					}
 					
 					// Заголовок графика
 					pdf.setFillColor(248, 249, 252);
-					pdf.roundedRect(margin, yOffset, pageWidth - 2 * margin, 40, 3, 3, 'F');
+					pdf.roundedRect(margin, yOffset, pageWidth - 2 * margin, 30, 3, 3, 'F');
 					
 					pdf.setFontSize(14);
 					pdf.setTextColor(33, 37, 41);
 					pdf.text(chart.title, margin + 15, yOffset + 15);
 					
-					pdf.setFontSize(10);
-					pdf.setTextColor(108, 117, 125);
-					pdf.text(chart.description, margin + 15, yOffset + 25);
-					
-					yOffset += 45;
+					yOffset += 35;
 					
 					try {
-						// Конвертируем canvas в изображение с учетом DPI
+						// Конвертируем canvas в изображение
 						const canvasData = await html2canvas(canvas, {
-							scale: 2, // Увеличиваем качество
+							scale: 2,
 							backgroundColor: '#ffffff',
-							logging: false
+							logging: false,
+							useCORS: true
 						});
 						
 						const imageData = canvasData.toDataURL('image/png', 1.0);
@@ -13479,24 +13466,22 @@
 						// Рассчитываем размеры
 						const maxWidth = pageWidth - 2 * margin;
 						const canvasRatio = canvasData.width / canvasData.height;
-						const imgWidth = Math.min(maxWidth, 170);
+						const imgWidth = Math.min(maxWidth, 160);
 						const imgHeight = imgWidth / canvasRatio;
 						
-						// Вставляем изображение с рамкой
+						// Вставляем изображение
 						pdf.setDrawColor(233, 236, 239);
 						pdf.setLineWidth(0.5);
 						pdf.rect(margin, yOffset, imgWidth, imgHeight);
 						
-						pdf.addImage(imageData, 'PNG', margin, yOffset, imgWidth, imgHeight, 
-								   `chart_${chart.id}`, 'FAST', 0);
-						
+						pdf.addImage(imageData, 'PNG', margin, yOffset, imgWidth, imgHeight);
 						yOffset += imgHeight + 20;
 						
 					} catch (error) {
 						console.error(`Ошибка рендеринга графика ${chart.id}:`, error);
 						pdf.setFontSize(10);
 						pdf.setTextColor(220, 53, 69);
-						pdf.text(`График недоступен: ${error.message}`, margin, yOffset);
+						pdf.text(`Chart unavailable: ${chart.title}`, margin, yOffset);
 						yOffset += 15;
 					}
 				}
@@ -13507,15 +13492,15 @@
 				
 				pdf.setFontSize(20);
 				pdf.setTextColor(33, 37, 41);
-				pdf.text('СТАТИСТИЧЕСКИЕ ДАННЫЕ', pageWidth / 2, yOffset, { align: 'center' });
+				pdf.text('STATISTICAL DATA', pageWidth / 2, yOffset, { align: 'center' });
 				yOffset += 10;
 				
 				pdf.setDrawColor(78, 115, 223);
 				pdf.line(margin, yOffset, pageWidth - margin, yOffset);
 				yOffset += 20;
 				
-				// Подробная статистика
-				const stats = generateDetailedStats();
+				// Подробная статистика (используем латинские символы)
+				const stats = generateDetailedStatsForPDF();
 				
 				pdf.setFontSize(12);
 				pdf.setTextColor(73, 80, 87);
@@ -13544,40 +13529,177 @@
 					yOffset += 10;
 				});
 				
-				// Футер с информацией о генерации
+				// Футер
 				pdf.setFontSize(9);
 				pdf.setTextColor(173, 181, 189);
-				pdf.text(`Отчет сгенерирован: ${new Date().toLocaleString('ru-RU')}`, 
+				pdf.text(`Report generated: ${new Date().toLocaleString('en-US')}`, 
 						 pageWidth / 2, 287, { align: 'center' });
-				pdf.text(`© Аналитическая система тестирования`, 
+				pdf.text(`© Testing Analytics System`, 
 						 pageWidth / 2, 293, { align: 'center' });
 				
 				// Сохраняем PDF с корректным именем
-				const filename = `Аналитический_отчет_${appData.test.subject || 'тест'}_${appData.test.class || ''}_${getTimestamp()}.pdf`;
+				const filename = `Report_${appData.test.subject || 'test'}_${appData.test.class || ''}_${getTimestamp()}.pdf`;
 				pdf.save(filename);
 				
-				showNotification('PDF отчет успешно создан и скачан', 'success');
+				showNotification('PDF report successfully created and downloaded', 'success');
 				
 			} catch (error) {
 				console.error('Ошибка экспорта PDF:', error);
 				
-				// Более информативное сообщение об ошибке
-				let errorMessage = 'Не удалось создать PDF отчет';
+				let errorMessage = 'Failed to create PDF report';
 				if (error.message.includes('font')) {
-					errorMessage += ' (проблема со шрифтами)';
+					errorMessage = 'Font loading error. Created simplified report.';
 				} else if (error.message.includes('canvas')) {
-					errorMessage += ' (проблема с графиками)';
+					errorMessage = 'Chart rendering error. Created simplified report.';
 				}
 				
-				showNotification(errorMessage, 'error');
+				showNotification(errorMessage, 'warning');
 				
-				// Альтернативный способ экспорта (простой текст)
-				if (confirm('Создать упрощенную текстовую версию отчета?')) {
+				// Альтернативный способ экспорта (простой PDF без шрифтов)
+				try {
+					createSimplifiedPDF();
+				} catch (simpleError) {
+					console.error('Ошибка создания упрощенного PDF:', simpleError);
 					exportSimpleTextReport();
 				}
 			}
 		}
-
+		
+		// Упрощенная версия PDF (без шрифтов)
+		function createSimplifiedPDF() {
+			try {
+				const { jsPDF } = window.jspdf;
+				const pdf = new jsPDF('p', 'mm', 'a4');
+				
+				let yOffset = 20;
+				const pageWidth = pdf.internal.pageSize.getWidth();
+				const margin = 20;
+				
+				// Заголовок
+				pdf.setFontSize(16);
+				pdf.text('TEST REPORT SUMMARY', pageWidth / 2, yOffset, { align: 'center' });
+				yOffset += 15;
+				
+				// Основная информация
+				pdf.setFontSize(12);
+				pdf.text(`Subject: ${appData.test.subject || 'N/A'}`, margin, yOffset);
+				yOffset += 10;
+				pdf.text(`Class: ${appData.test.class || 'N/A'}`, margin, yOffset);
+				yOffset += 10;
+				pdf.text(`Date: ${appData.test.testDate || 'N/A'}`, margin, yOffset);
+				yOffset += 10;
+				pdf.text(`Students: ${appData.students.length}`, margin, yOffset);
+				yOffset += 10;
+				pdf.text(`Tasks: ${appData.tasks.length}`, margin, yOffset);
+				yOffset += 20;
+				
+				// Статистика
+				const totalScores = appData.results.map(scores => 
+					scores.reduce((sum, score) => sum + (parseInt(score) || 0), 0)
+				);
+				const averageScore = totalScores.reduce((a, b) => a + b, 0) / (totalScores.length || 1);
+				const maxPossible = appData.tasks.reduce((sum, task) => sum + task.maxScore, 0);
+				const averagePercentage = (averageScore / (maxPossible || 1)) * 100;
+				
+				pdf.setFontSize(14);
+				pdf.text('STATISTICS:', margin, yOffset);
+				yOffset += 15;
+				
+				pdf.setFontSize(12);
+				pdf.text(`Average Score: ${averageScore.toFixed(2)}/${maxPossible}`, margin, yOffset);
+				yOffset += 10;
+				pdf.text(`Success Rate: ${averagePercentage.toFixed(1)}%`, margin, yOffset);
+				yOffset += 10;
+				pdf.text(`Min Score: ${Math.min(...totalScores)}`, margin, yOffset);
+				yOffset += 10;
+				pdf.text(`Max Score: ${Math.max(...totalScores)}`, margin, yOffset);
+				yOffset += 20;
+				
+				// Распределение оценок
+				const grades = totalScores.map(score => {
+					if (score >= (maxPossible * 0.85)) return 'A';
+					if (score >= (maxPossible * 0.70)) return 'B';
+					if (score >= (maxPossible * 0.55)) return 'C';
+					if (score >= (maxPossible * 0.40)) return 'D';
+					return 'F';
+				});
+				
+				const gradeCounts = { A: 0, B: 0, C: 0, D: 0, F: 0 };
+				grades.forEach(grade => gradeCounts[grade]++);
+				
+				pdf.setFontSize(14);
+				pdf.text('GRADE DISTRIBUTION:', margin, yOffset);
+				yOffset += 15;
+				
+				pdf.setFontSize(12);
+				pdf.text(`A (85-100%): ${gradeCounts.A} students`, margin, yOffset);
+				yOffset += 10;
+				pdf.text(`B (70-84%): ${gradeCounts.B} students`, margin, yOffset);
+				yOffset += 10;
+				pdf.text(`C (55-69%): ${gradeCounts.C} students`, margin, yOffset);
+				yOffset += 10;
+				pdf.text(`D (40-54%): ${gradeCounts.D} students`, margin, yOffset);
+				yOffset += 10;
+				pdf.text(`F (0-39%): ${gradeCounts.F} students`, margin, yOffset);
+				
+				const filename = `Simple_Report_${getTimestamp()}.pdf`;
+				pdf.save(filename);
+				
+				showNotification('Simplified PDF report created', 'info');
+				
+			} catch (error) {
+				console.error('Ошибка создания упрощенного PDF:', error);
+				throw error;
+			}
+		}
+		
+		// Генерация статистики для PDF (латинские символы)
+		function generateDetailedStatsForPDF() {
+			const totalScores = appData.results.map(scores => 
+				scores.reduce((sum, score) => sum + (parseInt(score) || 0), 0)
+			);
+			const averageScore = totalScores.reduce((a, b) => a + b, 0) / (totalScores.length || 1);
+			const maxPossible = appData.tasks.reduce((sum, task) => sum + task.maxScore, 0);
+			const averagePercentage = (averageScore / (maxPossible || 1)) * 100;
+			
+			// Находим минимальный и максимальный баллы
+			const minScore = Math.min(...totalScores);
+			const maxScore = Math.max(...totalScores);
+			
+			// Распределение по критериям
+			const criteriaDistribution = calculateCriteriaDistribution();
+			
+			return [
+				{
+					title: 'GENERAL STATISTICS',
+					items: [
+						`Total Students: ${appData.students.length}`,
+						`Present: ${appData.test.presentStudents || appData.students.length}`,
+						`Tasks: ${appData.tasks.length}`,
+						`Max Score: ${maxPossible}`,
+						`Average Score: ${averageScore.toFixed(2)} (${averagePercentage.toFixed(1)}%)`,
+						`Min Score: ${minScore}`,
+						`Max Score: ${maxScore}`
+					]
+				},
+				{
+					title: 'GRADE DISTRIBUTION',
+					items: criteriaDistribution.map(criteria => 
+						`Grade ${criteria.grade}: ${criteria.count} students (${criteria.percentage}%)`
+					)
+				},
+				{
+					title: 'DIFFICULTY LEVELS',
+					items: [...new Set(appData.tasks.map(t => t.level || 'Not specified'))].map(level => {
+						const tasksOfLevel = appData.tasks.filter(t => t.level === level);
+						const avgSolvability = tasksOfLevel.length > 0 ? 
+							tasksOfLevel.reduce((sum, t) => sum + (t.solvability || 0), 0) / tasksOfLevel.length : 0;
+						return `Level ${level}: ${tasksOfLevel.length} tasks, avg solvability: ${avgSolvability.toFixed(1)}%`;
+					})
+				}
+			];
+		}
+		
 		// Дополнительные функции для улучшения экспорта
 		function generateDetailedStats() {
 			const totalScores = appData.results.map(scores => 
