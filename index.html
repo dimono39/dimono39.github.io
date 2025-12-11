@@ -7841,6 +7841,324 @@
 			`;
 			container.appendChild(quickActionsDiv);
 		}
+		
+		// ПЕРЕМЕСТИТЕ ЭТИ ФУНКЦИИ В НАЧАЛО ФАЙЛА, перед renderClassManager()
+
+		// ==================== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ДЛЯ КЛАССОВ ====================
+
+		// Выбор класса из списка
+		function selectClass(classId) {
+			const selector = document.getElementById('classSelector');
+			if (selector) {
+				selector.value = classId;
+				renderClassStudents();
+			}
+		}
+
+		// Добавление всего класса по ID
+		function addWholeClassToTestingFromCard(classId) {
+			const schoolClass = schoolData.classes.find(c => c.id === classId);
+			if (!schoolClass) return;
+			
+			if (!confirm(`Добавить весь класс ${schoolClass.grade}${schoolClass.name} (${schoolClass.students.length} учеников) к тестированию?`)) {
+				return;
+			}
+			
+			let addedCount = 0;
+			schoolClass.students.forEach(student => {
+				if (!appData.students.some(s => 
+					s.includes(student.lastName) && s.includes(student.firstName))) {
+					
+					appData.students.push(`${student.lastName} ${student.firstName} ${student.middleName || ''}`.trim());
+					appData.results.push(new Array(appData.tasks.length).fill(0));
+					addedCount++;
+				}
+			});
+			
+			if (addedCount > 0) {
+				appData.test.presentStudents = appData.students.length;
+				if (document.getElementById('presentStudents')) {
+					document.getElementById('presentStudents').value = appData.students.length;
+				}
+				
+				saveData();
+				renderStudents();
+				renderResults();
+				
+				showNotification(`Добавлено ${addedCount} учеников из класса ${schoolClass.grade}${schoolClass.name}`, 'success');
+				
+				if (document.getElementById('classSelector').value === classId) {
+					renderClassStudents();
+				}
+			} else {
+				showNotification('Все ученики этого класса уже добавлены к тестированию', 'info');
+			}
+		}
+
+		// Показ QR-кода для класса
+		function showQRForClass(classId) {
+			const schoolClass = schoolData.classes.find(c => c.id === classId);
+			if (!schoolClass) return;
+			
+			// Создаем уникальную ссылку для класса
+			const classData = {
+				classId: schoolClass.id,
+				className: `${schoolClass.grade}${schoolClass.name}`,
+				students: schoolClass.students.map(s => ({
+					lastName: s.lastName,
+					firstName: s.firstName,
+					middleName: s.middleName
+				})),
+				timestamp: new Date().toISOString()
+			};
+			
+			const dataStr = JSON.stringify(classData);
+			const dataUrl = `data:application/json;charset=utf-8,${encodeURIComponent(dataStr)}`;
+			
+			// Создаем модальное окно с QR-кодом
+			const modal = document.createElement('div');
+			modal.className = 'modal fade';
+			modal.id = 'qrModal';
+			modal.innerHTML = `
+				<div class="modal-dialog modal-dialog-centered">
+					<div class="modal-content">
+						<div class="modal-header">
+							<h5 class="modal-title">QR-код класса ${schoolClass.grade}${schoolClass.name}</h5>
+							<button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+						</div>
+						<div class="modal-body text-center">
+							<div id="qrCodeContainer" class="mb-3"></div>
+							<p class="text-muted small">
+								Отсканируйте QR-код для быстрого импорта данных класса
+							</p>
+							<div class="d-grid gap-2">
+								<button class="btn btn-outline-primary" onclick="downloadQRCode()">
+									<i class="fas fa-download me-2"></i>Скачать QR-код
+								</button>
+								<button class="btn btn-outline-secondary" onclick="shareClassData('${classId}')">
+									<i class="fas fa-share-alt me-2"></i>Поделиться
+								</button>
+							</div>
+						</div>
+					</div>
+				</div>
+			`;
+			
+			document.body.appendChild(modal);
+			
+			// Инициализируем модальное окно Bootstrap
+			const modalInstance = new bootstrap.Modal(modal);
+			modalInstance.show();
+			
+			// Генерируем QR-код после отображения модального окна
+			setTimeout(() => {
+				if (typeof QRCode !== 'undefined') {
+					QRCode.toCanvas(document.getElementById('qrCodeContainer'), dataUrl, {
+						width: 200,
+						margin: 2,
+						color: {
+							dark: '#000000',
+							light: '#FFFFFF'
+						}
+					}, function(error) {
+						if (error) {
+							console.error('Ошибка генерации QR-кода:', error);
+							showNotification('Ошибка генерации QR-кода', 'error');
+						}
+					});
+				} else {
+					document.getElementById('qrCodeContainer').innerHTML = `
+						<div class="alert alert-warning">
+							<i class="fas fa-exclamation-triangle me-2"></i>
+							Библиотека QR-кодов не загружена
+						</div>
+					`;
+				}
+			}, 100);
+			
+			// Удаляем модальное окно после закрытия
+			modal.addEventListener('hidden.bs.modal', function() {
+				modal.remove();
+			});
+		}
+
+		// Удаление класса
+		function deleteClass(classId) {
+			if (!confirm('Удалить этот класс? Все данные об учениках будут удалены.')) {
+				return;
+			}
+			
+			const index = schoolData.classes.findIndex(c => c.id === classId);
+			if (index !== -1) {
+				schoolData.classes.splice(index, 1);
+				localStorage.setItem('schoolData', JSON.stringify(schoolData));
+				
+				// Перерисовываем интерфейс
+				if (typeof renderClassManager === 'function') {
+					renderClassManager();
+				}
+				
+				showNotification('Класс удален', 'success');
+			}
+		}
+
+		// Добавление выбранных студентов к тестированию
+		function addSelectedToTesting() {
+			const classId = document.getElementById('classSelector').value;
+			const schoolClass = schoolData.classes.find(c => c.id === classId);
+			if (!schoolClass) return;
+			
+			const selectedStudents = Array.from(document.querySelectorAll('.student-checkbox:checked'))
+				.map(cb => cb.value);
+			
+			if (selectedStudents.length === 0) {
+				showNotification('Выберите хотя бы одного ученика!', 'warning');
+				return;
+			}
+			
+			let addedCount = 0;
+			selectedStudents.forEach(studentId => {
+				const student = schoolClass.students.find(s => s.id === studentId);
+				if (student && !appData.students.some(s => 
+					s.includes(student.lastName) && s.includes(student.firstName))) {
+					
+					// Добавляем в appData
+					appData.students.push(`${student.lastName} ${student.firstName} ${student.middleName || ''}`.trim());
+					appData.results.push(new Array(appData.tasks.length).fill(0));
+					addedCount++;
+				}
+			});
+			
+			if (addedCount > 0) {
+				// Обновляем счетчик присутствующих
+				appData.test.presentStudents = appData.students.length;
+				if (document.getElementById('presentStudents')) {
+					document.getElementById('presentStudents').value = appData.students.length;
+				}
+				
+				saveData();
+				
+				if (typeof renderStudents === 'function') {
+					renderStudents();
+				}
+				if (typeof renderResults === 'function') {
+					renderResults();
+				}
+				
+				showNotification(`Добавлено ${addedCount} учеников к тестированию`, 'success');
+				
+				// Обновляем список студентов класса
+				if (typeof renderClassStudents === 'function') {
+					renderClassStudents();
+				}
+			}
+		}
+
+		// Добавление всего класса
+		function addWholeClassToTesting() {
+			const classId = document.getElementById('classSelector').value;
+			if (classId) {
+				addWholeClassToTestingFromCard(classId);
+			}
+		}
+
+		// Переключение всех студентов
+		function toggleAllStudents(checked) {
+			document.querySelectorAll('.student-checkbox:not(:disabled)').forEach(checkbox => {
+				checkbox.checked = checked;
+			});
+		}
+
+		// Добавление одного студента
+		function addSingleStudent(studentId) {
+			const classId = document.getElementById('classSelector').value;
+			const schoolClass = schoolData.classes.find(c => c.id === classId);
+			if (!schoolClass) return;
+			
+			const student = schoolClass.students.find(s => s.id === studentId);
+			if (!student) return;
+			
+			// Проверяем, не добавлен ли уже
+			if (appData.students.some(s => 
+				s.includes(student.lastName) && s.includes(student.firstName))) {
+				showNotification('Этот ученик уже добавлен к тестированию', 'warning');
+				return;
+			}
+			
+			appData.students.push(`${student.lastName} ${student.firstName} ${student.middleName || ''}`.trim());
+			appData.results.push(new Array(appData.tasks.length).fill(0));
+			
+			appData.test.presentStudents = appData.students.length;
+			if (document.getElementById('presentStudents')) {
+				document.getElementById('presentStudents').value = appData.students.length;
+			}
+			
+			saveData();
+			
+			if (typeof renderStudents === 'function') {
+				renderStudents();
+			}
+			if (typeof renderResults === 'function') {
+				renderResults();
+			}
+			
+			showNotification(`Ученик ${student.lastName} ${student.firstName} добавлен`, 'success');
+			
+			if (typeof renderClassStudents === 'function') {
+				renderClassStudents();
+			}
+		}
+
+		// Скачивание QR-кода
+		function downloadQRCode() {
+			const canvas = document.querySelector('#qrModal canvas');
+			if (!canvas) return;
+			
+			const link = document.createElement('a');
+			link.download = `qr-code-класс-${new Date().toISOString().slice(0, 10)}.png`;
+			link.href = canvas.toDataURL('image/png');
+			document.body.appendChild(link);
+			link.click();
+			document.body.removeChild(link);
+			
+			showNotification('QR-код скачан', 'success');
+		}
+
+		// Поделиться данными класса
+		function shareClassData(classId) {
+			const schoolClass = schoolData.classes.find(c => c.id === classId);
+			if (!schoolClass) return;
+			
+			const shareText = `Класс: ${schoolClass.grade}${schoolClass.name}\n` +
+							 `Учеников: ${schoolClass.students.length}\n` +
+							 `Список учеников:\n` +
+							 schoolClass.students.map(s => 
+								 `- ${s.lastName} ${s.firstName} ${s.middleName || ''}`
+							 ).join('\n');
+			
+			if (navigator.share) {
+				navigator.share({
+					title: `Класс ${schoolClass.grade}${schoolClass.name}`,
+					text: shareText,
+					url: window.location.href
+				}).catch(console.error);
+			} else {
+				// Копируем в буфер обмена
+				navigator.clipboard.writeText(shareText)
+					.then(() => showNotification('Список класса скопирован в буфер обмена', 'success'))
+					.catch(() => {
+						// Fallback для старых браузеров
+						const textarea = document.createElement('textarea');
+						textarea.value = shareText;
+						document.body.appendChild(textarea);
+						textarea.select();
+						document.execCommand('copy');
+						document.body.removeChild(textarea);
+						showNotification('Список класса скопирован в буфер обмена', 'success');
+					});
+			}
+		}		
+		
 		// классы
 		function renderClassManager() {
 			const container = document.getElementById('classManagerContainer');
