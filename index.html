@@ -11607,6 +11607,503 @@
 			}
 		});
 
+		// Экспорт как HTML отчет с возможностью печати
+		async function exportChartsAsHTML() {
+			closeExportMenu();
+			
+			try {
+				showNotification('Создаем HTML отчет...', 'info');
+				
+				// Создаем модальное окно для отчета
+				const modal = document.createElement('div');
+				modal.className = 'modal fade show d-block';
+				modal.style.backgroundColor = 'rgba(0,0,0,0.5)';
+				modal.innerHTML = `
+					<div class="modal-dialog modal-xl modal-dialog-scrollable">
+						<div class="modal-content">
+							<div class="modal-header bg-primary text-white">
+								<h5 class="modal-title">
+									<i class="fas fa-chart-bar me-2"></i>Аналитический отчет
+								</h5>
+								<button type="button" class="btn-close btn-close-white" onclick="closeReportModal()"></button>
+							</div>
+							<div class="modal-body p-4" id="reportContent">
+								<!-- Контент отчета будет здесь -->
+								<div class="text-center py-5">
+									<div class="spinner-border text-primary" role="status">
+										<span class="visually-hidden">Загрузка...</span>
+									</div>
+									<p class="mt-3">Формируем отчет...</p>
+								</div>
+							</div>
+							<div class="modal-footer">
+								<button type="button" class="btn btn-secondary" onclick="closeReportModal()">
+									<i class="fas fa-times me-2"></i>Закрыть
+								</button>
+								<button type="button" class="btn btn-success" onclick="printReport()">
+									<i class="fas fa-print me-2"></i>Печать
+								</button>
+								<button type="button" class="btn btn-primary" onclick="saveReportAsPDF()">
+									<i class="fas fa-file-pdf me-2"></i>Сохранить как PDF
+								</button>
+							</div>
+						</div>
+					</div>
+				`;
+				
+				document.body.appendChild(modal);
+				
+				// Ждем загрузки библиотек
+				await loadReportLibraries();
+				
+				// Генерируем контент отчета
+				await generateReportContent();
+				
+			} catch (error) {
+				console.error('Ошибка создания отчета:', error);
+				showNotification('Ошибка создания отчета', 'error');
+				closeReportModal();
+			}
+		}
+
+		// Загрузка необходимых библиотек
+		async function loadReportLibraries() {
+			if (typeof html2canvas === 'undefined') {
+				await loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js');
+			}
+		}
+
+		// Генерация контента отчета
+		async function generateReportContent() {
+			const reportContent = document.getElementById('reportContent');
+			if (!reportContent) return;
+			
+			try {
+				// Получаем данные для отчета
+				const totalScores = appData.results.map(scores => 
+					scores.reduce((sum, score) => sum + (parseInt(score) || 0), 0)
+				);
+				const averageScore = totalScores.reduce((a, b) => a + b, 0) / (totalScores.length || 1);
+				const maxPossible = appData.tasks.reduce((sum, task) => sum + task.maxScore, 0);
+				const averagePercentage = (averageScore / (maxPossible || 1)) * 100;
+				const minScore = Math.min(...totalScores);
+				const maxScore = Math.max(...totalScores);
+				
+				// Распределение оценок
+				const gradeDistribution = calculateGradeDistribution();
+				
+				// Конвертируем графики в изображения
+				const chartImages = await getChartImages();
+				
+				// Генерируем HTML отчета
+				const html = `
+					<div class="report-container">
+						<!-- Заголовок отчета -->
+						<div class="report-header text-center mb-5">
+							<h1 class="display-5 fw-bold text-primary mb-3">АНАЛИТИЧЕСКИЙ ОТЧЕТ</h1>
+							<div class="report-subtitle text-muted">
+								<p class="lead">Результаты тестирования</p>
+								<p class="mb-0">Дата создания: ${new Date().toLocaleDateString('ru-RU', {
+									day: 'numeric',
+									month: 'long',
+									year: 'numeric',
+									hour: '2-digit',
+									minute: '2-digit'
+								})}</p>
+							</div>
+						</div>
+						
+						<!-- Информация о тесте -->
+						<div class="report-section card border-0 shadow-sm mb-5">
+							<div class="card-header bg-primary text-white">
+								<h3 class="mb-0"><i class="fas fa-info-circle me-2"></i>ИНФОРМАЦИЯ О ТЕСТЕ</h3>
+							</div>
+							<div class="card-body">
+								<div class="row">
+									<div class="col-md-6">
+										<ul class="list-group list-group-flush">
+											<li class="list-group-item d-flex justify-content-between">
+												<span class="text-muted">Предмет:</span>
+												<span class="fw-bold">${appData.test.subject || 'Не указан'}</span>
+											</li>
+											<li class="list-group-item d-flex justify-content-between">
+												<span class="text-muted">Класс:</span>
+												<span class="fw-bold">${appData.test.class || 'Не указан'}</span>
+											</li>
+											<li class="list-group-item d-flex justify-content-between">
+												<span class="text-muted">Тема:</span>
+												<span class="fw-bold">${appData.test.theme || 'Не указана'}</span>
+											</li>
+										</ul>
+									</div>
+									<div class="col-md-6">
+										<ul class="list-group list-group-flush">
+											<li class="list-group-item d-flex justify-content-between">
+												<span class="text-muted">Дата проведения:</span>
+												<span class="fw-bold">${appData.test.testDate || 'Не указана'}</span>
+											</li>
+											<li class="list-group-item d-flex justify-content-between">
+												<span class="text-muted">Всего учащихся:</span>
+												<span class="fw-bold">${appData.students.length}</span>
+											</li>
+											<li class="list-group-item d-flex justify-content-between">
+												<span class="text-muted">Присутствовало:</span>
+												<span class="fw-bold">${appData.test.presentStudents || appData.students.length}</span>
+											</li>
+										</ul>
+									</div>
+								</div>
+							</div>
+						</div>
+						
+						<!-- Ключевые метрики -->
+						<div class="report-section mb-5">
+							<h3 class="mb-4 text-center"><i class="fas fa-chart-line me-2"></i>КЛЮЧЕВЫЕ МЕТРИКИ</h3>
+							<div class="row g-4">
+								<div class="col-md-3 col-6">
+									<div class="metric-card card border-0 text-center h-100 shadow-sm">
+										<div class="card-body">
+											<div class="metric-icon mb-3">
+												<i class="fas fa-users fa-2x text-primary"></i>
+											</div>
+											<div class="metric-value display-6 fw-bold text-primary">${appData.students.length}</div>
+											<div class="metric-label text-muted">Учащихся</div>
+										</div>
+									</div>
+								</div>
+								<div class="col-md-3 col-6">
+									<div class="metric-card card border-0 text-center h-100 shadow-sm">
+										<div class="card-body">
+											<div class="metric-icon mb-3">
+												<i class="fas fa-tasks fa-2x text-success"></i>
+											</div>
+											<div class="metric-value display-6 fw-bold text-success">${appData.tasks.length}</div>
+											<div class="metric-label text-muted">Заданий</div>
+										</div>
+									</div>
+								</div>
+								<div class="col-md-3 col-6">
+									<div class="metric-card card border-0 text-center h-100 shadow-sm">
+										<div class="card-body">
+											<div class="metric-icon mb-3">
+												<i class="fas fa-star fa-2x text-warning"></i>
+											</div>
+											<div class="metric-value display-6 fw-bold text-warning">${averageScore.toFixed(1)}</div>
+											<div class="metric-label text-muted">Средний балл</div>
+											<div class="metric-subtext small">из ${maxPossible}</div>
+										</div>
+									</div>
+								</div>
+								<div class="col-md-3 col-6">
+									<div class="metric-card card border-0 text-center h-100 shadow-sm">
+										<div class="card-body">
+											<div class="metric-icon mb-3">
+												<i class="fas fa-percentage fa-2x text-info"></i>
+											</div>
+											<div class="metric-value display-6 fw-bold text-info">${averagePercentage.toFixed(1)}%</div>
+											<div class="metric-label text-muted">Успеваемость</div>
+											<div class="metric-subtext small">в процентах</div>
+										</div>
+									</div>
+								</div>
+							</div>
+						</div>
+						
+						<!-- Графики -->
+						<div class="report-section mb-5">
+							<h3 class="mb-4 text-center"><i class="fas fa-chart-bar me-2"></i>ГРАФИКИ И ДИАГРАММЫ</h3>
+							<div class="row g-4">
+								${chartImages.gradesChart ? `
+									<div class="col-md-6">
+										<div class="chart-card card border-0 shadow-sm h-100">
+											<div class="card-header bg-light">
+												<h5 class="mb-0"><i class="fas fa-chart-pie me-2"></i>Распределение оценок</h5>
+											</div>
+											<div class="card-body text-center">
+												<img src="${chartImages.gradesChart}" class="img-fluid rounded" alt="График распределения оценок">
+											</div>
+										</div>
+									</div>
+								` : ''}
+								
+								${chartImages.solvabilityChart ? `
+									<div class="col-md-6">
+										<div class="chart-card card border-0 shadow-sm h-100">
+											<div class="card-header bg-light">
+												<h5 class="mb-0"><i class="fas fa-chart-line me-2"></i>Решаемость заданий</h5>
+											</div>
+											<div class="card-body text-center">
+												<img src="${chartImages.solvabilityChart}" class="img-fluid rounded" alt="График решаемости заданий">
+											</div>
+										</div>
+									</div>
+								` : ''}
+								
+								${chartImages.complexityChart ? `
+									<div class="col-12 mt-4">
+										<div class="chart-card card border-0 shadow-sm">
+											<div class="card-header bg-light">
+												<h5 class="mb-0"><i class="fas fa-project-diagram me-2"></i>Связь сложности и решаемости</h5>
+											</div>
+											<div class="card-body text-center">
+												<img src="${chartImages.complexityChart}" class="img-fluid rounded" style="max-height: 500px;" alt="График сложности и решаемости">
+											</div>
+										</div>
+									</div>
+								` : ''}
+							</div>
+						</div>
+						
+						<!-- Подробная статистика -->
+						<div class="report-section mb-5">
+							<h3 class="mb-4 text-center"><i class="fas fa-list-alt me-2"></i>ПОДРОБНАЯ СТАТИСТИКА</h3>
+							
+							<div class="row">
+								<!-- Общая статистика -->
+								<div class="col-md-6 mb-4">
+									<div class="card border-0 shadow-sm h-100">
+										<div class="card-header bg-light">
+											<h5 class="mb-0"><i class="fas fa-calculator me-2"></i>Общая статистика</h5>
+										</div>
+										<div class="card-body">
+											<ul class="list-group list-group-flush">
+												<li class="list-group-item d-flex justify-content-between">
+													<span>Минимальный балл:</span>
+													<span class="fw-bold">${minScore}</span>
+												</li>
+												<li class="list-group-item d-flex justify-content-between">
+													<span>Максимальный балл:</span>
+													<span class="fw-bold">${maxScore}</span>
+												</li>
+												<li class="list-group-item d-flex justify-content-between">
+													<span>Размах баллов:</span>
+													<span class="fw-bold">${maxScore - minScore}</span>
+												</li>
+												<li class="list-group-item d-flex justify-content-between">
+													<span>Медианный балл:</span>
+													<span class="fw-bold">${calculateMedian(totalScores).toFixed(1)}</span>
+												</li>
+											</ul>
+										</div>
+									</div>
+								</div>
+								
+								<!-- Распределение оценок -->
+								<div class="col-md-6 mb-4">
+									<div class="card border-0 shadow-sm h-100">
+										<div class="card-header bg-light">
+											<h5 class="mb-0"><i class="fas fa-star-half-alt me-2"></i>Распределение оценок</h5>
+										</div>
+										<div class="card-body">
+											<div class="table-responsive">
+												<table class="table table-hover">
+													<thead>
+														<tr>
+															<th>Оценка</th>
+															<th>Количество</th>
+															<th>Процент</th>
+														</tr>
+													</thead>
+													<tbody>
+														${Object.entries(gradeDistribution).map(([grade, count]) => {
+															const percentage = ((count / appData.students.length) * 100).toFixed(1);
+															const gradeLabel = getGradeLabel(parseInt(grade));
+															return `
+																<tr>
+																	<td>${grade} (${gradeLabel})</td>
+																	<td>${count}</td>
+																	<td>
+																		<div class="d-flex align-items-center">
+																			<div class="progress flex-grow-1 me-2" style="height: 8px;">
+																				<div class="progress-bar" style="width: ${percentage}%"></div>
+																			</div>
+																			<span>${percentage}%</span>
+																		</div>
+																	</td>
+																</tr>
+															`;
+														}).join('')}
+													</tbody>
+												</table>
+											</div>
+										</div>
+									</div>
+								</div>
+							</div>
+							
+							<!-- Уровни сложности -->
+							<div class="row mt-4">
+								<div class="col-12">
+									<div class="card border-0 shadow-sm">
+										<div class="card-header bg-light">
+											<h5 class="mb-0"><i class="fas fa-layer-group me-2"></i>Анализ по уровням сложности</h5>
+										</div>
+										<div class="card-body">
+											<div class="table-responsive">
+												<table class="table table-hover">
+													<thead>
+														<tr>
+															<th>Уровень</th>
+															<th>Количество заданий</th>
+															<th>Средняя решаемость</th>
+															<th>Общий балл</th>
+															<th>Средний балл за задание</th>
+														</tr>
+													</thead>
+													<tbody>
+														${generateDifficultyAnalysis().map(level => `
+															<tr>
+																<td>${level.level}</td>
+																<td>${level.taskCount}</td>
+																<td>
+																	<div class="d-flex align-items-center">
+																		<div class="progress flex-grow-1 me-2" style="height: 8px;">
+																			<div class="progress-bar bg-${getDifficultyColor(level.avgSolvability)}" 
+																				 style="width: ${level.avgSolvability}%"></div>
+																		</div>
+																		<span>${level.avgSolvability.toFixed(1)}%</span>
+																	</div>
+																</td>
+																<td>${level.totalScore.toFixed(1)}</td>
+																<td>${level.avgScorePerTask.toFixed(1)}</td>
+															</tr>
+														`).join('')}
+													</tbody>
+												</table>
+											</div>
+										</div>
+									</div>
+								</div>
+							</div>
+						</div>
+						
+						<!-- Заключение -->
+						<div class="report-section">
+							<div class="card border-0 shadow-sm bg-light">
+								<div class="card-body text-center">
+									<h4 class="mb-3"><i class="fas fa-clipboard-check me-2"></i>ЗАКЛЮЧЕНИЕ</h4>
+									<p class="lead mb-4">${generateConclusion(averagePercentage, gradeDistribution)}</p>
+									<div class="row">
+										<div class="col-md-4">
+											<div class="d-flex align-items-center justify-content-center">
+												<i class="fas fa-calendar-check fa-2x text-primary me-3"></i>
+												<div>
+													<div class="fw-bold">Дата отчета</div>
+													<div>${new Date().toLocaleDateString('ru-RU')}</div>
+												</div>
+											</div>
+										</div>
+										<div class="col-md-4">
+											<div class="d-flex align-items-center justify-content-center">
+												<i class="fas fa-chart-bar fa-2x text-success me-3"></i>
+												<div>
+													<div class="fw-bold">Общая успеваемость</div>
+													<div>${averagePercentage.toFixed(1)}%</div>
+												</div>
+											</div>
+										</div>
+										<div class="col-md-4">
+											<div class="d-flex align-items-center justify-content-center">
+												<i class="fas fa-user-check fa-2x text-info me-3"></i>
+												<div>
+													<div class="fw-bold">Учащихся справились</div>
+													<div>${calculateSuccessRate(gradeDistribution)}%</div>
+												</div>
+											</div>
+										</div>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+				`;
+				
+				reportContent.innerHTML = html;
+				
+				// Добавляем стили для печати
+				addPrintStyles();
+				
+				showNotification('HTML отчет создан успешно', 'success');
+				
+			} catch (error) {
+				console.error('Ошибка генерации отчета:', error);
+				reportContent.innerHTML = `
+					<div class="alert alert-danger">
+						<i class="fas fa-exclamation-triangle me-2"></i>
+						<strong>Ошибка при создании отчета:</strong> ${error.message}
+					</div>
+				`;
+			}
+		}
+
+		// Вспомогательные функции
+		async function getChartImages() {
+			const charts = {
+				gradesChart: document.getElementById('gradesChart'),
+				solvabilityChart: document.getElementById('solvabilityChart'),
+				complexityChart: document.getElementById('complexityChart')
+			};
+			
+			const images = {};
+			
+			for (const [name, canvas] of Object.entries(charts)) {
+				if (canvas) {
+					try {
+						// Используем html2canvas для лучшего рендеринга
+						if (typeof html2canvas !== 'undefined') {
+							const canvasData = await html2canvas(canvas, {
+								scale: 2,
+								backgroundColor: '#ffffff',
+								logging: false
+							});
+							images[name] = canvasData.toDataURL('image/png', 1.0);
+						} else {
+							// Fallback на обычный canvas
+							images[name] = canvas.toDataURL('image/png', 1.0);
+						}
+					} catch (error) {
+						console.error(`Ошибка конвертации графика ${name}:`, error);
+						images[name] = null;
+					}
+				}
+			}
+			
+			return images;
+		}
+
+
+
+		function calculateGradeDistribution(totalScores, maxPossible) {
+			const distribution = {};
+			
+			totalScores.forEach(score => {
+				// Вычисляем оценку по баллам
+				let grade;
+				if (maxPossible > 0) {
+					if (score >= (maxPossible * 0.85)) grade = 5;
+					else if (score >= (maxPossible * 0.70)) grade = 4;
+					else if (score >= (maxPossible * 0.55)) grade = 3;
+					else if (score >= (maxPossible * 0.40)) grade = 2;
+					else grade = 1;
+				} else {
+					// Если maxPossible не определен, используем упрощенную логику
+					const maxScore = Math.max(...totalScores, 1);
+					const percentage = (score / maxScore) * 100;
+					
+					if (percentage >= 85) grade = 5;
+					else if (percentage >= 70) grade = 4;
+					else if (percentage >= 55) grade = 3;
+					else if (percentage >= 40) grade = 2;
+					else grade = 1;
+				}
+				
+				distribution[grade] = (distribution[grade] || 0) + 1;
+			});
+			
+			return distribution;
+		}
+
+
         // Расчет медианы
         function calculateMedian(scores) {
             const sorted = [...scores].sort((a, b) => a - b);
@@ -11614,17 +12111,768 @@
             return sorted.length % 2 !== 0 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
         }
 
+		function generateDifficultyAnalysis() {
+			const levels = {};
+			
+			appData.tasks.forEach((task, index) => {
+				const level = task.level || 'Не указан';
+				if (!levels[level]) {
+					levels[level] = {
+						level: level,
+						taskCount: 0,
+						totalSolvability: 0,
+						totalScore: 0
+					};
+				}
+				
+				// Вычисляем решаемость для этого задания
+				const taskResults = appData.results.map(result => result[index] || 0);
+				const maxScore = task.maxScore || 1;
+				const solvability = (taskResults.reduce((a, b) => a + b, 0) / (taskResults.length * maxScore)) * 100;
+				const avgScore = taskResults.reduce((a, b) => a + b, 0) / taskResults.length;
+				
+				levels[level].taskCount++;
+				levels[level].totalSolvability += solvability;
+				levels[level].totalScore += avgScore;
+			});
+			
+			return Object.values(levels).map(level => ({
+				...level,
+				avgSolvability: level.totalSolvability / level.taskCount,
+				avgScorePerTask: level.totalScore / level.taskCount
+			}));
+		}
+
+		function getDifficultyColor(solvability) {
+			if (solvability >= 80) return 'success';
+			if (solvability >= 60) return 'info';
+			if (solvability >= 40) return 'warning';
+			return 'danger';
+		}
+
+		function getGradeLabel(grade) {
+			const labels = {
+				5: 'Отлично',
+				4: 'Хорошо',
+				3: 'Удовлетворительно',
+				2: 'Неудовлетворительно',
+				1: 'Плохо'
+			};
+			return labels[grade] || 'Не определено';
+		}
+
+		function calculateSuccessRate(distribution) {
+			const totalStudents = appData.students.length;
+			const successful = (distribution[4] || 0) + (distribution[5] || 0);
+			return ((successful / totalStudents) * 100).toFixed(1);
+		}
+
+		function generateConclusion(averagePercentage, gradeDistribution) {
+			if (averagePercentage === 0 && (!gradeDistribution || Object.keys(gradeDistribution).length === 0)) {
+				return 'Нет данных для формирования заключения. Добавьте результаты тестирования.';
+			}
+			
+			let conclusion = '';
+			
+			if (averagePercentage >= 80) {
+				conclusion = 'Результаты тестирования показывают высокий уровень освоения материала. ';
+			} else if (averagePercentage >= 60) {
+				conclusion = 'Результаты тестирования демонстрируют удовлетворительный уровень знаний. ';
+			} else if (averagePercentage >= 40) {
+				conclusion = 'Результаты тестирования указывают на необходимость дополнительной работы. ';
+			} else {
+				conclusion = 'Результаты тестирования требуют серьезного внимания и коррекции обучения. ';
+			}
+			
+			const goodGrades = (gradeDistribution[4] || 0) + (gradeDistribution[5] || 0);
+			const totalStudents = appData.students.length || 1;
+			const goodPercentage = ((goodGrades / totalStudents) * 100).toFixed(1);
+			
+			conclusion += `${goodPercentage}% учащихся показали хорошие и отличные результаты. `;
+			
+			if (goodPercentage >= 70) {
+				conclusion += 'Большинство учащихся успешно справились с заданиями.';
+			} else if (goodPercentage >= 50) {
+				conclusion += 'Около половины учащихся освоили материал на хорошем уровне.';
+			} else {
+				conclusion += 'Требуется дополнительная работа с учащимися, показавшими низкие результаты.';
+			}
+			
+			return conclusion;
+		}
+
+		// Функции для работы с модальным окном
+		function closeReportModal() {
+			const modal = document.querySelector('.modal');
+			if (modal) modal.remove();
+		}
+
+		// Генерация контента отчета
+		// Генерация контента отчета (исправленная версия)
+		async function generateReportContent() {
+			const reportContent = document.getElementById('reportContent');
+			if (!reportContent) return;
+			
+			try {
+				// Показываем загрузку
+				reportContent.innerHTML = `
+					<div class="text-center py-5">
+						<div class="spinner-border text-primary" role="status">
+							<span class="visually-hidden">Загрузка...</span>
+						</div>
+						<p class="mt-3">Загружаем данные и графики...</p>
+					</div>
+				`;
+				
+				// Получаем данные для отчета
+				const totalScores = appData.results.map(scores => 
+					scores.reduce((sum, score) => sum + (parseInt(score) || 0), 0)
+				);
+				const averageScore = totalScores.reduce((a, b) => a + b, 0) / (totalScores.length || 1);
+				const maxPossible = appData.tasks.reduce((sum, task) => sum + (task.maxScore || 0), 0);
+				const averagePercentage = maxPossible > 0 ? (averageScore / maxPossible) * 100 : 0;
+				const minScore = totalScores.length > 0 ? Math.min(...totalScores) : 0;
+				const maxScore = totalScores.length > 0 ? Math.max(...totalScores) : 0;
+				
+				// Распределение оценок (передаем maxPossible как параметр)
+				const gradeDistribution = calculateGradeDistribution(totalScores, maxPossible);
+				
+				// Конвертируем графики в изображения (с обработкой ошибок)
+				let chartImages = {};
+				try {
+					chartImages = await getChartImages();
+				} catch (chartError) {
+					console.warn('Ошибка загрузки графиков:', chartError);
+					// Используем заглушки для графиков
+					chartImages = {
+						gradesChart: null,
+						solvabilityChart: null,
+						complexityChart: null
+					};
+				}
+				
+				// Генерируем HTML отчета
+				const html = generateReportHTML({
+					averageScore,
+					maxPossible,
+					averagePercentage,
+					minScore,
+					maxScore,
+					gradeDistribution,
+					chartImages,
+					totalScores,
+					studentCount: appData.students.length,
+					taskCount: appData.tasks.length
+				});
+				
+				reportContent.innerHTML = html;
+				
+				// Добавляем стили для печати
+				addPrintStyles();
+				
+				showNotification('HTML отчет создан успешно', 'success');
+				
+			} catch (error) {
+				console.error('Ошибка генерации отчета:', error);
+				reportContent.innerHTML = `
+					<div class="alert alert-danger">
+						<i class="fas fa-exclamation-triangle me-2"></i>
+						<strong>Ошибка при создании отчета:</strong> ${error.message}
+						<div class="mt-2">
+							<button class="btn btn-sm btn-outline-primary" onclick="generateSimpleReport()">
+								Создать упрощенный отчет
+							</button>
+						</div>
+					</div>
+				`;
+			}
+		}
+
+		// Генерация HTML отчета (вынесено в отдельную функцию)
+		function generateReportHTML(data) {
+			const {
+				averageScore,
+				maxPossible,
+				averagePercentage,
+				minScore,
+				maxScore,
+				gradeDistribution,
+				chartImages,
+				totalScores,
+				studentCount,
+				taskCount
+			} = data;
+			
+			// Проверяем, есть ли данные
+			if (studentCount === 0) {
+				return `
+					<div class="text-center py-5">
+						<div class="alert alert-warning">
+							<i class="fas fa-exclamation-triangle me-2"></i>
+							<strong>Нет данных для отчета</strong>
+							<p class="mt-2">Добавьте учащихся и результаты тестирования</p>
+						</div>
+					</div>
+				`;
+			}
+			
+			return `
+				<div class="report-container">
+					<!-- Заголовок отчета -->
+					<div class="report-header text-center mb-5">
+						<h1 class="display-5 fw-bold text-primary mb-3">АНАЛИТИЧЕСКИЙ ОТЧЕТ</h1>
+						<div class="report-subtitle text-muted">
+							<p class="lead">Результаты тестирования</p>
+							<p class="mb-0">Дата создания: ${new Date().toLocaleDateString('ru-RU', {
+								day: 'numeric',
+								month: 'long',
+								year: 'numeric',
+								hour: '2-digit',
+								minute: '2-digit'
+							})}</p>
+						</div>
+					</div>
+					
+					<!-- Информация о тесте -->
+					<div class="report-section card border-0 shadow-sm mb-5">
+						<div class="card-header bg-primary text-white">
+							<h3 class="mb-0"><i class="fas fa-info-circle me-2"></i>ИНФОРМАЦИЯ О ТЕСТЕ</h3>
+						</div>
+						<div class="card-body">
+							<div class="row">
+								<div class="col-md-6">
+									<ul class="list-group list-group-flush">
+										<li class="list-group-item d-flex justify-content-between">
+											<span class="text-muted">Предмет:</span>
+											<span class="fw-bold">${appData.test.subject || 'Не указан'}</span>
+										</li>
+										<li class="list-group-item d-flex justify-content-between">
+											<span class="text-muted">Класс:</span>
+											<span class="fw-bold">${appData.test.class || 'Не указан'}</span>
+										</li>
+										<li class="list-group-item d-flex justify-content-between">
+											<span class="text-muted">Тема:</span>
+											<span class="fw-bold">${appData.test.theme || 'Не указана'}</span>
+										</li>
+									</ul>
+								</div>
+								<div class="col-md-6">
+									<ul class="list-group list-group-flush">
+										<li class="list-group-item d-flex justify-content-between">
+											<span class="text-muted">Дата проведения:</span>
+											<span class="fw-bold">${appData.test.testDate || 'Не указана'}</span>
+										</li>
+										<li class="list-group-item d-flex justify-content-between">
+											<span class="text-muted">Всего учащихся:</span>
+											<span class="fw-bold">${studentCount}</span>
+										</li>
+										<li class="list-group-item d-flex justify-content-between">
+											<span class="text-muted">Присутствовало:</span>
+											<span class="fw-bold">${appData.test.presentStudents || studentCount}</span>
+										</li>
+									</ul>
+								</div>
+							</div>
+						</div>
+					</div>
+					
+					<!-- Ключевые метрики -->
+					<div class="report-section mb-5">
+						<h3 class="mb-4 text-center"><i class="fas fa-chart-line me-2"></i>КЛЮЧЕВЫЕ МЕТРИКИ</h3>
+						<div class="row g-4">
+							<div class="col-md-3 col-6">
+								<div class="metric-card card border-0 text-center h-100 shadow-sm">
+									<div class="card-body">
+										<div class="metric-icon mb-3">
+											<i class="fas fa-users fa-2x text-primary"></i>
+										</div>
+										<div class="metric-value display-6 fw-bold text-primary">${studentCount}</div>
+										<div class="metric-label text-muted">Учащихся</div>
+									</div>
+								</div>
+							</div>
+							<div class="col-md-3 col-6">
+								<div class="metric-card card border-0 text-center h-100 shadow-sm">
+									<div class="card-body">
+										<div class="metric-icon mb-3">
+											<i class="fas fa-tasks fa-2x text-success"></i>
+										</div>
+										<div class="metric-value display-6 fw-bold text-success">${taskCount}</div>
+										<div class="metric-label text-muted">Заданий</div>
+									</div>
+								</div>
+							</div>
+							<div class="col-md-3 col-6">
+								<div class="metric-card card border-0 text-center h-100 shadow-sm">
+									<div class="card-body">
+										<div class="metric-icon mb-3">
+											<i class="fas fa-star fa-2x text-warning"></i>
+										</div>
+										<div class="metric-value display-6 fw-bold text-warning">${averageScore.toFixed(1)}</div>
+										<div class="metric-label text-muted">Средний балл</div>
+										<div class="metric-subtext small">из ${maxPossible}</div>
+									</div>
+								</div>
+							</div>
+							<div class="col-md-3 col-6">
+								<div class="metric-card card border-0 text-center h-100 shadow-sm">
+									<div class="card-body">
+										<div class="metric-icon mb-3">
+											<i class="fas fa-percentage fa-2x text-info"></i>
+										</div>
+										<div class="metric-value display-6 fw-bold text-info">${averagePercentage.toFixed(1)}%</div>
+										<div class="metric-label text-muted">Успеваемость</div>
+										<div class="metric-subtext small">в процентах</div>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+					
+					<!-- Графики -->
+					<div class="report-section mb-5">
+						<h3 class="mb-4 text-center"><i class="fas fa-chart-bar me-2"></i>ГРАФИКИ И ДИАГРАММЫ</h3>
+						<div class="row g-4">
+							${generateChartHTML(chartImages)}
+						</div>
+					</div>
+					
+					<!-- Подробная статистика -->
+					<div class="report-section mb-5">
+						<h3 class="mb-4 text-center"><i class="fas fa-list-alt me-2"></i>ПОДРОБНАЯ СТАТИСТИКА</h3>
+						
+						<div class="row">
+							<!-- Общая статистика -->
+							<div class="col-md-6 mb-4">
+								<div class="card border-0 shadow-sm h-100">
+									<div class="card-header bg-light">
+										<h5 class="mb-0"><i class="fas fa-calculator me-2"></i>Общая статистика</h5>
+									</div>
+									<div class="card-body">
+										<ul class="list-group list-group-flush">
+											<li class="list-group-item d-flex justify-content-between">
+												<span>Минимальный балл:</span>
+												<span class="fw-bold">${minScore}</span>
+											</li>
+											<li class="list-group-item d-flex justify-content-between">
+												<span>Максимальный балл:</span>
+												<span class="fw-bold">${maxScore}</span>
+											</li>
+											<li class="list-group-item d-flex justify-content-between">
+												<span>Размах баллов:</span>
+												<span class="fw-bold">${maxScore - minScore}</span>
+											</li>
+											<li class="list-group-item d-flex justify-content-between">
+												<span>Медианный балл:</span>
+												<span class="fw-bold">${calculateMedian(totalScores).toFixed(1)}</span>
+											</li>
+										</ul>
+									</div>
+								</div>
+							</div>
+							
+							<!-- Распределение оценок -->
+							<div class="col-md-6 mb-4">
+								<div class="card border-0 shadow-sm h-100">
+									<div class="card-header bg-light">
+										<h5 class="mb-0"><i class="fas fa-star-half-alt me-2"></i>Распределение оценок</h5>
+									</div>
+									<div class="card-body">
+										<div class="table-responsive">
+											<table class="table table-hover">
+												<thead>
+													<tr>
+														<th>Оценка</th>
+														<th>Количество</th>
+														<th>Процент</th>
+													</tr>
+												</thead>
+												<tbody>
+													${generateGradeDistributionHTML(gradeDistribution, studentCount)}
+												</tbody>
+											</table>
+										</div>
+									</div>
+								</div>
+							</div>
+						</div>
+						
+						<!-- Уровни сложности -->
+						${taskCount > 0 ? `
+							<div class="row mt-4">
+								<div class="col-12">
+									<div class="card border-0 shadow-sm">
+										<div class="card-header bg-light">
+											<h5 class="mb-0"><i class="fas fa-layer-group me-2"></i>Анализ по уровням сложности</h5>
+										</div>
+										<div class="card-body">
+											<div class="table-responsive">
+												<table class="table table-hover">
+													<thead>
+														<tr>
+															<th>Уровень</th>
+															<th>Количество заданий</th>
+															<th>Средняя решаемость</th>
+															<th>Общий балл</th>
+															<th>Средний балл за задание</th>
+														</tr>
+													</thead>
+													<tbody>
+														${generateDifficultyAnalysisHTML()}
+													</tbody>
+												</table>
+											</div>
+										</div>
+									</div>
+								</div>
+							</div>
+						` : ''}
+					</div>
+					
+					<!-- Заключение -->
+					<div class="report-section">
+						<div class="card border-0 shadow-sm bg-light">
+							<div class="card-body text-center">
+								<h4 class="mb-3"><i class="fas fa-clipboard-check me-2"></i>ЗАКЛЮЧЕНИЕ</h4>
+								<p class="lead mb-4">${generateConclusion(averagePercentage, gradeDistribution)}</p>
+								<div class="row">
+									<div class="col-md-4">
+										<div class="d-flex align-items-center justify-content-center">
+											<i class="fas fa-calendar-check fa-2x text-primary me-3"></i>
+											<div>
+												<div class="fw-bold">Дата отчета</div>
+												<div>${new Date().toLocaleDateString('ru-RU')}</div>
+											</div>
+										</div>
+									</div>
+									<div class="col-md-4">
+										<div class="d-flex align-items-center justify-content-center">
+											<i class="fas fa-chart-bar fa-2x text-success me-3"></i>
+											<div>
+												<div class="fw-bold">Общая успеваемость</div>
+												<div>${averagePercentage.toFixed(1)}%</div>
+											</div>
+										</div>
+									</div>
+									<div class="col-md-4">
+										<div class="d-flex align-items-center justify-content-center">
+											<i class="fas fa-user-check fa-2x text-info me-3"></i>
+											<div>
+												<div class="fw-bold">Учащихся справились</div>
+												<div>${calculateSuccessRate(gradeDistribution)}%</div>
+											</div>
+										</div>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+			`;
+		}
+
+		// Вспомогательные функции (добавляем недостающие)
+
+		function generateChartHTML(chartImages) {
+			let html = '';
+			
+			if (chartImages.gradesChart) {
+				html += `
+					<div class="col-md-6">
+						<div class="chart-card card border-0 shadow-sm h-100">
+							<div class="card-header bg-light">
+								<h5 class="mb-0"><i class="fas fa-chart-pie me-2"></i>Распределение оценок</h5>
+							</div>
+							<div class="card-body text-center">
+								<img src="${chartImages.gradesChart}" class="img-fluid rounded" alt="График распределения оценок">
+							</div>
+						</div>
+					</div>
+				`;
+			} else {
+				html += `
+					<div class="col-md-6">
+						<div class="chart-card card border-0 shadow-sm h-100">
+							<div class="card-header bg-light">
+								<h5 class="mb-0"><i class="fas fa-chart-pie me-2"></i>Распределение оценок</h5>
+							</div>
+							<div class="card-body text-center">
+								<div class="alert alert-info">
+									<i class="fas fa-exclamation-circle me-2"></i>
+									График недоступен
+								</div>
+							</div>
+						</div>
+					</div>
+				`;
+			}
+			
+			if (chartImages.solvabilityChart) {
+				html += `
+					<div class="col-md-6">
+						<div class="chart-card card border-0 shadow-sm h-100">
+							<div class="card-header bg-light">
+								<h5 class="mb-0"><i class="fas fa-chart-line me-2"></i>Решаемость заданий</h5>
+							</div>
+							<div class="card-body text-center">
+								<img src="${chartImages.solvabilityChart}" class="img-fluid rounded" alt="График решаемости заданий">
+							</div>
+						</div>
+					</div>
+				`;
+			} else {
+				html += `
+					<div class="col-md-6">
+						<div class="chart-card card border-0 shadow-sm h-100">
+							<div class="card-header bg-light">
+								<h5 class="mb-0"><i class="fas fa-chart-line me-2"></i>Решаемость заданий</h5>
+							</div>
+							<div class="card-body text-center">
+								<div class="alert alert-info">
+									<i class="fas fa-exclamation-circle me-2"></i>
+									График недоступен
+								</div>
+							</div>
+						</div>
+					</div>
+				`;
+			}
+			
+			if (chartImages.complexityChart) {
+				html += `
+					<div class="col-12 mt-4">
+						<div class="chart-card card border-0 shadow-sm">
+							<div class="card-header bg-light">
+								<h5 class="mb-0"><i class="fas fa-project-diagram me-2"></i>Связь сложности и решаемости</h5>
+							</div>
+							<div class="card-body text-center">
+								<img src="${chartImages.complexityChart}" class="img-fluid rounded" style="max-height: 500px;" alt="График сложности и решаемости">
+							</div>
+						</div>
+					</div>
+				`;
+			}
+			
+			return html;
+		}
+
+		// Функция для создания упрощенного отчета
+		function generateSimpleReport() {
+			const reportContent = document.getElementById('reportContent');
+			if (!reportContent) return;
+			
+			const totalScores = appData.results.map(scores => 
+				scores.reduce((sum, score) => sum + (parseInt(score) || 0), 0)
+			);
+			const averageScore = totalScores.reduce((a, b) => a + b, 0) / (totalScores.length || 1);
+			const maxPossible = appData.tasks.reduce((sum, task) => sum + task.maxScore, 0);
+			const averagePercentage = (averageScore / (maxPossible || 1)) * 100;
+			
+			reportContent.innerHTML = `
+				<div class="report-container">
+					<div class="report-header text-center mb-5">
+						<h1 class="display-5 fw-bold text-primary mb-3">АНАЛИТИЧЕСКИЙ ОТЧЕТ</h1>
+						<p class="text-muted">Упрощенная версия</p>
+					</div>
+					
+					<div class="alert alert-info">
+						<i class="fas fa-info-circle me-2"></i>
+						<strong>Информация:</strong> Графики недоступны в упрощенной версии отчета.
+					</div>
+					
+					<div class="row mt-4">
+						<div class="col-md-6">
+							<div class="card">
+								<div class="card-header">Основные данные</div>
+								<div class="card-body">
+									<p><strong>Предмет:</strong> ${appData.test.subject || 'Не указан'}</p>
+									<p><strong>Класс:</strong> ${appData.test.class || 'Не указан'}</p>
+									<p><strong>Тема:</strong> ${appData.test.theme || 'Не указана'}</p>
+									<p><strong>Учащихся:</strong> ${appData.students.length}</p>
+								</div>
+							</div>
+						</div>
+						<div class="col-md-6">
+							<div class="card">
+								<div class="card-header">Статистика</div>
+								<div class="card-body">
+									<p><strong>Средний балл:</strong> ${averageScore.toFixed(2)} из ${maxPossible}</p>
+									<p><strong>Успеваемость:</strong> ${averagePercentage.toFixed(1)}%</p>
+									<p><strong>Заданий:</strong> ${appData.tasks.length}</p>
+								</div>
+							</div>
+						</div>
+					</div>
+					
+					<div class="mt-4">
+						<button class="btn btn-primary" onclick="tryGenerateFullReport()">
+							Попробовать создать полный отчет
+						</button>
+					</div>
+				</div>
+			`;
+		}
+		
+		function tryGenerateFullReport() {
+			const reportContent = document.getElementById('reportContent');
+			if (!reportContent) return;
+			
+			reportContent.innerHTML = `
+				<div class="text-center py-5">
+					<div class="spinner-border text-primary" role="status">
+						<span class="visually-hidden">Загрузка...</span>
+					</div>
+					<p class="mt-3">Попытка создания полного отчета...</p>
+				</div>
+			`;
+			
+			setTimeout(() => {
+				generateReportContent();
+			}, 500);
+		}
+		
+		function generateGradeDistributionHTML(gradeDistribution, studentCount) {
+			if (!gradeDistribution || Object.keys(gradeDistribution).length === 0) {
+				return `
+					<tr>
+						<td colspan="3" class="text-center text-muted">
+							<i class="fas fa-info-circle me-2"></i>
+							Нет данных о распределении оценок
+						</td>
+					</tr>
+				`;
+			}
+			
+			return Object.entries(gradeDistribution).map(([grade, count]) => {
+				const percentage = ((count / studentCount) * 100).toFixed(1);
+				const gradeLabel = getGradeLabel(parseInt(grade));
+				return `
+					<tr>
+						<td>${grade} (${gradeLabel})</td>
+						<td>${count}</td>
+						<td>
+							<div class="d-flex align-items-center">
+								<div class="progress flex-grow-1 me-2" style="height: 8px;">
+									<div class="progress-bar" style="width: ${percentage}%"></div>
+								</div>
+								<span>${percentage}%</span>
+							</div>
+						</td>
+					</tr>
+				`;
+			}).join('');
+		}
+
+
+		function generateDifficultyAnalysisHTML() {
+			const analysis = generateDifficultyAnalysis();
+			return analysis.map(level => `
+				<tr>
+					<td>${level.level}</td>
+					<td>${level.taskCount}</td>
+					<td>
+						<div class="d-flex align-items-center">
+							<div class="progress flex-grow-1 me-2" style="height: 8px;">
+								<div class="progress-bar bg-${getDifficultyColor(level.avgSolvability)}" 
+									 style="width: ${level.avgSolvability}%"></div>
+							</div>
+							<span>${level.avgSolvability.toFixed(1)}%</span>
+						</div>
+					</td>
+					<td>${level.totalScore.toFixed(1)}</td>
+					<td>${level.avgScorePerTask.toFixed(1)}</td>
+				</tr>
+			`).join('');
+		}
+
+		async function saveReportAsPDF() {
+			showNotification('Создаем PDF версию...', 'info');
+			
+			try {
+				if (typeof window.jspdf === 'undefined') {
+					await loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');
+					await loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js');
+				}
+				
+				const reportContent = document.getElementById('reportContent');
+				if (!reportContent) return;
+				
+				// Используем html2canvas для конвертации всего контента
+				const canvas = await html2canvas(reportContent, {
+					scale: 2,
+					useCORS: true,
+					logging: false,
+					backgroundColor: '#ffffff'
+				});
+				
+				const { jsPDF } = window.jspdf;
+				const pdf = new jsPDF('p', 'mm', 'a4');
+				
+				const imgData = canvas.toDataURL('image/png', 1.0);
+				const imgWidth = 210; // A4 ширина в мм
+				const imgHeight = canvas.height * imgWidth / canvas.width;
+				
+				pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+				pdf.save(`Аналитический_отчет_${getTimestamp()}.pdf`);
+				
+				showNotification('PDF отчет сохранен', 'success');
+				
+			} catch (error) {
+				console.error('Ошибка сохранения PDF:', error);
+				showNotification('Ошибка сохранения PDF', 'error');
+			}
+		}
+
+		function addPrintStyles() {
+			// Добавляем CSS для печати
+			const style = document.createElement('style');
+			style.innerHTML = `
+				@media print {
+					body * {
+						visibility: hidden;
+					}
+					.modal, .modal * {
+						visibility: visible;
+					}
+					.modal {
+						position: absolute;
+						left: 0;
+						top: 0;
+						width: 100%;
+						height: auto;
+						background: white !important;
+					}
+					.modal-dialog {
+						max-width: 100% !important;
+						margin: 0 !important;
+					}
+					.modal-header, .modal-footer {
+						display: none !important;
+					}
+					.report-container {
+						padding: 20px;
+					}
+				}
+			`;
+			document.head.appendChild(style);
+		}
+
         // Вспомогательные функции для расчетов
         function calculateAverageScore() {
             const totalScores = appData.results.map(scores => scores.reduce((sum, score) => sum + score, 0));
             return totalScores.reduce((sum, score) => sum + score, 0) / totalScores.length;
         }
 
-        function calculateSuccessRate() {
-            const totalScores = appData.results.map(scores => scores.reduce((sum, score) => sum + score, 0));
-            const grades = totalScores.map(score => calculateGrade(score));
-            return (grades.filter(grade => grade >= 3).length / grades.length * 100);
-        }
+		function calculateSuccessRate(gradeDistribution) {
+			if (!gradeDistribution || Object.keys(gradeDistribution).length === 0) {
+				return 0;
+			}
+			
+			const totalStudents = appData.students.length || 1;
+			const successful = (gradeDistribution[4] || 0) + (gradeDistribution[5] || 0);
+			return ((successful / totalStudents) * 100).toFixed(1);
+		}
+
 
         function calculateQualityRate() {
             const totalScores = appData.results.map(scores => scores.reduce((sum, score) => sum + score, 0));
@@ -13161,11 +14409,11 @@
 									</div>
 								</button>
 								
-								<button class="btn btn-primary" onclick="exportChartsAsPDF()" style="text-align: left; padding: 15px;">
+								<button class="btn btn-primary" onclick="exportChartsAsHTML()" style="text-align: left; padding: 15px;">
 									<div style="display: flex; align-items: center;">
 										<span style="font-size: 24px; margin-right: 10px;">📄</span>
 										<div>
-											<strong>PDF отчет</strong><br>
+											<strong>HTML/PDF отчет</strong><br>
 											<small>Все графики в одном PDF файле</small>
 										</div>
 									</div>
@@ -13307,14 +14555,13 @@
 		}
 
 		// Экспорт как PDF
-		// Экспорт как PDF
 		async function exportChartsAsPDF() {
 			closeExportMenu();
 			
 			try {
 				showNotification('Создаем PDF отчет...', 'info');
 				
-				// Динамически загружаем библиотеки
+				// Динамически загружаем jsPDF если нет
 				if (typeof window.jspdf === 'undefined') {
 					await loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');
 					await loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js');
@@ -13322,488 +14569,111 @@
 				
 				const { jsPDF } = window.jspdf;
 				const pdf = new jsPDF('p', 'mm', 'a4');
-				
-				// Используем встроенные шрифты (не добавляем русские шрифты)
-				// jsPDF по умолчанию использует 'helvetica', 'times', 'courier'
-				pdf.setFont('helvetica');
-				pdf.setFontSize(12);
-				
 				let yOffset = 20;
-				const pageWidth = pdf.internal.pageSize.getWidth();
-				const margin = 20;
 				
-				// Заголовок отчета (используем латинские символы или упрощенные заголовки)
-				pdf.setFontSize(24);
-				pdf.setTextColor(33, 37, 41);
-				pdf.text('ANALYTICAL REPORT', pageWidth / 2, yOffset, { align: 'center' });
+				// Заголовок
+				pdf.setFontSize(20);
+				pdf.setTextColor(40, 40, 40);
+				pdf.text('Аналитический отчет', 105, yOffset, { align: 'center' });
+				
 				yOffset += 10;
 				
-				// Линия под заголовком
-				pdf.setDrawColor(78, 115, 223);
-				pdf.setLineWidth(0.5);
-				pdf.line(margin, yOffset, pageWidth - margin, yOffset);
-				yOffset += 15;
-				
-				// Информация о тесте в карточке
-				pdf.setFillColor(248, 249, 252);
-				pdf.roundedRect(margin, yOffset, pageWidth - 2 * margin, 50, 3, 3, 'F');
-				
-				pdf.setFontSize(14);
-				pdf.setTextColor(78, 115, 223);
-				pdf.text('TEST INFORMATION', margin + 10, yOffset + 10);
-				
-				pdf.setFontSize(11);
-				pdf.setTextColor(73, 80, 87);
-				
-				// Используем латинские символы для текста
+				// Информация о тесте
+				pdf.setFontSize(12);
+				pdf.setTextColor(100, 100, 100);
 				const testInfo = [
-					`Subject: ${appData.test.subject || 'Not specified'}`,
-					`Class: ${appData.test.class || 'Not specified'}`,
-					`Theme: ${appData.test.theme || 'Not specified'}`,
-					`Date: ${appData.test.testDate || 'Not specified'}`,
-					`Total Students: ${appData.students.length}`,
-					`Present: ${appData.test.presentStudents || appData.students.length}`
+					`Предмет: ${appData.test.subject || 'Не указан'}`,
+					`Класс: ${appData.test.class || 'Не указан'}`,
+					`Тема: ${appData.test.theme || 'Не указана'}`,
+					`Дата: ${appData.test.testDate || 'Не указана'}`,
+					`Учащихся: ${appData.students.length}`
 				];
 				
 				testInfo.forEach((line, i) => {
-					const x = i % 2 === 0 ? margin + 15 : margin + 100;
-					const y = yOffset + 25 + Math.floor(i / 2) * 8;
-					pdf.text(line, x, y);
+					pdf.text(line, 20, yOffset + (i * 7));
 				});
 				
-				yOffset += 60;
+				yOffset += testInfo.length * 7 + 10;
 				
-				// Основные метрики
-				const totalScores = appData.results.map(scores => 
-					scores.reduce((sum, score) => sum + (parseInt(score) || 0), 0)
-				);
-				const averageScore = totalScores.reduce((a, b) => a + b, 0) / (totalScores.length || 1);
-				const maxPossible = appData.tasks.reduce((sum, task) => sum + task.maxScore, 0);
-				const averagePercentage = (averageScore / (maxPossible || 1)) * 100;
-				
-				const metrics = [
-					{ label: 'Average Score', value: averageScore.toFixed(1), unit: `of ${maxPossible}`, color: [78, 115, 223] },
-					{ label: 'Success Rate', value: averagePercentage.toFixed(1), unit: '%', color: [28, 200, 138] },
-					{ label: 'Tasks', value: appData.tasks.length, unit: 'pcs', color: [246, 194, 62] },
-					{ label: 'Students', value: appData.students.length, unit: 'pcs', color: [231, 74, 59] }
-				];
-				
-				// Рисуем метрики
-				const tileWidth = (pageWidth - 2 * margin - 15) / 4;
-				metrics.forEach((metric, index) => {
-					const x = margin + index * (tileWidth + 5);
-					
-					pdf.setFillColor(...metric.color.map(c => c * 0.1));
-					pdf.roundedRect(x, yOffset, tileWidth, 30, 5, 5, 'F');
-					
-					pdf.setFontSize(10);
-					pdf.setTextColor(108, 117, 125);
-					pdf.text(metric.label, x + 10, yOffset + 10);
-					
-					pdf.setFontSize(16);
-					pdf.setTextColor(...metric.color);
-					pdf.text(metric.value, x + 10, yOffset + 22);
-					
-					pdf.setFontSize(10);
-					pdf.setTextColor(108, 117, 125);
-					pdf.text(metric.unit, x + 10 + pdf.getTextWidth(metric.value) + 2, yOffset + 22);
-				});
-				
-				yOffset += 40;
-				
-				// Экспорт графиков
+				// Экспорт каждого графика
 				const charts = [
-					{ 
-						id: 'gradesChart', 
-						title: 'GRADE DISTRIBUTION'
-					},
-					{ 
-						id: 'solvabilityChart', 
-						title: 'TASK SOLVABILITY'
-					},
-					{ 
-						id: 'complexityChart', 
-						title: 'COMPLEXITY ANALYSIS'
-					}
+					{ id: 'gradesChart', title: 'Распределение оценок' },
+					{ id: 'solvabilityChart', title: 'Решаемость заданий' },
+					{ id: 'complexityChart', title: 'Связь сложности и решаемости' }
 				];
 				
 				for (const chart of charts) {
 					const canvas = document.getElementById(chart.id);
 					if (!canvas) continue;
 					
-					// Проверяем, нужна ли новая страница
-					if (yOffset > 200) {
+					// Добавляем новый лист если нужно
+					if (yOffset > 250) {
 						pdf.addPage();
 						yOffset = 20;
-						
-						pdf.setFontSize(16);
-						pdf.setTextColor(33, 37, 41);
-						pdf.text('CHARTS AND DIAGRAMS', pageWidth / 2, yOffset, { align: 'center' });
-						yOffset += 20;
 					}
 					
 					// Заголовок графика
-					pdf.setFillColor(248, 249, 252);
-					pdf.roundedRect(margin, yOffset, pageWidth - 2 * margin, 30, 3, 3, 'F');
-					
-					pdf.setFontSize(14);
-					pdf.setTextColor(33, 37, 41);
-					pdf.text(chart.title, margin + 15, yOffset + 15);
-					
-					yOffset += 35;
+					pdf.setFontSize(16);
+					pdf.setTextColor(40, 40, 40);
+					pdf.text(chart.title, 20, yOffset);
+					yOffset += 10;
 					
 					try {
 						// Конвертируем canvas в изображение
-						const canvasData = await html2canvas(canvas, {
-							scale: 2,
-							backgroundColor: '#ffffff',
-							logging: false,
-							useCORS: true
-						});
+						const imageData = canvas.toDataURL('image/png', 1.0);
 						
-						const imageData = canvasData.toDataURL('image/png', 1.0);
-						
-						// Рассчитываем размеры
-						const maxWidth = pageWidth - 2 * margin;
-						const canvasRatio = canvasData.width / canvasData.height;
-						const imgWidth = Math.min(maxWidth, 160);
+						// Рассчитываем размеры для вставки
+						const pageWidth = pdf.internal.pageSize.getWidth();
+						const maxWidth = pageWidth - 40; // Отступы по 20мм с каждой стороны
+						const canvasRatio = canvas.width / canvas.height;
+						const imgWidth = Math.min(maxWidth, 150);
 						const imgHeight = imgWidth / canvasRatio;
 						
 						// Вставляем изображение
-						pdf.setDrawColor(233, 236, 239);
-						pdf.setLineWidth(0.5);
-						pdf.rect(margin, yOffset, imgWidth, imgHeight);
-						
-						pdf.addImage(imageData, 'PNG', margin, yOffset, imgWidth, imgHeight);
-						yOffset += imgHeight + 20;
+						pdf.addImage(imageData, 'PNG', 20, yOffset, imgWidth, imgHeight);
+						yOffset += imgHeight + 15;
 						
 					} catch (error) {
-						console.error(`Ошибка рендеринга графика ${chart.id}:`, error);
+						console.error(`Ошибка добавления графика ${chart.id}:`, error);
 						pdf.setFontSize(10);
-						pdf.setTextColor(220, 53, 69);
-						pdf.text(`Chart unavailable: ${chart.title}`, margin, yOffset);
-						yOffset += 15;
+						pdf.setTextColor(200, 0, 0);
+						pdf.text(`Ошибка загрузки графика: ${chart.title}`, 20, yOffset);
+						yOffset += 10;
 					}
 				}
 				
-				// Статистика на отдельной странице
-				pdf.addPage();
-				yOffset = 20;
+				// Добавляем статистику
+				if (yOffset > 200) {
+					pdf.addPage();
+					yOffset = 20;
+				}
 				
-				pdf.setFontSize(20);
-				pdf.setTextColor(33, 37, 41);
-				pdf.text('STATISTICAL DATA', pageWidth / 2, yOffset, { align: 'center' });
+				pdf.setFontSize(16);
+				pdf.setTextColor(40, 40, 40);
+				pdf.text('Статистика', 20, yOffset);
 				yOffset += 10;
 				
-				pdf.setDrawColor(78, 115, 223);
-				pdf.line(margin, yOffset, pageWidth - margin, yOffset);
-				yOffset += 20;
+				pdf.setFontSize(11);
+				pdf.setTextColor(80, 80, 80);
 				
-				// Подробная статистика (используем латинские символы)
-				const stats = generateDetailedStatsForPDF();
-				
-				pdf.setFontSize(12);
-				pdf.setTextColor(73, 80, 87);
-				
-				stats.forEach((section, sectionIndex) => {
-					// Заголовок раздела
-					pdf.setFontSize(14);
-					pdf.setTextColor(33, 37, 41);
-					pdf.text(section.title, margin, yOffset);
-					yOffset += 10;
-					
-					// Контент раздела
-					pdf.setFontSize(11);
-					pdf.setTextColor(73, 80, 87);
-					
-					section.items.forEach((item, itemIndex) => {
-						if (yOffset > 270) {
-							pdf.addPage();
-							yOffset = 20;
-						}
-						
-						pdf.text(`• ${item}`, margin + 5, yOffset);
-						yOffset += 7;
-					});
-					
-					yOffset += 10;
+				const stats = generateStatsSummary();
+				stats.forEach((stat, i) => {
+					if (yOffset > 270) {
+						pdf.addPage();
+						yOffset = 20;
+					}
+					pdf.text(stat, 20, yOffset + (i * 6));
 				});
 				
-				// Футер
-				pdf.setFontSize(9);
-				pdf.setTextColor(173, 181, 189);
-				pdf.text(`Report generated: ${new Date().toLocaleString('en-US')}`, 
-						 pageWidth / 2, 287, { align: 'center' });
-				pdf.text(`© Testing Analytics System`, 
-						 pageWidth / 2, 293, { align: 'center' });
+				// Сохраняем PDF
+				pdf.save(`Аналитический_отчет_${getTimestamp()}.pdf`);
 				
-				// Сохраняем PDF с корректным именем
-				const filename = `Report_${appData.test.subject || 'test'}_${appData.test.class || ''}_${getTimestamp()}.pdf`;
-				pdf.save(filename);
-				
-				showNotification('PDF report successfully created and downloaded', 'success');
+				showNotification('PDF отчет создан успешно', 'success');
 				
 			} catch (error) {
 				console.error('Ошибка экспорта PDF:', error);
-				
-				let errorMessage = 'Failed to create PDF report';
-				if (error.message.includes('font')) {
-					errorMessage = 'Font loading error. Created simplified report.';
-				} else if (error.message.includes('canvas')) {
-					errorMessage = 'Chart rendering error. Created simplified report.';
-				}
-				
-				showNotification(errorMessage, 'warning');
-				
-				// Альтернативный способ экспорта (простой PDF без шрифтов)
-				try {
-					createSimplifiedPDF();
-				} catch (simpleError) {
-					console.error('Ошибка создания упрощенного PDF:', simpleError);
-					exportSimpleTextReport();
-				}
+				showNotification('Ошибка создания PDF', 'error');
 			}
-		}
-		
-		// Упрощенная версия PDF (без шрифтов)
-		function createSimplifiedPDF() {
-			try {
-				const { jsPDF } = window.jspdf;
-				const pdf = new jsPDF('p', 'mm', 'a4');
-				
-				let yOffset = 20;
-				const pageWidth = pdf.internal.pageSize.getWidth();
-				const margin = 20;
-				
-				// Заголовок
-				pdf.setFontSize(16);
-				pdf.text('TEST REPORT SUMMARY', pageWidth / 2, yOffset, { align: 'center' });
-				yOffset += 15;
-				
-				// Основная информация
-				pdf.setFontSize(12);
-				pdf.text(`Subject: ${appData.test.subject || 'N/A'}`, margin, yOffset);
-				yOffset += 10;
-				pdf.text(`Class: ${appData.test.class || 'N/A'}`, margin, yOffset);
-				yOffset += 10;
-				pdf.text(`Date: ${appData.test.testDate || 'N/A'}`, margin, yOffset);
-				yOffset += 10;
-				pdf.text(`Students: ${appData.students.length}`, margin, yOffset);
-				yOffset += 10;
-				pdf.text(`Tasks: ${appData.tasks.length}`, margin, yOffset);
-				yOffset += 20;
-				
-				// Статистика
-				const totalScores = appData.results.map(scores => 
-					scores.reduce((sum, score) => sum + (parseInt(score) || 0), 0)
-				);
-				const averageScore = totalScores.reduce((a, b) => a + b, 0) / (totalScores.length || 1);
-				const maxPossible = appData.tasks.reduce((sum, task) => sum + task.maxScore, 0);
-				const averagePercentage = (averageScore / (maxPossible || 1)) * 100;
-				
-				pdf.setFontSize(14);
-				pdf.text('STATISTICS:', margin, yOffset);
-				yOffset += 15;
-				
-				pdf.setFontSize(12);
-				pdf.text(`Average Score: ${averageScore.toFixed(2)}/${maxPossible}`, margin, yOffset);
-				yOffset += 10;
-				pdf.text(`Success Rate: ${averagePercentage.toFixed(1)}%`, margin, yOffset);
-				yOffset += 10;
-				pdf.text(`Min Score: ${Math.min(...totalScores)}`, margin, yOffset);
-				yOffset += 10;
-				pdf.text(`Max Score: ${Math.max(...totalScores)}`, margin, yOffset);
-				yOffset += 20;
-				
-				// Распределение оценок
-				const grades = totalScores.map(score => {
-					if (score >= (maxPossible * 0.85)) return 'A';
-					if (score >= (maxPossible * 0.70)) return 'B';
-					if (score >= (maxPossible * 0.55)) return 'C';
-					if (score >= (maxPossible * 0.40)) return 'D';
-					return 'F';
-				});
-				
-				const gradeCounts = { A: 0, B: 0, C: 0, D: 0, F: 0 };
-				grades.forEach(grade => gradeCounts[grade]++);
-				
-				pdf.setFontSize(14);
-				pdf.text('GRADE DISTRIBUTION:', margin, yOffset);
-				yOffset += 15;
-				
-				pdf.setFontSize(12);
-				pdf.text(`A (85-100%): ${gradeCounts.A} students`, margin, yOffset);
-				yOffset += 10;
-				pdf.text(`B (70-84%): ${gradeCounts.B} students`, margin, yOffset);
-				yOffset += 10;
-				pdf.text(`C (55-69%): ${gradeCounts.C} students`, margin, yOffset);
-				yOffset += 10;
-				pdf.text(`D (40-54%): ${gradeCounts.D} students`, margin, yOffset);
-				yOffset += 10;
-				pdf.text(`F (0-39%): ${gradeCounts.F} students`, margin, yOffset);
-				
-				const filename = `Simple_Report_${getTimestamp()}.pdf`;
-				pdf.save(filename);
-				
-				showNotification('Simplified PDF report created', 'info');
-				
-			} catch (error) {
-				console.error('Ошибка создания упрощенного PDF:', error);
-				throw error;
-			}
-		}
-		
-		// Генерация статистики для PDF (латинские символы)
-		function generateDetailedStatsForPDF() {
-			const totalScores = appData.results.map(scores => 
-				scores.reduce((sum, score) => sum + (parseInt(score) || 0), 0)
-			);
-			const averageScore = totalScores.reduce((a, b) => a + b, 0) / (totalScores.length || 1);
-			const maxPossible = appData.tasks.reduce((sum, task) => sum + task.maxScore, 0);
-			const averagePercentage = (averageScore / (maxPossible || 1)) * 100;
-			
-			// Находим минимальный и максимальный баллы
-			const minScore = Math.min(...totalScores);
-			const maxScore = Math.max(...totalScores);
-			
-			// Распределение по критериям
-			const criteriaDistribution = calculateCriteriaDistribution();
-			
-			return [
-				{
-					title: 'GENERAL STATISTICS',
-					items: [
-						`Total Students: ${appData.students.length}`,
-						`Present: ${appData.test.presentStudents || appData.students.length}`,
-						`Tasks: ${appData.tasks.length}`,
-						`Max Score: ${maxPossible}`,
-						`Average Score: ${averageScore.toFixed(2)} (${averagePercentage.toFixed(1)}%)`,
-						`Min Score: ${minScore}`,
-						`Max Score: ${maxScore}`
-					]
-				},
-				{
-					title: 'GRADE DISTRIBUTION',
-					items: criteriaDistribution.map(criteria => 
-						`Grade ${criteria.grade}: ${criteria.count} students (${criteria.percentage}%)`
-					)
-				},
-				{
-					title: 'DIFFICULTY LEVELS',
-					items: [...new Set(appData.tasks.map(t => t.level || 'Not specified'))].map(level => {
-						const tasksOfLevel = appData.tasks.filter(t => t.level === level);
-						const avgSolvability = tasksOfLevel.length > 0 ? 
-							tasksOfLevel.reduce((sum, t) => sum + (t.solvability || 0), 0) / tasksOfLevel.length : 0;
-						return `Level ${level}: ${tasksOfLevel.length} tasks, avg solvability: ${avgSolvability.toFixed(1)}%`;
-					})
-				}
-			];
-		}
-		
-		// Дополнительные функции для улучшения экспорта
-		function generateDetailedStats() {
-			const totalScores = appData.results.map(scores => 
-				scores.reduce((sum, score) => sum + (parseInt(score) || 0), 0)
-			);
-			const averageScore = totalScores.reduce((a, b) => a + b, 0) / (totalScores.length || 1);
-			const maxPossible = appData.tasks.reduce((sum, task) => sum + task.maxScore, 0);
-			const averagePercentage = (averageScore / (maxPossible || 1)) * 100;
-			
-			// Находим минимальный и максимальный баллы
-			const minScore = Math.min(...totalScores);
-			const maxScore = Math.max(...totalScores);
-			
-			// Распределение по критериям
-			const criteriaDistribution = calculateCriteriaDistribution();
-			
-			return [
-				{
-					title: 'ОБЩАЯ СТАТИСТИКА',
-					items: [
-						`Всего учащихся: ${appData.students.length}`,
-						`Присутствовало: ${appData.test.presentStudents || appData.students.length}`,
-						`Заданий в тесте: ${appData.tasks.length}`,
-						`Максимальный балл: ${maxPossible}`,
-						`Средний балл: ${averageScore.toFixed(2)} (${averagePercentage.toFixed(1)}%)`,
-						`Минимальный балл: ${minScore}`,
-						`Максимальный балл: ${maxScore}`
-					]
-				},
-				{
-					title: 'РАСПРЕДЕЛЕНИЕ ОЦЕНОК',
-					items: criteriaDistribution.map(criteria => 
-						`${criteria.grade}: ${criteria.count} учащихся (${criteria.percentage}%)`
-					)
-				},
-				{
-					title: 'УРОВНИ СЛОЖНОСТИ',
-					items: [...new Set(appData.tasks.map(t => t.level || 'Не указан'))].map(level => {
-						const tasksOfLevel = appData.tasks.filter(t => t.level === level);
-						const avgSolvability = tasksOfLevel.length > 0 ? 
-							tasksOfLevel.reduce((sum, t) => sum + (t.solvability || 0), 0) / tasksOfLevel.length : 0;
-						return `${level}: ${tasksOfLevel.length} заданий, средняя решаемость: ${avgSolvability.toFixed(1)}%`;
-					})
-				}
-			];
-		}
-
-		function calculateCriteriaDistribution() {
-			if (!appData.results.length) return [];
-			
-			const totalScores = appData.results.map(scores => 
-				scores.reduce((sum, score) => sum + (parseInt(score) || 0), 0)
-			);
-			
-			const distribution = [];
-			const criteria = appData.test.criteria;
-			
-			for (const [grade, range] of Object.entries(criteria)) {
-				const count = totalScores.filter(score => 
-					score >= range.min && score <= range.max
-				).length;
-				
-				distribution.push({
-					grade: grade,
-					count: count,
-					percentage: ((count / totalScores.length) * 100).toFixed(1)
-				});
-			}
-			
-			return distribution;
-		}
-
-		function exportSimpleTextReport() {
-			const stats = generateDetailedStats();
-			let textContent = 'АНАЛИТИЧЕСКИЙ ОТЧЕТ\n';
-			textContent += '='.repeat(50) + '\n\n';
-			
-			stats.forEach(section => {
-				textContent += `${section.title}\n`;
-				textContent += '-'.repeat(30) + '\n';
-				section.items.forEach(item => {
-					textContent += `${item}\n`;
-				});
-				textContent += '\n';
-			});
-			
-			const blob = new Blob([textContent], { type: 'text/plain;charset=utf-8' });
-			const link = document.createElement('a');
-			link.href = URL.createObjectURL(blob);
-			link.download = `Отчет_${getTimestamp()}.txt`;
-			link.click();
-			
-			showNotification('Текстовый отчет скачан', 'success');
-		}
-
-		// Вспомогательная функция для загрузки скриптов
-		function loadScript(src) {
-			return new Promise((resolve, reject) => {
-				const script = document.createElement('script');
-				script.src = src;
-				script.onload = resolve;
-				script.onerror = reject;
-				document.head.appendChild(script);
-			});
 		}
 
 		// Экспорт всех графиков как одно изображение
