@@ -14,6 +14,328 @@
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 	<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
     <style>
+		/* Стили для управления классами */
+		.class-manager-container {
+			padding: 20px;
+		}
+
+		.dashboard-header {
+			background: linear-gradient(135deg, #f8f9fc 0%, #e3e6f0 100%);
+			padding: 2rem;
+			border-radius: 15px;
+			margin-bottom: 2rem;
+		}
+
+		.dashboard-icon {
+			width: 60px;
+			height: 60px;
+			background: white;
+			border-radius: 12px;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+		}
+
+		.stats-card {
+			border-radius: 12px;
+			background: linear-gradient(135deg, #4e73df 0%, #224abe 100%);
+			box-shadow: 0 4px 15px rgba(78, 115, 223, 0.3);
+		}
+
+		/* Карточка импорта */
+		.import-card {
+			border: 2px dashed #dee2e6;
+			border-radius: 12px;
+			transition: all 0.3s ease;
+			background: #f8f9fc;
+		}
+
+		.import-card:hover {
+			border-color: #4e73df;
+			background: #f0f4ff;
+		}
+
+		.file-upload-area {
+			cursor: pointer;
+		}
+
+		.file-upload-area:hover {
+			opacity: 0.9;
+		}
+
+		/* Форматы файлов */
+		.formats-info {
+			background: #f8f9fc;
+			border-radius: 12px;
+			padding: 1.5rem;
+			margin-top: 2rem;
+		}
+
+		.format-card {
+			transition: all 0.3s ease;
+			border-radius: 8px;
+			cursor: pointer;
+		}
+
+		.format-card:hover {
+			transform: translateY(-5px);
+			background: white;
+			box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+		}
+
+		.format-icon {
+			transition: all 0.3s ease;
+		}
+
+		.format-card:hover .format-icon {
+			transform: scale(1.1);
+		}
+
+		/* Стили для селектора класса */
+		.class-selector-wrapper {
+			position: relative;
+		}
+
+		.class-selector-wrapper select {
+			appearance: none;
+			padding-right: 40px;
+		}
+
+		.select-arrow {
+			position: absolute;
+			right: 12px;
+			top: 50%;
+			transform: translateY(-50%);
+			pointer-events: none;
+			color: #6c757d;
+		}
+
+		/* Кнопки действий */
+		.action-buttons .btn {
+			border-radius: 10px;
+			transition: all 0.3s ease;
+			border: none;
+		}
+
+		.action-buttons .btn:hover {
+			transform: translateY(-2px);
+			box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+		}
+
+		.btn:disabled {
+			opacity: 0.5;
+			cursor: not-allowed;
+		}
+
+		.btn:disabled:hover {
+			transform: none;
+			box-shadow: none;
+		}
+
+		/* Статистика */
+		.stats-list {
+			padding: 0.5rem;
+		}
+
+		.stat-item {
+			padding: 0.75rem;
+			border-radius: 8px;
+			transition: background-color 0.2s;
+		}
+
+		.stat-item:hover {
+			background-color: #f8f9fc;
+		}
+
+		.stat-value {
+			color: #4e73df;
+			font-size: 1.25rem;
+		}
+
+		/* Прогресс бар */
+		.progress {
+			border-radius: 10px;
+			overflow: hidden;
+		}
+
+		.progress-bar {
+			border-radius: 10px;
+		}
+
+		/* Пустое состояние */
+		.empty-state {
+			padding: 3rem 1rem;
+		}
+
+		.empty-state-icon {
+			display: inline-block;
+			margin-bottom: 1.5rem;
+		}
+
+		/* Тени карточек */
+		.shadow-sm {
+			box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08) !important;
+		}
+
+		/* Градиенты */
+		.bg-gradient-primary {
+			background: linear-gradient(135deg, #4e73df 0%, #224abe 100%);
+		}
+
+		/* Закругления */
+		.rounded-lg {
+			border-radius: 15px;
+		}
+
+		/* Отступы */
+		.py-3 {
+			padding-top: 1rem !important;
+			padding-bottom: 1rem !important;
+		}
+
+		/* Текст */
+		.extra-small {
+			font-size: 0.75rem;
+			opacity: 0.8;
+		}
+
+		/* Адаптивность */
+		@media (max-width: 768px) {
+			.dashboard-header {
+				padding: 1.5rem;
+			}
+			
+			.class-manager-container {
+				padding: 10px;
+			}
+			
+			.action-buttons .btn {
+				padding: 0.75rem !important;
+			}
+		}
+
+		/* Стикки блок */
+		.sticky-top {
+			z-index: 1;
+		}	
+		/* Стили для списка учеников */
+		.students-list {
+			padding-right: 8px;
+		}
+
+		.students-list::-webkit-scrollbar {
+			width: 6px;
+		}
+
+		.students-list::-webkit-scrollbar-track {
+			background: #f8f9fa;
+			border-radius: 10px;
+		}
+
+		.students-list::-webkit-scrollbar-thumb {
+			background: #dee2e6;
+			border-radius: 10px;
+		}
+
+		.students-list::-webkit-scrollbar-thumb:hover {
+			background: #adb5bd;
+		}
+
+		/* Карточка ученика */
+		.student-card {
+			transition: all 0.2s ease;
+			border-radius: 10px;
+			border-left: 4px solid transparent;
+		}
+
+		.student-card:hover {
+			transform: translateX(5px);
+			box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+			border-left-color: #4e73df;
+		}
+
+		.student-card.border-success {
+			border-left-color: #1cc88a;
+			background-color: rgba(28, 200, 138, 0.05);
+		}
+
+		/* Аватар */
+		.avatar-circle {
+			width: 40px;
+			height: 40px;
+			border-radius: 50%;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			font-weight: 600;
+			font-size: 14px;
+		}
+
+		/* Панель действий */
+		.action-bar {
+			border-radius: 10px;
+			box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+		}
+
+		/* Пустое состояние */
+		.empty-state {
+			padding: 2rem;
+		}
+
+		.empty-state-icon {
+			display: inline-block;
+		}
+
+		/* Переключатель */
+		.form-switch .form-check-input {
+			width: 3em;
+			height: 1.5em;
+		}
+
+		/* Кнопки */
+		.btn.rounded-pill {
+			border-radius: 50px !important;
+		}
+
+		.opacity-50 {
+			opacity: 0.5;
+		}
+
+		/* Сводка */
+		.summary-footer {
+			background: linear-gradient(to right, transparent, #f8f9fc, transparent);
+		}
+
+		/* Заголовок класса */
+		.class-header {
+			position: relative;
+		}
+
+		.class-header::after {
+			content: '';
+			position: absolute;
+			bottom: -10px;
+			left: 0;
+			right: 0;
+			height: 1px;
+			background: linear-gradient(to right, transparent, #dee2e6, transparent);
+		}
+
+		/* Отступы */
+		.extra-small {
+			font-size: 0.75rem;
+		}
+
+		/* Интерактивность */
+		.form-check-input:checked {
+			background-color: #4e73df;
+			border-color: #4e73df;
+		}
+
+		.form-check-input:focus {
+			box-shadow: 0 0 0 0.25rem rgba(78, 115, 223, 0.25);
+		}	
 		/* Добавьте в ваш CSS */
 		.task-card {
 			transition: all 0.3s ease;
@@ -8515,120 +8837,296 @@
 			
 			container.innerHTML = '';
 			
+			const classesCount = schoolData.classes.length;
+			
 			// Основной интерфейс управления классами
 			const mainCard = document.createElement('div');
-			mainCard.className = 'card mb-4';
+			mainCard.className = 'class-manager-container';
 			mainCard.innerHTML = `
-				<div class="card-header bg-info text-white">
-					<h5 class="mb-0"><i class="fas fa-school me-2"></i>Управление классами и учащимися</h5>
-				</div>
-				<div class="card-body">
+				<div class="dashboard-header mb-4">
 					<div class="row">
-						<div class="col-md-6 mb-3">
-							<div class="card h-100">
-								<div class="card-header">
-									<h6 class="mb-0"><i class="fas fa-file-import me-2"></i>Импорт данных школы</h6>
+						<div class="col-lg-8">
+							<div class="d-flex align-items-center">
+								<div class="dashboard-icon me-3">
+									<i class="fas fa-school fa-2x text-primary"></i>
 								</div>
-								<div class="card-body">
-									<div class="mb-3">
-										<label class="form-label">Название школы:</label>
-										<input type="text" id="schoolName" class="form-control" 
-											   value="${schoolData.schoolName}" 
-											   placeholder="Введите название школы">
-									</div>
-									
-									<div class="mb-3">
-										<label class="form-label">Выберите файл для импорта:</label>
-										<div class="input-group">
-											<input type="file" id="schoolFileInput" class="form-control" 
-												   accept=".xlsx,.xls,.csv,.txt">
-											<button class="btn btn-outline-info" type="button" 
-													onclick="document.getElementById('schoolFileInput').click()">
-												<i class="fas fa-folder-open"></i>
-											</button>
-										</div>
-										<small class="form-text text-muted">
-											Поддерживаемые форматы: Excel (.xlsx, .xls), CSV, TXT
-										</small>
-									</div>
-									
-									<div class="mb-3">
-										<label class="form-label">Формат файла:</label>
-										<select id="fileFormat" class="form-select">
-											<option value="auto">Автоопределение</option>
-											<option value="excel">Excel (столбцы: Класс, Фамилия, Имя, Отчество)</option>
-											<option value="csv">CSV с разделителем</option>
-										</select>
-									</div>
-									
-									<button class="btn btn-primary w-100" onclick="importSchoolFile()">
-										<i class="fas fa-upload me-2"></i>Импортировать данные школы
-									</button>
-									
-									${schoolData.lastImportDate ? `
-										<div class="alert alert-info mt-3 p-2 small">
-											<i class="fas fa-info-circle me-1"></i>
-											Последний импорт: ${new Date(schoolData.lastImportDate).toLocaleDateString('ru-RU')}
-										</div>
-									` : ''}
+								<div>
+									<h1 class="h3 mb-1">Управление классами</h1>
+									<p class="text-muted mb-0">Импорт данных, управление учениками и классами</p>
 								</div>
 							</div>
 						</div>
-						
-						<div class="col-md-6 mb-3">
-							<div class="card h-100">
-								<div class="card-header">
-									<h6 class="mb-0"><i class="fas fa-users me-2"></i>Быстрый выбор</h6>
-								</div>
-								<div class="card-body">
-									<div class="mb-3">
-										<label class="form-label">Выберите класс:</label>
-										<select id="classSelector" class="form-select" onchange="renderClassStudents()">
-											<option value="">-- Выберите класс --</option>
-											${schoolData.classes.map(cls => `
-												<option value="${cls.id}">${cls.grade}${cls.name}</option>
-											`).join('')}
-										</select>
-									</div>
-									
-									<div id="classStudentsContainer" class="mb-3" style="max-height: 300px; overflow-y: auto;">
-										<!-- Здесь будут отображаться ученики выбранного класса -->
-										<div class="text-center text-muted py-4">
-											<i class="fas fa-users fa-2x mb-2"></i>
-											<p>Выберите класс для просмотра учеников</p>
+						<div class="col-lg-4">
+							<div class="stats-card card border-0 bg-primary text-white h-100">
+								<div class="card-body py-3">
+									<div class="d-flex justify-content-between align-items-center">
+										<div>
+											<div class="small opacity-75">Всего классов</div>
+											<div class="h2 mb-0">${classesCount}</div>
 										</div>
-									</div>
-									
-									<div class="d-grid gap-2">
-										<button class="btn btn-success" onclick="addSelectedToTesting()" disabled id="addSelectedBtn">
-											<i class="fas fa-user-plus me-2"></i>Добавить выбранных к тестированию
-										</button>
-										<button class="btn btn-outline-info" onclick="addWholeClassToTesting()" disabled id="addWholeClassBtn">
-											<i class="fas fa-users me-2"></i>Добавить весь класс
-										</button>
+										<i class="fas fa-chalkboard fa-2x opacity-50"></i>
 									</div>
 								</div>
 							</div>
 						</div>
 					</div>
-					
-					<!-- Список всех классов -->
-					<div class="card mt-3">
-						<div class="card-header">
-							<h6 class="mb-0"><i class="fas fa-list me-2"></i>Все классы школы (${schoolData.classes.length})</h6>
+				</div>
+				
+				<div class="row">
+					<div class="col-xl-8">
+						<!-- Блок импорта -->
+						<div class="card border-0 shadow-sm mb-4">
+							<div class="card-header bg-white border-0 py-3">
+								<h5 class="mb-0"><i class="fas fa-file-import text-primary me-2"></i>Импорт данных школы</h5>
+							</div>
+							<div class="card-body">
+								<div class="row">
+									<div class="col-md-6 mb-4">
+										<div class="mb-3">
+											<label class="form-label fw-medium">Название школы</label>
+											<div class="input-group">
+												<span class="input-group-text">
+													<i class="fas fa-university"></i>
+												</span>
+												<input type="text" id="schoolName" class="form-control form-control-lg" 
+													   value="${schoolData.schoolName || ''}" 
+													   placeholder="Введите название школы">
+											</div>
+										</div>
+										
+										${schoolData.lastImportDate ? `
+											<div class="alert alert-light border mb-4">
+												<div class="d-flex align-items-center">
+													<i class="fas fa-clock text-info me-3 fa-lg"></i>
+													<div>
+														<div class="fw-medium">Последний импорт</div>
+														<div class="text-muted">
+															${new Date(schoolData.lastImportDate).toLocaleDateString('ru-RU', {
+																day: 'numeric',
+																month: 'long',
+																year: 'numeric',
+																hour: '2-digit',
+																minute: '2-digit'
+															})}
+														</div>
+													</div>
+												</div>
+											</div>
+										` : ''}
+									</div>
+									
+									<div class="col-md-6 mb-4">
+										<div class="import-card card border-dashed h-100">
+											<div class="card-body d-flex flex-column align-items-center justify-content-center py-4">
+												<div class="import-icon mb-3">
+													<i class="fas fa-cloud-upload-alt fa-3x text-muted"></i>
+												</div>
+												<h5 class="mb-2">Загрузите файл</h5>
+												<p class="text-muted text-center small mb-3">
+													Перетащите файл или нажмите для загрузки
+												</p>
+												
+												<div class="file-upload-area w-100">
+													<input type="file" id="schoolFileInput" class="d-none" 
+														   accept=".xlsx,.xls,.csv,.txt,.json">
+													<label for="schoolFileInput" class="btn btn-outline-primary w-100 mb-3">
+														<i class="fas fa-folder-open me-2"></i>Выбрать файл
+													</label>
+													
+													<select id="fileFormat" class="form-select">
+														<option value="auto">Автоопределение формата</option>
+														<option value="excel">Excel формат</option>
+														<option value="csv">CSV файл</option>
+														<option value="json">JSON данные</option>
+													</select>
+												</div>
+												
+												<div class="mt-3 text-center">
+													<button class="btn btn-primary px-4" onclick="importSchoolFile()">
+														<i class="fas fa-upload me-2"></i>Начать импорт
+													</button>
+												</div>
+											</div>
+										</div>
+									</div>
+								</div>
+								
+								<div class="formats-info">
+									<div class="row">
+										<div class="col-md-4">
+											<div class="format-card text-center p-3">
+												<div class="format-icon mb-2">
+													<i class="fas fa-file-excel fa-2x text-success"></i>
+												</div>
+												<div class="format-name fw-medium">Excel</div>
+												<div class="format-ext small text-muted">.xlsx, .xls</div>
+											</div>
+										</div>
+										<div class="col-md-4">
+											<div class="format-card text-center p-3">
+												<div class="format-icon mb-2">
+													<i class="fas fa-file-csv fa-2x text-info"></i>
+												</div>
+												<div class="format-name fw-medium">CSV</div>
+												<div class="format-ext small text-muted">.csv, .txt</div>
+											</div>
+										</div>
+										<div class="col-md-4">
+											<div class="format-card text-center p-3">
+												<div class="format-icon mb-2">
+													<i class="fas fa-file-code fa-2x text-warning"></i>
+												</div>
+												<div class="format-name fw-medium">JSON</div>
+												<div class="format-ext small text-muted">.json</div>
+											</div>
+										</div>
+									</div>
+								</div>
+							</div>
 						</div>
-						<div class="card-body">
-							${schoolData.classes.length === 0 ? `
-								<div class="text-center py-4 text-muted">
-									<i class="fas fa-school fa-3x mb-3"></i>
-									<h5>Нет данных о классах</h5>
-									<p>Импортируйте файл со списком учащихся школы</p>
+						
+						<!-- Все классы школы -->
+						<div class="card border-0 shadow-sm">
+							<div class="card-header bg-white border-0 py-3">
+								<div class="d-flex justify-content-between align-items-center">
+									<h5 class="mb-0"><i class="fas fa-chalkboard text-primary me-2"></i>Все классы школы</h5>
+									<span class="badge bg-primary rounded-pill px-3 py-2">${classesCount} классов</span>
 								</div>
-							` : `
-								<div class="row" id="classesGrid">
-									<!-- Классы будут отображаться здесь -->
+							</div>
+							<div class="card-body">
+								${classesCount === 0 ? `
+									<div class="empty-state text-center py-5">
+										<div class="empty-state-icon mb-3">
+											<i class="fas fa-school fa-3x text-light bg-primary rounded-circle p-4"></i>
+										</div>
+										<h4 class="text-muted mb-2">Нет данных о классах</h4>
+										<p class="text-muted mb-4">Импортируйте файл со списком учащихся школы</p>
+										<button class="btn btn-primary" onclick="importSchoolFile()">
+											<i class="fas fa-upload me-2"></i>Импортировать данные
+										</button>
+									</div>
+								` : `
+									<div class="row" id="classesGrid">
+										<!-- Классы будут отображаться здесь -->
+									</div>
+								`}
+							</div>
+						</div>
+					</div>
+					
+					<div class="col-xl-4">
+						<!-- Блок быстрого выбора -->
+						<div class="sticky-top" style="top: 20px;">
+							<div class="card border-0 shadow-sm mb-4">
+								<div class="card-header bg-white border-0 py-3">
+									<h5 class="mb-0"><i class="fas fa-users text-primary me-2"></i>Быстрый выбор учеников</h5>
 								</div>
-							`}
+								<div class="card-body">
+									<div class="mb-4">
+										<label class="form-label fw-medium">Выберите класс</label>
+										<div class="class-selector-wrapper">
+											<select id="classSelector" class="form-select form-select-lg" onchange="renderClassStudents()">
+												<option value="">-- Выберите класс --</option>
+												${schoolData.classes.map(cls => `
+													<option value="${cls.id}">
+														${cls.grade}${cls.name} (${cls.students.length} уч.)
+													</option>
+												`).join('')}
+											</select>
+											<div class="select-arrow">
+												<i class="fas fa-chevron-down"></i>
+											</div>
+										</div>
+									</div>
+									
+									<div id="classStudentsContainer" class="mb-4">
+										<!-- Здесь будут отображаться ученики выбранного класса -->
+										<div class="empty-state text-center py-5">
+											<div class="empty-state-icon mb-3">
+												<i class="fas fa-user-graduate fa-2x text-light bg-primary rounded-circle p-3"></i>
+											</div>
+											<h6 class="text-muted mb-2">Выберите класс</h6>
+											<p class="text-muted small">Выберите класс из списка выше, чтобы увидеть учеников</p>
+										</div>
+									</div>
+									
+									<div class="action-buttons">
+										<div class="d-grid gap-3">
+											<button class="btn btn-primary btn-lg py-3" 
+													onclick="addSelectedToTesting()" 
+													disabled 
+													id="addSelectedBtn">
+												<div class="d-flex align-items-center justify-content-center">
+													<i class="fas fa-user-plus me-3 fa-lg"></i>
+													<div class="text-start">
+														<div class="fw-medium">Добавить выбранных</div>
+														<div class="extra-small">На тестирование</div>
+													</div>
+												</div>
+											</button>
+											
+											<button class="btn btn-success btn-lg py-3" 
+													onclick="addWholeClassToTesting()" 
+													disabled 
+													id="addWholeClassBtn">
+												<div class="d-flex align-items-center justify-content-center">
+													<i class="fas fa-users me-3 fa-lg"></i>
+													<div class="text-start">
+														<div class="fw-medium">Весь класс</div>
+														<div class="extra-small">Добавить всех учеников</div>
+													</div>
+												</div>
+											</button>
+										</div>
+									</div>
+								</div>
+							</div>
+							
+							<!-- Статистика -->
+							<div class="card border-0 shadow-sm">
+								<div class="card-header bg-white border-0 py-3">
+									<h6 class="mb-0"><i class="fas fa-chart-bar text-primary me-2"></i>Статистика</h6>
+								</div>
+								<div class="card-body">
+									<div class="stats-list">
+										<div class="stat-item d-flex justify-content-between align-items-center mb-3">
+											<div class="stat-label">
+												<i class="fas fa-chalkboard me-2 text-muted"></i>
+												Всего классов
+											</div>
+											<div class="stat-value fw-bold">${classesCount}</div>
+										</div>
+										
+										<div class="stat-item d-flex justify-content-between align-items-center mb-3">
+											<div class="stat-label">
+												<i class="fas fa-users me-2 text-muted"></i>
+												Всего учеников
+											</div>
+											<div class="stat-value fw-bold">
+												${schoolData.classes.reduce((sum, cls) => sum + cls.students.length, 0)}
+											</div>
+										</div>
+										
+										<div class="stat-item d-flex justify-content-between align-items-center mb-3">
+											<div class="stat-label">
+												<i class="fas fa-check-circle me-2 text-muted"></i>
+												Активных тестов
+											</div>
+											<div class="stat-value fw-bold">0</div>
+										</div>
+										
+										<div class="progress-wrapper mt-4">
+											<div class="d-flex justify-content-between mb-1">
+												<div class="extra-small text-muted">Загруженность</div>
+												<div class="extra-small text-muted">25%</div>
+											</div>
+											<div class="progress" style="height: 6px;">
+												<div class="progress-bar bg-primary" style="width: 25%"></div>
+											</div>
+										</div>
+									</div>
+								</div>
+							</div>
 						</div>
 					</div>
 				</div>
@@ -8637,7 +9135,7 @@
 			container.appendChild(mainCard);
 			
 			// Отображаем сетку классов, если они есть
-			if (schoolData.classes.length > 0) {
+			if (classesCount > 0) {
 				renderClassesGrid();
 			}
 		}
