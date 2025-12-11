@@ -1431,11 +1431,11 @@
 		// Структура одного класса
 		class SchoolClass {
 			constructor(name, grade, teacher = '') {
-				this.id = Date.now() + Math.random();
-				this.name = name; // Например, "5А", "10Б"
-				this.grade = grade; // Числовой класс: 5, 10
+				this.id = 'class_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+				this.name = name;
+				this.grade = grade;
 				this.teacher = teacher;
-				this.students = []; // Массив учеников
+				this.students = [];
 				this.createdAt = new Date().toISOString();
 			}
 		}
@@ -1443,15 +1443,16 @@
 		// Структура ученика школы
 		class SchoolStudent {
 			constructor(lastName, firstName, middleName = '', id = '') {
-				this.id = id || Date.now() + Math.random();
+				this.id = id || 'student_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
 				this.lastName = lastName;
 				this.firstName = firstName;
 				this.middleName = middleName;
 				this.fullName = `${lastName} ${firstName} ${middleName}`.trim();
-				this.classId = null; // Ссылка на класс
-				this.isPresent = true; // Присутствовал на тестировании
+				this.classId = null;
+				this.isPresent = true;
 			}
-		}	
+		}
+	
 		
 		// Глобальные переменные для хранения экземпляров графиков
 		window.gradesChartInstance = null;
@@ -7248,6 +7249,162 @@
 				console.log('Все функции управления классами загружены');
 			}
 		});	
+
+		// 1. Выбор класса
+		window.selectClass = function(classId) {
+			console.log('selectClass вызвана с classId:', classId);
+			console.log('Доступные классы:', schoolData.classes.map(c => ({id: c.id, name: `${c.grade}${c.name}`})));
+			
+			const schoolClass = schoolData.classes.find(c => {
+				console.log('Сравниваем:', c.id, 'с', classId, 'результат:', c.id === classId);
+				return c.id === classId || c.id.toString() === classId.toString();
+			});
+			
+			if (!schoolClass) {
+				console.error('Класс не найден. Ищем по:', classId);
+				console.error('Тип classId:', typeof classId);
+				console.error('Все классы:', schoolData.classes);
+				showNotification('Класс не найден', 'error');
+				return;
+			}
+			
+			const selector = document.getElementById('classSelector');
+			if (selector) {
+				selector.value = classId;
+				console.log('Установлен класс в селекторе:', classId);
+				
+				if (typeof renderClassStudents === 'function') {
+					renderClassStudents();
+				}
+			}
+		};
+
+
+		// 2. Добавление всего класса
+		window.addWholeClassToTestingFromCard = function(classId) {
+			console.log('addWholeClassToTestingFromCard вызвана с classId:', classId);
+			console.log('Поиск класса в:', schoolData.classes.map(c => c.id));
+			
+			// Пробуем найти класс разными способами
+			let schoolClass = schoolData.classes.find(c => c.id === classId);
+			
+			if (!schoolClass) {
+				// Пробуем найти как строку
+				schoolClass = schoolData.classes.find(c => c.id.toString() === classId.toString());
+			}
+			
+			if (!schoolClass) {
+				// Пробуем найти по числовому значению
+				const classIdNum = parseFloat(classId);
+				if (!isNaN(classIdNum)) {
+					schoolClass = schoolData.classes.find(c => parseFloat(c.id) === classIdNum);
+				}
+			}
+			
+			if (!schoolClass) {
+				console.error('Класс не найден после всех попыток:', classId);
+				console.error('Тип classId:', typeof classId);
+				console.error('Все классы:', schoolData.classes);
+				showNotification('Класс не найден', 'error');
+				return;
+			}
+			
+			console.log('Класс найден:', schoolClass);
+			
+			if (confirm(`Добавить весь класс ${schoolClass.grade}${schoolClass.name} (${schoolClass.students.length} учеников) к тестированию?`)) {
+				let addedCount = 0;
+				
+				schoolClass.students.forEach(student => {
+					const studentExists = appData.students.some(s => {
+						const existingName = s.toLowerCase();
+						const newName = `${student.lastName} ${student.firstName}`.toLowerCase();
+						return existingName.includes(newName) || newName.includes(existingName);
+					});
+					
+					if (!studentExists) {
+						appData.students.push(`${student.lastName} ${student.firstName} ${student.middleName || ''}`.trim());
+						appData.results.push(new Array(appData.tasks.length).fill(0));
+						addedCount++;
+						console.log('Добавлен ученик:', student.lastName, student.firstName);
+					}
+				});
+				
+				if (addedCount > 0) {
+					appData.test.presentStudents = appData.students.length;
+					if (document.getElementById('presentStudents')) {
+						document.getElementById('presentStudents').value = appData.students.length;
+					}
+					
+					saveData();
+					
+					if (typeof renderStudents === 'function') {
+						renderStudents();
+					}
+					if (typeof renderResults === 'function') {
+						renderResults();
+					}
+					
+					showNotification(`Добавлено ${addedCount} учеников из класса ${schoolClass.grade}${schoolClass.name}`, 'success');
+					
+					const currentClassId = document.getElementById('classSelector')?.value;
+					if (currentClassId === classId && typeof renderClassStudents === 'function') {
+						renderClassStudents();
+					}
+				} else {
+					showNotification('Все ученики этого класса уже добавлены к тестированию', 'info');
+				}
+			}
+		};
+
+		// 3. Показ QR-кода
+		window.showQRForClass = function(classId) {
+			console.log('showQRForClass вызвана с classId:', classId);
+			
+			const schoolClass = schoolData.classes.find(c => c.id === classId);
+			if (!schoolClass) {
+				console.error('Класс не найден:', classId);
+				showNotification('Класс не найден', 'error');
+				return;
+			}
+			
+			// Временно - показываем информацию о классе
+			const studentList = schoolClass.students
+				.map(s => `${s.lastName} ${s.firstName} ${s.middleName || ''}`.trim())
+				.join('\n');
+			
+			const message = `Класс: ${schoolClass.grade}${schoolClass.name}\n` +
+						   `Учеников: ${schoolClass.students.length}\n\n` +
+						   `Список:\n${studentList}`;
+			
+			alert(message);
+			showNotification(`Информация о классе ${schoolClass.grade}${schoolClass.name} показана`, 'info');
+		};
+
+		// 4. Удаление класса
+		window.deleteClass = function(classId) {
+			console.log('deleteClass вызвана с classId:', classId);
+			
+			const schoolClass = schoolData.classes.find(c => c.id === classId);
+			if (!schoolClass) {
+				console.error('Класс не найден:', classId);
+				return;
+			}
+			
+			if (confirm(`Удалить класс ${schoolClass.grade}${schoolClass.name}? Все данные об учениках будут удалены.`)) {
+				const index = schoolData.classes.findIndex(c => c.id === classId);
+				if (index !== -1) {
+					schoolData.classes.splice(index, 1);
+					localStorage.setItem('schoolData', JSON.stringify(schoolData));
+					
+					if (typeof renderClassManager === 'function') {
+						renderClassManager();
+						showNotification('Класс удален', 'success');
+					} else {
+						console.error('renderClassManager не найдена');
+					}
+				}
+			}
+		};
 		
         // Функция для удаления задания
         function removeTask(taskIndex) {
@@ -8232,8 +8389,39 @@
 			// Загружаем данные школы
 			loadSchoolData();
 		});		
+
+		// Добавьте этот код в начало файла для отладки
+		function debugClassActions() {
+			console.log('=== ДЕБАГ ИНФОРМАЦИЯ ===');
+			console.log('1. Проверка функций в window:');
+			console.log('- selectClass:', typeof window.selectClass);
+			console.log('- addWholeClassToTestingFromCard:', typeof window.addWholeClassToTestingFromCard);
+			console.log('- showQRForClass:', typeof window.showQRForClass);
+			console.log('- deleteClass:', typeof window.deleteClass);
+			
+			console.log('2. Данные классов:');
+			console.log('Всего классов:', schoolData.classes.length);
+			schoolData.classes.forEach((cls, i) => {
+				console.log(`Класс ${i}: ${cls.grade}${cls.name}, ID: ${cls.id}, Учеников: ${cls.students.length}`);
+			});
+			
+			console.log('3. Проверка HTML элементов:');
+			setTimeout(() => {
+				const buttons = document.querySelectorAll('.btn-group .btn');
+				console.log('Найдено кнопок в группах:', buttons.length);
+				buttons.forEach((btn, i) => {
+					console.log(`Кнопка ${i}:`, {
+						onclick: btn.getAttribute('onclick'),
+						html: btn.innerHTML,
+						parent: btn.parentElement?.parentElement?.parentElement?.querySelector('h6')?.textContent
+					});
+				});
+			}, 1000);
+		}		
+		
 		// классы
 		function renderClassManager() {
+			setTimeout(debugClassActions, 500);
 			const container = document.getElementById('classManagerContainer');
 			if (!container) return;
 			
@@ -8373,13 +8561,15 @@
 			
 			container.innerHTML = '';
 			
-			// Очищаем старые обработчики
-			container.onclick = null;
+			console.log('Рендерим сетку классов. Всего классов:', schoolData.classes.length);
+			console.log('ID классов:', schoolData.classes.map(c => c.id));
 			
 			schoolData.classes.forEach(cls => {
 				const classCard = document.createElement('div');
 				classCard.className = 'col-md-4 col-lg-3 mb-3';
-				classCard.dataset.classId = cls.id; // Сохраняем ID класса в data-атрибут
+				
+				// Используем строковый ID для onclick
+				const classIdStr = String(cls.id);
 				
 				classCard.innerHTML = `
 					<div class="card h-100">
@@ -8407,16 +8597,16 @@
 						</div>
 						<div class="card-footer p-2">
 							<div class="btn-group w-100">
-								<button class="btn btn-sm btn-outline-primary class-action-btn" data-action="select" data-class-id="${cls.id}" title="Выбрать">
+								<button class="btn btn-sm btn-outline-primary" onclick="selectClass('${classIdStr}')" title="Выбрать">
 									<i class="fas fa-check"></i>
 								</button>
-								<button class="btn btn-sm btn-outline-success class-action-btn" data-action="add-all" data-class-id="${cls.id}" title="Добавить весь класс">
+								<button class="btn btn-sm btn-outline-success" onclick="addWholeClassToTestingFromCard('${classIdStr}')" title="Добавить весь класс">
 									<i class="fas fa-user-plus"></i>
 								</button>
-								<button class="btn btn-sm btn-outline-info class-action-btn" data-action="qr" data-class-id="${cls.id}" title="QR-код класса">
+								<button class="btn btn-sm btn-outline-info" onclick="showQRForClass('${classIdStr}')" title="QR-код класса">
 									<i class="fas fa-qrcode"></i>
 								</button>
-								<button class="btn btn-sm btn-outline-danger class-action-btn" data-action="delete" data-class-id="${cls.id}" title="Удалить класс">
+								<button class="btn btn-sm btn-outline-danger" onclick="deleteClass('${classIdStr}')" title="Удалить класс">
 									<i class="fas fa-trash"></i>
 								</button>
 							</div>
@@ -8425,9 +8615,30 @@
 				`;
 				container.appendChild(classCard);
 			});
+		}
+
+		// 10. Добавьте функцию для отладки данных
+		function debugSchoolData() {
+			console.log('=== ОТЛАДКА SCHOOLDATA ===');
+			console.log('schoolData:', schoolData);
+			console.log('Классы:', schoolData.classes.length);
 			
-			// Добавляем единый обработчик для всех кнопок
-			container.addEventListener('click', handleClassAction);
+			schoolData.classes.forEach((cls, i) => {
+				console.log(`Класс ${i}:`, {
+					id: cls.id,
+					type: typeof cls.id,
+					name: `${cls.grade}${cls.name}`,
+					students: cls.students.length,
+					isClassInstance: cls instanceof SchoolClass
+				});
+			});
+			
+			// Проверяем сохранение в localStorage
+			const saved = localStorage.getItem('schoolData');
+			if (saved) {
+				const parsed = JSON.parse(saved);
+				console.log('Сохранено в localStorage:', parsed);
+			}
 		}
 		
 		// Обработчик действий с классами
@@ -8438,7 +8649,30 @@
 			const classId = button.dataset.classId;
 			const action = button.dataset.action;
 			
-			if (!classId) return;
+			console.log('handleClassAction:', { classId, action, button: button.innerHTML });
+			
+			if (!classId) {
+				console.error('classId не найден в data-атрибуте');
+				return;
+			}
+			
+			// Пробуем разные варианты поиска класса
+			console.log('Поиск класса с ID:', classId);
+			console.log('Тип classId:', typeof classId);
+			console.log('Все доступные ID:', schoolData.classes.map(c => ({id: c.id, type: typeof c.id})));
+			
+			const schoolClass = schoolData.classes.find(c => {
+				return c.id == classId || 
+					   c.id.toString() === classId.toString() ||
+					   String(c.id) === String(classId);
+			});
+			
+			if (!schoolClass) {
+				console.error('Класс не найден ни одним способом');
+				return;
+			}
+			
+			console.log('Класс найден:', schoolClass);
 			
 			switch(action) {
 				case 'select':
@@ -8544,19 +8778,57 @@
 				const saved = localStorage.getItem('schoolData');
 				if (saved) {
 					const parsed = JSON.parse(saved);
-					Object.assign(schoolData, parsed);
 					
-					// Восстанавливаем прототипы
-					if (schoolData.classes && schoolData.classes.length > 0) {
-						schoolData.classes = schoolData.classes.map(clsData => {
+					// Восстанавливаем классы с правильными прототипами
+					if (parsed.classes && Array.isArray(parsed.classes)) {
+						parsed.classes = parsed.classes.map(clsData => {
 							const schoolClass = new SchoolClass(clsData.name, clsData.grade, clsData.teacher);
-							Object.assign(schoolClass, clsData);
+							
+							// Копируем все свойства
+							Object.keys(clsData).forEach(key => {
+								if (key !== 'students') {
+									schoolClass[key] = clsData[key];
+								}
+							});
+							
+							// Восстанавливаем студентов
+							if (clsData.students && Array.isArray(clsData.students)) {
+								schoolClass.students = clsData.students.map(studentData => {
+									const student = new SchoolStudent(
+										studentData.lastName,
+										studentData.firstName,
+										studentData.middleName,
+										studentData.id
+									);
+									
+									// Копируем остальные свойства
+									Object.keys(studentData).forEach(key => {
+										if (!['lastName', 'firstName', 'middleName', 'id'].includes(key)) {
+											student[key] = studentData[key];
+										}
+									});
+									
+									return student;
+								});
+							}
+							
 							return schoolClass;
 						});
 					}
+					
+					// Обновляем schoolData
+					Object.assign(schoolData, parsed);
+					console.log('Данные школы загружены:', schoolData.classes.length, 'классов');
+					
+				} else {
+					console.log('Нет сохраненных данных школы');
 				}
 			} catch (error) {
 				console.error('Ошибка загрузки данных школы:', error);
+				// Сбрасываем на начальные значения
+				schoolData.classes = [];
+				schoolData.lastImportDate = null;
+				schoolData.schoolName = '';
 			}
 		}
 
@@ -8714,53 +8986,39 @@
 			const file = fileInput.files[0];
 			const schoolName = schoolNameInput.value.trim() || 'Без названия';
 			
-			// Показываем индикатор загрузки
 			showNotification('Начинаю импорт данных...', 'info');
-			console.log('Начало импорта файла:', file.name, 'Размер:', file.size, 'Тип:', file.type);
 			
 			try {
 				let data = [];
 				
 				if (file.name.toLowerCase().endsWith('.xlsx') || file.name.toLowerCase().endsWith('.xls')) {
-					console.log('Импорт из Excel');
 					data = await importFromExcel(file);
 				} else if (file.name.toLowerCase().endsWith('.csv') || file.name.toLowerCase().endsWith('.txt')) {
-					console.log('Импорт из CSV/TXT');
 					data = await importFromCSV(file);
 				} else {
-					showNotification('Неподдерживаемый формат файла. Используйте Excel (.xlsx, .xls) или CSV', 'error');
+					showNotification('Неподдерживаемый формат файла', 'error');
 					return;
 				}
-				
-				console.log('Данные из файла:', data);
 				
 				if (!data || data.length === 0) {
 					showNotification('Файл пуст или содержит некорректные данные', 'warning');
 					return;
 				}
 				
-				// Показываем предпросмотр первых строк
-				console.log('Первые 5 строк файла:');
-				data.slice(0, 5).forEach((row, i) => {
-					console.log(`Строка ${i}:`, row);
-				});
-				
 				const classes = parseSchoolData(data);
 				
 				if (classes.length === 0) {
-					showNotification('Не удалось распознать данные в файле. Проверьте формат файла.', 'warning');
-					console.error('Не удалось распознать данные. Структура файла:');
-					console.table(data.slice(0, 10));
+					showNotification('Не удалось распознать данные в файле', 'warning');
 					return;
 				}
 				
-				// Обновляем данные школы
+				// Устанавливаем новые данные
 				schoolData.schoolName = schoolName;
 				schoolData.classes = classes;
 				schoolData.lastImportDate = new Date().toISOString();
 				
-				// Сохраняем данные школы в localStorage
-				localStorage.setItem('schoolData', JSON.stringify(schoolData));
+				// Сохраняем в localStorage
+				saveSchoolData();
 				
 				// Обновляем интерфейс
 				renderClassManager();
@@ -8768,11 +9026,7 @@
 				const totalStudents = countTotalStudents(classes);
 				showNotification(`Импортировано ${classes.length} классов, ${totalStudents} учеников`, 'success');
 				
-				// Выводим статистику в консоль
-				console.log('Импорт завершен успешно:');
-				classes.forEach(cls => {
-					console.log(`Класс ${cls.grade}${cls.name}: ${cls.students.length} учеников`);
-				});
+				console.log('Импорт завершен. Данные школы:', schoolData);
 				
 			} catch (error) {
 				console.error('Ошибка импорта:', error);
@@ -8780,7 +9034,16 @@
 			}
 		}
 
-
+		// 7. Добавьте функцию saveSchoolData
+		function saveSchoolData() {
+			try {
+				localStorage.setItem('schoolData', JSON.stringify(schoolData));
+				console.log('Данные школы сохранены:', schoolData);
+			} catch (error) {
+				console.error('Ошибка сохранения данных школы:', error);
+			}
+		}
+		
 		// Импорт из Excel
 		async function importFromExcel(file) {
 			return new Promise((resolve, reject) => {
@@ -9100,48 +9363,40 @@
 		function parseSchoolData(data) {
 			const classesMap = new Map();
 			
-			// Автоопределение структуры файла
 			const structure = detectFileStructure(data);
 			console.log('Обнаруженная структура:', structure);
 			
-			// Пропускаем заголовок
 			let startRow = structure.hasHeader ? 1 : 0;
 			
 			for (let i = startRow; i < data.length; i++) {
 				const row = data[i];
 				if (!row || row.length === 0) continue;
 				
-				// Преобразуем все значения в строки и обрезаем пробелы
 				const cleanRow = row.map(cell => {
 					if (cell === null || cell === undefined) return '';
 					return String(cell).trim();
 				}).filter(cell => cell !== '');
 				
-				if (cleanRow.length < 2) continue; // Нужны хотя бы фамилия и имя
+				if (cleanRow.length < 2) continue;
 				
 				let className = '';
 				let lastName = '';
 				let firstName = '';
 				let middleName = '';
 				
-				// Определяем формат на основе обнаруженной структуры
 				if (structure.format === 'class-first') {
-					// Формат: Класс, Фамилия, Имя, Отчество
 					className = cleanRow[structure.columns.class] || '';
 					lastName = cleanRow[structure.columns.lastName] || '';
 					firstName = cleanRow[structure.columns.firstName] || '';
 					middleName = cleanRow[structure.columns.middleName] || '';
 				} else if (structure.format === 'class-last') {
-					// Формат: Фамилия, Имя, Отчество, Класс
 					lastName = cleanRow[structure.columns.lastName] || '';
 					firstName = cleanRow[structure.columns.firstName] || '';
 					middleName = cleanRow[structure.columns.middleName] || '';
 					className = cleanRow[structure.columns.class] || '';
 				} else {
-					// Автоматическое определение формата
 					className = findClassName(cleanRow);
 					if (className) {
-						// Удаляем класс из массива и оставшиеся части считаем ФИО
 						const classIndex = cleanRow.indexOf(className);
 						const fioParts = cleanRow.filter((_, idx) => idx !== classIndex);
 						
@@ -9150,37 +9405,22 @@
 							firstName = fioParts[1];
 							middleName = fioParts[2] || '';
 						}
-					} else {
-						// Пробуем стандартный формат: первые 3 ячейки - ФИО, последняя - класс
-						if (cleanRow.length >= 3) {
-							lastName = cleanRow[0];
-							firstName = cleanRow[1];
-							middleName = cleanRow[2] || '';
-							className = cleanRow[3] || '';
-						}
 					}
 				}
 				
-				// Нормализуем имя класса
 				className = normalizeClassName(className);
 				
 				if (!className || !lastName || !firstName) {
-					console.warn('Пропущена строка:', cleanRow, 'Причина: недостаточно данных');
 					continue;
 				}
 				
-				// Извлекаем номер класса и букву
 				const match = className.match(/([0-9]+)([А-Яа-яA-Za-z]+)?/);
-				if (!match) {
-					console.warn('Некорректный формат класса:', className);
-					continue;
-				}
+				if (!match) continue;
 				
 				const grade = parseInt(match[1]);
 				const letter = (match[2] || 'А').toUpperCase();
 				const classKey = `${grade}-${letter}`;
 				
-				// Создаем или получаем класс
 				if (!classesMap.has(classKey)) {
 					const schoolClass = new SchoolClass(letter, grade);
 					classesMap.set(classKey, schoolClass);
@@ -9188,24 +9428,20 @@
 				
 				const schoolClass = classesMap.get(classKey);
 				
-				// Добавляем ученика
+				// Создаем студента
 				const student = new SchoolStudent(lastName, firstName, middleName);
 				student.classId = schoolClass.id;
 				schoolClass.students.push(student);
-				
-				console.log('Добавлен ученик:', {
-					класс: `${grade}${letter}`,
-					ученик: `${lastName} ${firstName} ${middleName}`
-				});
 			}
 			
-			console.log('Итоговая статистика:', {
-				классов: classesMap.size,
-				учеников: Array.from(classesMap.values()).reduce((sum, cls) => sum + cls.students.length, 0),
-				классы: Array.from(classesMap.values()).map(cls => `${cls.grade}${cls.name}`)
-			});
+			const classesArray = Array.from(classesMap.values());
+			console.log('Созданы классы:', classesArray.map(c => ({
+				id: c.id,
+				name: `${c.grade}${c.name}`,
+				students: c.students.length
+			})));
 			
-			return Array.from(classesMap.values());
+			return classesArray;
 		}
 
 		// Функция для определения структуры файла
