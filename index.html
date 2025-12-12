@@ -305,7 +305,29 @@
 			box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
 			border-left-color: #4e73df;
 		}
+		/* Стили для кнопок экспорта */
+		.report-export-buttons {
+			animation: fadeIn 0.5s ease;
+		}
 
+		@keyframes fadeIn {
+			from { opacity: 0; transform: translateY(-10px); }
+			to { opacity: 1; transform: translateY(0); }
+		}
+
+		/* Адаптивность для кнопок */
+		@media (max-width: 768px) {
+			.btn-group {
+				flex-wrap: wrap;
+				justify-content: center;
+			}
+			
+			.btn-group .btn {
+				margin-bottom: 5px;
+				flex: 1;
+				min-width: 100px;
+			}
+		}
 		.student-card.border-success {
 			border-left-color: #1cc88a;
 			background-color: rgba(28, 200, 138, 0.05);
@@ -11691,7 +11713,7 @@
 								<button type="button" class="btn btn-secondary" onclick="closeReportModal()">
 									<i class="fas fa-times me-2"></i>Закрыть
 								</button>
-								<button type="button" class="btn btn-success" onclick="printReport()">
+								<button type="button" class="btn btn-success" onclick="exportReport('html')">
 									<i class="fas fa-print me-2"></i>Печать
 								</button>
 								<button type="button" class="btn btn-primary" onclick="saveReportAsPDF()">
@@ -11709,6 +11731,7 @@
 				
 				// Генерируем контент отчета
 				await generateReportContent();
+				addExportButtons();
 				
 			} catch (error) {
 				console.error('Ошибка создания отчета:', error);
@@ -12741,9 +12764,34 @@
 		}
 
 		// Автоматическая инициализация
-		initExportButtons();
+		// initExportButtons();
 
+		// Главная функция экспорта - сделайте ее глобально доступной
+		window.exportReport = function(type = 'print') {
+			const reportContent = document.getElementById('reportContent');
+			if (!reportContent) {
+				showNotification('Отчет не найден', 'error');
+				return;
+			}
 
+			if (type === 'html') {
+				exportToHTML();
+				return;
+			}
+			
+			if (type === 'docx') {
+				exportToDOCX();
+				return;
+			}
+			
+			// Для печати
+			printReport();
+		};
+
+		// Сделайте остальные функции тоже доступными
+		window.printReport = printReport;
+		window.exportToHTML = exportToHTML;
+		window.exportToDOCX = exportToDOCX;
 		function exportChartsForPrint() {
 			const charts = [];
 			document.querySelectorAll('canvas').forEach((canvas, index) => {
