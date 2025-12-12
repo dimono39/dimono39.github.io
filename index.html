@@ -250,7 +250,39 @@
 			font-size: 0.75rem;
 			opacity: 0.8;
 		}
+		.notification {
+			position: fixed;
+			top: 20px;
+			right: 20px;
+			padding: 15px 20px;
+			border-radius: 8px;
+			color: white;
+			z-index: 10000;
+			transform: translateX(120%);
+			transition: transform 0.3s ease;
+			max-width: 400px;
+			box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+		}
 
+		.notification.show {
+			transform: translateX(0);
+		}
+
+		.notification.info {
+			background: #3498db;
+		}
+
+		.notification.success {
+			background: #2ecc71;
+		}
+
+		.notification.warning {
+			background: #f39c12;
+		}
+
+		.notification.error {
+			background: #e74c3c;
+		}
 		/* Адаптивность */
 		@media (max-width: 768px) {
 			.dashboard-header {
@@ -20319,10 +20351,17 @@ ${files.map(f => f ? `- ${f.name}` : '').join('\n')}
 					<div style="background: #d6eaf8; padding: 20px; border-radius: 10px; text-align: center; margin: 20px 0;">
 						<div style="font-size: 3em; margin-bottom: 10px;">🎯</div>
 						<h4>Импорт из шаблонов DeepSeek</h4>
-						<p>Выберите папку с готовыми шаблонами работ</p>
-						<button class="btn btn-primary" onclick="scanTemplateFolder()" style="width: 100%; margin-top: 10px; padding: 12px;">
-							📁 Выбрать папку с шаблонами
-						</button>
+						<p>Автоматическое сканирование папки с шаблонами</p>
+						
+						<div style="display: flex; gap: 10px; margin-top: 15px;">
+							<button class="btn btn-primary" onclick="scanTemplateFolder()" style="flex: 1; padding: 12px;">
+								📁 Выбрать/Сменить папку
+							</button>
+							<button class="btn btn-success" onclick="showTemplateSelection()" style="flex: 1; padding: 12px;">
+								📋 Показать шаблоны
+							</button>
+						</div>
+						
 						<small style="display: block; margin-top: 10px; color: #666;">
 							Поддерживает: ОГЭ, ЕГЭ, ВПР, функциональную грамотность, психологическую диагностику
 						</small>
@@ -20335,6 +20374,11 @@ ${files.map(f => f ? `- ${f.name}` : '').join('\n')}
 							</button>
 						</div>
 						` : ''}
+						
+						<!-- Статус сканера -->
+						<div id="templateScannerStatus" style="margin-top: 15px; padding: 10px; background: rgba(255,255,255,0.8); border-radius: 6px; font-size: 0.85em;">
+							<small>Инициализация сканера...</small>
+						</div>
 					</div>
 					
 					<div style="background: #d1ecf1; padding: 15px; border-radius: 8px; text-align: left; margin-top: 20px;">
