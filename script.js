@@ -6,6 +6,13 @@ const appState = {
     settings: {},
     criteria: {}
 };
+const tabState = {
+    setup: {},
+    criteria: {},
+    students: {},
+    analytics: {},
+    currentTab: 'setup'
+};
 
 // Инициализация при загрузке страницы
 document.addEventListener('DOMContentLoaded', function() {
@@ -14,6 +21,149 @@ document.addEventListener('DOMContentLoaded', function() {
     setupEventListeners();
 });
 
+// Функция для сохранения состояния текущей вкладки
+function saveTabState(tabId) {
+    if (!tabId) return;
+    
+    const tabContent = document.querySelector(`#${tabId} .tab-content`);
+    if (!tabContent) return;
+    
+    // Сохраняем все значения полей ввода
+    const inputs = tabContent.querySelectorAll('input, select, textarea');
+    tabState[tabId] = {};
+    
+    inputs.forEach(input => {
+        const id = input.id;
+        if (id) {
+            tabState[tabId][id] = input.value;
+        }
+    });
+    
+    // Для специальных вкладок сохраняем дополнительное состояние
+    if (tabId === 'criteria') {
+        saveCriteriaState();
+    }
+}
+
+// Функция для восстановления состояния вкладки
+function restoreTabState(tabId) {
+    if (!tabState[tabId] || Object.keys(tabState[tabId]).length === 0) {
+        return;
+    }
+    
+    const tabContent = document.querySelector(`#${tabId} .tab-content`);
+    if (!tabContent) return;
+    
+    // Восстанавливаем значения полей
+    Object.keys(tabState[tabId]).forEach(id => {
+        const element = document.getElementById(id);
+        if (element && element.value !== undefined) {
+            element.value = tabState[tabId][id];
+        }
+    });
+    
+    // Для специальных вкладок
+    if (tabId === 'criteria') {
+        restoreCriteriaState();
+    }
+}
+
+// Сохранение состояния критериев
+function saveCriteriaState() {
+    const criteria = {
+        type: document.getElementById('criteriaType')?.value || 'points',
+        rows: []
+    };
+    
+    document.querySelectorAll('.criteria-row:not(.header)').forEach(row => {
+        const grade = row.querySelector('.grade-badge')?.textContent || '';
+        const min = row.querySelector('.criteria-min')?.value || 0;
+        const max = row.querySelector('.criteria-max')?.value || 0;
+        const desc = row.querySelector('.criteria-desc')?.value || '';
+        
+        criteria.rows.push({ grade, min, max, desc });
+    });
+    
+    tabState.criteria.data = criteria;
+}
+
+// Восстановление состояния критериев
+function restoreCriteriaState() {
+    if (!tabState.criteria.data) return;
+    
+    const criteria = tabState.criteria.data;
+    
+    // Устанавливаем тип критериев
+    const typeSelect = document.getElementById('criteriaType');
+    if (typeSelect) {
+        typeSelect.value = criteria.type;
+        changeCriteriaType(); // Пересоздаем интерфейс
+    }
+    
+    // Даем время на создание DOM элементов
+    setTimeout(() => {
+        const rows = document.querySelectorAll('.criteria-row:not(.header)');
+        criteria.rows.forEach((rowData, index) => {
+            if (rows[index]) {
+                const minInput = rows[index].querySelector('.criteria-min');
+                const maxInput = rows[index].querySelector('.criteria-max');
+                const descInput = rows[index].querySelector('.criteria-desc');
+                
+                if (minInput) minInput.value = rowData.min;
+                if (maxInput) maxInput.value = rowData.max;
+                if (descInput) descInput.value = rowData.desc;
+            }
+        });
+        
+        updateCriteriaPreview();
+    }, 100);
+}
+// Замените текущую функцию переключения вкладок на эту:
+function setupTabNavigation() {
+    const tabButtons = document.querySelectorAll('.tab-button');
+    const tabContents = document.querySelectorAll('.tab-content');
+    
+    tabButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const tabId = this.getAttribute('data-tab');
+            
+            // Сохраняем состояние текущей вкладки
+            saveTabState(tabState.currentTab);
+            
+            // Скрываем все вкладки
+            tabContents.forEach(content => {
+                content.classList.remove('active');
+            });
+            
+            // Убираем активный класс со всех кнопок
+            tabButtons.forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            // Показываем выбранную вкладку
+            document.getElementById(tabId).classList.add('active');
+            this.classList.add('active');
+            
+            // Обновляем текущую вкладку
+            tabState.currentTab = tabId;
+            
+            // Восстанавливаем состояние новой вкладки
+            restoreTabState(tabId);
+            
+            // Обновляем данные если нужно
+            if (tabId === 'analytics') {
+                updateCharts();
+            } else if (tabId === 'students') {
+                updateStudentsTable();
+            }
+        });
+    });
+}
+
+// Инициализируйте навигацию при загрузке
+document.addEventListener('DOMContentLoaded', function() {
+    setupTabNavigation();
+});
 // Мастер шагов
 function nextStep() {
     if (validateCurrentStep()) {
@@ -682,3 +832,769 @@ function applyPreset(presetName) {
         showNotification(`Пресет "${presetName}" применен`, 'success');
     }
 }
+// Вставьте этот код в конец файла script.js, после всех существующих функций
+
+// ========== ФУНКЦИИ ДЛЯ КРИТЕРИЕВ ОЦЕНИВАНИЯ ==========
+
+function generateOgeCriteria() {
+    return `
+        <div class="criteria-grid">
+            <div class="criteria-row header">
+                <div class="criteria-grade">Уровень</div>
+                <div class="criteria-range">Первичные баллы</div>
+                <div class="criteria-range">Тестовые баллы</div>
+                <div class="criteria-description">Оценка</div>
+            </div>
+            <div class="criteria-row">
+                <div class="criteria-grade"><span class="grade-badge grade-5">5</span> Высокий</div>
+                <div class="criteria-range">
+                    <input type="number" class="criteria-min" value="22" min="0" max="32">
+                    -
+                    <input type="number" class="criteria-max" value="32" min="0" max="32">
+                </div>
+                <div class="criteria-range">
+                    <input type="number" class="criteria-min" value="29" min="0" max="39" disabled>
+                    -
+                    <input type="number" class="criteria-max" value="39" min="0" max="39" disabled>
+                </div>
+                <div class="criteria-description">
+                    <input type="text" class="criteria-desc" value="Отлично освоил программу">
+                </div>
+            </div>
+            <div class="criteria-row">
+                <div class="criteria-grade"><span class="grade-badge grade-4">4</span> Повышенный</div>
+                <div class="criteria-range">
+                    <input type="number" class="criteria-min" value="15" min="0" max="32">
+                    -
+                    <input type="number" class="criteria-max" value="21" min="0" max="32">
+                </div>
+                <div class="criteria-range">
+                    <input type="number" class="criteria-min" value="23" min="0" max="39" disabled>
+                    -
+                    <input type="number" class="criteria-max" value="28" min="0" max="39" disabled>
+                </div>
+                <div class="criteria-description">
+                    <input type="text" class="criteria-desc" value="Хорошо освоил программу">
+                </div>
+            </div>
+            <div class="criteria-row">
+                <div class="criteria-grade"><span class="grade-badge grade-3">3</span> Базовый</div>
+                <div class="criteria-range">
+                    <input type="number" class="criteria-min" value="8" min="0" max="32">
+                    -
+                    <input type="number" class="criteria-max" value="14" min="0" max="32">
+                </div>
+                <div class="criteria-range">
+                    <input type="number" class="criteria-min" value="15" min="0" max="39" disabled>
+                    -
+                    <input type="number" class="criteria-max" value="22" min="0" max="39" disabled>
+                </div>
+                <div class="criteria-description">
+                    <input type="text" class="criteria-desc" value="Удовлетворительно освоил программу">
+                </div>
+            </div>
+            <div class="criteria-row">
+                <div class="criteria-grade"><span class="grade-badge grade-2">2</span> Недостаточный</div>
+                <div class="criteria-range">
+                    <input type="number" class="criteria-min" value="0" min="0" max="32">
+                    -
+                    <input type="number" class="criteria-max" value="7" min="0" max="32">
+                </div>
+                <div class="criteria-range">
+                    <input type="number" class="criteria-min" value="0" min="0" max="39" disabled>
+                    -
+                    <input type="number" class="criteria-max" value="14" min="0" max="39" disabled>
+                </div>
+                <div class="criteria-description">
+                    <input type="text" class="criteria-desc" value="Не освоил программу">
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function generateEgeCriteria() {
+    return `
+        <div class="criteria-grid">
+            <div class="criteria-row header">
+                <div class="criteria-grade">Уровень</div>
+                <div class="criteria-range">Первичные баллы</div>
+                <div class="criteria-range">Тестовые баллы</div>
+                <div class="criteria-description">Минимальный порог</div>
+            </div>
+            <div class="criteria-row">
+                <div class="criteria-grade"><span class="grade-badge grade-5">100</span> Максимум</div>
+                <div class="criteria-range">
+                    <input type="number" class="criteria-min" value="31" min="0" max="31">
+                    -
+                    <input type="number" class="criteria-max" value="31" min="0" max="31">
+                </div>
+                <div class="criteria-range">
+                    <input type="number" class="criteria-min" value="100" min="0" max="100" disabled>
+                    -
+                    <input type="number" class="criteria-max" value="100" min="0" max="100" disabled>
+                </div>
+                <div class="criteria-description">
+                    <input type="text" class="criteria-desc" value="Максимальный результат">
+                </div>
+            </div>
+            <div class="criteria-row">
+                <div class="criteria-grade"><span class="grade-badge grade-4">Высокий</span></div>
+                <div class="criteria-range">
+                    <input type="number" class="criteria-min" value="25" min="0" max="31">
+                    -
+                    <input type="number" class="criteria-max" value="30" min="0" max="31">
+                </div>
+                <div class="criteria-range">
+                    <input type="number" class="criteria-min" value="80" min="0" max="100" disabled>
+                    -
+                    <input type="number" class="criteria-max" value="99" min="0" max="100" disabled>
+                </div>
+                <div class="criteria-description">
+                    <input type="text" class="criteria-desc" value="Высокий балл для вуза">
+                </div>
+            </div>
+            <div class="criteria-row">
+                <div class="criteria-grade"><span class="grade-badge grade-3">Проходной</span></div>
+                <div class="criteria-range">
+                    <input type="number" class="criteria-min" value="10" min="0" max="31">
+                    -
+                    <input type="number" class="criteria-max" value="24" min="0" max="31">
+                </div>
+                <div class="criteria-range">
+                    <input type="number" class="criteria-min" value="36" min="0" max="100" disabled>
+                    -
+                    <input type="number" class="criteria-max" value="79" min="0" max="100" disabled>
+                </div>
+                <div class="criteria-description">
+                    <input type="text" class="criteria-desc" value="Минимальный балл для аттестата">
+                </div>
+            </div>
+            <div class="criteria-row">
+                <div class="criteria-grade"><span class="grade-badge grade-2">Незачет</span></div>
+                <div class="criteria-range">
+                    <input type="number" class="criteria-min" value="0" min="0" max="31">
+                    -
+                    <input type="number" class="criteria-max" value="9" min="0" max="31">
+                </div>
+                <div class="criteria-range">
+                    <input type="number" class="criteria-min" value="0" min="0" max="100" disabled>
+                    -
+                    <input type="number" class="criteria-max" value="35" min="0" max="100" disabled>
+                </div>
+                <div class="criteria-description">
+                    <input type="text" class="criteria-desc" value="Не преодолен минимальный порог">
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function generateVprCriteria() {
+    return `
+        <div class="criteria-grid">
+            <div class="criteria-row header">
+                <div class="criteria-grade">Уровень</div>
+                <div class="criteria-range">Проценты</div>
+                <div class="criteria-range">Баллы</div>
+                <div class="criteria-description">Интерпретация</div>
+            </div>
+            <div class="criteria-row">
+                <div class="criteria-grade"><span class="grade-badge grade-5">Высокий</span></div>
+                <div class="criteria-range">
+                    <input type="number" class="criteria-min" value="85" min="0" max="100">
+                    -
+                    <input type="number" class="criteria-max" value="100" min="0" max="100">
+                </div>
+                <div class="criteria-range">
+                    <input type="number" class="criteria-min" value="17" min="0" max="20" disabled>
+                    -
+                    <input type="number" class="criteria-max" value="20" min="0" max="20" disabled>
+                </div>
+                <div class="criteria-description">
+                    <input type="text" class="criteria-desc" value="Высокий уровень подготовки">
+                </div>
+            </div>
+            <div class="criteria-row">
+                <div class="criteria-grade"><span class="grade-badge grade-4">Повышенный</span></div>
+                <div class="criteria-range">
+                    <input type="number" class="criteria-min" value="70" min="0" max="100">
+                    -
+                    <input type="number" class="criteria-max" value="84" min="0" max="100">
+                </div>
+                <div class="criteria-range">
+                    <input type="number" class="criteria-min" value="14" min="0" max="20" disabled>
+                    -
+                    <input type="number" class="criteria-max" value="16" min="0" max="20" disabled>
+                </div>
+                <div class="criteria-description">
+                    <input type="text" class="criteria-desc" value="Повышенный уровень подготовки">
+                </div>
+            </div>
+            <div class="criteria-row">
+                <div class="criteria-grade"><span class="grade-badge grade-3">Базовый</span></div>
+                <div class="criteria-range">
+                    <input type="number" class="criteria-min" value="50" min="0" max="100">
+                    -
+                    <input type="number" class="criteria-max" value="69" min="0" max="100">
+                </div>
+                <div class="criteria-range">
+                    <input type="number" class="criteria-min" value="10" min="0" max="20" disabled>
+                    -
+                    <input type="number" class="criteria-max" value="13" min="0" max="20" disabled>
+                </div>
+                <div class="criteria-description">
+                    <input type="text" class="criteria-desc" value="Базовый уровень подготовки">
+                </div>
+            </div>
+            <div class="criteria-row">
+                <div class="criteria-grade"><span class="grade-badge grade-2">Недостаточный</span></div>
+                <div class="criteria-range">
+                    <input type="number" class="criteria-min" value="0" min="0" max="100">
+                    -
+                    <input type="number" class="criteria-max" value="49" min="0" max="100">
+                </div>
+                <div class="criteria-range">
+                    <input type="number" class="criteria-min" value="0" min="0" max="20" disabled>
+                    -
+                    <input type="number" class="criteria-max" value="9" min="0" max="20" disabled>
+                </div>
+                <div class="criteria-description">
+                    <input type="text" class="criteria-desc" value="Недостаточный уровень подготовки">
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function generatePsychologyCriteria() {
+    return `
+        <div class="criteria-grid">
+            <div class="criteria-row header">
+                <div class="criteria-grade">Уровень</div>
+                <div class="criteria-range">Баллы</div>
+                <div class="criteria-description">Характеристика</div>
+                <div class="criteria-description">Рекомендации</div>
+            </div>
+            <div class="criteria-row">
+                <div class="criteria-grade"><span class="grade-badge level-high">Высокий</span></div>
+                <div class="criteria-range">
+                    <input type="number" class="criteria-min" value="18" min="0" max="24">
+                    -
+                    <input type="number" class="criteria-max" value="24" min="0" max="24">
+                </div>
+                <div class="criteria-description">
+                    <input type="text" class="criteria-desc" value="Высокий уровень развития качества">
+                </div>
+                <div class="criteria-description">
+                    <input type="text" class="criteria-desc" value="Поддержка и развитие сильных сторон">
+                </div>
+            </div>
+            <div class="criteria-row">
+                <div class="criteria-grade"><span class="grade-badge level-medium">Средний</span></div>
+                <div class="criteria-range">
+                    <input type="number" class="criteria-min" value="12" min="0" max="24">
+                    -
+                    <input type="number" class="criteria-max" value="17" min="0" max="24">
+                </div>
+                <div class="criteria-description">
+                    <input type="text" class="criteria-desc" value="Средний уровень развития качества">
+                </div>
+                <div class="criteria-description">
+                    <input type="text" class="criteria-desc" value="Развивающая работа, тренировка">
+                </div>
+            </div>
+            <div class="criteria-row">
+                <div class="criteria-grade"><span class="grade-badge level-low">Низкий</span></div>
+                <div class="criteria-range">
+                    <input type="number" class="criteria-min" value="0" min="0" max="24">
+                    -
+                    <input type="number" class="criteria-max" value="11" min="0" max="24">
+                </div>
+                <div class="criteria-description">
+                    <input type="text" class="criteria-desc" value="Низкий уровень развития качества">
+                </div>
+                <div class="criteria-description">
+                    <input type="text" class="criteria-desc" value="Коррекционная работа, поддержка">
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function changeCriteriaType() {
+    const type = document.getElementById('criteriaType').value;
+    const container = document.getElementById('criteriaSettingsContainer');
+    
+    switch(type) {
+        case 'points':
+            container.innerHTML = generateFivePointCriteria();
+            break;
+        case 'percent':
+            container.innerHTML = generatePercentCriteria();
+            break;
+        case 'custom':
+            container.innerHTML = generateCustomCriteria();
+            break;
+    }
+    
+    updateCriteriaPreview();
+}
+
+function generatePercentCriteria() {
+    return `
+        <div class="criteria-grid">
+            <div class="criteria-row header">
+                <div class="criteria-grade">Оценка</div>
+                <div class="criteria-range">Проценты (%)</div>
+                <div class="criteria-description">Критерии</div>
+            </div>
+            <div class="criteria-row">
+                <div class="criteria-grade"><span class="grade-badge grade-5">5</span> Отлично</div>
+                <div class="criteria-range">
+                    <input type="number" class="criteria-min" value="90" min="0" max="100">
+                    -
+                    <input type="number" class="criteria-max" value="100" min="0" max="100">
+                </div>
+                <div class="criteria-description">
+                    <input type="text" class="criteria-desc" value="Выполнено 90-100% работы">
+                </div>
+            </div>
+            <div class="criteria-row">
+                <div class="criteria-grade"><span class="grade-badge grade-4">4</span> Хорошо</div>
+                <div class="criteria-range">
+                    <input type="number" class="criteria-min" value="75" min="0" max="100">
+                    -
+                    <input type="number" class="criteria-max" value="89" min="0" max="100">
+                </div>
+                <div class="criteria-description">
+                    <input type="text" class="criteria-desc" value="Выполнено 75-89% работы">
+                </div>
+            </div>
+            <div class="criteria-row">
+                <div class="criteria-grade"><span class="grade-badge grade-3">3</span> Удовлетворительно</div>
+                <div class="criteria-range">
+                    <input type="number" class="criteria-min" value="60" min="0" max="100">
+                    -
+                    <input type="number" class="criteria-max" value="74" min="0" max="100">
+                </div>
+                <div class="criteria-description">
+                    <input type="text" class="criteria-desc" value="Выполнено 60-74% работы">
+                </div>
+            </div>
+            <div class="criteria-row">
+                <div class="criteria-grade"><span class="grade-badge grade-2">2</span> Неудовлетворительно</div>
+                <div class="criteria-range">
+                    <input type="number" class="criteria-min" value="0" min="0" max="100">
+                    -
+                    <input type="number" class="criteria-max" value="59" min="0" max="100">
+                </div>
+                <div class="criteria-description">
+                    <input type="text" class="criteria-desc" value="Выполнено менее 60% работы">
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function generateCustomCriteria() {
+    return `
+        <div class="criteria-grid">
+            <div class="criteria-row header">
+                <div class="criteria-grade">Уровень</div>
+                <div class="criteria-range">Диапазон</div>
+                <div class="criteria-description">Описание</div>
+                <div class="criteria-action">
+                    <button class="btn-icon small" onclick="addCustomLevel()">+</button>
+                </div>
+            </div>
+            <div id="customLevelsContainer">
+                <div class="criteria-row">
+                    <div class="criteria-grade">
+                        <input type="text" class="level-name" value="Уровень 1" placeholder="Название уровня">
+                    </div>
+                    <div class="criteria-range">
+                        <input type="number" class="criteria-min" value="0" min="0">
+                        -
+                        <input type="number" class="criteria-max" value="10" min="0">
+                    </div>
+                    <div class="criteria-description">
+                        <input type="text" class="criteria-desc" value="Начальный уровень">
+                    </div>
+                    <div class="criteria-action">
+                        <button class="btn-icon small danger" onclick="removeLevel(this)">×</button>
+                    </div>
+                </div>
+                <div class="criteria-row">
+                    <div class="criteria-grade">
+                        <input type="text" class="level-name" value="Уровень 2" placeholder="Название уровня">
+                    </div>
+                    <div class="criteria-range">
+                        <input type="number" class="criteria-min" value="11" min="0">
+                        -
+                        <input type="number" class="criteria-max" value="20" min="0">
+                    </div>
+                    <div class="criteria-description">
+                        <input type="text" class="criteria-desc" value="Средний уровень">
+                    </div>
+                    <div class="criteria-action">
+                        <button class="btn-icon small danger" onclick="removeLevel(this)">×</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function addCustomLevel() {
+    const container = document.getElementById('customLevelsContainer');
+    const levelCount = container.children.length + 1;
+    
+    const newLevel = document.createElement('div');
+    newLevel.className = 'criteria-row';
+    newLevel.innerHTML = `
+        <div class="criteria-grade">
+            <input type="text" class="level-name" value="Уровень ${levelCount}" placeholder="Название уровня">
+        </div>
+        <div class="criteria-range">
+            <input type="number" class="criteria-min" value="${levelCount * 10}" min="0">
+            -
+            <input type="number" class="criteria-max" value="${levelCount * 10 + 10}" min="0">
+        </div>
+        <div class="criteria-description">
+            <input type="text" class="criteria-desc" value="Новый уровень" placeholder="Описание уровня">
+        </div>
+        <div class="criteria-action">
+            <button class="btn-icon small danger" onclick="removeLevel(this)">×</button>
+        </div>
+    `;
+    
+    container.appendChild(newLevel);
+    updateCriteriaPreview();
+}
+
+function removeLevel(button) {
+    const row = button.closest('.criteria-row');
+    if (row && document.querySelectorAll('.criteria-row').length > 1) {
+        row.remove();
+        updateCriteriaPreview();
+    }
+}
+
+function saveCriteriaSettings() {
+    const type = document.getElementById('criteriaType').value;
+    const criteria = [];
+    
+    if (type === 'custom') {
+        document.querySelectorAll('#customLevelsContainer .criteria-row').forEach(row => {
+            const name = row.querySelector('.level-name').value;
+            const min = parseInt(row.querySelector('.criteria-min').value) || 0;
+            const max = parseInt(row.querySelector('.criteria-max').value) || 0;
+            const desc = row.querySelector('.criteria-desc').value;
+            
+            criteria.push({
+                name: name,
+                min: min,
+                max: max,
+                description: desc
+            });
+        });
+    } else {
+        document.querySelectorAll('.criteria-grid .criteria-row:not(.header)').forEach(row => {
+            const grade = row.querySelector('.grade-badge').textContent;
+            const min = parseInt(row.querySelector('.criteria-min').value) || 0;
+            const max = parseInt(row.querySelector('.criteria-max').value) || 0;
+            const desc = row.querySelector('.criteria-desc').value;
+            
+            criteria.push({
+                grade: grade,
+                min: min,
+                max: max,
+                description: desc
+            });
+        });
+    }
+    
+    // Сохраняем в localStorage
+    localStorage.setItem('criteriaSettings', JSON.stringify({
+        type: type,
+        criteria: criteria
+    }));
+    
+    showNotification('Критерии сохранены', 'success');
+}
+
+function loadDefaultCriteria() {
+    const type = document.getElementById('criteriaType').value;
+    
+    switch(type) {
+        case 'points':
+            document.getElementById('criteriaSettingsContainer').innerHTML = generateFivePointCriteria();
+            break;
+        case 'percent':
+            document.getElementById('criteriaSettingsContainer').innerHTML = generatePercentCriteria();
+            break;
+        case 'custom':
+            document.getElementById('criteriaSettingsContainer').innerHTML = generateCustomCriteria();
+            break;
+    }
+    
+    updateCriteriaPreview();
+    showNotification('Стандартные критерии загружены', 'info');
+}
+
+function generateAutoCriteria() {
+    const maxScore = parseInt(prompt('Введите максимальный балл работы:', '100')) || 100;
+    const levels = parseInt(prompt('Сколько уровней оценивания? (2-5):', '4')) || 4;
+    
+    let criteriaHTML = '<div class="criteria-grid"><div class="criteria-row header">';
+    criteriaHTML += '<div class="criteria-grade">Оценка</div>';
+    criteriaHTML += '<div class="criteria-range">Диапазон</div>';
+    criteriaHTML += '<div class="criteria-description">Критерии</div></div>';
+    
+    const levelNames = ['2', '3', '4', '5'];
+    const levelDescriptions = [
+        'Неудовлетворительно',
+        'Удовлетворительно',
+        'Хорошо',
+        'Отлично'
+    ];
+    
+    const step = Math.floor(maxScore / levels);
+    
+    for (let i = 0; i < levels; i++) {
+        const minScore = i * step;
+        const maxScoreLevel = (i === levels - 1) ? maxScore : (i + 1) * step - 1;
+        
+        criteriaHTML += `
+            <div class="criteria-row">
+                <div class="criteria-grade">
+                    <span class="grade-badge grade-${levelNames[i]}">${levelNames[i]}</span>
+                    ${levelDescriptions[i]}
+                </div>
+                <div class="criteria-range">
+                    <input type="number" class="criteria-min" value="${minScore}" min="0" max="${maxScore}">
+                    -
+                    <input type="number" class="criteria-max" value="${maxScoreLevel}" min="0" max="${maxScore}">
+                </div>
+                <div class="criteria-description">
+                    <input type="text" class="criteria-desc" 
+                           value="${levelDescriptions[i]}: ${minScore}-${maxScoreLevel} баллов">
+                </div>
+            </div>
+        `;
+    }
+    
+    criteriaHTML += '</div>';
+    
+    document.getElementById('criteriaSettingsContainer').innerHTML = criteriaHTML;
+    updateCriteriaPreview();
+    showNotification('Критерии сгенерированы автоматически', 'success');
+}
+
+function restoreBackupDialog() {
+    const backupData = prompt('Введите данные резервной копии (JSON):');
+    
+    if (backupData) {
+        try {
+            const data = JSON.parse(backupData);
+            
+            // Восстанавливаем настройки
+            Object.keys(data.settings || {}).forEach(key => {
+                const element = document.getElementById(key);
+                if (element) element.value = data.settings[key];
+            });
+            
+            // Восстанавливаем критерии
+            if (data.criteria) {
+                localStorage.setItem('criteriaSettings', JSON.stringify(data.criteria));
+                loadCriteriaForWorkType(data.settings?.workType || 'current');
+            }
+            
+            showNotification('Резервная копия восстановлена', 'success');
+        } catch (e) {
+            showNotification('Ошибка при восстановлении данных', 'error');
+        }
+    }
+}
+
+// CSS для критериев (добавьте в файл CSS)
+const criteriaCSS = `
+.criteria-grid {
+    background: white;
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid #e9ecef;
+    margin-bottom: 20px;
+}
+
+.criteria-row {
+    display: grid;
+    grid-template-columns: 150px 150px 1fr;
+    gap: 15px;
+    padding: 12px 15px;
+    border-bottom: 1px solid #f1f1f1;
+    align-items: center;
+}
+
+.criteria-row.header {
+    background: #f8f9fa;
+    font-weight: bold;
+    color: #333;
+}
+
+.criteria-grade {
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.criteria-range {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.criteria-range input {
+    width: 70px;
+    padding: 6px 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+.criteria-range input:disabled {
+    background: #f5f5f5;
+    cursor: not-allowed;
+}
+
+.criteria-description input {
+    width: 100%;
+    padding: 6px 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+.grade-badge {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: bold;
+}
+
+.grade-5 { background: #4CAF50; }
+.grade-4 { background: #8BC34A; }
+.grade-3 { background: #FFC107; }
+.grade-2 { background: #F44336; }
+.level-high { background: #4CAF50; }
+.level-medium { background: #FFC107; }
+.level-low { background: #F44336; }
+
+.criteria-action {
+    display: flex;
+    gap: 5px;
+}
+
+.btn-icon.small {
+    padding: 4px 8px;
+    font-size: 12px;
+}
+
+.btn-icon.small.danger {
+    background: #F44336;
+}
+
+.preview-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+    margin-top: 15px;
+}
+
+.preview-item {
+    background: white;
+    border-radius: 8px;
+    padding: 15px;
+    border: 2px solid #e9ecef;
+    text-align: center;
+    transition: all 0.3s ease;
+}
+
+.preview-item:hover {
+    border-color: #667eea;
+    transform: translateY(-2px);
+}
+
+.preview-grade {
+    font-size: 1.8em;
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.preview-range {
+    color: #666;
+    font-size: 0.9em;
+    margin-bottom: 10px;
+}
+
+.preview-desc {
+    font-size: 0.85em;
+    color: #333;
+    line-height: 1.4;
+}
+
+.input-with-button {
+    display: flex;
+    gap: 10px;
+}
+
+.input-with-button input {
+    flex: 1;
+}
+
+.form-control-large {
+    padding: 12px;
+    font-size: 16px;
+    width: 100%;
+}
+
+@media (max-width: 768px) {
+    .criteria-row {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+    
+    .preview-grid {
+        grid-template-columns: 1fr;
+    }
+}
+`;
+
+// Добавляем CSS в документ
+document.addEventListener('DOMContentLoaded', function() {
+    const style = document.createElement('style');
+    style.textContent = criteriaCSS;
+    document.head.appendChild(style);
+});
+
+// Инициализация при загрузке
+window.addEventListener('load', function() {
+    // Загружаем сохраненные критерии
+    const savedCriteria = localStorage.getItem('criteriaSettings');
+    if (savedCriteria) {
+        try {
+            const criteria = JSON.parse(savedCriteria);
+            document.getElementById('criteriaType').value = criteria.type;
+            changeCriteriaType();
+        } catch (e) {
+            console.error('Error loading criteria:', e);
+        }
+    }
+    
+    // Инициализируем предпросмотр
+    updateCriteriaPreview();
+});
