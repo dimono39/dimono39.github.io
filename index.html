@@ -2553,6 +2553,64 @@
 				showTemplateSelectionEmpty();
 			}
 		}
+		
+		// Выносим логику модального окна в отдельную функцию
+		function showTemplateSelectionModal(files) {
+			let html = `
+				<div style="max-width: 800px;">
+					<h3>📁 Выбор шаблона работы</h3>
+					<p>Выбрано файлов: ${files.length}</p>
+					
+					<div style="margin: 20px 0;">
+						<label><strong>Тип работы:</strong></label>
+						<select id="templateWorkType" class="form-control" onchange="filterTemplatesByType()">
+							<option value="all">Все типы</option>
+			`;
+			
+			// Добавляем типы работ
+			Object.keys(workTypes).forEach(type => {
+				html += `<option value="${type}">${workTypes[type].name}</option>`;
+			});
+			
+			html += `
+						</select>
+					</div>
+					
+					<div id="templatesContainer" style="max-height: 400px; overflow-y: auto; margin: 20px 0;">
+						<div style="text-align: center; padding: 40px; color: #666;">
+							Загрузка шаблонов...
+						</div>
+					</div>
+					
+					<!-- Добавляем информацию о кэше -->
+					${templateScanner ? `
+						<div style="margin-top: 20px; padding: 10px; background: #f8f9fa; border-radius: 5px; font-size: 0.9em;">
+							<small>
+								🔄 Шаблоны загружены из кэша. 
+								Последнее сканирование: 
+								${templateScanner.state.lastScanTime ? 
+									new Date(templateScanner.state.lastScanTime).toLocaleString() : 
+									'еще не было'}
+								<br>
+								<button onclick="templateScanner.scanNow()" class="btn btn-sm btn-outline-info" style="margin-top: 5px;">
+									Обновить кэш
+								</button>
+							</small>
+						</div>
+					` : ''}
+				</div>
+			`;
+			
+			showModal('Импорт из шаблонов', html);
+			
+			// Устанавливаем глобальную переменную
+			window.templateFilesData = templates;
+			
+			// Показываем шаблоны через 100мс (чтобы DOM успел обновиться)
+			setTimeout(() => {
+				renderTemplatesList(templates);
+			}, 100);
+		}
 
 		// 7. Новая функция для показа шаблонов из кэша
 		function showTemplateSelectionWithCache() {
