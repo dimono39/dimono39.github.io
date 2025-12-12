@@ -2539,27 +2539,41 @@
 
 		// 6. Модифицируем showTemplateSelection для работы с кэшем
 		function showTemplateSelection(files = null) {
-			// Если файлы не переданы и есть кэшированные шаблоны
-			if (!files && templateScanner && templateScanner.cachedTemplates.size > 0) {
-				showTemplateSelectionWithCache();
-				return;
+			console.log('📄 showTemplateSelection вызвана с files:', files);
+			
+			// Если файлы не переданы и есть глобальная переменная
+			if (!files && window.templateFilesData && window.templateFilesData.length > 0) {
+				files = window.templateFilesData;
+				console.log('📂 Использую window.templateFilesData:', files.length, 'файлов');
 			}
 			
-			// Если переданы файлы, используем оригинальную логику
-			if (files) {
+			// Если файлы переданы
+			if (files && Array.isArray(files)) {
+				// Сохраняем в глобальную переменную для фильтрации
+				window.templateFilesData = files;
+				
+				// Показываем модальное окно
 				showTemplateSelectionModal(files);
 			} else {
-				// Если нет ни файлов, ни кэша, показываем выбор
+				// Если нет файлов, показываем выбор
 				showTemplateSelectionEmpty();
 			}
 		}
 		
 		// Выносим логику модального окна в отдельную функцию
 		function showTemplateSelectionModal(files) {
+			console.log('🖼️ showTemplateSelectionModal вызвана с', files.length, 'файлами');
+			
+			if (!files || !Array.isArray(files)) {
+				console.error('❌ Ошибка: files не массив или undefined');
+				showNotification('Ошибка: нет данных для отображения', 'error');
+				return;
+			}
+			
 			let html = `
 				<div style="max-width: 800px;">
 					<h3>📁 Выбор шаблона работы</h3>
-					<p>Выбрано файлов: ${files.length}</p>
+					<p>Доступно шаблонов: <strong>${files.length}</strong></p>
 					
 					<div style="margin: 20px 0;">
 						<label><strong>Тип работы:</strong></label>
@@ -2567,10 +2581,14 @@
 							<option value="all">Все типы</option>
 			`;
 			
-			// Добавляем типы работ
-			Object.keys(workTypes).forEach(type => {
-				html += `<option value="${type}">${workTypes[type].name}</option>`;
-			});
+			// Проверяем, существует ли workTypes
+			if (typeof workTypes !== 'undefined' && workTypes) {
+				Object.keys(workTypes).forEach(type => {
+					html += `<option value="${type}">${workTypes[type].name}</option>`;
+				});
+			} else {
+				console.warn('⚠️ workTypes не определен, показываю пустой список');
+			}
 			
 			html += `
 						</select>
@@ -2582,35 +2600,120 @@
 						</div>
 					</div>
 					
-					<!-- Добавляем информацию о кэше -->
-					${templateScanner ? `
-						<div style="margin-top: 20px; padding: 10px; background: #f8f9fa; border-radius: 5px; font-size: 0.9em;">
-							<small>
-								🔄 Шаблоны загружены из кэша. 
-								Последнее сканирование: 
-								${templateScanner.state.lastScanTime ? 
-									new Date(templateScanner.state.lastScanTime).toLocaleString() : 
-									'еще не было'}
-								<br>
-								<button onclick="templateScanner.scanNow()" class="btn btn-sm btn-outline-info" style="margin-top: 5px;">
-									Обновить кэш
-								</button>
-							</small>
-						</div>
-					` : ''}
+					<div style="margin-top: 20px; padding: 10px; background: #f8f9fa; border-radius: 5px;">
+						<small>
+							📍 Источник: Сервер сайта
+							${serverTemplateScanner && serverTemplateScanner.templateFolder ? 
+								`(папка: ${serverTemplateScanner.templateFolder})` : ''}
+						</small>
+					</div>
 				</div>
 			`;
 			
 			showModal('Импорт из шаблонов', html);
 			
-			// Устанавливаем глобальную переменную
-			window.templateFilesData = templates;
+			// Читаем файлы с обработкой ошибок
+			let filesData = [];
+			let filesProcessed = 0;
 			
-			// Показываем шаблоны через 100мс (чтобы DOM успел обновиться)
-			setTimeout(() => {
-				renderTemplatesList(templates);
-			}, 100);
+			// Если файлы уже обработаны (как в случае серверных шаблонов)
+			if (files[0] && files[0].data) {
+				console.log('📁 Файлы уже обработаны, преобразую формат...');
+				
+				files.forEach(file => {
+					try {
+						if (file.data && file.data.test && file.data.tasks) {
+							filesData.push({
+								file: file.file || { name: 'unknown.json' },
+								data: file.data,
+								workType: file.data.test.workType || file.workType || 'current',
+								subject: file.data.test.subject || file.subject || 'Не указан',
+								class: file.data.test.class || file.class || 'Не указан',
+								taskCount: file.data.tasks.length || file.taskCount || 0,
+								date: file.data.test.testDate || file.date || 'Не указано'
+							});
+						}
+					} catch (error) {
+						console.error('Ошибка обработки файла:', error);
+					}
+				});
+				
+				// Сохраняем в глобальной переменной для фильтрации
+				window.templateFilesData = filesData;
+				
+				// Показываем все шаблоны
+				if (typeof renderTemplatesList === 'function') {
+					renderTemplatesList(filesData);
+				} else {
+					console.error('❌ Функция renderTemplatesList не найдена!');
+					document.getElementById('templatesContainer').innerHTML = 
+						'<p style="color: #dc3545; text-align: center;">Ошибка: функция отображения не найдена</p>';
+				}
+				
+				return;
+			}
+			
+			// Оригинальная логика для File объектов (локальные файлы)
+			files.forEach(file => {
+				const reader = new FileReader();
+				reader.onload = function(e) {
+					try {
+						// Используем вашу функцию cleanJSON если она существует
+						const cleanedContent = window.cleanJSON ? 
+							window.cleanJSON(e.target.result) : e.target.result;
+						const data = JSON.parse(cleanedContent);
+						
+						if (data.test && data.tasks) {
+							filesData.push({
+								file: file,
+								data: data,
+								workType: data.test.workType || 'current',
+								subject: data.test.subject || 'Не указан',
+								class: data.test.class || 'Не указан',
+								taskCount: data.tasks.length,
+								date: data.test.testDate || 'Не указано'
+							});
+						}
+					} catch (error) {
+						console.error('Ошибка чтения файла', file.name, error);
+						
+						if (files.length === 1) {
+							showNotification(`Ошибка в файле ${file.name}: ${error.message}`, 'error');
+						}
+					}
+					
+					filesProcessed++;
+					
+					// Когда все файлы обработаны
+					if (filesProcessed === files.length) {
+						if (filesData.length === 0) {
+							document.getElementById('templatesContainer').innerHTML = 
+								'<p style="color: #dc3545; text-align: center; padding: 20px;">Не удалось загрузить ни одного шаблона. Проверьте формат файлов.</p>';
+							return;
+						}
+						
+						// Сохраняем в глобальной переменной для фильтрации
+						window.templateFilesData = filesData;
+						
+						// Показываем все шаблоны
+						if (typeof renderTemplatesList === 'function') {
+							renderTemplatesList(filesData);
+						} else {
+							document.getElementById('templatesContainer').innerHTML = 
+								'<p style="color: #dc3545; text-align: center;">Ошибка: функция отображения не найдена</p>';
+						}
+					}
+				};
+				
+				reader.onerror = function() {
+					console.error('Ошибка чтения файла:', file.name);
+					filesProcessed++;
+				};
+				
+				reader.readAsText(file);
+			});
 		}
+
 
 		// 7. Новая функция для показа шаблонов из кэша
 		function showTemplateSelectionWithCache() {
@@ -2684,40 +2787,30 @@
 
 		// 8. Функция для пустого состояния
 		function showTemplateSelectionEmpty() {
-			const hasFolder = localStorage.getItem('templateFolderName');
-			
-			let html = `
+			const html = `
 				<div style="max-width: 600px; text-align: center; padding: 40px 20px;">
 					<div style="font-size: 4em; margin-bottom: 20px;">📁</div>
 					<h3>Шаблоны не загружены</h3>
 					<p style="color: #666; margin-bottom: 30px;">
-						Выберите папку с JSON шаблонами для автоматического сканирования и кэширования
+						Выберите источник для загрузки шаблонов
 					</p>
 					
-					<button class="btn btn-primary" onclick="scanTemplateFolder()" 
-							style="padding: 12px 24px; font-size: 1.1em; margin-bottom: 15px;">
-						📁 Выбрать папку с шаблонами
-					</button>
+					<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 30px;">
+						<button class="btn btn-primary" onclick="scanLocalFolder()" 
+								style="padding: 15px; font-size: 1.1em;">
+							💻 Локальная папка
+						</button>
+						<button class="btn btn-success" onclick="scanServerFolder()" 
+								style="padding: 15px; font-size: 1.1em;">
+							🌐 Сервер сайта
+						</button>
+					</div>
 					
-					${hasFolder ? `
-						<div style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px;">
-							<p style="margin: 0 0 10px 0;">
-								<small>Ранее использовалась папка:</small><br>
-								<strong>${hasFolder}</strong>
-							</p>
-							<button class="btn btn-sm btn-outline-primary" onclick="templateScanner.selectFolder()">
-								Использовать снова
-							</button>
-						</div>
-					` : ''}
-					
-					<div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee;">
-						<p style="color: #666; font-size: 0.9em;">
-							<small>
-								💡 После выбора папки шаблоны будут автоматически сканироваться<br>
-								и сохраняться в кэше для быстрого доступа
-							</small>
-						</p>
+					<div style="color: #666; font-size: 0.9em;">
+						<small>
+							💡 Для серверных шаблонов создайте папку "templates" 
+							в корне сайта и добавьте JSON файлы
+						</small>
 					</div>
 				</div>
 			`;
@@ -3078,34 +3171,40 @@
 			}
 
 			async loadTemplateFile(fileName) {
-				const response = await fetch(`/${this.templateFolder}/${fileName}`);
-				
-				if (!response.ok) {
-					throw new Error(`Файл ${fileName} не найден (${response.status})`);
-				}
-				
-				const text = await response.text();
-				
-				// Используем вашу существующую функцию cleanJSON
-				const cleaned = window.cleanJSON ? window.cleanJSON(text) : text;
-				
-				let data;
 				try {
-					data = JSON.parse(cleaned);
+					const response = await fetch(`/${this.templateFolder}/${fileName}`);
+					
+					if (!response.ok) {
+						throw new Error(`Файл ${fileName} не найден (${response.status})`);
+					}
+					
+					const text = await response.text();
+					
+					// Используем вашу существующую функцию cleanJSON
+					const cleaned = window.cleanJSON ? window.cleanJSON(text) : text;
+					
+					let data;
+					try {
+						data = JSON.parse(cleaned);
+					} catch (error) {
+						throw new Error(`Ошибка парсинга JSON: ${error.message}`);
+					}
+					
+					// Возвращаем объект в правильном формате
+					return {
+						name: fileName,
+						data: data,
+						subject: data.test?.subject || 'Не указан',
+						class: data.test?.class || 'Не указан',
+						workType: data.test?.workType || 'current',
+						theme: data.test?.theme || fileName.replace('.json', ''),
+						taskCount: data.tasks?.length || 0,
+						lastModified: Date.now()
+					};
 				} catch (error) {
-					throw new Error(`Ошибка парсинга JSON: ${error.message}`);
+					console.error(`❌ Ошибка загрузки ${fileName}:`, error);
+					throw error; // Пробрасываем ошибку дальше
 				}
-				
-				return {
-					name: fileName,
-					data: data,
-					subject: data.test?.subject || 'Не указан',
-					class: data.test?.class || 'Не указан',
-					workType: data.test?.workType || 'current',
-					theme: data.test?.theme || 'Без названия',
-					taskCount: data.tasks?.length || 0,
-					lastModified: Date.now()
-				};
 			}
 
 			parseDirectoryListing(html) {
@@ -3244,55 +3343,69 @@
 
 		// Сканирование серверной папки
 		async function scanServerFolder() {
-			hideModal();
+			console.log('📂 Вызвана функция scanServerFolder');
 			
-			showNotification('⏳ Сканирую папку на сервере...', 'info');
+			showNotification('⏳ Сканирую папку templates на сервере...', 'info');
 			
 			try {
+				// Инициализируем сканер если нужно
 				if (!serverTemplateScanner) {
-					initServerTemplateScanner();
+					const initialized = initServerTemplateScanner();
+					if (!initialized) {
+						throw new Error('Не удалось инициализировать сканер');
+					}
 				}
 				
+				// Проверяем, что сканер существует
+				if (!serverTemplateScanner || typeof serverTemplateScanner.scanServerFolder !== 'function') {
+					throw new Error('Сканер не инициализирован');
+				}
+				
+				console.log('🔍 Начинаю сканирование...');
+				
+				// Сканируем
 				const templates = await serverTemplateScanner.scanServerFolder();
 				
+				console.log(`📊 Найдено шаблонов: ${templates.length}`);
+				
 				if (templates.length === 0) {
-					// Пробуем известные файлы
-					showNotification('Пробую загрузить стандартные шаблоны...', 'info');
-					const knownTemplates = await serverTemplateScanner.scanKnownFiles();
-					
-					if (knownTemplates.length === 0) {
-						showNotification('❌ На сервере не найдены шаблоны', 'error');
-						showServerFolderSetupGuide();
-						return;
-					}
-					
-					await showTemplateSelection(knownTemplates.map(t => ({
-						file: { name: t.name },
-						data: t.data,
-						workType: t.workType,
-						subject: t.subject,
-						class: t.class,
-						taskCount: t.taskCount,
-						date: 'С сервера'
-					})));
-				} else {
-					await showTemplateSelection(templates.map(t => ({
-						file: { name: t.name },
-						data: t.data,
-						workType: t.workType,
-						subject: t.subject,
-						class: t.class,
-						taskCount: t.taskCount,
-						date: 'С сервера'
-					})));
+					showNotification('❌ На сервере не найдены JSON шаблоны', 'error');
+					showServerFolderSetupGuide();
+					return;
 				}
 				
+				// Преобразуем в формат для showTemplateSelection
+				const templateFiles = templates.map(t => ({
+					file: { 
+						name: t.name,
+						// Добавляем другие необходимые свойства
+						lastModified: t.lastModified || Date.now(),
+						size: JSON.stringify(t.data).length
+					},
+					data: t.data,
+					workType: t.workType,
+					subject: t.subject,
+					class: t.class,
+					taskCount: t.taskCount,
+					date: 'С сервера'
+				}));
+				
+				console.log('📁 Подготовленные файлы:', templateFiles);
+				
+				// Показываем шаблоны используя существующую функцию
+				showTemplateSelection(templateFiles);
+				
+				showNotification(`✅ Загружено ${templates.length} шаблонов`, 'success');
+				
 			} catch (error) {
-				console.error('Ошибка сканирования сервера:', error);
+				console.error('❌ Ошибка сканирования сервера:', error);
 				showNotification(`❌ Ошибка: ${error.message}`, 'error');
+				
+				// Показываем инструкцию
 				showServerFolderSetupGuide();
 			}
 		}
+
 
 		// Руководство по настройке папки на сервере
 		function showServerFolderSetupGuide() {
