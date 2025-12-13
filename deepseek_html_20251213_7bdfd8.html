@@ -1,0 +1,900 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Диагностическая работа - Настройки и анализ</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>📊 Конструктор диагностических работ</h1>
+            <p class="subtitle">Настройте параметры работы для быстрого анализа результатов</p>
+        </header>
+
+        <!-- Индикатор прогресса -->
+        <div class="progress-container">
+            <div class="progress-bar">
+                <div class="progress-fill" id="setupProgress" style="width: 10%;"></div>
+            </div>
+            <div class="progress-text" id="progressText">Начните с выбора типа работы</div>
+        </div>
+
+        <!-- Навигация по вкладкам -->
+        <div class="tabs-container">
+            <div class="tabs-header">
+                <button class="tab-button active" data-tab="setup">
+                    <span class="tab-icon">⚙️</span>
+                    <span class="tab-text">Настройки</span>
+                    <span class="tab-indicator" id="setupIndicator" style="display: none;">●</span>
+                </button>
+                <button class="tab-button" data-tab="students">
+                    <span class="tab-icon">👥</span>
+                    <span class="tab-text">Учащиеся</span>
+                    <span class="tab-indicator" id="studentsIndicator" style="display: none;">●</span>
+                </button>
+                <button class="tab-button" data-tab="criteria">
+                    <span class="tab-icon">📊</span>
+                    <span class="tab-text">Критерии</span>
+                    <span class="tab-indicator" id="criteriaIndicator" style="display: none;">●</span>
+                </button>
+                <button class="tab-button" data-tab="tasks">
+                    <span class="tab-icon">📝</span>
+                    <span class="tab-text">Задания</span>
+                    <span class="tab-indicator" id="tasksIndicator" style="display: none;">●</span>
+                </button>
+                <button class="tab-button" data-tab="analytics">
+                    <span class="tab-icon">📈</span>
+                    <span class="tab-text">Аналитика</span>
+                    <span class="tab-indicator" id="analyticsIndicator" style="display: none;">●</span>
+                </button>
+                <button class="tab-button" data-tab="export">
+                    <span class="tab-icon">💾</span>
+                    <span class="tab-text">Экспорт</span>
+                    <span class="tab-indicator" id="exportIndicator" style="display: none;">●</span>
+                </button>
+            </div>
+            
+            <div class="tabs-content">
+                <!-- ВКЛАДКА 1: НАСТРОЙКИ -->
+                <div id="setup" class="tab-content active">
+                    <div class="tab-header">
+                        <h2>⚙️ Настройки работы</h2>
+                        <p class="tab-description">Настройте основные параметры диагностической работы</p>
+                    </div>
+                    
+                    <div class="setup-wizard">
+                        <!-- Шаг 1: Тип работы -->
+                        <div class="wizard-step active" id="step1">
+                            <div class="step-header">
+                                <span class="step-number">1</span>
+                                <h3>📊 Выберите тип работы</h3>
+                            </div>
+                            <p class="step-description">Это определит остальные настройки и критерии оценивания</p>
+                            
+                            <div class="worktype-grid" id="worktypeGrid">
+                                <!-- Работает через JavaScript -->
+                            </div>
+                            
+                            <div class="worktype-info" id="worktypeInfo" style="display: none;">
+                                <div class="info-card">
+                                    <h4 id="selectedWorktypeTitle">Название типа</h4>
+                                    <p id="selectedWorktypeDesc">Описание типа работы</p>
+                                    <div class="info-grid">
+                                        <div class="info-item">
+                                            <span class="info-label">Рекомендуемое время:</span>
+                                            <span class="info-value" id="infoTime">45 минут</span>
+                                        </div>
+                                        <div class="info-item">
+                                            <span class="info-label">Формат:</span>
+                                            <span class="info-value" id="infoFormat">Тест</span>
+                                        </div>
+                                        <div class="info-item">
+                                            <span class="info-label">Система оценивания:</span>
+                                            <span class="info-value" id="infoGrading">5-балльная</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="step-actions">
+                                <button class="btn btn-primary btn-next" onclick="nextStep()" disabled id="nextStep1">
+                                    Далее → Основная информация
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Шаг 2: Основная информация -->
+                        <div class="wizard-step" id="step2">
+                            <div class="step-header">
+                                <span class="step-number">2</span>
+                                <h3>📋 Основная информация</h3>
+                            </div>
+                            
+                            <div class="settings-card">
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="subject" class="required">📚 Предмет</label>
+                                        <input type="text" id="subject" placeholder="Например: Математика" 
+                                               class="form-input">
+                                        <small class="form-hint">Укажите учебный предмет</small>
+                                    </div>
+                                    
+                                    <div class="form-group">
+                                        <label for="class" class="required">👥 Класс</label>
+                                        <input type="text" id="class" placeholder="Например: 5А" 
+                                               class="form-input">
+                                        <small class="form-hint">Укажите класс и параллель</small>
+                                    </div>
+                                </div>
+                                
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="testDate" class="required">📅 Дата проведения</label>
+                                        <input type="date" id="testDate" class="form-input">
+                                        <small class="form-hint">Дата проведения работы</small>
+                                    </div>
+                                    
+                                    <div class="form-group">
+                                        <label for="timeLimit" class="required">⏱ Время выполнения (минут)</label>
+                                        <input type="number" id="timeLimit" min="1" value="45" 
+                                               class="form-input">
+                                        <small class="form-hint">Продолжительность работы в минутах</small>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="settings-card">
+                                <h4 class="card-title">🎯 Содержание работы</h4>
+                                
+                                <div class="form-group">
+                                    <label for="testTheme" class="required">📖 Тема работы</label>
+                                    <input type="text" id="testTheme" placeholder="Например: Дроби и проценты" 
+                                           class="form-input">
+                                    <small class="form-hint">Основная тема контрольной работы</small>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="testGoals" class="required">🎯 Проверяемые цели и элементы содержания</label>
+                                    <textarea id="testGoals" rows="4" 
+                                              placeholder="Перечислите проверяемые знания, умения, навыки..." 
+                                              class="form-textarea"></textarea>
+                                    <small class="form-hint">Какие именно умения и знания проверяет эта работа?</small>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="workFormat" class="required">📄 Формат работы</label>
+                                    <select id="workFormat" class="form-select">
+                                        <option value="traditional">Традиционная (с решениями)</option>
+                                        <option value="test">Тест (выбор ответа)</option>
+                                        <option value="mixed">Смешанная</option>
+                                        <option value="extended">С развернутым ответом</option>
+                                    </select>
+                                    <small class="form-hint">Определяет способ проверки и анализа</small>
+                                </div>
+                            </div>
+                            
+                            <div class="step-actions">
+                                <button class="btn" onclick="prevStep()">
+                                    ← Назад к типу работы
+                                </button>
+                                <button class="btn btn-primary" onclick="nextStep()" id="nextStep2">
+                                    Далее → Учащиеся
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Шаг 3: Учащиеся -->
+                        <div class="wizard-step" id="step3">
+                            <div class="step-header">
+                                <span class="step-number">3</span>
+                                <h3>👥 Учащиеся</h3>
+                            </div>
+                            
+                            <div class="settings-card">
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="totalStudents" class="required">📋 Количество учащихся по списку</label>
+                                        <input type="number" id="totalStudents" min="1" max="100" value="25" 
+                                               class="form-input">
+                                        <small class="form-hint">Общее количество учеников в классе</small>
+                                    </div>
+                                    
+                                    <div class="form-group">
+                                        <label for="presentStudents" class="required">✏️ Количество писавших работу</label>
+                                        <div class="input-with-button">
+                                            <input type="number" id="presentStudents" min="1" max="100" value="23" 
+                                                   class="form-input">
+                                            <button type="button" class="btn-icon" onclick="syncStudentsCount()" 
+                                                    title="Синхронизировать с текущим списком">
+                                                🔄
+                                            </button>
+                                        </div>
+                                        <small class="form-hint">Сколько учеников присутствовало на работе</small>
+                                    </div>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="absentReason">📝 Причины отсутствия</label>
+                                    <textarea id="absentReason" rows="3" 
+                                              placeholder="Указать причины отсутствия учащихся..." 
+                                              class="form-textarea"></textarea>
+                                    <small class="form-hint">Болезнь, соревнования, семейные обстоятельства и т.д.</small>
+                                </div>
+                                
+                                <div class="attendance-stats">
+                                    <div class="stat-card">
+                                        <div class="stat-value" id="attendancePercent">92%</div>
+                                        <div class="stat-label">Посещаемость</div>
+                                    </div>
+                                    <div class="stat-card">
+                                        <div class="stat-value" id="absentCount">2</div>
+                                        <div class="stat-label">Отсутствуют</div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="step-actions">
+                                <button class="btn" onclick="prevStep()">
+                                    ← Назад к информации
+                                </button>
+                                <button class="btn btn-primary" onclick="nextStep()" id="nextStep3">
+                                    Далее → Критерии
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Шаг 4: Критерии оценивания -->
+                        <div class="wizard-step" id="step4">
+                            <div class="step-header">
+                                <span class="step-number">4</span>
+                                <h3>📊 Критерии оценивания</h3>
+                            </div>
+                            
+                            <div class="settings-card">
+                                <div class="criteria-header">
+                                    <h4>Система оценивания</h4>
+                                    <div class="criteria-type-selector">
+                                        <label>Тип шкалы:</label>
+                                        <select id="criteriaType" onchange="changeCriteriaType()">
+                                            <option value="points">Баллы (0-100)</option>
+                                            <option value="percent">Проценты (0-100%)</option>
+                                            <option value="custom">Своя шкала</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                
+                                <div id="criteriaSettingsContainer">
+                                    <!-- Динамически загружаемые критерии -->
+                                </div>
+                                
+                                <div class="criteria-presets">
+                                    <h5>🚀 Быстрые пресеты:</h5>
+                                    <div class="preset-grid">
+                                        <button class="preset-btn" onclick="applyPreset('standard_5')">
+                                            📊 Стандартная (2-5)
+                                        </button>
+                                        <button class="preset-btn" onclick="applyPreset('five_point')">
+                                            1️⃣ Пятибалльная (1-5)
+                                        </button>
+                                        <button class="preset-btn" onclick="applyPreset('vpr_percent')">
+                                            📝 ВПР (проценты)
+                                        </button>
+                                        <button class="preset-btn" onclick="applyPreset('psychology_levels')">
+                                            🧠 Психология (уровни)
+                                        </button>
+                                        <button class="preset-btn" onclick="applyPreset('ege_scaled')">
+                                            📘 ЕГЭ (шкалированные)
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <div class="criteria-controls">
+                                    <button class="btn btn-success" onclick="saveCriteriaSettings()">
+                                        💾 Сохранить критерии
+                                    </button>
+                                    <button class="btn" onclick="loadDefaultCriteria()">
+                                        🔄 Стандартные настройки
+                                    </button>
+                                    <button class="btn" onclick="generateAutoCriteria()">
+                                        🎯 Автогенерация
+                                    </button>
+                                </div>
+                                
+                                <div class="recommendation-card">
+                                    <strong>💡 Подсказка:</strong>
+                                    <ul>
+                                        <li><strong>Баллы</strong> - классическая система оценивания</li>
+                                        <li><strong>Проценты</strong> - удобно для тестов и ВПР</li>
+                                        <li><strong>Своя шкала</strong> - для нестандартных систем оценивания</li>
+                                    </ul>
+                                </div>
+                            </div>
+                            
+                            <div class="settings-card">
+                                <h4>🎯 Предварительный просмотр</h4>
+                                <div class="preview-grid" id="criteriaPreview">
+                                    <!-- Предпросмотр критериев -->
+                                </div>
+                            </div>
+                            
+                            <div class="step-actions">
+                                <button class="btn" onclick="prevStep()">
+                                    ← Назад к учащимся
+                                </button>
+                                <button class="btn btn-success" onclick="completeSetup()" id="completeSetup">
+                                    ✅ Завершить настройку
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ВКЛАДКА 2: УЧАЩИЕСЯ -->
+                <div id="students" class="tab-content">
+                    <div class="tab-header">
+                        <h2>👥 Управление учащимися</h2>
+                        <p class="tab-description">Добавьте, отредактируйте или удалите учащихся. Управляйте их результатами.</p>
+                    </div>
+                    
+                    <div class="students-controls">
+                        <div class="controls-left">
+                            <button class="btn btn-success" onclick="addStudent()">
+                                <span class="btn-icon">➕</span> Добавить ученика
+                            </button>
+                            <button class="btn" onclick="generateStudents()">
+                                <span class="btn-icon">🎲</span> Сгенерировать пример
+                            </button>
+                            <button class="btn btn-danger" onclick="clearAllStudents()">
+                                <span class="btn-icon">🗑️</span> Удалить всех
+                            </button>
+                        </div>
+                        <div class="controls-right">
+                            <div class="search-box">
+                                <input type="text" id="studentSearch" placeholder="Поиск по ФИО..." 
+                                       oninput="filterStudents()">
+                                <span class="search-icon">🔍</span>
+                            </div>
+                            <div class="students-count">
+                                Всего: <span id="totalStudentsCount">0</span> | 
+                                Присутствуют: <span id="presentStudentsCount">0</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="table-container">
+                        <table class="students-table" id="studentsTable">
+                            <thead>
+                                <tr>
+                                    <th width="50">№</th>
+                                    <th width="150">
+                                        <div class="sort-header" onclick="sortStudents('name')">
+                                            ФИО ученика
+                                            <span class="sort-icon" id="sortNameIcon">⇅</span>
+                                        </div>
+                                    </th>
+                                    <th width="80">
+                                        <div class="sort-header" onclick="sortStudents('grade')">
+                                            Оценка
+                                            <span class="sort-icon" id="sortGradeIcon">⇅</span>
+                                        </div>
+                                    </th>
+                                    <th width="80">
+                                        <div class="sort-header" onclick="sortStudents('score')">
+                                            Баллы
+                                            <span class="sort-icon" id="sortScoreIcon">⇅</span>
+                                        </div>
+                                    </th>
+                                    <th width="100">
+                                        <div class="sort-header" onclick="sortStudents('percent')">
+                                            %
+                                            <span class="sort-icon" id="sortPercentIcon">⇅</span>
+                                        </div>
+                                    </th>
+                                    <th width="80">Статус</th>
+                                    <th width="150">Примечания</th>
+                                    <th width="100">Действия</th>
+                                </tr>
+                            </thead>
+                            <tbody id="studentsTableBody">
+                                <!-- Данные учащихся будут загружены динамически -->
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div class="students-summary">
+                        <div class="summary-card">
+                            <h4>📊 Сводная статистика</h4>
+                            <div class="summary-grid">
+                                <div class="summary-item">
+                                    <span class="summary-label">Средний балл:</span>
+                                    <span class="summary-value" id="avgScore">0</span>
+                                </div>
+                                <div class="summary-item">
+                                    <span class="summary-label">Средняя оценка:</span>
+                                    <span class="summary-value" id="avgGrade">0</span>
+                                </div>
+                                <div class="summary-item">
+                                    <span class="summary-label">Успеваемость:</span>
+                                    <span class="summary-value" id="successRate">0%</span>
+                                </div>
+                                <div class="summary-item">
+                                    <span class="summary-label">Качество знаний:</span>
+                                    <span class="summary-value" id="qualityRate">0%</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ВКЛАДКА 3: КРИТЕРИИ -->
+                <div id="criteria" class="tab-content">
+                    <div class="tab-header">
+                        <h2>📊 Критерии оценивания</h2>
+                        <p class="tab-description">Настройте систему оценивания работы. Выберите тип шкалы и задайте диапазоны.</p>
+                    </div>
+                    
+                    <div class="criteria-container">
+                        <div class="criteria-left">
+                            <div class="settings-card">
+                                <div class="criteria-type-selector-large">
+                                    <label>📏 Тип системы оценивания:</label>
+                                    <select id="criteriaSystemType" onchange="changeCriteriaSystem()">
+                                        <option value="standard">Стандартная (2-5)</option>
+                                        <option value="percent">Процентная (0-100%)</option>
+                                        <option value="scaled">Шкалированная (ОГЭ/ЕГЭ)</option>
+                                        <option value="levels">Уровневая (ВПР/Психология)</option>
+                                        <option value="custom">Пользовательская</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="criteria-max-score">
+                                    <label>🎯 Максимальный балл работы:</label>
+                                    <input type="number" id="maxTotalScore" min="1" max="1000" value="100" 
+                                           onchange="updateCriteriaRanges()">
+                                </div>
+                                
+                                <div id="dynamicCriteriaSettings">
+                                    <!-- Динамические настройки критериев -->
+                                </div>
+                            </div>
+                            
+                            <div class="settings-card">
+                                <h4>🚀 Быстрые пресеты</h4>
+                                <div class="presets-grid">
+                                    <button class="preset-btn large" onclick="loadPreset('school_5')">
+                                        <span class="preset-icon">🏫</span>
+                                        <div class="preset-info">
+                                            <div class="preset-name">Школьная 5-балльная</div>
+                                            <div class="preset-desc">2: 0-59%, 3: 60-74%, 4: 75-89%, 5: 90-100%</div>
+                                        </div>
+                                    </button>
+                                    <button class="preset-btn large" onclick="loadPreset('vpr')">
+                                        <span class="preset-icon">📝</span>
+                                        <div class="preset-info">
+                                            <div class="preset-name">ВПР (проценты)</div>
+                                            <div class="preset-desc">Низкий: 0-49%, Средний: 50-64%, Высокий: 65-100%</div>
+                                        </div>
+                                    </button>
+                                    <button class="preset-btn large" onclick="loadPreset('oge')">
+                                        <span class="preset-icon">📘</span>
+                                        <div class="preset-info">
+                                            <div class="preset-name">ОГЭ 2024</div>
+                                            <div class="preset-desc">Первичные баллы → Оценки по ФИПИ</div>
+                                        </div>
+                                    </button>
+                                    <button class="preset-btn large" onclick="loadPreset('ege')">
+                                        <span class="preset-icon">📗</span>
+                                        <div class="preset-info">
+                                            <div class="preset-name">ЕГЭ 2024</div>
+                                            <div class="preset-desc">Первичные → Тестовые баллы (шкалирование)</div>
+                                        </div>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="criteria-right">
+                            <div class="settings-card">
+                                <h4>👁️‍🗨️ Предварительный просмотр</h4>
+                                <div class="criteria-preview" id="criteriaLivePreview">
+                                    <!-- Живой предпросмотр критериев -->
+                                </div>
+                            </div>
+                            
+                            <div class="settings-card">
+                                <h4>📋 Пример оценивания</h4>
+                                <div class="example-grid">
+                                    <div class="example-item">
+                                        <div class="example-score">85 баллов</div>
+                                        <div class="example-result">
+                                            <span class="example-grade grade-5">5</span>
+                                            <span class="example-text">Отлично</span>
+                                        </div>
+                                    </div>
+                                    <div class="example-item">
+                                        <div class="example-score">72 балла</div>
+                                        <div class="example-result">
+                                            <span class="example-grade grade-4">4</span>
+                                            <span class="example-text">Хорошо</span>
+                                        </div>
+                                    </div>
+                                    <div class="example-item">
+                                        <div class="example-score">58 баллов</div>
+                                        <div class="example-result">
+                                            <span class="example-grade grade-3">3</span>
+                                            <span class="example-text">Удовлетворительно</span>
+                                        </div>
+                                    </div>
+                                    <div class="example-item">
+                                        <div class="example-score">35 баллов</div>
+                                        <div class="example-result">
+                                            <span class="example-grade grade-2">2</span>
+                                            <span class="example-text">Неудовлетворительно</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="criteria-actions">
+                                <button class="btn btn-success" onclick="saveCriteria()">
+                                    💾 Сохранить критерии
+                                </button>
+                                <button class="btn" onclick="applyCriteriaToAll()">
+                                    🔄 Применить ко всем учащимся
+                                </button>
+                                <button class="btn btn-warning" onclick="resetCriteria()">
+                                    ↩️ Сбросить к стандартным
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ВКЛАДКА 4: ЗАДАНИЯ -->
+                <div id="tasks" class="tab-content">
+                    <div class="tab-header">
+                        <h2>📝 Управление заданиями</h2>
+                        <p class="tab-description">Добавьте и настройте задания работы. Укажите тип, сложность и максимальный балл.</p>
+                    </div>
+                    
+                    <div class="tasks-controls">
+                        <button class="btn btn-success" onclick="addTask()">
+                            <span class="btn-icon">➕</span> Добавить задание
+                        </button>
+                        <button class="btn" onclick="importTasks()">
+                            <span class="btn-icon">📥</span> Импорт заданий
+                        </button>
+                        <button class="btn" onclick="exportTasks()">
+                            <span class="btn-icon">📤</span> Экспорт заданий
+                        </button>
+                        <button class="btn btn-warning" onclick="autoGenerateTasks()">
+                            <span class="btn-icon">🤖</span> Автогенерация
+                        </button>
+                    </div>
+                    
+                    <div class="tasks-container" id="tasksContainer">
+                        <!-- Задания будут добавляться динамически -->
+                    </div>
+                    
+                    <div class="tasks-summary">
+                        <div class="summary-card">
+                            <h4>📊 Статистика заданий</h4>
+                            <div class="tasks-stats">
+                                <div class="stat-row">
+                                    <div class="stat-item">
+                                        <span class="stat-label">Всего заданий:</span>
+                                        <span class="stat-value" id="totalTasks">0</span>
+                                    </div>
+                                    <div class="stat-item">
+                                        <span class="stat-label">Макс. балл:</span>
+                                        <span class="stat-value" id="maxTotalScoreTasks">0</span>
+                                    </div>
+                                    <div class="stat-item">
+                                        <span class="stat-label">Средняя сложность:</span>
+                                        <span class="stat-value" id="avgDifficulty">-</span>
+                                    </div>
+                                </div>
+                                <div class="stat-row">
+                                    <div class="stat-item">
+                                        <span class="stat-label">Базовые:</span>
+                                        <span class="stat-value" id="basicTasks">0</span>
+                                    </div>
+                                    <div class="stat-item">
+                                        <span class="stat-label">Повышенные:</span>
+                                        <span class="stat-value" id="advancedTasks">0</span>
+                                    </div>
+                                    <div class="stat-item">
+                                        <span class="stat-label">Высокие:</span>
+                                        <span class="stat-value" id="highTasks">0</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ВКЛАДКА 5: АНАЛИТИКА -->
+                <div id="analytics" class="tab-content">
+                    <div class="tab-header">
+                        <h2>📈 Анализ результатов</h2>
+                        <p class="tab-description">Визуализация и глубокий анализ результатов работы. Графики и статистика.</p>
+                    </div>
+                    
+                    <div class="analytics-controls">
+                        <div class="view-selector">
+                            <button class="view-btn active" data-view="grades">📊 Оценки</button>
+                            <button class="view-btn" data-view="difficulty">📈 Сложность</button>
+                            <button class="view-btn" data-view="progress">📉 Динамика</button>
+                            <button class="view-btn" data-view="comparison">📋 Сравнение</button>
+                        </div>
+                        <div class="export-controls">
+                            <button class="btn" onclick="exportChart('gradesChart')">
+                                📤 Экспорт графика
+                            </button>
+                            <button class="btn" onclick="printAnalytics()">
+                                🖨️ Печать отчета
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="analytics-content">
+                        <!-- Вид 1: График оценок -->
+                        <div class="analytics-view active" id="gradesView">
+                            <div class="chart-container">
+                                <canvas id="gradesChart"></canvas>
+                            </div>
+                            <div class="chart-info">
+                                <h4>📋 Распределение оценок</h4>
+                                <div class="grades-distribution" id="gradesDistribution">
+                                    <!-- Данные распределения -->
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Вид 2: Анализ сложности -->
+                        <div class="analytics-view" id="difficultyView">
+                            <div class="chart-container">
+                                <canvas id="difficultyChart"></canvas>
+                            </div>
+                            <div class="chart-info">
+                                <h4>📊 Анализ выполнения по заданиям</h4>
+                                <div class="tasks-performance" id="tasksPerformance">
+                                    <!-- Данные выполнения заданий -->
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Вид 3: Прогресс -->
+                        <div class="analytics-view" id="progressView">
+                            <div class="chart-container">
+                                <canvas id="progressChart"></canvas>
+                            </div>
+                        </div>
+                        
+                        <!-- Вид 4: Сравнение -->
+                        <div class="analytics-view" id="comparisonView">
+                            <div class="comparison-grid">
+                                <div class="comparison-card">
+                                    <h5>👥 По классам</h5>
+                                    <canvas id="classComparisonChart"></canvas>
+                                </div>
+                                <div class="comparison-card">
+                                    <h5>📚 По предметам</h5>
+                                    <canvas id="subjectComparisonChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="analytics-summary">
+                        <div class="summary-grid-large">
+                            <div class="summary-card-large">
+                                <h4>🎯 Ключевые показатели</h4>
+                                <div class="kpi-grid">
+                                    <div class="kpi-item">
+                                        <div class="kpi-value" id="kpiAvgScore">0</div>
+                                        <div class="kpi-label">Средний балл</div>
+                                    </div>
+                                    <div class="kpi-item">
+                                        <div class="kpi-value" id="kpiSuccessRate">0%</div>
+                                        <div class="kpi-label">Успеваемость</div>
+                                    </div>
+                                    <div class="kpi-item">
+                                        <div class="kpi-value" id="kpiQuality">0%</div>
+                                        <div class="kpi-label">Качество знаний</div>
+                                    </div>
+                                    <div class="kpi-item">
+                                        <div class="kpi-value" id="kpiBestTask">-</div>
+                                        <div class="kpi-label">Лучшее задание</div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="summary-card-large">
+                                <h4>📋 Рекомендации</h4>
+                                <div class="recommendations" id="analyticsRecommendations">
+                                    <!-- Рекомендации будут добавляться динамически -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ВКЛАДКА 6: ЭКСПОРТ -->
+                <div id="export" class="tab-content">
+                    <div class="tab-header">
+                        <h2>💾 Экспорт данных</h2>
+                        <p class="tab-description">Экспортируйте данные в различные форматы для печати, анализа или отчетности.</p>
+                    </div>
+                    
+                    <div class="export-options">
+                        <div class="export-card">
+                            <div class="export-icon">📄</div>
+                            <h4>PDF отчет</h4>
+                            <p>Полный отчет с графиками и таблицами</p>
+                            <button class="btn btn-success" onclick="exportPDF()">
+                                📥 Экспорт в PDF
+                            </button>
+                        </div>
+                        
+                        <div class="export-card">
+                            <div class="export-icon">📊</div>
+                            <h4>Excel таблица</h4>
+                            <p>Данные в формате XLSX для анализа</p>
+                            <button class="btn btn-success" onclick="exportExcel()">
+                                📥 Экспорт в Excel
+                            </button>
+                        </div>
+                        
+                        <div class="export-card">
+                            <div class="export-icon">📋</div>
+                            <h4>Word документ</h4>
+                            <p>Текстовый отчет для Word</p>
+                            <button class="btn btn-success" onclick="exportWord()">
+                                📥 Экспорт в Word
+                            </button>
+                        </div>
+                        
+                        <div class="export-card">
+                            <div class="export-icon">🖨️</div>
+                            <h4>Печать</h4>
+                            <p>Печать отчета напрямую</p>
+                            <button class="btn btn-primary" onclick="printReport()">
+                                🖨️ Печать отчета
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="export-advanced">
+                        <h4>⚙️ Расширенные настройки экспорта</h4>
+                        <div class="export-settings">
+                            <div class="setting-group">
+                                <label>
+                                    <input type="checkbox" id="includeCharts" checked>
+                                    Включать графики
+                                </label>
+                                <label>
+                                    <input type="checkbox" id="includeTables" checked>
+                                    Включать таблицы
+                                </label>
+                                <label>
+                                    <input type="checkbox" id="includeRecommendations" checked>
+                                    Включать рекомендации
+                                </label>
+                            </div>
+                            
+                            <div class="setting-group">
+                                <label>Формат данных:</label>
+                                <select id="exportFormat">
+                                    <option value="detailed">Подробный отчет</option>
+                                    <option value="summary">Сводная таблица</option>
+                                    <option value="minimal">Минимальные данные</option>
+                                </select>
+                            </div>
+                            
+                            <div class="setting-group">
+                                <label>Кодировка:</label>
+                                <select id="exportEncoding">
+                                    <option value="utf8">UTF-8</option>
+                                    <option value="windows1251">Windows-1251</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="export-actions">
+                            <button class="btn" onclick="previewExport()">
+                                👁️ Предварительный просмотр
+                            </button>
+                            <button class="btn btn-warning" onclick="saveTemplate()">
+                                💾 Сохранить как шаблон
+                            </button>
+                            <button class="btn btn-danger" onclick="clearExportSettings()">
+                                🗑️ Сбросить настройки
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="export-preview" id="exportPreview" style="display: none;">
+                        <h4>👁️‍🗨️ Предварительный просмотр</h4>
+                        <div class="preview-content" id="previewContent">
+                            <!-- Предпросмотр будет здесь -->
+                        </div>
+                    </div>
+                    
+                    <div class="backup-section">
+                        <h4>💾 Резервное копирование</h4>
+                        <div class="backup-controls">
+                            <button class="btn" onclick="createBackup()">
+                                💾 Создать резервную копию
+                            </button>
+                            <button class="btn" onclick="restoreBackup()">
+                                📂 Восстановить из копии
+                            </button>
+                            <button class="btn btn-warning" onclick="exportAllData()">
+                                📤 Экспорт всех данных
+                            </button>
+                        </div>
+                        
+                        <div class="backup-info">
+                            <p><strong>Последнее сохранение:</strong> <span id="lastBackupTime">Не было</span></p>
+                            <p><strong>Размер данных:</strong> <span id="dataSize">0 KB</span></p>
+                            <textarea id="backupData" rows="4" placeholder="Данные резервной копии будут здесь..." 
+                                      readonly></textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Футер с информацией -->
+        <footer class="footer">
+            <div class="footer-content">
+                <div class="footer-info">
+                    <p>© 2024 Конструктор диагностических работ | Версия 2.0</p>
+                    <p class="footer-links">
+                        <a href="#" onclick="showHelp()">📚 Помощь</a> | 
+                        <a href="#" onclick="showAbout()">ℹ️ О программе</a> | 
+                        <a href="#" onclick="checkUpdates()">🔄 Проверить обновления</a>
+                    </p>
+                </div>
+                <div class="footer-status">
+                    <span id="autoSaveStatus">💾 Автосохранение: активно</span> | 
+                    <span id="lastSaveTime">Последнее сохранение: --:--</span>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Модальные окна -->
+    <div id="helpModal" class="modal">
+        <div class="modal-content">
+            <h3>📚 Помощь</h3>
+            <div class="modal-body">
+                <!-- Содержимое помощи -->
+            </div>
+            <div class="modal-actions">
+                <button class="btn" onclick="closeModal('helpModal')">Закрыть</button>
+            </div>
+        </div>
+    </div>
+    
+    <div id="aboutModal" class="modal">
+        <div class="modal-content">
+            <h3>ℹ️ О программе</h3>
+            <div class="modal-body">
+                <!-- Информация о программе -->
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+    <!-- Библиотеки для графиков -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Библиотека для экспорта -->
+    <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
+    <!-- Библиотека для PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</body>
+</html>

@@ -460,10 +460,69 @@ function updateProgress() {
 }
 
 // Автосохранение
-let autoSaveTimer;
+let saveTimeout1;
+const SAVE_DELAY = 1500; // 1.5 секунды
+
 function scheduleAutoSave() {
-    clearTimeout(autoSaveTimer);
-    autoSaveTimer = setTimeout(saveTestSettings, 2000);
+    // Сохраняем состояние текущей вкладки
+    saveTabState(tabState.currentTab);
+    
+    // Откладываем глобальное сохранение
+    clearTimeout(saveTimeout1);
+    saveTimeout1 = setTimeout(() => {
+        saveAllData();
+        showNotification('Автосохранение выполнено', 'info', 2000);
+    }, SAVE_DELAY);
+}
+
+// Сохраняем все данные
+function saveAllData() {
+    // Сохраняем настройки теста
+    const testSettings = {};
+    const setupFields = ['workType', 'subject', 'class', 'testDate', 'testTheme', 
+                         'testGoals', 'workFormat', 'timeLimit', 'totalStudents', 
+                         'presentStudents', 'absentReason'];
+    
+    setupFields.forEach(field => {
+        const element = document.getElementById(field);
+        if (element) testSettings[field] = element.value;
+    });
+    
+    localStorage.setItem('testSettings', JSON.stringify(testSettings));
+    
+    // Сохраняем состояние вкладок
+    localStorage.setItem('tabState', JSON.stringify(tabState));
+    
+    // Сохраняем критерии
+    saveCriteriaSettings();
+}
+
+// Загружаем все данные при старте
+function loadAllData() {
+    // Загружаем настройки теста
+    const savedTestSettings = localStorage.getItem('testSettings');
+    if (savedTestSettings) {
+        try {
+            const settings = JSON.parse(savedTestSettings);
+            Object.keys(settings).forEach(key => {
+                const element = document.getElementById(key);
+                if (element) element.value = settings[key];
+            });
+        } catch (e) {
+            console.error('Ошибка загрузки настроек:', e);
+        }
+    }
+    
+    // Загружаем состояние вкладок
+    const savedTabState = localStorage.getItem('tabState');
+    if (savedTabState) {
+        try {
+            const state = JSON.parse(savedTabState);
+            Object.assign(tabState, state);
+        } catch (e) {
+            console.error('Ошибка загрузки состояния вкладок:', e);
+        }
+    }
 }
 
 // Загрузка сохраненных данных
