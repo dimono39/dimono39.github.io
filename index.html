@@ -1119,29 +1119,10 @@
 </head>
 <body>
     <!-- Модальные окна -->
-    //<div class="modal-overlay" id="modalOverlay">
-    //   <div class="modal-content" id="modalContent"></div>
-    //</div>
+    <div class="modal-overlay" id="modalOverlay">
+       <div class="modal-content" id="modalContent"></div>
+    </div>
 
-	<div class="modal-overlay" id="resetDialog">
-		<div class="modal-content">
-			<h3>⚠️ Подтверждение сброса</h3>
-			<p>Вы уверены, что хотите сбросить все данные? Это действие нельзя отменить.</p>
-			<div class="modal-actions">
-				<button class="btn" onclick="closeModal('resetDialog')">Отмена</button>
-				<button class="btn btn-danger" onclick="resetAllData()">Сбросить всё</button>
-			</div>
-		</div>
-	</div>
-
-	<div class="modal-overlay" id="successModal">
-		<div class="modal-content success">
-			<div class="modal-icon">✅</div>
-			<h3>Настройки сохранены!</h3>
-			<p>Все параметры успешно сохранены. Теперь вы можете перейти к добавлению заданий.</p>
-			<button class="btn btn-success" onclick="closeModal('successModal')">Продолжить</button>
-		</div>
-	</div>
     <!-- Уведомления -->
     <div class="notification" id="notification"></div>
 
@@ -1565,25 +1546,25 @@
             </div>
 
             <!-- Модальные окна -->
-            <div id="resetDialog" class="modal">
-                <div class="modal-content">
-                    <h3>⚠️ Подтверждение сброса</h3>
-                    <p>Вы уверены, что хотите сбросить все данные? Это действие нельзя отменить.</p>
-                    <div class="modal-actions">
-                        <button class="btn" onclick="closeModal('resetDialog')">Отмена</button>
-                        <button class="btn btn-danger" onclick="resetAllData()">Сбросить всё</button>
-                    </div>
-                </div>
-            </div>
+			<div class="modal-overlay" id="resetDialog">
+				<div class="modal-content">
+					<h3>⚠️ Подтверждение сброса</h3>
+					<p>Вы уверены, что хотите сбросить все данные? Это действие нельзя отменить.</p>
+					<div class="modal-actions">
+						<button class="btn" onclick="closeModal('resetDialog')">Отмена</button>
+						<button class="btn btn-danger" onclick="resetAllData()">Сбросить всё</button>
+					</div>
+				</div>
+			</div>
 
-            <div id="successModal" class="modal">
-                <div class="modal-content success">
-                    <div class="modal-icon">✅</div>
-                    <h3>Настройки сохранены!</h3>
-                    <p>Все параметры успешно сохранены. Теперь вы можете перейти к добавлению заданий.</p>
-                    <button class="btn btn-success" onclick="closeModal('successModal')">Продолжить</button>
-                </div>
-            </div>
+			<div class="modal-overlay" id="successModal">
+				<div class="modal-content success">
+					<div class="modal-icon">✅</div>
+					<h3>Настройки сохранены!</h3>
+					<p>Все параметры успешно сохранены. Теперь вы можете перейти к добавлению заданий.</p>
+					<button class="btn btn-success" onclick="closeModal('successModal')">Продолжить</button>
+				</div>
+			</div>
         </div>
 
         <!-- Вкладка таксономии заданий -->
