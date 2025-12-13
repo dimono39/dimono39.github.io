@@ -615,13 +615,24 @@ function loadSampleData() {
 
 // Управление модальными окнами
 function showModal(modalId) {
-    document.getElementById(modalId).classList.add('active');
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.classList.add('show');
+        // Блокируем прокрутку страницы
+        document.body.style.overflow = 'hidden';
+    }
 }
 
 function closeModal(modalId) {
-    document.getElementById(modalId).classList.remove('active');
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.classList.remove('show');
+        // Восстанавливаем прокрутку страницы
+        document.body.style.overflow = 'auto';
+    }
 }
 
+// Обновите функции showResetDialog и другие, которые используют модальные окна:
 function showResetDialog() {
     showModal('resetDialog');
 }
