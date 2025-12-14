@@ -8651,6 +8651,7 @@
 		// Добавить новое задание
 		function addNewTask() {
 			const newTask = {
+				id: 'task_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9), // Добавляем ID
 				type: "Выбор ответа",
 				maxScore: 1,
 				level: 1,
@@ -23380,32 +23381,69 @@ ${files.map(f => f ? `- ${f.name}` : '').join('\n')}
 
 		// 8. Объединение результатов
 		function mergeResults(newData) {
-			// Создаем карту учеников для быстрого поиска
+			// 1. Создаем карту учеников: "ФИО" -> Индекс в текущей таблице
 			const studentMap = {};
 			appData.students.forEach((student, index) => {
-				studentMap[student] = index;
+				studentMap[student.toLowerCase().trim()] = index;
 			});
+
+			// 2. Создаем карту сопоставления заданий (Импорт -> Текущее)
+			const taskMapping = new Map();
 			
-			// Создаем карту заданий
-			const taskMap = {};
-			appData.tasks.forEach((task, index) => {
-				taskMap[task.type + task.maxScore + task.level] = index;
+			// Пытаемся сопоставить задания
+			newData.tasks.forEach((newTask, newIndex) => {
+				// Стратегия 1: Если есть ID (будущая совместимость)
+				if (newTask.id) {
+					const existingIndex = appData.tasks.findIndex(t => t.id === newTask.id);
+					if (existingIndex !== -1) {
+						taskMapping.set(newIndex, existingIndex);
+						return;
+					}
+				}
+
+				// Стратегия 2: Строгое сопоставление по индексу и параметрам 
+				// (Если структуры тестов идентичны)
+				if (appData.tasks[newIndex] && 
+					appData.tasks[newIndex].type === newTask.type &&
+					appData.tasks[newIndex].maxScore === newTask.maxScore) {
+					taskMapping.set(newIndex, newIndex);
+					return;
+				}
+
+				// Стратегия 3: Поиск похожего задания (для добавленных заданий)
+				// Ищем первое подходящее задание, которое еще не было сопоставлено
+				const foundIndex = appData.tasks.findIndex((t, i) => 
+					!Array.from(taskMapping.values()).includes(i) && // Еще не занято
+					t.type === newTask.type && 
+					t.maxScore === newTask.maxScore && 
+					t.level === newTask.level
+				);
+
+				if (foundIndex !== -1) {
+					taskMapping.set(newIndex, foundIndex);
+				}
 			});
-			
-			// Добавляем результаты для существующих учеников
-			newData.students.forEach((student, studentIndex) => {
-				const existingStudentIndex = studentMap[student];
-				if (existingStudentIndex !== undefined) {
-					newData.results[studentIndex].forEach((score, taskIndex) => {
-						const newTask = newData.tasks[taskIndex];
-						const taskKey = newTask.type + newTask.maxScore + newTask.level;
-						const existingTaskIndex = taskMap[taskKey];
+
+			console.log('Карта сопоставления заданий:', taskMapping);
+
+			// 3. Переносим оценки
+			newData.students.forEach((studentName, sourceStudentIndex) => {
+				const targetStudentIndex = studentMap[studentName.toLowerCase().trim()];
+				
+				// Если такой ученик найден в текущей таблице
+				if (targetStudentIndex !== undefined) {
+					const sourceScores = newData.results[sourceStudentIndex] || [];
+					
+					sourceScores.forEach((score, sourceTaskIndex) => {
+						const targetTaskIndex = taskMapping.get(sourceTaskIndex);
 						
-						if (existingTaskIndex !== undefined) {
-							// Обновляем результат, если в импортированных данных он лучше
-							const currentScore = appData.results[existingStudentIndex][existingTaskIndex] || 0;
-							if (score > currentScore) {
-								appData.results[existingStudentIndex][existingTaskIndex] = score;
+						// Если мы нашли, куда положить эту оценку
+						if (targetTaskIndex !== undefined) {
+							const currentScore = appData.results[targetStudentIndex][targetTaskIndex] || 0;
+							// Если новая оценка больше 0 или в текущей пусто - обновляем
+							// (Логика: не затираем существующие данные нулями, если это не замена)
+							if (score > 0 || (currentScore === 0 && score === 0)) {
+								appData.results[targetStudentIndex][targetTaskIndex] = score;
 							}
 						}
 					});
