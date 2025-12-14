@@ -2847,6 +2847,7 @@
 		// 14. Модифицируем renderTemplatesList для совместимости
 		// Добавляем проверку на кэшированные шаблоны в существующей функции
 		function renderTemplatesList(filesData) {
+			window.filteredTemplateFiles = filesData;
 			const container = document.getElementById('templatesContainer');
 			if (!container) {
 				console.error('❌ Контейнер templatesContainer не найден');
@@ -3578,35 +3579,58 @@
 				serverTemplateWatcher.startWatching();
 			}
 		});
-
+		// Добавьте в начало файла или в область видимости
+		window.filteredTemplateFiles = [];
 		function filterTemplatesByType() {
-			const selectedType = document.getElementById('templateWorkType').value;
-			const allTemplates = window.templateFilesData || [];
+			const select = document.getElementById('templateWorkType');
+			const selectedType = select.value;
+			
+			if (!window.templateFilesData) {
+				console.error('❌ templateFilesData не определен');
+				return;
+			}
+			
+			let filteredFiles;
 			
 			if (selectedType === 'all') {
-				renderTemplatesList(allTemplates);
+				filteredFiles = window.templateFilesData;
 			} else {
-				const filtered = allTemplates.filter(t => t.workType === selectedType);
-				renderTemplatesList(filtered);
+				filteredFiles = window.templateFilesData.filter(file => 
+					file.workType === selectedType
+				);
+			}
+			
+			console.log('🔍 Фильтрация: выбрано', filteredFiles.length, 'из', window.templateFilesData.length);
+			
+			// Очищаем текущий отфильтрованный массив
+			window.filteredTemplateFiles = filteredFiles;
+			
+			// Рендерим список
+			if (typeof renderTemplatesList === 'function') {
+				renderTemplatesList(filteredFiles);
 			}
 		}
 
 		function selectTemplate(index) {
 			console.log('🎯 selectTemplate вызван с индексом:', index);
 			
-			if (!window.templateFilesData || !Array.isArray(window.templateFilesData)) {
-				console.error('❌ templateFilesData не определен или не является массивом');
+			// Используем отфильтрованные данные, если они есть
+			const dataSource = window.filteredTemplateFiles && window.filteredTemplateFiles.length > 0 ?
+				window.filteredTemplateFiles : window.templateFilesData;
+			
+			if (!dataSource || !Array.isArray(dataSource)) {
+				console.error('❌ Данные шаблонов не загружены');
 				showNotification('Ошибка: данные шаблонов не загружены', 'error');
 				return;
 			}
 			
-			if (index < 0 || index >= window.templateFilesData.length) {
-				console.error('❌ Неверный индекс:', index, 'длина массива:', window.templateFilesData.length);
+			if (index < 0 || index >= dataSource.length) {
+				console.error('❌ Неверный индекс:', index, 'длина массива:', dataSource.length);
 				showNotification('Ошибка: неверный выбор шаблона', 'error');
 				return;
 			}
 			
-			const selectedTemplate = window.templateFilesData[index];
+			const selectedTemplate = dataSource[index];
 			console.log('📄 Выбран шаблон:', selectedTemplate.file.name);
 			console.log('📊 Данные шаблона:', {
 				workType: selectedTemplate.workType,
