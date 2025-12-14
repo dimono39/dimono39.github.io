@@ -2728,44 +2728,35 @@
 				}
 			}
 		}
-
+		
+		let inputListenersInitialized = false;
+		
 		// Добавьте эту функцию для надежного отслеживания изменений
 		function setupInputListeners() {
-			// Отслеживаем изменения во всех полях ввода
+			if (inputListenersInitialized) return;
+
+			// Используем делегирование: один слушатель на весь документ
+			// Он автоматически работает и для будущих элементов
 			document.addEventListener('input', function(e) {
 				if (e.target.matches('input, select, textarea')) {
 					scheduleAutoSave();
 				}
 			});
 			
-			// Отслеживаем изменения через JavaScript
 			document.addEventListener('change', function(e) {
 				if (e.target.matches('input, select, textarea')) {
 					scheduleAutoSave();
 				}
 			});
 			
-			// Отслеживаем клики (для радио и чекбоксов)
 			document.addEventListener('click', function(e) {
 				if (e.target.matches('input[type="radio"], input[type="checkbox"]')) {
 					scheduleAutoSave();
 				}
 			});
-			
-			// Отслеживаем события через MutationObserver (для динамического контента)
-			const observer = new MutationObserver(function(mutations) {
-				mutations.forEach(function(mutation) {
-					if (mutation.type === 'childList') {
-						// При изменении DOM переподписываемся на события
-						setTimeout(setupInputListeners, 100);
-					}
-				});
-			});
-			
-			observer.observe(document.body, {
-				childList: true,
-				subtree: true
-			});
+
+			inputListenersInitialized = true;
+			console.log('✅ Слушатели событий ввода инициализированы (один раз)');
 		}
 
 		// Инициализируйте при загрузке
@@ -16603,7 +16594,7 @@
 					return;
 				}
 				
-				// Уничтожаем старые графики
+				// Уничтожаем старые графики ТУТ
 				destroyAllCharts();
 				
 				// Ждем рендеринга DOM
@@ -16994,6 +16985,8 @@
 				console.error('Вкладка visualization не найдена!');
 				return;
 			}
+			
+			destroyAllCharts();
 			
 			// Очищаем вкладку
 			vizTab.innerHTML = '';
