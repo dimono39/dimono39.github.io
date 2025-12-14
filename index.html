@@ -2846,71 +2846,73 @@
 
 		// 14. Модифицируем renderTemplatesList для совместимости
 		// Добавляем проверку на кэшированные шаблоны в существующей функции
-		function renderTemplatesList(templates) {
+		function renderTemplatesList(filesData) {
 			const container = document.getElementById('templatesContainer');
-			if (!container) return;
-			
-			if (templates.length === 0) {
-				container.innerHTML = `
-					<div style="text-align: center; padding: 40px; color: #666;">
-						<div style="font-size: 3em; margin-bottom: 20px;">📭</div>
-						<p>Шаблоны не найдены</p>
-						${templateScanner ? `
-							<button class="btn btn-sm btn-outline-primary" onclick="templateScanner.scanNow()">
-								🔄 Выполнить сканирование
-							</button>
-						` : ''}
-					</div>
-				`;
+			if (!container) {
+				console.error('❌ Контейнер templatesContainer не найден');
 				return;
 			}
 			
-			// ... остальной код функции renderTemplatesList остается без изменений
-			// Тот код, который у вас уже есть
-			// Группируем по предметам
-			const groupedBySubject = {};
-			templates.forEach(template => {
-				const subject = template.subject;
-				if (!groupedBySubject[subject]) {
-					groupedBySubject[subject] = [];
-				}
-				groupedBySubject[subject].push(template);
+			if (!filesData || filesData.length === 0) {
+				container.innerHTML = '<p style="text-align: center; padding: 20px; color: #666;">Шаблоны не найдены</p>';
+				return;
+			}
+			
+			let html = '<div class="list-group">';
+			
+			filesData.forEach((file, index) => {
+				const workTypeName = workTypes && workTypes[file.workType] ? 
+					workTypes[file.workType].name : file.workType || 'Не указан';
+				
+				html += `
+					<a href="#" class="list-group-item list-group-item-action template-item" 
+					   data-index="${index}"
+					   style="margin-bottom: 8px; border-radius: 5px; cursor: pointer;">
+						<div style="display: flex; justify-content: space-between; align-items: center;">
+							<div style="flex: 1;">
+								<h6 style="margin: 0; color: #2c3e50;">
+									${file.file.name || 'Без названия'}
+								</h6>
+								<div style="margin-top: 5px; font-size: 0.9em; color: #7f8c8d;">
+									<span class="badge bg-primary">${workTypeName}</span>
+									<span class="badge bg-secondary">${file.subject || 'Не указан'}</span>
+									<span class="badge bg-info">${file.class || 'Не указан'}</span>
+									<span class="badge bg-success">${file.taskCount} заданий</span>
+								</div>
+								${file.date && file.date !== 'Не указано' ? 
+									`<small style="display: block; margin-top: 5px; color: #95a5a6;">📅 ${file.date}</small>` : ''}
+							</div>
+							<button class="btn btn-sm btn-outline-primary select-template-btn"
+									data-index="${index}"
+									style="margin-left: 10px;">
+								Выбрать
+							</button>
+						</div>
+					</a>
+				`;
 			});
 			
-			let html = '';
+			html += '</div>';
+			container.innerHTML = html;
 			
-			Object.keys(groupedBySubject).sort().forEach(subject => {
-				html += `<h4 style="margin-top: 20px; color: #2c3e50;">📚 ${subject}</h4>`;
-				
-				groupedBySubject[subject].forEach((template, index) => {
-					const workTypeName = workTypes[template.workType]?.name || template.workType;
-					const icon = getWorkTypeIcon(template.workType);
+			// Привязываем обработчики событий
+			const templateItems = container.querySelectorAll('.template-item, .select-template-btn');
+			templateItems.forEach(element => {
+				element.addEventListener('click', function(e) {
+					e.preventDefault();
+					e.stopPropagation();
 					
-					html += `
-						<div class="template-item" data-index="${index}" data-subject="${subject}" data-worktype="${template.workType}"
-							 style="background: white; border: 1px solid #ddd; border-radius: 8px; padding: 15px; margin: 10px 0; cursor: pointer; transition: all 0.3s;"
-							 onmouseover="this.style.boxShadow='0 2px 8px rgba(0,0,0,0.1)'" 
-							 onmouseout="this.style.boxShadow='none'"
-							 onclick="selectTemplate(${index})">
-							<div style="display: flex; justify-content: space-between; align-items: center;">
-								<div>
-									<strong>${icon} ${template.data.test.theme || 'Без названия'}</strong>
-									<div style="margin-top: 5px; font-size: 0.9em; color: #666;">
-										<span class="badge" style="background: #3498db; color: white;">${workTypeName}</span>
-										<span class="badge" style="background: #2ecc71; color: white;">${template.class}</span>
-										<span class="badge" style="background: #9b59b6; color: white;">${template.taskCount} заданий</span>
-									</div>
-								</div>
-								<button class="btn btn-sm btn-success" onclick="event.stopPropagation(); previewTemplate(${index})">
-									👁️ Просмотр
-								</button>
-							</div>
-						</div>
-					`;
+					// Получаем индекс из data-атрибута
+					const index = this.getAttribute('data-index');
+					console.log('🔍 Выбран шаблон с индексом:', index, 'из', filesData.length);
+					
+					if (index !== null && index !== undefined) {
+						selectTemplate(parseInt(index));
+					} else {
+						console.error('❌ Не удалось получить индекс шаблона');
+					}
 				});
 			});
-			
-			container.innerHTML = html;			
 		}
 
 		// ============ ИНТЕГРАЦИЯ С ВАШИМ КОДОМ ============
@@ -3590,10 +3592,45 @@
 		}
 
 		function selectTemplate(index) {
-			const template = window.templateFilesData[index];
-			if (!template) return;
+			console.log('🎯 selectTemplate вызван с индексом:', index);
 			
-			showTemplateConfirmation(template);
+			if (!window.templateFilesData || !Array.isArray(window.templateFilesData)) {
+				console.error('❌ templateFilesData не определен или не является массивом');
+				showNotification('Ошибка: данные шаблонов не загружены', 'error');
+				return;
+			}
+			
+			if (index < 0 || index >= window.templateFilesData.length) {
+				console.error('❌ Неверный индекс:', index, 'длина массива:', window.templateFilesData.length);
+				showNotification('Ошибка: неверный выбор шаблона', 'error');
+				return;
+			}
+			
+			const selectedTemplate = window.templateFilesData[index];
+			console.log('📄 Выбран шаблон:', selectedTemplate.file.name);
+			console.log('📊 Данные шаблона:', {
+				workType: selectedTemplate.workType,
+				subject: selectedTemplate.subject,
+				class: selectedTemplate.class,
+				taskCount: selectedTemplate.taskCount
+			});
+			
+			// Проверяем, есть ли данные
+			if (!selectedTemplate.data) {
+				console.error('❌ У выбранного шаблона нет данных');
+				showNotification('Ошибка: у шаблона нет данных', 'error');
+				return;
+			}
+			
+			// Закрываем модальное окно
+			if (typeof closeModal === 'function') {
+				closeModal();
+			}
+			
+			// Загружаем данные в форму
+			loadTemplateData(selectedTemplate.data);
+			
+			showNotification(`Загружен шаблон: ${selectedTemplate.file.name}`, 'success');
 		}
 		// Функция для экранирования HTML-символов
 		function escapeHtml(text) {
@@ -22501,53 +22538,44 @@ ${files.map(f => f ? `- ${f.name}` : '').join('\n')}
 				console.log('Данные полностью заменены');
 				
 			} else if (conflictResolution === 'merge') {
-				// Объединение данных
 				console.log('Начинаем объединение данных...');
-				
-				// Объединяем настройки теста
-				appData.test = { 
-					...appData.test, 
-					...newData.test,
-					// Критерии объединяем отдельно
-					criteria: { ...appData.test.criteria, ...newData.test?.criteria }
-				};
-				
-				// Объединяем задания (добавляем уникальные)
-				const existingTaskIds = new Set(appData.tasks.map(t => 
-					`${t.type || ''}_${t.maxScore || 0}_${t.level || 0}`
-				));
-				
-				newData.tasks?.forEach(task => {
-					const taskId = `${task.type || ''}_${task.maxScore || 0}_${task.level || 0}`;
-					if (!existingTaskIds.has(taskId)) {
-						appData.tasks.push(task);
-						existingTaskIds.add(taskId);
-					}
-				});
-				
-				// Объединяем учащихся
+        
+				// 1. Объединяем настройки (приоритет у новых)
+				appData.test = { ...appData.test, ...newData.test };
+				if (newData.test.criteria) {
+					appData.test.criteria = { ...appData.test.criteria, ...newData.test.criteria };
+				}
+
+				// 2. Сначала просто добавляем НОВЫЕ задания в конец, если это расширение теста
+				// ВАЖНО: Если мы просто обновляем оценки существующего теста, задания дублировать НЕЛЬЗЯ.
+				// Простая логика: если количество заданий совпадает, считаем что это тот же тест.
+				if (newData.tasks.length > appData.tasks.length) {
+					 const newTasksToAdd = newData.tasks.slice(appData.tasks.length);
+					 appData.tasks = [...appData.tasks, ...newTasksToAdd];
+				}
+
+				// 3. Добавляем новых учеников
 				const existingStudents = new Set(appData.students.map(s => s.toLowerCase().trim()));
-				const newStudents = [];
-				
-				newData.students?.forEach(student => {
-					const normalizedStudent = student.toLowerCase().trim();
-					if (!existingStudents.has(normalizedStudent)) {
+				newData.students.forEach(student => {
+					if (!existingStudents.has(student.toLowerCase().trim())) {
 						appData.students.push(student);
-						newStudents.push(student);
-						existingStudents.add(normalizedStudent);
+						// Сразу создаем пустую строку результатов для нового ученика
+						appData.results.push(new Array(appData.tasks.length).fill(0));
 					}
 				});
-				
-				// Добавляем пустые результаты для новых учеников
-				newStudents.forEach(() => {
-					appData.results.push(new Array(appData.tasks.length).fill(0));
-				});
+
+				// 4. ВАЖНО: Синхронизируем размерности массивов ПЕРЕД заливкой данных
+				adjustResultsArray();
+
+				// 5. Теперь, когда структуры готовы, заливаем данные
+				mergeResults(newData); // Использует нашу новую умную функцию
 				
 				// Объединяем ошибки
 				if (newData.errors) {
+					// Простая конкатенация может создать дубли, но это безопаснее потери
 					appData.errors = [...appData.errors, ...newData.errors];
 				}
-				
+
 				console.log('Данные успешно объединены');
 				
 			} else if (conflictResolution === 'keep') {
