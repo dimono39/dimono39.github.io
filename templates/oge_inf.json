@@ -1,7 +1,7 @@
 {
   "test": {
     "subject": "Информатика и ИКТ",
-    "class": "9А",
+    "class": "5А",
     "testDate": "2025-12-14",
     "theme": "ОГЭ по информатике. Выполнение заданий по темам курса основной школы.",
     "goals": "Проверка освоения основных понятий, умений применять знания для решения задач и работать с информацией на компьютере. Диагностика готовности к выполнению заданий по программированию, алгоритмизации, информационным технологиям и теоретическим основам информатики.",
@@ -14,18 +14,18 @@
     "criteria": {
       "1": {
         "min": 0,
-        "max": 12
+        "max": 4
       },
       "2": {
-        "min": 12,
-        "max": 17
+        "min": 5,
+        "max": 10
       },
       "3": {
-        "min": 17,
-        "max": 20
+        "min": 11,
+        "max": 15
       },
       "4": {
-        "min": 20,
+        "min": 16,
         "max": 24
       }
     },
@@ -294,11 +294,7 @@
     }
   ],
   "students": [
-    "Иванов А.",
-    "Петрова М.",
-    "Сидоров Д.",
-    "Козлова А.",
-    "Николаев И."
+    "Учащийся 1"
   ],
   "results": [
     [
@@ -318,256 +314,8 @@
       0,
       0,
       0
-    ],
-    [
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0
-    ],
-    [
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0
-    ],
-    [
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0
-    ],
-    [
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0
     ]
   ],
-  "errors": [
-    {
-      "studentIndex": 2,
-      "taskIndex": 2,
-      "type": "factual",
-      "description": "Пример фактические ошибки в задании 3",
-      "count": 2
-    },
-    {
-      "studentIndex": 2,
-      "taskIndex": 0,
-      "type": "factual",
-      "description": "Пример фактические ошибки в задании 1",
-      "count": 3
-    },
-    {
-      "studentIndex": 4,
-      "taskIndex": 0,
-      "type": "conceptual",
-      "description": "Пример концептуальные ошибки в задании 1",
-      "count": 3
-    },
-    {
-      "studentIndex": 3,
-      "taskIndex": 3,
-      "type": "conceptual",
-      "description": "Пример концептуальные ошибки в задании 4",
-      "count": 2
-    },
-    {
-      "studentIndex": 2,
-      "taskIndex": 2,
-      "type": "conceptual",
-      "description": "Пример концептуальные ошибки в задании 3",
-      "count": 3
-    },
-    {
-      "studentIndex": 1,
-      "taskIndex": 1,
-      "type": "conceptual",
-      "description": "Пример концептуальные ошибки в задании 2",
-      "count": 3
-    },
-    {
-      "studentIndex": 4,
-      "taskIndex": 3,
-      "type": "application",
-      "description": "Пример ошибки применения в задании 4",
-      "count": 1
-    },
-    {
-      "studentIndex": 0,
-      "taskIndex": 2,
-      "type": "application",
-      "description": "Пример ошибки применения в задании 3",
-      "count": 2
-    },
-    {
-      "studentIndex": 4,
-      "taskIndex": 0,
-      "type": "application",
-      "description": "Пример ошибки применения в задании 1",
-      "count": 3
-    },
-    {
-      "studentIndex": 4,
-      "taskIndex": 2,
-      "type": "calculation",
-      "description": "Пример вычислительные ошибки в задании 3",
-      "count": 2
-    },
-    {
-      "studentIndex": 0,
-      "taskIndex": 1,
-      "type": "calculation",
-      "description": "Пример вычислительные ошибки в задании 2",
-      "count": 2
-    },
-    {
-      "studentIndex": 3,
-      "taskIndex": 1,
-      "type": "calculation",
-      "description": "Пример вычислительные ошибки в задании 2",
-      "count": 3
-    },
-    {
-      "studentIndex": 2,
-      "taskIndex": 0,
-      "type": "calculation",
-      "description": "Пример вычислительные ошибки в задании 1",
-      "count": 1
-    },
-    {
-      "studentIndex": 3,
-      "taskIndex": 3,
-      "type": "calculation",
-      "description": "Пример вычислительные ошибки в задании 4",
-      "count": 2
-    },
-    {
-      "studentIndex": 1,
-      "taskIndex": 3,
-      "type": "calculation",
-      "description": "Пример вычислительные ошибки в задании 4",
-      "count": 1
-    },
-    {
-      "studentIndex": 1,
-      "taskIndex": 2,
-      "type": "logical",
-      "description": "Пример логические ошибки в задании 3",
-      "count": 3
-    },
-    {
-      "studentIndex": 4,
-      "taskIndex": 0,
-      "type": "logical",
-      "description": "Пример логические ошибки в задании 1",
-      "count": 3
-    },
-    {
-      "studentIndex": 0,
-      "taskIndex": 0,
-      "type": "logical",
-      "description": "Пример логические ошибки в задании 1",
-      "count": 2
-    },
-    {
-      "studentIndex": 4,
-      "taskIndex": 3,
-      "type": "attention",
-      "description": "Пример ошибки внимательности в задании 4",
-      "count": 2
-    },
-    {
-      "studentIndex": 3,
-      "taskIndex": 2,
-      "type": "attention",
-      "description": "Пример ошибки внимательности в задании 3",
-      "count": 3
-    },
-    {
-      "studentIndex": 4,
-      "taskIndex": 1,
-      "type": "attention",
-      "description": "Пример ошибки внимательности в задании 2",
-      "count": 3
-    },
-    {
-      "studentIndex": 3,
-      "taskIndex": 0,
-      "type": "attention",
-      "description": "Пример ошибки внимательности в задании 1",
-      "count": 2
-    },
-    {
-      "studentIndex": 4,
-      "taskIndex": 1,
-      "type": "attention",
-      "description": "Пример ошибки внимательности в задании 2",
-      "count": 2
-    },
-    {
-      "studentIndex": 0,
-      "taskIndex": 2,
-      "type": "technical",
-      "description": "Пример технические ошибки в задании 3",
-      "count": 1
-    },
-    {
-      "studentIndex": 3,
-      "taskIndex": 0,
-      "type": "technical",
-      "description": "Пример технические ошибки в задании 1",
-      "count": 1
-    }
-  ],
-  "timestamp": "2025-12-14T15:57:18.899Z"
+  "errors": [],
+  "timestamp": "2025-12-14T16:24:41.037Z"
 }
