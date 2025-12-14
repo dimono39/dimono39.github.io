@@ -3656,7 +3656,111 @@
 			
 			showNotification(`Загружен шаблон: ${selectedTemplate.file.name}`, 'success');
 		}
-		
+		function loadTemplateData(templateData) {
+			console.log('📥 Загрузка шаблона в форму:', templateData);
+			
+			try {
+				// Проверяем структуру шаблона
+				if (!templateData || !templateData.test || !templateData.tasks) {
+					throw new Error('Неверная структура шаблона');
+				}
+				
+				// Загружаем основную информацию о тесте
+				if (templateData.test) {
+					// Предмет
+					if (templateData.test.subject) {
+						const subjectSelect = document.getElementById('subjectSelect');
+						if (subjectSelect) {
+							subjectSelect.value = templateData.test.subject;
+							if (subjectSelect.onchange) subjectSelect.onchange();
+						}
+					}
+					
+					// Класс
+					if (templateData.test.class) {
+						const classSelect = document.getElementById('classSelect');
+						if (classSelect) classSelect.value = templateData.test.class;
+					}
+					
+					// Тип работы
+					if (templateData.test.workType) {
+						const workTypeSelect = document.getElementById('workTypeSelect');
+						if (workTypeSelect) workTypeSelect.value = templateData.test.workType;
+					}
+					
+					// Тема
+					if (templateData.test.theme) {
+						const themeInput = document.getElementById('themeInput');
+						if (themeInput) themeInput.value = templateData.test.theme;
+					}
+					
+					// Дата
+					if (templateData.test.testDate) {
+						const dateInput = document.getElementById('testDate');
+						if (dateInput) dateInput.value = templateData.test.testDate;
+					}
+				}
+				
+				// Загружаем задания
+				if (templateData.tasks && Array.isArray(templateData.tasks)) {
+					// Сначала очищаем существующие задания
+					const taskContainer = document.getElementById('taskContainer');
+					if (taskContainer) {
+						taskContainer.innerHTML = '';
+					}
+					
+					// Добавляем каждое задание
+					templateData.tasks.forEach((task, index) => {
+						addTaskToForm(task);
+					});
+					
+					console.log(`✅ Загружено ${templateData.tasks.length} заданий`);
+				}
+				
+				// Обновляем счетчик заданий
+				updateTaskCounter();
+				
+				// Показываем уведомление
+				if (typeof showNotification === 'function') {
+					showNotification(`Шаблон загружен: ${templateData.tasks?.length || 0} заданий`, 'success');
+				}
+				
+			} catch (error) {
+				console.error('❌ Ошибка загрузки шаблона:', error);
+				if (typeof showNotification === 'function') {
+					showNotification(`Ошибка загрузки шаблона: ${error.message}`, 'error');
+				}
+			}
+		}
+
+		// Вспомогательная функция для добавления задания в форму
+		function addTaskToForm(taskData) {
+			// Эта функция должна соответствовать вашей структуре добавления заданий
+			// Например:
+			const taskIndex = window.taskCounter ? window.taskCounter + 1 : 1;
+			
+			// Создаем HTML для задания
+			const taskHtml = `
+				<div class="task-item" data-task-index="${taskIndex}">
+					<h5>Задание ${taskIndex}</h5>
+					<textarea class="form-control task-text">${taskData.text || ''}</textarea>
+					<!-- Другие поля задания -->
+				</div>
+			`;
+			
+			// Добавляем в контейнер
+			const container = document.getElementById('taskContainer');
+			if (container) {
+				container.insertAdjacentHTML('beforeend', taskHtml);
+			}
+			
+			// Обновляем счетчик
+			if (window.taskCounter) {
+				window.taskCounter++;
+			} else {
+				window.taskCounter = 1;
+			}
+		}		
 		function selectTemplate(index) {
 			console.log('🎯 selectTemplate вызван с индексом:', index);
 			
