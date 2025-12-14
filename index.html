@@ -23750,22 +23750,33 @@ ${files.map(f => f ? `- ${f.name}` : '').join('\n')}
 				confirmImport(true, encodedData);
 			}, 300);
 		}
-
+		let autoBackupInterval = null; // Глобальная переменная для хранения ID таймера
 		// 18. Автоматическое резервное копирование
 		function setupAutoBackup() {
-			// Создаем резервную копию при закрытии страницы
-			window.addEventListener('beforeunload', function() {
-				createBackup();
-				localStorage.setItem('lastAutoBackup', new Date().toISOString());
-			});
+			// Защита от дублирования слушателя beforeunload
+			// (лучше вынести его отдельно, но здесь используем флаг для простоты)
+			if (!window.hasBackupListener) {
+				window.addEventListener('beforeunload', function() {
+					createBackup();
+					localStorage.setItem('lastAutoBackup', new Date().toISOString());
+				});
+				window.hasBackupListener = true;
+			}
 			
-			// Создаем резервную копию каждые 5 минут
-			setInterval(function() {
-				if (document.hasFocus()) { // Только если страница активна
+			// Очищаем предыдущий таймер, если он был
+			if (autoBackupInterval) {
+				clearInterval(autoBackupInterval);
+			}
+			
+			// Запускаем новый
+			autoBackupInterval = setInterval(function() {
+				if (document.hasFocus()) { 
 					createBackup();
 					console.log('Авторезервка создана');
 				}
 			}, 5 * 60 * 1000); // 5 минут
+			
+			showNotification('Автоматическое резервное копирование включено', 'success');
 		}
 
 		// 19. Восстановление из последней резервной копии
