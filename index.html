@@ -21773,7 +21773,7 @@ ${files.map(f => f ? `- ${f.name}` : '').join('\n')}
 							
 							errorHtml += `
 								<div style="margin-top: 20px;">
-									<button class="btn btn-warning" onclick="tryForceImport('${content.replace(/'/g, "\\'").substring(0, 5000)}')">
+									<button class="btn btn-warning" onclick="tryForceImport('${content.replace(/\\/g, '\\\\').replace(/'/g, "\\'").substring(0, 5000)}')">
 										Попробовать принудительный импорт
 									</button>
 									<button class="btn" onclick="hideModal()" style="margin-left: 10px;">Закрыть</button>
