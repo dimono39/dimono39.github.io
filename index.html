@@ -5480,16 +5480,7 @@
 					Учащихся с ошибками: ${new Set(appData.errors.map(e => e.studentIndex)).size}
 				</p>
 			`;
-			html += `<td class="heatmap-cell ${heatmapClass}">
-				<input type="number" 
-					   min="0" 
-					   max="${maxScore}" 
-					   value="${score}" 
-					   step="1"
-					   onfocus="this.select()" 
-					   class="score-input"
-					   onchange="updateResult(${studentIndex}, ${taskIndex}, this.value)"> 
-					   </td>`;
+			
 			container.appendChild(errorControls);
 				
 			if (appData.results.length === 0) {
