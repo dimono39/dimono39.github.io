@@ -3762,7 +3762,49 @@
 			}
 		}	
 
+		// Надежная синхронизация данных
+		function robustSyncData() {
+			// 1. Гарантируем, что у всех задач есть ID
+			appData.tasks.forEach((task, i) => {
+				if (!task.id) task.id = `task_${Date.now()}_${i}`;
+			});
 
+			// 2. Гарантируем, что у всех студентов есть ID (если вы перейдете на объекты студентов)
+			// Пока работаем со строками, поэтому синхронизируем по длине
+
+			// 3. Синхронизация матрицы результатов
+			// Удаляем лишние строки (если студентов стало меньше)
+			if (appData.results.length > appData.students.length) {
+				appData.results = appData.results.slice(0, appData.students.length);
+			}
+
+			// Добавляем строки для новых студентов
+			while (appData.results.length < appData.students.length) {
+				// Создаем массив нулей длиной равной количеству задач
+				appData.results.push(new Array(appData.tasks.length).fill(0));
+			}
+
+			// 4. Синхронизация столбцов (задач) внутри результатов
+			appData.results = appData.results.map(studentScores => {
+				// Если оценок меньше чем задач -> добавляем 0
+				if (studentScores.length < appData.tasks.length) {
+					const diff = appData.tasks.length - studentScores.length;
+					return [...studentScores, ...new Array(diff).fill(0)];
+				}
+				// Если оценок больше чем задач -> обрезаем лишние
+				else if (studentScores.length > appData.tasks.length) {
+					return studentScores.slice(0, appData.tasks.length);
+				}
+				return studentScores;
+			});
+			
+			// 5. Принудительное приведение к числам (защита от строковых "5")
+			appData.results = appData.results.map(row => 
+				row.map(val => parseInt(val) || 0)
+			);
+
+			console.log('✅ Данные синхронизированы и типизированы');
+		}
 		
 		function selectTemplate(index) {
 			console.log('🎯 selectTemplate вызван с индексом:', index);
@@ -4461,7 +4503,7 @@
 				}
 				
 				// Синхронизируем массивы
-				syncDataArrays();
+				robustSyncData();
 				
 				// Сохраняем информацию о шаблоне
 				appData.templates.lastTemplatePath = fileName;
@@ -5438,6 +5480,16 @@
 					Учащихся с ошибками: ${new Set(appData.errors.map(e => e.studentIndex)).size}
 				</p>
 			`;
+			html += `<td class="heatmap-cell ${heatmapClass}">
+				<input type="number" 
+					   min="0" 
+					   max="${maxScore}" 
+					   value="${score}" 
+					   step="1"
+					   onfocus="this.select()" 
+					   class="score-input"
+					   onchange="updateResult(${studentIndex}, ${taskIndex}, this.value)"> 
+					   </td>`;
 			container.appendChild(errorControls);
 				
 			if (appData.results.length === 0) {
@@ -6920,7 +6972,7 @@
 				}
 				
 				// Синхронизируем массивы
-				syncDataArrays();
+				robustSyncData();
 				
 				// Гарантируем, что templates существует
 				if (!appData.templates) {
@@ -13098,13 +13150,28 @@
 
         // Обновление результата
         function updateResult(studentIndex, taskIndex, value) {
-            if (!appData.results[studentIndex]) {
-                appData.results[studentIndex] = [];
-            }
-            appData.results[studentIndex][taskIndex] = value;
-            saveData();
-            scheduleAutoSave();
-            renderResults();
+			if (!appData.results[studentIndex]) {
+				appData.results[studentIndex] = [];
+			}
+			
+			// Жесткое приведение к числу
+			let numValue = parseInt(value);
+			
+			// Валидация: не меньше 0, не больше макс. балла
+			const maxScore = appData.tasks[taskIndex].maxScore;
+			if (isNaN(numValue)) numValue = 0;
+			if (numValue < 0) numValue = 0;
+			if (numValue > maxScore) {
+				numValue = maxScore;
+				showNotification(`Максимальный балл за это задание: ${maxScore}`, 'warning');
+			}
+
+			appData.results[studentIndex][taskIndex] = numValue;
+			
+			saveData();
+			// Перерисовка всей таблицы может быть тяжелой, лучше обновить только итог
+			// Но для надежности пока оставим renderResults()
+			renderResults();
         }
 
         // Сохранение результатов
@@ -13115,24 +13182,42 @@
 
         // Расчет оценки
 		function calculateGrade(totalScore) {
-			const criteriaType = appData.test.criteriaType;
-			const maxPossible = appData.tasks.reduce((sum, task) => sum + (parseInt(task.maxScore) || 0), 0);
+			// 1. Защита от типов
+			const score = parseFloat(totalScore) || 0;
 			
-			// Отладка
-			console.log('calculateGrade called:', { totalScore, criteriaType, maxPossible });
-			
-			if (criteriaType === 'percentage') {
-				const percentage = maxPossible > 0 ? (totalScore / maxPossible) * 100 : 0;
-				console.log('Percentage calculated:', percentage);
-				return calculateGradeByPercentage(percentage);
-			} else if (criteriaType === 'custom') {
-				const grade = calculateGradeByCustomScale(totalScore, maxPossible);
-				console.log('Custom grade:', grade);
-				return grade;
-			} else {
-				console.log('Points grade calculation');
-				return calculateGradeByPoints(totalScore);
+			// 2. Получаем текущие настройки
+			const type = appData.test.criteriaType || 'points';
+			const criteria = appData.test.criteria;
+			const maxPossible = appData.tasks.reduce((sum, task) => sum + (parseFloat(task.maxScore) || 0), 0);
+
+			if (!criteria) return 2; // Fallback
+
+			// 3. Расчет для процентов
+			if (type === 'percentage' || type === 'percent') { // Обработка разных названий в коде
+				const percentage = maxPossible > 0 ? (score / maxPossible) * 100 : 0;
+				
+				// Проходим по всем уровням критериев (1-10 или 2-5)
+				for (const [level, range] of Object.entries(criteria)) {
+					if (percentage >= range.min && percentage <= range.max) {
+						// Возвращаем ключ уровня (например "5" или "high")
+						// Если ключ числовой, возвращаем число
+						return isNaN(parseInt(level)) ? level : parseInt(level);
+					}
+				}
+				return 2; // Default low grade
 			}
+			
+			// 4. Расчет для баллов (points)
+			else {
+				for (const [level, range] of Object.entries(criteria)) {
+					if (score >= range.min && score <= range.max) {
+						return isNaN(parseInt(level)) ? level : parseInt(level);
+					}
+				}
+			}
+
+			// Если не попали ни в один диапазон (например, 0 баллов)
+			return 2;
 		}
 
 
@@ -22053,11 +22138,11 @@ ${files.map(f => f ? `- ${f.name}` : '').join('\n')}
 					appData = JSON.parse(JSON.stringify(dataToImport));
 				} else if (importMode === 'merge') {
 					// Объединение данных
-					mergeData(dataToImport);
+					smartMergeData(dataToImport);
 				}
 				
 				// Синхронизируем массивы
-				syncDataArrays();
+				robustSyncData();
 				
 				// Сохраняем
 				saveData();
@@ -22076,7 +22161,84 @@ ${files.map(f => f ? `- ${f.name}` : '').join('\n')}
 				showNotification('❌ Ошибка при импорте: ' + error.message, 'error');
 			}
 		}
+		function smartMergeData(newData) {
+			const oldData = JSON.parse(JSON.stringify(appData));
+			
+			// 1. Обновляем настройки теста (новые важнее)
+			appData.test = { ...oldData.test, ...newData.test };
+			
+			// 2. Умное слияние задач
+			// Создаем карту существующих задач по ID или тексту (если ID нет)
+			const existingTasksMap = new Map();
+			oldData.tasks.forEach((t, i) => existingTasksMap.set(t.id || t.type + t.maxScore, i));
 
+			newData.tasks.forEach(newTask => {
+				const key = newTask.id || newTask.type + newTask.maxScore;
+				if (!existingTasksMap.has(key)) {
+					// Это новая задача - добавляем
+					appData.tasks.push(newTask);
+				}
+			});
+
+			// 3. Умное слияние студентов
+			const existingStudentsMap = new Map(); // Нормализованное имя -> Индекс
+			appData.students.forEach((s, i) => existingStudentsMap.set(s.trim().toLowerCase(), i));
+
+			// Карта соответствия индексов импорта -> текущие индексы
+			const importIndexToCurrentIndex = {};
+
+			newData.students.forEach((newStudentName, importIdx) => {
+				const normName = newStudentName.trim().toLowerCase();
+				
+				if (existingStudentsMap.has(normName)) {
+					// Студент уже есть, запоминаем его текущий индекс
+					importIndexToCurrentIndex[importIdx] = existingStudentsMap.get(normName);
+				} else {
+					// Студента нет, добавляем
+					appData.students.push(newStudentName);
+					const newIndex = appData.students.length - 1;
+					importIndexToCurrentIndex[importIdx] = newIndex;
+					// Создаем ему пустой массив результатов (синхронизация заполнит позже, но лучше сразу)
+					appData.results[newIndex] = new Array(appData.tasks.length).fill(0);
+				}
+			});
+
+			// 4. Слияние результатов
+			// Сначала вызовем синхронизацию, чтобы выровнять матрицы под новые задачи и студентов
+			robustSyncData();
+
+			// Теперь переносим оценки из импорта
+			newData.results.forEach((scoresRow, importStudentIdx) => {
+				const targetStudentIdx = importIndexToCurrentIndex[importStudentIdx];
+				
+				if (targetStudentIdx !== undefined) {
+					scoresRow.forEach((score, taskIdx) => {
+						// Если задача существовала, переносим оценку
+						// ВАЖНО: Тут нужно сложное сопоставление задач, если их порядок разный.
+						// Для простоты предполагаем, что новые задачи добавляются в конец.
+						// Если оценка > 0, обновляем (не затираем существующие данные нулями)
+						if (score > 0 && appData.results[targetStudentIdx][taskIdx] === 0) {
+							appData.results[targetStudentIdx][taskIdx] = parseInt(score) || 0;
+						}
+					});
+				}
+			});
+			
+			// 5. Слияние критериев (полная замена, так как смешивать системы оценивания нельзя)
+			if (newData.test.criteria) {
+				appData.test.criteria = JSON.parse(JSON.stringify(newData.test.criteria));
+				appData.test.criteriaType = newData.test.criteriaType;
+				appData.test.criteriaSystem = newData.test.criteriaSystem;
+				
+				// Обновляем UI селекторы
+				const typeSelect = document.getElementById('criteriaType');
+				if(typeSelect) typeSelect.value = appData.test.criteriaType;
+			}
+
+			saveData();
+			renderAll();
+			showNotification('Данные успешно объединены', 'success');
+		}
 		// 7. ОБЪЕДИНЕНИЕ ДАННЫХ
 		function mergeData(newData) {
 			// Сохраняем старые данные
