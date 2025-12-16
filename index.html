@@ -2916,10 +2916,172 @@
 			});
 		}
 		function selectTemplate(index) {
-			const template = window.templateFilesData[index];
-			if (!template) return;
+			console.log('🎯 selectTemplate вызван с индексом:', index);
 			
-			showTemplateConfirmation(template);
+			// Используем отфильтрованные данные, если они есть
+			const dataSource = window.filteredTemplateFiles && window.filteredTemplateFiles.length > 0 ?
+				window.filteredTemplateFiles : window.templateFilesData;
+			
+			if (!dataSource || !Array.isArray(dataSource)) {
+				console.error('❌ Данные шаблонов не загружены');
+				showNotification('Ошибка: данные шаблонов не загружены', 'error');
+				return;
+			}
+			
+			if (index < 0 || index >= dataSource.length) {
+				console.error('❌ Неверный индекс:', index, 'длина массива:', dataSource.length);
+				showNotification('Ошибка: неверный выбор шаблона', 'error');
+				return;
+			}
+			
+			const selectedTemplate = dataSource[index];
+			console.log('📄 Выбран шаблон:', selectedTemplate.file.name);
+			
+			// Закрываем модальное окно
+			if (typeof closeModal === 'function') {
+				closeModal();
+			}
+			
+			try {
+				// Загружаем данные в форму
+				console.log('📋 Данные шаблона для загрузки:', selectedTemplate.data);
+				
+				// 1. Загружаем данные в основную форму
+				if (selectedTemplate.data && selectedTemplate.data.test) {
+					const testData = selectedTemplate.data.test;
+					
+					// Заполняем основные поля
+					const fields = {
+						'subjectSelect': testData.subject,
+						'classSelect': testData.class,
+						'workTypeSelect': testData.workType,
+						'themeInput': testData.theme,
+						'testDate': testData.testDate
+					};
+					
+					Object.entries(fields).forEach(([fieldId, value]) => {
+						if (value) {
+							const element = document.getElementById(fieldId);
+							if (element) {
+								element.value = value;
+								// Триггерим изменение если нужно
+								if (element.onchange) {
+									element.onchange();
+								} else if (typeof $(element).trigger === 'function') {
+									$(element).trigger('change');
+								}
+							}
+						}
+					});
+					
+					console.log('✅ Основные поля заполнены');
+				}
+				
+				// 2. Очищаем существующие задания если есть контейнер
+				const taskContainer = document.getElementById('taskContainer');
+				if (taskContainer) {
+					taskContainer.innerHTML = '';
+					console.log('🗑️ Контейнер заданий очищен');
+				}
+				
+				// 3. Загружаем задания
+				if (selectedTemplate.data && selectedTemplate.data.tasks && Array.isArray(selectedTemplate.data.tasks)) {
+					const tasks = selectedTemplate.data.tasks;
+					console.log(`📝 Загружаем ${tasks.length} заданий`);
+					
+					// Проверяем, есть ли функция для добавления заданий
+					if (typeof addNewTask === 'function') {
+						// Используем существующую функцию
+						tasks.forEach((task, taskIndex) => {
+							// Создаем новое задание
+							addNewTask();
+							
+							// Ищем последнее добавленное задание
+							const taskElements = document.querySelectorAll('.task-item');
+							const lastTask = taskElements[taskElements.length - 1];
+							
+							if (lastTask) {
+								// Заполняем поля задания
+								const textarea = lastTask.querySelector('textarea');
+								if (textarea && task.text) {
+									textarea.value = task.text;
+								}
+								
+								// Заполняем другие поля если они есть
+								if (task.answer) {
+									const answerInput = lastTask.querySelector('.task-answer');
+									if (answerInput) answerInput.value = task.answer;
+								}
+								
+								if (task.maxScore) {
+									const scoreInput = lastTask.querySelector('.task-score');
+									if (scoreInput) scoreInput.value = task.maxScore;
+								}
+							}
+						});
+					} else {
+						// Альтернативный способ: создаем задания вручную
+						tasks.forEach((task, taskIndex) => {
+							const taskNumber = taskIndex + 1;
+							console.log(`📝 Задание ${taskNumber}:`, task.text?.substring(0, 50) + '...');
+							
+							// Создаем HTML для задания
+							const taskHtml = `
+								<div class="task-item card mb-3" data-task-index="${taskNumber}">
+									<div class="card-header">
+										<h5 class="mb-0">Задание ${taskNumber}</h5>
+									</div>
+									<div class="card-body">
+										<div class="mb-3">
+											<label class="form-label">Текст задания:</label>
+											<textarea class="form-control task-text" rows="3">${task.text || ''}</textarea>
+										</div>
+										${task.answer ? `
+										<div class="mb-3">
+											<label class="form-label">Ответ:</label>
+											<input type="text" class="form-control task-answer" value="${task.answer}">
+										</div>
+										` : ''}
+										${task.maxScore ? `
+										<div class="mb-3">
+											<label class="form-label">Баллы:</label>
+											<input type="number" class="form-control task-score" value="${task.maxScore}">
+										</div>
+										` : ''}
+									</div>
+								</div>
+							`;
+							
+							if (taskContainer) {
+								taskContainer.insertAdjacentHTML('beforeend', taskHtml);
+							}
+						});
+					}
+					
+					console.log(`✅ Загружено ${tasks.length} заданий`);
+				}
+				
+				// 4. Обновляем счетчик заданий если такая функция есть
+				if (typeof updateTaskCounter === 'function') {
+					updateTaskCounter();
+				} else if (typeof updateTotalTasks === 'function') {
+					updateTotalTasks();
+				} else {
+					// Просто обновляем вручную
+					const taskCount = selectedTemplate.data?.tasks?.length || 0;
+					const counterElement = document.getElementById('taskCounter');
+					if (counterElement) {
+						counterElement.textContent = taskCount;
+					}
+				}
+				
+				// 5. Показываем успешное уведомление
+				showNotification(`✅ Загружен шаблон: "${selectedTemplate.file.name}" (${selectedTemplate.data?.tasks?.length || 0} заданий)`, 'success');
+				
+			} catch (error) {
+				console.error('❌ Ошибка загрузки шаблона:', error);
+				showNotification(`Ошибка загрузки шаблона: ${error.message}`, 'error');
+			}
 		}
 
 		// ============ ИНТЕГРАЦИЯ С ВАШИМ КОДОМ ============
