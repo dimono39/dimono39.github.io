@@ -22,6 +22,121 @@
     <script src="https://unpkg.com/html-docx-js@0.3.1/dist/html-docx.js"></script>
     
     <style>
+		/* Анимации для горячих клавиш */
+		@keyframes fadeInOut {
+			0% { opacity: 0; transform: translateX(-50%) translateY(10px); }
+			15% { opacity: 1; transform: translateX(-50%) translateY(0); }
+			85% { opacity: 1; transform: translateX(-50%) translateY(0); }
+			100% { opacity: 0; transform: translateX(-50%) translateY(-10px); }
+		}
+
+		/* Стили для шаблонов отчетов */
+		.template-item {
+			transition: all 0.3s ease;
+			cursor: pointer;
+		}
+
+		.template-item:hover {
+			background: #e8f4fc !important;
+			transform: translateX(5px);
+		}
+
+		/* Индикаторы состояния */
+		.status-indicator {
+			padding: 2px 8px;
+			border-radius: 10px;
+			font-size: 11px;
+			font-weight: bold;
+		}
+
+		.status-saving { background: #fff3cd; color: #f39c12; }
+		.status-saved { background: #d4edda; color: #27ae60; }
+		.status-error { background: #f8d7da; color: #e74c3c; }
+		/* Стили для тура/обучения */
+		.tour-overlay {
+			position: fixed;
+			top: 0;
+			left: 0;
+			right: 0;
+			bottom: 0;
+			background: rgba(0, 0, 0, 0.7);
+			z-index: 10000;
+			display: none;
+		}
+
+		.tour-step {
+			position: absolute;
+			background: white;
+			border-radius: 12px;
+			padding: 20px;
+			max-width: 400px;
+			box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+			z-index: 10001;
+			animation: tourSlideIn 0.3s ease;
+		}
+
+		@keyframes tourSlideIn {
+			from { opacity: 0; transform: translateY(20px); }
+			to { opacity: 1; transform: translateY(0); }
+		}
+
+		.tour-step h3 {
+			margin-top: 0;
+			color: #2c3e50;
+		}
+
+		.tour-step p {
+			margin: 10px 0;
+			color: #34495e;
+		}
+
+		.tour-actions {
+			display: flex;
+			justify-content: space-between;
+			margin-top: 20px;
+		}
+
+		.tour-counter {
+			font-size: 0.9em;
+			color: #7f8c8d;
+			text-align: center;
+			margin-top: 10px;
+		}
+
+		.tour-highlight {
+			position: relative;
+			z-index: 10002 !important;
+			box-shadow: 0 0 0 4px #3498db, 0 0 20px rgba(52, 152, 219, 0.5) !important;
+			animation: pulse 1.5s infinite;
+		}
+
+		@keyframes pulse {
+			0% { box-shadow: 0 0 0 4px rgba(52, 152, 219, 0.5); }
+			50% { box-shadow: 0 0 0 8px rgba(52, 152, 219, 0.3); }
+			100% { box-shadow: 0 0 0 4px rgba(52, 152, 219, 0.5); }
+		}
+
+		.tour-start-btn {
+			position: fixed;
+			bottom: 20px;
+			right: 20px;
+			z-index: 9999;
+			background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+			color: white;
+			border: none;
+			border-radius: 50%;
+			width: 60px;
+			height: 60px;
+			font-size: 24px;
+			cursor: pointer;
+			box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+			transition: all 0.3s;
+		}
+
+		.tour-start-btn:hover {
+			transform: scale(1.1);
+			box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+		}	
         /* Основные стили */
         * {
             margin: 0;
@@ -2148,7 +2263,13 @@
 			</div>
 		</div>
 	</div>
-	
+	<!-- Кнопка запуска тура -->
+	<button class="tour-start-btn no-print" onclick="startTour()" title="Начать обучение">
+		🎓
+	</button>
+
+	<!-- Оверлей тура -->
+	<div class="tour-overlay" id="tourOverlay"></div>
 	<!-- Туториал -->
 	<div id="tutorial-overlay" class="tutorial-overlay" style="display: none;">
 	  <div class="tutorial-container" id="tutorial-container">
@@ -2201,12 +2322,16 @@
 			<span>Работа в офлайн-режиме</span>
 		  </div>
 		</div>
-	
+	<script src="modules/errorHandler.js"></script>
+	//<script src="modules/tableRenderer.js"></script>
+	<script src="modules/tests.js"></script>
 	
     <script src="script.js"></script>
     <script>
   
-	
+		window.ErrorHandler = null;
+		window.TableRenderer = null;
+		window.TestRunner = null;	
 		
 	    let saveTimeout;
         // Глобальные переменные
@@ -2647,6 +2772,25 @@
 			addPwaDebugButton();
 		  }		  
 		  
+		  // Добавляем новые функции
+		  setupHotkeys();
+		  setupProgressiveSaving();
+		  enhanceExportSection();
+		  // Проверяем и показываем тур если нужно
+		const tourCompleted = localStorage.getItem('tourCompleted');
+		if (!tourCompleted) {
+			setTimeout(() => {
+				if (confirm('Добро пожаловать! Хотите пройти краткий тур по возможностям системы?')) {
+					startTour();
+				}
+			}, 2000);
+		}
+		
+		// Загружаем настройки автосохранения
+		const savedAutoSave = localStorage.getItem('autoSaveEnabled');
+		if (savedAutoSave !== null) {
+			autoSaveEnabled = savedAutoSave === 'true';
+		}
 		});
 
 		// Мобильная навигация
@@ -2759,12 +2903,1317 @@
 
 		// Вызываем при загрузке страницы
 		document.addEventListener('DOMContentLoaded', function() {
-			loadAppData();
-			renderAll();
+			//loadAppData();
+			//renderAll();
 		});
 		
-		// ==================== ТУТОРИАЛ ====================
+		// ==================== РЕЖИМ ОТЛАДКИ ====================
 
+		let debugMode = false;
+
+		function toggleDebugMode() {
+			debugMode = !debugMode;
+			
+			if (debugMode) {
+				// Включаем режим отладки
+				document.body.classList.add('debug-mode');
+				console.log('🔧 Режим отладки включен');
+				showNotification('🔧 Режим отладки включен', 'info');
+				
+				// Добавляем панель отладки
+				addDebugPanel();
+			} else {
+				// Выключаем режим отладки
+				document.body.classList.remove('debug-mode');
+				console.log('🔧 Режим отладки выключен');
+				showNotification('🔧 Режим отладки выключен', 'info');
+				
+				// Убираем панель отладки
+				removeDebugPanel();
+			}
+			
+			// Сохраняем настройку
+			localStorage.setItem('debugMode', debugMode.toString());
+		}
+
+		function addDebugPanel() {
+			const panel = document.createElement('div');
+			panel.id = 'debugPanel';
+			panel.style.cssText = `
+				position: fixed;
+				top: 10px;
+				left: 10px;
+				background: rgba(0, 0, 0, 0.85);
+				color: #0f0;
+				padding: 10px;
+				border-radius: 5px;
+				font-family: monospace;
+				font-size: 11px;
+				z-index: 10000;
+				max-width: 300px;
+				max-height: 200px;
+				overflow: auto;
+				border: 1px solid #0f0;
+			`;
+			
+			panel.innerHTML = `
+				<div style="margin-bottom: 5px; font-weight: bold;">🔧 ПАНЕЛЬ ОТЛАДКИ</div>
+				<div id="debugInfo"></div>
+				<div style="margin-top: 5px; border-top: 1px solid #0f0; padding-top: 5px;">
+					<button onclick="runDebugTests()" style="background: #333; color: #0f0; border: 1px solid #0f0; padding: 2px 5px; font-size: 10px; cursor: pointer;">
+						🧪 Тесты
+					</button>
+					<button onclick="clearDebugInfo()" style="background: #333; color: #0f0; border: 1px solid #0f0; padding: 2px 5px; font-size: 10px; cursor: pointer; margin-left: 5px;">
+						🗑️ Очистить
+					</button>
+				</div>
+			`;
+			
+			document.body.appendChild(panel);
+			
+			// Обновляем информацию каждую секунду
+			debugInterval = setInterval(updateDebugInfo, 1000);
+		}
+
+		function removeDebugPanel() {
+			const panel = document.getElementById('debugPanel');
+			if (panel) {
+				panel.remove();
+			}
+			
+			if (debugInterval) {
+				clearInterval(debugInterval);
+			}
+		}
+
+		function updateDebugInfo() {
+			const info = document.getElementById('debugInfo');
+			if (!info) return;
+			
+			const dataSize = localStorage.getItem('testAnalyticsData')?.length || 0;
+			const memory = performance.memory ? 
+				`Память: ${Math.round(performance.memory.usedJSHeapSize / 1024 / 1024)}MB` : 
+				'Память: недоступно';
+			
+			info.innerHTML = `
+				<div>Время: ${new Date().toLocaleTimeString()}</div>
+				<div>Данные: ${(dataSize / 1024).toFixed(2)} КБ</div>
+				<div>${memory}</div>
+				<div>Ошибки: ${window.errorCount || 0}</div>
+				<div>Сохранений: ${window.saveCount || 0}</div>
+			`;
+		}
+
+		function runDebugTests() {
+			console.log('🧪 Запуск тестов отладки...');
+			
+			// Тест 1: Проверка localStorage
+			try {
+				localStorage.setItem('debug_test', 'test');
+				localStorage.removeItem('debug_test');
+				logDebug('✅ localStorage работает');
+			} catch (e) {
+				logDebug('❌ localStorage ошибка: ' + e.message);
+			}
+			
+			// Тест 2: Проверка данных
+			logDebug(`📊 Данные: ${JSON.stringify(appData).length} символов`);
+			logDebug(`👥 Учащиеся: ${appData.students?.length || 0}`);
+			logDebug(`📝 Задания: ${appData.tasks?.length || 0}`);
+			
+			// Тест 3: Проверка функций
+			const functions = ['saveData', 'showNotification', 'showModal'];
+			functions.forEach(func => {
+				if (typeof window[func] === 'function') {
+					logDebug(`✅ ${func} существует`);
+				} else {
+					logDebug(`❌ ${func} не существует`);
+				}
+			});
+		}
+
+		function logDebug(message) {
+			console.log('🔧 ' + message);
+			const info = document.getElementById('debugInfo');
+			if (info) {
+				const div = document.createElement('div');
+				div.textContent = '• ' + message;
+				info.appendChild(div);
+				info.scrollTop = info.scrollHeight;
+			}
+		}
+
+		function clearDebugInfo() {
+			const info = document.getElementById('debugInfo');
+			if (info) {
+				info.innerHTML = '';
+			}
+		}
+		
+		// ==================== ИНТЕРАКТИВНЫЙ ТУР/ONBOARDING ====================
+
+		const tourSteps = [
+			{
+				title: "🎯 Добро пожаловать!",
+				content: "Это система анализа образовательных результатов. Пройдите краткий тур по основным функциям.",
+				target: null,
+				position: "center"
+			},
+			{
+				title: "📊 Настройка работы",
+				content: "Начните с выбора типа работы и настройки параметров. Используйте мастер настройки.",
+				target: "#setup",
+				position: "right"
+			},
+			{
+				title: "📝 Таксономия заданий",
+				content: "Добавьте задания с указанием уровня сложности и критериев оценивания.",
+				target: "#tasks",
+				position: "right"
+			},
+			{
+				title: "👥 Учащиеся",
+				content: "Добавьте список учащихся или импортируйте из электронного журнала.",
+				target: "#students",
+				position: "right"
+			},
+			{
+				title: "📊 Ввод результатов",
+				content: "Введите баллы за каждое задание для каждого учащегося.",
+				target: "#results",
+				position: "right"
+			},
+			{
+				title: "📈 Аналитика",
+				content: "Анализируйте результаты, выявляйте пробелы и получайте рекомендации.",
+				target: "#analytics",
+				position: "right"
+			},
+			{
+				title: "💾 Экспорт",
+				content: "Экспортируйте отчеты в разные форматы: PDF, Excel, Word.",
+				target: "#export",
+				position: "right"
+			},
+			{
+				title: "🎯 Быстрые действия",
+				content: "Используйте сочетания клавиш для быстрой работы:<br>• Ctrl+S - Сохранить<br>• Ctrl+P - Печать<br>• Ctrl+E - Экспорт",
+				target: ".export-buttons",
+				position: "bottom"
+			},
+			{
+				title: "🚀 Готово!",
+				content: "Теперь вы знаете основные возможности системы. Начните с настройки работы!",
+				target: null,
+				position: "center"
+			}
+		];
+
+		let currentTourStep = 0;
+		let tourActive = false;
+
+		function startTour() {
+			currentTourStep = 0;
+			tourActive = true;
+			showTourStep(0);
+			
+			// Показываем оверлей
+			const overlay = document.getElementById('tourOverlay');
+			overlay.style.display = 'block';
+			
+			// Сохраняем в localStorage, что тур показан
+			localStorage.setItem('tourCompleted', 'true');
+		}
+
+		function showTourStep(stepIndex) {
+			const step = tourSteps[stepIndex];
+			const overlay = document.getElementById('tourOverlay');
+			
+			// Очищаем предыдущие подсветки
+			document.querySelectorAll('.tour-highlight').forEach(el => {
+				el.classList.remove('tour-highlight');
+			});
+			
+			// Удаляем предыдущий шаг
+			document.querySelectorAll('.tour-step').forEach(el => el.remove());
+			
+			// Создаем новый шаг
+			const tourStep = document.createElement('div');
+			tourStep.className = 'tour-step';
+			
+			// Позиционируем
+			if (step.target && document.querySelector(step.target)) {
+				const target = document.querySelector(step.target);
+				target.classList.add('tour-highlight');
+				
+				const rect = target.getBoundingClientRect();
+				
+				switch(step.position) {
+					case 'top':
+						tourStep.style.top = (rect.top - tourStep.offsetHeight - 10) + 'px';
+						tourStep.style.left = rect.left + 'px';
+						break;
+					case 'bottom':
+						tourStep.style.top = (rect.bottom + 10) + 'px';
+						tourStep.style.left = rect.left + 'px';
+						break;
+					case 'left':
+						tourStep.style.top = rect.top + 'px';
+						tourStep.style.left = (rect.left - tourStep.offsetWidth - 10) + 'px';
+						break;
+					case 'right':
+						tourStep.style.top = rect.top + 'px';
+						tourStep.style.left = (rect.right + 10) + 'px';
+						break;
+				}
+			} else {
+				// Центрируем
+				tourStep.style.top = '50%';
+				tourStep.style.left = '50%';
+				tourStep.style.transform = 'translate(-50%, -50%)';
+			}
+			
+			// Содержимое
+			tourStep.innerHTML = `
+				<h3>${step.title}</h3>
+				<p>${step.content}</p>
+				<div class="tour-actions">
+					<button class="btn btn-outline" onclick="prevTourStep()" ${stepIndex === 0 ? 'disabled' : ''}>
+						← Назад
+					</button>
+					<div class="tour-counter">
+						Шаг ${stepIndex + 1} из ${tourSteps.length}
+					</div>
+					<button class="btn btn-primary" onclick="nextTourStep()">
+						${stepIndex === tourSteps.length - 1 ? 'Завершить' : 'Далее →'}
+					</button>
+				</div>
+			`;
+			
+			overlay.appendChild(tourStep);
+			
+			// Активируем соответствующую вкладку если нужно
+			if (step.target && step.target.startsWith('#')) {
+				const tabId = step.target.substring(1);
+				showTab(tabId);
+			}
+		}
+
+		function nextTourStep() {
+			if (currentTourStep < tourSteps.length - 1) {
+				currentTourStep++;
+				showTourStep(currentTourStep);
+			} else {
+				endTour();
+			}
+		}
+
+		function prevTourStep() {
+			if (currentTourStep > 0) {
+				currentTourStep--;
+				showTourStep(currentTourStep);
+			}
+		}
+
+		function endTour() {
+			tourActive = false;
+			const overlay = document.getElementById('tourOverlay');
+			overlay.style.display = 'none';
+			
+			// Убираем подсветку
+			document.querySelectorAll('.tour-highlight').forEach(el => {
+				el.classList.remove('tour-highlight');
+			});
+			
+			// Удаляем шаги
+			document.querySelectorAll('.tour-step').forEach(el => el.remove());
+			
+			showNotification('🎓 Обучение завершено! Начните работу с настройки теста.', 'success');
+		}
+
+		// Автозапуск тура для новых пользователей
+		document.addEventListener('DOMContentLoaded', function() {
+			const tourCompleted = localStorage.getItem('tourCompleted');
+			const firstVisit = !localStorage.getItem('firstVisitTime');
+			
+			if (firstVisit) {
+				localStorage.setItem('firstVisitTime', new Date().toISOString());
+			}
+			
+			// Показываем тур если пользователь новый или прошло много времени
+			if (!tourCompleted || (firstVisit && !tourCompleted)) {
+				setTimeout(() => {
+					if (confirm('Хотите пройти краткое обучение по работе с системой?')) {
+						startTour();
+					} else {
+						localStorage.setItem('tourCompleted', 'true');
+					}
+				}, 1000);
+			}
+		});		
+		
+		// ==================== ШАБЛОНЫ ОТЧЕТОВ ====================
+
+		const reportTemplates = {
+			default: {
+				name: "Стандартный отчет",
+				sections: ['header', 'grades_distribution', 'task_analysis', 'student_performance', 'recommendations'],
+				includeCharts: true,
+				pageSize: 'A4',
+				fontSize: '12pt',
+				colorScheme: 'default'
+			},
+			minimal: {
+				name: "Минималистичный",
+				sections: ['header', 'grades_distribution', 'recommendations'],
+				includeCharts: false,
+				pageSize: 'A4',
+				fontSize: '11pt',
+				colorScheme: 'grayscale'
+			},
+			detailed: {
+				name: "Детализированный",
+				sections: ['header', 'grades_distribution', 'task_analysis', 'student_performance', 
+						  'error_analysis', 'taxonomy_analysis', 'recommendations', 'appendix'],
+				includeCharts: true,
+				pageSize: 'A4',
+				fontSize: '10pt',
+				colorScheme: 'color'
+			},
+			for_parents: {
+				name: "Для родителей",
+				sections: ['header', 'student_performance', 'personal_recommendations'],
+				includeCharts: true,
+				pageSize: 'A4',
+				fontSize: '13pt',
+				colorScheme: 'soft'
+			},
+			for_administration: {
+				name: "Для администрации",
+				sections: ['header', 'grades_distribution', 'class_comparison', 'kpi', 'summary'],
+				includeCharts: true,
+				pageSize: 'A4',
+				fontSize: '11pt',
+				colorScheme: 'professional'
+			}
+		};
+
+		let currentReportTemplate = { ...reportTemplates.default };
+		let customTemplates = JSON.parse(localStorage.getItem('reportTemplates') || '[]');
+
+		function showReportTemplateManager() {
+			const html = `
+				<div style="max-width: 800px;">
+					<h3>🎨 Управление шаблонами отчетов</h3>
+					
+					<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 20px 0;">
+						<!-- Предустановленные шаблоны -->
+						<div style="background: #f8f9fa; padding: 20px; border-radius: 10px;">
+							<h4>📋 Предустановленные шаблоны</h4>
+							<div style="max-height: 300px; overflow-y: auto;">
+								${Object.entries(reportTemplates).map(([key, template]) => `
+									<div class="template-item" onclick="loadReportTemplate('${key}')" 
+										 style="padding: 10px; margin: 5px 0; background: white; border-radius: 5px; cursor: pointer; border: 2px solid ${currentReportTemplate.name === template.name ? '#3498db' : '#ddd'}">
+										<strong>${template.name}</strong><br>
+										<small style="color: #666;">
+											${template.sections.length} секций • ${template.includeCharts ? 'С графиками' : 'Без графиков'} • ${template.fontSize}
+										</small>
+									</div>
+								`).join('')}
+							</div>
+						</div>
+						
+						<!-- Пользовательские шаблоны -->
+						<div style="background: #f0f8ff; padding: 20px; border-radius: 10px;">
+							<h4>⭐ Мои шаблоны</h4>
+							${customTemplates.length > 0 ? `
+								<div style="max-height: 300px; overflow-y: auto;">
+									${customTemplates.map((template, index) => `
+										<div class="template-item" style="padding: 10px; margin: 5px 0; background: white; border-radius: 5px; border: 1px solid #ddd;">
+											<div style="display: flex; justify-content: space-between; align-items: center;">
+												<div>
+													<strong>${template.name}</strong><br>
+													<small style="color: #666;">
+														${template.sections.length} секций • ${template.includeCharts ? 'С графиками' : 'Без графиков'}
+													</small>
+												</div>
+												<div>
+													<button class="btn btn-sm btn-outline-primary" onclick="loadCustomTemplate(${index})">
+														Загрузить
+													</button>
+													<button class="btn btn-sm btn-outline-danger" onclick="deleteCustomTemplate(${index})">
+														🗑️
+													</button>
+												</div>
+											</div>
+										</div>
+									`).join('')}
+								</div>
+							` : '<p style="text-align: center; color: #666; padding: 20px;">Пока нет сохраненных шаблонов</p>'}
+							
+							<button class="btn btn-success" onclick="createNewTemplate()" style="margin-top: 15px; width: 100%;">
+								✨ Создать новый шаблон
+							</button>
+						</div>
+					</div>
+					
+					<!-- Текущий шаблон -->
+					<div style="background: #e8f4f8; padding: 15px; border-radius: 8px; margin: 20px 0;">
+						<h4>🎯 Текущий шаблон: ${currentReportTemplate.name}</h4>
+						<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-top: 10px;">
+							<div>
+								<strong>Секции:</strong><br>
+								<small>${currentReportTemplate.sections.join(', ')}</small>
+							</div>
+							<div>
+								<strong>Графики:</strong><br>
+								<small>${currentReportTemplate.includeCharts ? 'Включены' : 'Выключены'}</small>
+							</div>
+							<div>
+								<strong>Размер:</strong><br>
+								<small>${currentReportTemplate.pageSize}</small>
+							</div>
+							<div>
+								<strong>Шрифт:</strong><br>
+								<small>${currentReportTemplate.fontSize}</small>
+							</div>
+						</div>
+					</div>
+					
+					<!-- Быстрые действия -->
+					<div style="display: flex; gap: 10px; margin-top: 20px;">
+						<button class="btn btn-primary" onclick="applyCurrentTemplate()">
+							Применить к отчету
+						</button>
+						<button class="btn btn-outline-primary" onclick="saveAsCustomTemplate()">
+							💾 Сохранить как шаблон
+						</button>
+						<button class="btn btn-outline" onclick="editCurrentTemplate()">
+							✏️ Редактировать
+						</button>
+					</div>
+				</div>
+			`;
+			
+			showModal('Управление шаблонами отчетов', html);
+		}
+
+		function loadReportTemplate(templateKey) {
+			currentReportTemplate = { ...reportTemplates[templateKey] };
+			showNotification(`Загружен шаблон: ${currentReportTemplate.name}`, 'success');
+			showReportTemplateManager();
+		}
+
+		function loadCustomTemplate(index) {
+			if (customTemplates[index]) {
+				currentReportTemplate = { ...customTemplates[index] };
+				showNotification(`Загружен пользовательский шаблон: ${currentReportTemplate.name}`, 'success');
+				showReportTemplateManager();
+			}
+		}
+
+		function createNewTemplate() {
+			const html = `
+				<div style="max-width: 600px;">
+					<h3>✨ Создание нового шаблона</h3>
+					
+					<div class="form-group">
+						<label>Название шаблона:</label>
+						<input type="text" id="templateName" class="form-control" placeholder="Например: Мой отчет для педсовета">
+					</div>
+					
+					<div class="form-group">
+						<label>Выберите секции для включения:</label>
+						<div style="max-height: 200px; overflow-y: auto; border: 1px solid #ddd; padding: 10px; border-radius: 5px;">
+							${[
+								{id: 'header', name: 'Заголовок и метаданные'},
+								{id: 'grades_distribution', name: 'Распределение оценок'},
+								{id: 'task_analysis', name: 'Анализ заданий'},
+								{id: 'student_performance', name: 'Успеваемость учащихся'},
+								{id: 'error_analysis', name: 'Анализ ошибок'},
+								{id: 'taxonomy_analysis', name: 'Таксономический анализ'},
+								{id: 'recommendations', name: 'Рекомендации'},
+								{id: 'personal_recommendations', name: 'Персональные рекомендации'},
+								{id: 'class_comparison', name: 'Сравнение классов'},
+								{id: 'kpi', name: 'Ключевые показатели'},
+								{id: 'summary', name: 'Итоговая сводка'},
+								{id: 'appendix', name: 'Приложение (детальные данные)'}
+							].map(section => `
+								<label style="display: block; margin: 5px 0;">
+									<input type="checkbox" class="section-checkbox" value="${section.id}" checked>
+									${section.name}
+								</label>
+							`).join('')}
+						</div>
+					</div>
+					
+					<div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+						<div class="form-group">
+							<label>Включить графики:</label>
+							<select id="includeCharts" class="form-control">
+								<option value="true">Да</option>
+								<option value="false">Нет</option>
+							</select>
+						</div>
+						
+						<div class="form-group">
+							<label>Размер страницы:</label>
+							<select id="pageSize" class="form-control">
+								<option value="A4">A4</option>
+								<option value="A3">A3</option>
+								<option value="Letter">Letter</option>
+							</select>
+						</div>
+						
+						<div class="form-group">
+							<label>Размер шрифта:</label>
+							<select id="fontSize" class="form-control">
+								<option value="10pt">10pt (мелкий)</option>
+								<option value="11pt">11pt</option>
+								<option value="12pt" selected>12pt (стандартный)</option>
+								<option value="13pt">13pt</option>
+								<option value="14pt">14pt (крупный)</option>
+							</select>
+						</div>
+						
+						<div class="form-group">
+							<label>Цветовая схема:</label>
+							<select id="colorScheme" class="form-control">
+								<option value="default">Стандартная</option>
+								<option value="grayscale">Черно-белая</option>
+								<option value="soft">Пастельная</option>
+								<option value="professional">Профессиональная</option>
+								<option value="color">Яркая</option>
+							</select>
+						</div>
+					</div>
+					
+					<div style="margin-top: 20px;">
+						<button class="btn btn-success" onclick="saveNewTemplate()">
+							💾 Сохранить шаблон
+						</button>
+						<button class="btn btn-outline" onclick="hideModal()">
+							Отмена
+						</button>
+					</div>
+				</div>
+			`;
+			
+			showModal('Создание шаблона', html);
+		}
+
+		function saveNewTemplate() {
+			const name = document.getElementById('templateName').value.trim();
+			if (!name) {
+				showNotification('Введите название шаблона', 'error');
+				return;
+			}
+			
+			const sections = Array.from(document.querySelectorAll('.section-checkbox:checked'))
+				.map(cb => cb.value);
+			
+			if (sections.length === 0) {
+				showNotification('Выберите хотя бы одну секцию', 'error');
+				return;
+			}
+			
+			const newTemplate = {
+				name: name,
+				sections: sections,
+				includeCharts: document.getElementById('includeCharts').value === 'true',
+				pageSize: document.getElementById('pageSize').value,
+				fontSize: document.getElementById('fontSize').value,
+				colorScheme: document.getElementById('colorScheme').value,
+				created: new Date().toISOString()
+			};
+			
+			customTemplates.push(newTemplate);
+			localStorage.setItem('reportTemplates', JSON.stringify(customTemplates));
+			
+			currentReportTemplate = { ...newTemplate };
+			
+			hideModal();
+			showNotification(`Шаблон "${name}" сохранен!`, 'success');
+			showReportTemplateManager();
+		}
+
+		function saveAsCustomTemplate() {
+			const name = prompt('Введите название для шаблона:', `Модифицированный ${currentReportTemplate.name}`);
+			if (name) {
+				const newTemplate = {
+					...currentReportTemplate,
+					name: name,
+					created: new Date().toISOString()
+				};
+				
+				customTemplates.push(newTemplate);
+				localStorage.setItem('reportTemplates', JSON.stringify(customTemplates));
+				
+				showNotification(`Шаблон "${name}" сохранен!`, 'success');
+				showReportTemplateManager();
+			}
+		}
+
+		function deleteCustomTemplate(index) {
+			if (confirm(`Удалить шаблон "${customTemplates[index].name}"?`)) {
+				customTemplates.splice(index, 1);
+				localStorage.setItem('reportTemplates', JSON.stringify(customTemplates));
+				showReportTemplateManager();
+				showNotification('Шаблон удален', 'success');
+			}
+		}
+
+		function applyCurrentTemplate() {
+			// Применяем настройки шаблона к текущему отчету
+			applyTemplateToReport(currentReportTemplate);
+			hideModal();
+			showNotification(`Настройки шаблона "${currentReportTemplate.name}" применены`, 'success');
+		}
+
+		function applyTemplateToReport(template) {
+			// Здесь будет логика применения настроек шаблона к генерации отчета
+			console.log('Применяем шаблон:', template);
+			
+			// В реальной реализации здесь будут меняться настройки печати/экспорта
+			// Например, фильтрация секций, настройка стилей и т.д.
+		}
+
+		// Добавляем кнопку в интерфейс экспорта
+		function enhanceExportSection() {
+			const exportSection = document.getElementById('export');
+			if (!exportSection) return;
+			
+			// Добавляем кнопку управления шаблонами
+			const templateButton = document.createElement('button');
+			templateButton.className = 'btn btn-outline-info';
+			templateButton.innerHTML = '🎨 Управление шаблонами';
+			templateButton.onclick = showReportTemplateManager;
+			templateButton.style.margin = '0 10px 10px 0';
+			
+			const exportButtons = exportSection.querySelector('.export-buttons');
+			if (exportButtons) {
+				exportButtons.insertBefore(templateButton, exportButtons.firstChild);
+			}
+		}		
+		
+		// ==================== ГОРЯЧИЕ КЛАВИШИ (ХОТКЕИ) ====================
+
+		const hotkeys = {
+			'ctrl+s': function() { safeFunctions.saveData(); },
+			'ctrl+shift+s': function() { safeFunctions.saveData(); },
+			'ctrl+p': function() { 
+				if (typeof printFullReport === 'function') {
+					try { printFullReport(); } catch(e) { console.error(e); }
+				}
+			},
+			'ctrl+e': function() { 
+				if (typeof exportToExcel === 'function') {
+					try { exportToExcel(); } catch(e) { console.error(e); }
+				}
+			},
+			'ctrl+d': function() { 
+				if (typeof exportToPDF === 'function') {
+					try { exportToPDF(); } catch(e) { console.error(e); }
+				}
+			},
+			'ctrl+o': function() { 
+				if (typeof restoreBackupDialog === 'function') {
+					try { restoreBackupDialog(); } catch(e) { console.error(e); }
+				}
+			},
+			'ctrl+i': function() { 
+				if (typeof showTemplateSelection === 'function') {
+					try { showTemplateSelection(); } catch(e) { console.error(e); }
+				}
+			},
+			'ctrl+n': function() { 
+				if (typeof resetAllData === 'function') {
+					if (confirm('Создать новую работу? Текущие данные будут сохранены.')) {
+						try { resetAllData(); } catch(e) { console.error(e); }
+					}
+				}
+			},
+			'ctrl+1': function() { showTab('setup'); },
+			'ctrl+2': function() { showTab('tasks'); },
+			'ctrl+3': function() { showTab('students'); },
+			'ctrl+4': function() { showTab('results'); },
+			'ctrl+5': function() { showTab('analytics'); },
+			'ctrl+6': function() { showTab('visualization'); },
+			'ctrl+7': function() { showTab('recommendations'); },
+			'ctrl+8': function() { showTab('export'); },
+			'f1': function() { 
+				if (typeof showHotkeyHelp === 'function') {
+					try { showHotkeyHelp(); } catch(e) { console.error(e); }
+				}
+			},
+			'esc': function() { 
+				if (typeof hideModal === 'function') {
+					try { hideModal(); } catch(e) { console.error(e); }
+				}
+			},
+			'ctrl+?': function() { 
+				if (typeof showHotkeyHelp === 'function') {
+					try { showHotkeyHelp(); } catch(e) { console.error(e); }
+				}
+			},
+			// Дебаг мод только если функция существует
+			'ctrl+shift+d': function() {
+				if (typeof toggleDebugMode === 'function') {
+					try { toggleDebugMode(); } catch(e) { console.error(e); }
+				} else {
+					console.log('Режим отладки недоступен');
+				}
+			}
+		};
+
+		let pressedKeys = new Set();
+
+		function setupHotkeys() {
+			document.addEventListener('keydown', (e) => {
+				pressedKeys.add(e.key.toLowerCase());
+				
+				// Формируем комбинацию
+				let combo = [];
+				if (e.ctrlKey || e.metaKey) combo.push('ctrl');
+				if (e.shiftKey) combo.push('shift');
+				if (e.altKey) combo.push('alt');
+				combo.push(e.key.toLowerCase());
+				
+				const comboString = combo.join('+');
+				
+				// Проверяем комбинацию
+				if (hotkeys[comboString]) {
+					e.preventDefault();
+					hotkeys[comboString]();
+					
+					// Визуальная обратная связь
+					showHotkeyFeedback(comboString);
+				}
+				
+				// Дебаг мод
+				if (comboString === 'ctrl+shift+d') {
+					toggleDebugMode();
+				}
+			});
+			
+			document.addEventListener('keyup', (e) => {
+				pressedKeys.delete(e.key.toLowerCase());
+			});
+			
+			// Добавляем визуальный индикатор
+			addHotkeyIndicator();
+		}
+
+		function showHotkeyFeedback(combo) {
+			const feedback = document.createElement('div');
+			feedback.className = 'hotkey-feedback';
+			feedback.textContent = `✓ ${combo}`;
+			feedback.style.cssText = `
+				position: fixed;
+				bottom: 20px;
+				left: 50%;
+				transform: translateX(-50%);
+				background: rgba(52, 152, 219, 0.9);
+				color: white;
+				padding: 10px 20px;
+				border-radius: 20px;
+				z-index: 10000;
+				animation: fadeInOut 1.5s ease;
+				font-weight: bold;
+				box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+			`;
+			
+			document.body.appendChild(feedback);
+			
+			setTimeout(() => {
+				feedback.remove();
+			}, 1500);
+		}
+
+		function showHotkeyHelp() {
+			const html = `
+				<div style="max-width: 700px;">
+					<h3>🎮 Горячие клавиши</h3>
+					<p>Используйте сочетания клавиш для быстрой работы:</p>
+					
+					<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 20px 0;">
+						<div style="background: #f8f9fa; padding: 15px; border-radius: 8px;">
+							<h4>📊 Основные действия</h4>
+							<table style="width: 100%; font-size: 0.9em;">
+								<tr><td><kbd>Ctrl</kbd> + <kbd>S</kbd></td><td>Сохранить всё</td></tr>
+								<tr><td><kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>S</kbd></td><td>Быстрое сохранение</td></tr>
+								<tr><td><kbd>Ctrl</kbd> + <kbd>P</kbd></td><td>Печать отчета</td></tr>
+								<tr><td><kbd>Ctrl</kbd> + <kbd>E</kbd></td><td>Экспорт в Excel</td></tr>
+								<tr><td><kbd>Ctrl</kbd> + <kbd>D</kbd></td><td>Экспорт в PDF</td></tr>
+								<tr><td><kbd>Ctrl</kbd> + <kbd>O</kbd></td><td>Открыть резервную копию</td></tr>
+								<tr><td><kbd>Ctrl</kbd> + <kbd>I</kbd></td><td>Импорт шаблона</td></tr>
+								<tr><td><kbd>Ctrl</kbd> + <kbd>N</kbd></td><td>Новая работа</td></tr>
+								<tr><td><kbd>Esc</kbd></td><td>Закрыть модальное окно</td></tr>
+							</table>
+						</div>
+						
+						<div style="background: #f8f9fa; padding: 15px; border-radius: 8px;">
+							<h4>📑 Переключение вкладок</h4>
+							<table style="width: 100%; font-size: 0.9em;">
+								<tr><td><kbd>Ctrl</kbd> + <kbd>1</kbd></td><td>Настройки</td></tr>
+								<tr><td><kbd>Ctrl</kbd> + <kbd>2</kbd></td><td>Задания</td></tr>
+								<tr><td><kbd>Ctrl</kbd> + <kbd>3</kbd></td><td>Учащиеся</td></tr>
+								<tr><td><kbd>Ctrl</kbd> + <kbd>4</kbd></td><td>Результаты</td></tr>
+								<tr><td><kbd>Ctrl</kbd> + <kbd>5</kbd></td><td>Аналитика</td></tr>
+								<tr><td><kbd>Ctrl</kbd> + <kbd>6</kbd></td><td>Визуализация</td></tr>
+								<tr><td><kbd>Ctrl</kbd> + <kbd>7</kbd></td><td>Рекомендации</td></tr>
+								<tr><td><kbd>Ctrl</kbd> + <kbd>8</kbd></td><td>Экспорт</td></tr>
+							</table>
+						</div>
+					</div>
+					
+					<div style="background: #e8f4f8; padding: 15px; border-radius: 8px; margin: 15px 0;">
+						<h4>🔧 Специальные</h4>
+						<table style="width: 100%; font-size: 0.9em;">
+							<tr><td><kbd>F1</kbd> или <kbd>Ctrl</kbd> + <kbd>?</kbd></td><td>Показать эту справку</td></tr>
+							<tr><td><kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>D</kbd></td><td>Включить режим отладки</td></tr>
+							<tr><td><kbd>Ctrl</kbd> + <kbd>R</kbd></td><td>Обновить данные</td></tr>
+						</table>
+					</div>
+					
+					<div style="margin-top: 20px; text-align: center;">
+						<button class="btn btn-primary" onclick="printHotkeyCheatsheet()">
+							🖨️ Распечатать шпаргалку
+						</button>
+					</div>
+				</div>
+			`;
+			
+			showModal('Горячие клавиши', html);
+		}
+
+		function addHotkeyIndicator() {
+			const indicator = document.createElement('div');
+			indicator.id = 'hotkeyIndicator';
+			indicator.style.cssText = `
+				position: fixed;
+				bottom: 10px;
+				right: 10px;
+				background: rgba(52, 152, 219, 0.1);
+				color: #3498db;
+				padding: 5px 10px;
+				border-radius: 5px;
+				font-size: 11px;
+				cursor: help;
+				z-index: 9998;
+				border: 1px dashed #3498db;
+				transition: all 0.3s;
+			`;
+			indicator.innerHTML = '🎮 <kbd>F1</kbd> - горячие клавиши';
+			indicator.title = 'Нажмите F1 для просмотра горячих клавиш';
+			indicator.onclick = showHotkeyHelp;
+			
+			document.body.appendChild(indicator);
+		}
+
+		function printHotkeyCheatsheet() {
+			const html = `
+				<div style="padding: 20px; font-family: Arial, sans-serif;">
+					<h2 style="text-align: center;">🎮 Шпаргалка по горячим клавишам</h2>
+					<h3>Система анализа образовательных результатов</h3>
+					<p style="color: #666; text-align: center;">Дата: ${new Date().toLocaleDateString()}</p>
+					
+					<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 30px;">
+						${Object.entries(hotkeys).map(([combo, func]) => `
+							<div style="border-bottom: 1px solid #eee; padding: 10px 0;">
+								<kbd style="background: #f8f9fa; padding: 3px 8px; border-radius: 4px; font-family: monospace;">${combo}</kbd>
+								<span style="margin-left: 10px;">${getHotkeyDescription(func)}</span>
+							</div>
+						`).join('')}
+					</div>
+					
+					<div style="margin-top: 40px; text-align: center; color: #999; font-size: 12px;">
+						<p>Сохраните эту шпаргалку для быстрой работы с системой</p>
+					</div>
+				</div>
+			`;
+			
+			const printWindow = window.open('', '_blank');
+			printWindow.document.write(`
+				<html>
+					<head>
+						<title>Шпаргалка по горячим клавишам</title>
+						<style>
+							body { font-family: Arial, sans-serif; margin: 20px; }
+							kbd { background: #f8f9fa; padding: 3px 8px; border-radius: 4px; font-family: monospace; }
+							@media print { @page { size: A4; margin: 15mm; } }
+						</style>
+					</head>
+					<body>${html}</body>
+				</html>
+			`);
+			printWindow.document.close();
+			printWindow.print();
+		}
+
+		function getHotkeyDescription(func) {
+			const descriptions = {
+				[saveAllData]: 'Сохранить все данные',
+				[saveData]: 'Сохранить текущие изменения',
+				[printFullReport]: 'Печать полного отчета',
+				[exportToExcel]: 'Экспорт в Excel',
+				[exportToPDF]: 'Экспорт в PDF',
+				[restoreBackupDialog]: 'Открыть резервную копию',
+				[showTemplateSelection]: 'Импорт шаблона',
+				[resetAllData]: 'Новая работа',
+				[showHotkeyHelp]: 'Показать справку',
+				[hideModal]: 'Закрыть модальное окно'
+			};
+			
+			return descriptions[func] || 'Переключение вкладки';
+		}		
+		// ==================== ПРОГРЕССИВНОЕ СОХРАНЕНИЕ ====================
+
+		let autoSaveEnabled = true;
+		let lastSaveTime = null;
+		let saveDebounceTimer = null;
+
+		function setupProgressiveSaving() {
+			// Автосохранение при потере фокуса окна
+			window.addEventListener('blur', () => {
+				if (autoSaveEnabled && hasUnsavedChanges()) {
+					saveData();
+					showNotification('📝 Автосохранение при потере фокуса', 'info');
+				}
+			});
+			
+			// Автосохранение перед закрытием вкладки
+			window.addEventListener('beforeunload', (e) => {
+				if (hasUnsavedChanges()) {
+					saveData(); // Быстрое сохранение перед закрытием
+					
+					// Стандартное предупреждение браузера
+					e.preventDefault();
+					e.returnValue = 'У вас есть несохраненные изменения. Уверены, что хотите уйти?';
+				}
+			});
+			
+			// Автосохранение каждые 2 минуты
+			setInterval(() => {
+				if (autoSaveEnabled && hasUnsavedChanges()) {
+					saveData();
+					console.log('📝 Автосохранение по таймеру');
+				}
+			}, 120000); // 2 минуты
+			
+			// Сохранение при изменении данных с дебаунсом
+			document.addEventListener('input', debounceSave);
+			document.addEventListener('change', debounceSave);
+			
+			// Добавляем индикатор состояния сохранения
+			addSaveStatusIndicator();
+		}
+
+		function debounceSave() {
+			if (!autoSaveEnabled) return;
+			
+			clearTimeout(saveDebounceTimer);
+			saveDebounceTimer = setTimeout(() => {
+				if (hasUnsavedChanges()) {
+					saveData();
+					updateSaveStatus('saving');
+					setTimeout(() => updateSaveStatus('saved'), 500);
+				}
+			}, 1000); // 1 секунда дебаунса
+		}
+
+		function hasUnsavedChanges() {
+			// Проверяем, были ли изменения после последнего сохранения
+			const currentState = JSON.stringify(appData);
+			const lastSavedState = localStorage.getItem('lastSavedState');
+			
+			// Если это первый раз или состояние изменилось
+			if (!lastSavedState || currentState !== lastSavedState) {
+				return true;
+			}
+			
+			return false;
+		}
+
+		function saveData() {
+			try {
+				// Проверяем, что данные существуют
+				if (!appData) {
+					console.warn('Нет данных для сохранения');
+					return false;
+				}
+				
+				// Сохраняем данные
+				localStorage.setItem('testAnalyticsData', JSON.stringify(appData));
+				
+				// Сохраняем текущее состояние для сравнения
+				localStorage.setItem('lastSavedState', JSON.stringify(appData));
+				
+				lastSaveTime = new Date();
+				
+				// Счетчик для отладки
+				window.saveCount = (window.saveCount || 0) + 1;
+				
+				// Обновляем индикатор
+				updateSaveStatus('saved');
+				
+				console.log('💾 Данные сохранены:', {
+					время: lastSaveTime.toLocaleTimeString(),
+					размер: JSON.stringify(appData).length,
+					учащиеся: appData.students?.length || 0,
+					задания: appData.tasks?.length || 0
+				});
+				
+				// Создаем резервную копию если прошло больше 5 минут
+				const lastBackup = localStorage.getItem('lastBackupTime');
+				const fiveMinutesAgo = Date.now() - 5 * 60 * 1000;
+				
+				if (!lastBackup || parseInt(lastBackup) < fiveMinutesAgo) {
+					createBackup();
+					localStorage.setItem('lastBackupTime', Date.now().toString());
+				}
+				
+				return true;
+			} catch (error) {
+				console.error('❌ Ошибка сохранения:', error);
+				
+				// Логируем ошибку, но не вызываем errorHandler.safeExecute
+				if (window.errorHandler && typeof window.errorHandler.log === 'function') {
+					window.errorHandler.log({
+						type: 'SAVE_ERROR',
+						message: error.message,
+						data: { timestamp: new Date().toISOString() }
+					});
+				}
+				
+				updateSaveStatus('error');
+				return false;
+			}
+		}
+
+		function saveAllData() {
+			// Полное сохранение с подтверждением
+			if (saveData()) {
+				showNotification('✅ Все данные сохранены!', 'success');
+				return true;
+			} else {
+				showNotification('❌ Ошибка сохранения данных', 'error');
+				return false;
+			}
+		}
+
+		function updateSaveStatus(status) {
+			const indicator = document.getElementById('saveStatusIndicator');
+			if (!indicator) return;
+			
+			const now = new Date();
+			const timeStr = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+			
+			switch(status) {
+				case 'saving':
+					indicator.innerHTML = '💾 Сохранение...';
+					indicator.style.color = '#f39c12';
+					break;
+				case 'saved':
+					indicator.innerHTML = `✅ Сохранено ${timeStr}`;
+					indicator.style.color = '#27ae60';
+					break;
+				case 'error':
+					indicator.innerHTML = '❌ Ошибка сохранения';
+					indicator.style.color = '#e74c3c';
+					break;
+				case 'unsaved':
+					indicator.innerHTML = '✏️ Есть несохраненные изменения';
+					indicator.style.color = '#e67e22';
+					break;
+			}
+			
+			// Автоматически скрываем через 3 секунды
+			clearTimeout(indicator.hideTimer);
+			if (status === 'saved') {
+				indicator.hideTimer = setTimeout(() => {
+					indicator.innerHTML = `💾 ${timeStr}`;
+					indicator.style.color = '#95a5a6';
+				}, 3000);
+			}
+		}
+
+		function addSaveStatusIndicator() {
+			const indicator = document.createElement('div');
+			indicator.id = 'saveStatusIndicator';
+			indicator.style.cssText = `
+				position: fixed;
+				bottom: 10px;
+				left: 10px;
+				background: rgba(255, 255, 255, 0.9);
+				padding: 5px 10px;
+				border-radius: 5px;
+				font-size: 11px;
+				z-index: 9998;
+				border: 1px solid #eee;
+				box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+				cursor: help;
+				transition: all 0.3s;
+			`;
+			indicator.title = 'Статус сохранения данных\nНажмите Ctrl+S для принудительного сохранения';
+			indicator.onclick = () => {
+				showSaveManagement();
+			};
+			
+			document.body.appendChild(indicator);
+			
+			// Инициализируем статус
+			updateSaveStatus('saved');
+			
+			// Проверяем несохраненные изменения при загрузке
+			setTimeout(() => {
+				if (hasUnsavedChanges()) {
+					updateSaveStatus('unsaved');
+				}
+			}, 1000);
+		}
+
+		function showSaveManagement() {
+			const lastSave = localStorage.getItem('lastBackupTime');
+			const lastSaveTime = lastSave ? new Date(parseInt(lastSave)).toLocaleString() : 'никогда';
+			const unsavedChanges = hasUnsavedChanges();
+			
+			const html = `
+				<div style="max-width: 500px;">
+					<h3>💾 Управление сохранением</h3>
+					
+					<div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 15px 0;">
+						<h4>📊 Статус</h4>
+						<p><strong>Автосохранение:</strong> ${autoSaveEnabled ? '✅ Включено' : '❌ Выключено'}</p>
+						<p><strong>Несохраненные изменения:</strong> ${unsavedChanges ? '✅ Есть' : '❌ Нет'}</p>
+						<p><strong>Последнее сохранение:</strong> ${lastSaveTime}</p>
+						<p><strong>Размер данных:</strong> ${(localStorage.getItem('testAnalyticsData')?.length || 0) / 1024} КБ</p>
+					</div>
+					
+					<div class="form-group">
+						<label>
+							<input type="checkbox" id="toggleAutoSave" ${autoSaveEnabled ? 'checked' : ''} onchange="toggleAutoSave()">
+							Включить автосохранение
+						</label>
+						<small style="display: block; color: #666;">
+							Автоматически сохраняет изменения каждые 2 минуты и при потере фокуса
+						</small>
+					</div>
+					
+					<div style="display: flex; gap: 10px; margin-top: 20px;">
+						<button class="btn btn-success" onclick="forceSave()">
+							💾 Сохранить сейчас
+						</button>
+						<button class="btn btn-warning" onclick="createBackup()">
+							📂 Создать резервную копию
+						</button>
+						<button class="btn btn-outline" onclick="showBackupManager()">
+							⏮️ Управление копиями
+						</button>
+					</div>
+					
+					<div style="margin-top: 20px; padding: 10px; background: #fff3cd; border-radius: 5px;">
+						<small>
+							💡 <strong>Совет:</strong> Используйте <kbd>Ctrl+S</kbd> для быстрого сохранения
+						</small>
+					</div>
+				</div>
+			`;
+			
+			showModal('Управление сохранением', html);
+		}
+
+		function toggleAutoSave() {
+			autoSaveEnabled = document.getElementById('toggleAutoSave').checked;
+			localStorage.setItem('autoSaveEnabled', autoSaveEnabled.toString());
+			
+			showNotification(
+				autoSaveEnabled ? '✅ Автосохранение включено' : '⏸️ Автосохранение приостановлено',
+				autoSaveEnabled ? 'success' : 'warning'
+			);
+		}
+
+		function forceSave() {
+			if (saveAllData()) {
+				updateSaveStatus('saved');
+				hideModal();
+			}
+		}
+
+		function showBackupManager() {
+			const backups = Object.keys(localStorage)
+				.filter(key => key.startsWith('backup_'))
+				.map(key => ({
+					key,
+					data: JSON.parse(localStorage.getItem(key)),
+					date: new Date(key.replace('backup_', '').replace(/-/g, ':'))
+				}))
+				.sort((a, b) => b.date - a.date);
+			
+			let html = `
+				<div style="max-width: 700px;">
+					<h3>📂 Управление резервными копиями</h3>
+					
+					<div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 15px 0;">
+						<p><strong>Всего копий:</strong> ${backups.length}</p>
+						<p><strong>Автосохранение копий:</strong> Каждые 5 минут</p>
+						<p><strong>Хранится копий:</strong> Последние 10</p>
+					</div>
+					
+					<div style="max-height: 300px; overflow-y: auto;">
+						<table style="width: 100%; font-size: 12px;">
+							<thead>
+								<tr>
+									<th>Дата</th>
+									<th>Версия</th>
+									<th>Предмет</th>
+									<th>Класс</th>
+									<th>Действия</th>
+								</tr>
+							</thead>
+							<tbody>
+			`;
+			
+			backups.forEach((backup, index) => {
+				const testData = backup.data?.data?.test || {};
+				html += `
+					<tr>
+						<td>${backup.data.timestamp}</td>
+						<td>${backup.data.version}</td>
+						<td>${testData.subject || '—'}</td>
+						<td>${testData.class || '—'}</td>
+						<td>
+							<button class="btn btn-sm btn-outline-primary" onclick="restoreBackup('${backup.key}')">
+								Восстановить
+							</button>
+							<button class="btn btn-sm btn-outline-danger" onclick="deleteBackup('${backup.key}')">
+								Удалить
+							</button>
+						</td>
+					</tr>
+				`;
+			});
+			
+			html += `
+							</tbody>
+						</table>
+					</div>
+					
+					<div style="display: flex; gap: 10px; margin-top: 20px;">
+						<button class="btn btn-danger" onclick="deleteAllBackups()">
+							🗑️ Удалить все копии
+						</button>
+						<button class="btn btn-outline" onclick="exportAllBackups()">
+							📤 Экспорт всех копий
+						</button>
+					</div>
+				</div>
+			`;
+			
+			showModal('Управление резервными копиями', html);
+		}		
+		// ==================== ТУТОРИАЛ ====================
+		
 		const tutorialSteps = [
 		  {
 			title: "🎯 Добро пожаловать!",
@@ -5679,7 +7128,73 @@
 				showNotification('Нет информации о последнем шаблоне', 'warning');
 			}
 		}		
-		
+		// ==================== БЕЗОПАСНАЯ ОБРАБОТКА ОШИБОК ====================
+
+		// Создаем безопасные версии функций
+		const safeFunctions = {
+			saveData: function() {
+				try {
+					return saveData.apply(this, arguments);
+				} catch (error) {
+					console.error('Безопасный saveData:', error);
+					return false;
+				}
+			},
+			
+			createBackup: function() {
+				try {
+					return createBackup.apply(this, arguments);
+				} catch (error) {
+					console.error('Безопасный createBackup:', error);
+					return null;
+				}
+			},
+			
+			showNotification: function(message, type = 'info') {
+				try {
+					// Ищем существующую функцию
+					if (typeof window.showNotification === 'function') {
+						return window.showNotification(message, type);
+					}
+					
+					// Фоллбэк
+					console.log(`[${type.toUpperCase()}] ${message}`);
+					alert(message);
+				} catch (error) {
+					console.error('Ошибка в showNotification:', error);
+				}
+			},
+			
+			// Добавьте другие критические функции по мере необходимости
+		};
+
+		// Переопределяем опасные функции
+		function makeSafe() {
+			Object.keys(safeFunctions).forEach(funcName => {
+				if (typeof window[funcName] === 'function') {
+					const original = window[funcName];
+					window[funcName] = function() {
+						try {
+							return original.apply(this, arguments);
+						} catch (error) {
+							console.error(`Ошибка в ${funcName}:`, error);
+							
+							// Пробуем безопасную версию
+							if (safeFunctions[funcName]) {
+								return safeFunctions[funcName].apply(this, arguments);
+							}
+							
+							return null;
+						}
+					};
+				}
+			});
+		}
+
+		// Вызываем при загрузке
+		document.addEventListener('DOMContentLoaded', function() {
+			makeSafe();
+		});		
 		// ==================== ЗАЩИТА ОТ ОШИБОК В ВЫЧИСЛЕНИЯХ ====================
 		function safeCalculateGrade(totalScore) {
 			try {
@@ -5749,25 +7264,68 @@
             }, 2000);
         }
 
-        function createBackup() {
-            const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-            const backup = {
-                data: JSON.parse(JSON.stringify(appData)),
-                timestamp: new Date().toLocaleString(),
-                version: '1.0'
-            };
-            
-            localStorage.setItem(`backup_${timestamp}`, JSON.stringify(backup));
-            
-            // Храним только последние 5 резервных копий
-            const backups = Object.keys(localStorage)
-                .filter(key => key.startsWith('backup_'))
-                .sort()
-                .reverse()
-                .slice(5);
-            
-            backups.forEach(key => localStorage.removeItem(key));
-        }
+		function createBackup() {
+			try {
+				// Проверяем, что есть что сохранять
+				if (!appData || Object.keys(appData).length === 0) {
+					console.warn('Нет данных для резервного копирования');
+					return null;
+				}
+				
+				const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+				const backupKey = `backup_${timestamp}`;
+				
+				const backup = {
+					data: JSON.parse(JSON.stringify(appData)), // Глубокая копия
+					timestamp: new Date().toLocaleString(),
+					version: '1.0',
+					metadata: {
+						subject: appData.test?.subject || 'Не указан',
+						class: appData.test?.class || 'Не указан',
+						workType: appData.test?.workType || 'current',
+						studentsCount: appData.students?.length || 0,
+						tasksCount: appData.tasks?.length || 0
+					}
+				};
+				
+				localStorage.setItem(backupKey, JSON.stringify(backup));
+				
+				console.log(`📂 Создана резервная копия: ${backupKey}`, backup.metadata);
+				
+				// Храним только последние 10 резервных копий
+				cleanupOldBackups(10);
+				
+				return backupKey;
+			} catch (error) {
+				console.error('❌ Ошибка создания резервной копии:', error);
+				
+				// Безопасное логирование ошибки
+				if (window.logError) {
+					window.logError(error, { context: 'createBackup' });
+				}
+				
+				return null;
+			}
+		}
+
+		function cleanupOldBackups(maxBackups = 10) {
+			try {
+				const backupKeys = Object.keys(localStorage)
+					.filter(key => key.startsWith('backup_'))
+					.sort(); // Сортируем по времени (старые первые)
+				
+				// Удаляем старые копии
+				if (backupKeys.length > maxBackups) {
+					const keysToDelete = backupKeys.slice(0, backupKeys.length - maxBackups);
+					keysToDelete.forEach(key => {
+						localStorage.removeItem(key);
+						console.log(`🗑️ Удалена старая резервная копия: ${key}`);
+					});
+				}
+			} catch (error) {
+				console.warn('Ошибка очистки старых резервных копий:', error);
+			}
+		}
 
         function restoreBackupDialog() {
             const backups = Object.keys(localStorage)
@@ -8146,6 +9704,10 @@
 				};
 			}
 			localStorage.setItem('testAnalyticsData', JSON.stringify(appData));
+			return window.ErrorHandler.safeExecute(() => {
+				localStorage.setItem('testAnalyticsData', JSON.stringify(appData));
+				console.log('✅ Данные сохранены');
+			}, 'saveData');
 		}
 
         // Загрузка данных
@@ -8176,7 +9738,14 @@
 					console.log('Данные успешно загружены из localStorage');
 				}
 			} catch (error) {
-				console.error('Ошибка при загрузке данных:', error);
+				//console.error('Ошибка при загрузке данных:', error);
+				return window.ErrorHandler.safeExecute(() => {
+					const saved = localStorage.getItem('testAnalyticsData');
+					if (saved) {
+					  appData = JSON.parse(saved);
+					  console.log('✅ Данные загружены');
+					}
+				}, 'loadData');
 			}
 		}
 
@@ -14692,52 +16261,70 @@
 		// ОБНОВЛЯЕМ ИНИЦИАЛИЗАЦИЮ ПРИ ЗАГРУЗКЕ
 		document.addEventListener('DOMContentLoaded', function() {
 			try {
-				// Инициализируем данные
-				initializeAppData();
+				// Безопасная загрузка данных
+				loadAppData();
 				
-				// Загружаем сохраненные данные
-				loadData();
-				loadSchoolData();
-				validateStudentData();
-				onDataLoad();
-				// Проверяем целостность данных
-				if (appData.tasks.length === 0 || appData.students.length === 0) {
-					console.log('Загружаем пример данных...');
-					loadSampleData();
-				} else {
-					console.log('Восстанавливаем сохраненные данные...');
+				// Безопасная инициализация
+				if (typeof renderAll === 'function') {
 					renderAll();
 				}
 				
-				// Показываем первую вкладку
-				showTab('setup');
+				if (typeof setupTabNavigation === 'function') {
+					setupTabNavigation();
+				}
 				
-				// Добавляем глобальный обработчик ошибок
-				window.addEventListener('error', function(event) {
-					console.error('Глобальная ошибка:', event.error);
-					showNotification('Обнаружена ошибка в системе', 'error');
-				});
+				// Безопасная инициализация новых функций
+				setTimeout(() => {
+					try {
+						if (typeof setupHotkeys === 'function') setupHotkeys();
+						if (typeof setupProgressiveSaving === 'function') setupProgressiveSaving();
+						if (typeof enhanceExportSection === 'function') enhanceExportSection();
+					} catch (e) {
+						console.warn('Ошибка инициализации некоторых функций:', e);
+					}
+				}, 500);
 				
-				// Обработчик ошибок Promise
-				window.addEventListener('unhandledrejection', function(event) {
-					console.error('Необработанная ошибка Promise:', event.reason);
-					showNotification('Ошибка выполнения операции', 'error');
-				});
+				// Проверяем и показываем тур если нужно
+				const tourCompleted = localStorage.getItem('tourCompleted');
+				if (!tourCompleted) {
+					setTimeout(() => {
+						if (confirm('Добро пожаловать! Хотите пройти краткий тур по возможностям системы?')) {
+							if (typeof startTour === 'function') {
+								try { startTour(); } catch(e) { console.error(e); }
+							}
+						}
+					}, 2000);
+				}
 				
-				console.log('✅ Система успешно инициализирована');
+				// Загружаем настройки автосохранения
+				const savedAutoSave = localStorage.getItem('autoSaveEnabled');
+				if (savedAutoSave !== null) {
+					autoSaveEnabled = savedAutoSave === 'true';
+				}
 				
+				console.log('✅ Система инициализирована безопасно');
 			} catch (error) {
-				console.error('❌ Критическая ошибка при загрузке:', error);
+				console.error('❌ Критическая ошибка инициализации:', error);
 				
-				// Пытаемся восстановить
-				try {
-					localStorage.removeItem('testAnalyticsData');
-					initializeAppData();
-					loadSampleData();
-					showNotification('Система восстановлена после сбоя', 'warning');
-				} catch (recoveryError) {
-					console.error('Не удалось восстановить:', recoveryError);
-					alert('Критическая ошибка системы. Пожалуйста, обновите страницу.');
+				// Показываем сообщение пользователю
+				const errorHtml = `
+					<div style="padding: 20px; text-align: center;">
+						<h2 style="color: #e74c3c;">⚠️ Ошибка загрузки системы</h2>
+						<p>Попробуйте:</p>
+						<ol style="text-align: left; display: inline-block;">
+							<li>Обновить страницу (F5)</li>
+							<li>Очистить кэш браузера</li>
+							<li>Использовать другой браузер</li>
+						</ol>
+						<button onclick="location.reload()" style="margin-top: 20px; padding: 10px 20px; background: #3498db; color: white; border: none; border-radius: 5px; cursor: pointer;">
+							🔄 Обновить страницу
+						</button>
+					</div>
+				`;
+				
+				const container = document.querySelector('.container');
+				if (container) {
+					container.innerHTML = errorHtml;
 				}
 			}
 		});
