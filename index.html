@@ -9693,7 +9693,7 @@
 
 		
         // Сохранение данных
-		function saveData() {
+		function saveDatas() {
 			// Гарантируем, что templates существует перед сохранением
 			if (!appData.templates) {
 				appData.templates = {
@@ -9711,7 +9711,7 @@
 		}
 
         // Загрузка данных
-        function loadData() {
+        function loadDatas() {
 			try {
 				const saved = localStorage.getItem('testAnalyticsData');
 				if (saved) {
