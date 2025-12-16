@@ -1,0 +1,190 @@
+<!-- QR-код для поддержки автора -->
+<div class="author-support no-print">
+    <div class="support-btn" onclick="toggleQR()">
+        <span class="heart">❤️</span> Поддержать автора
+    </div>
+    <div id="qrCodePopup" class="qr-popup">
+        <div class="qr-frame">
+            <img src="qr.png" alt="QR-код для поддержки проекта">
+        </div>
+        <p class="qr-text">Любая сумма на развитие <span class="sparkle">✨</span></p>
+        <p class="qr-thanks">Спасибо за поддержку! 🙏</p>
+    </div>
+</div>
+
+<script>
+    // Основная функция для показа/скрытия QR-кода
+    function toggleQR(event) {
+        const popup = document.getElementById('qrCodePopup');
+        const isVisible = popup.classList.contains('show');
+        
+        // Сначала скрываем все открытые попапы (если будет несколько)
+        document.querySelectorAll('.qr-popup.show').forEach(p => {
+            p.classList.remove('show');
+        });
+        
+        // Показываем или скрываем нужный попап
+        if (!isVisible) {
+            popup.classList.add('show');
+            // Останавливаем всплытие события, чтобы не сработал document.click
+            if (event) event.stopPropagation();
+        }
+    }
+    
+    // Закрываем попап при клике в любом другом месте документа
+    document.addEventListener('click', function() {
+        document.querySelectorAll('.qr-popup.show').forEach(popup => {
+            popup.classList.remove('show');
+        });
+    });
+    
+    // Останавливаем закрытие при клике на сам попап
+    document.getElementById('qrCodePopup').addEventListener('click', function(event) {
+        event.stopPropagation();
+    });
+</script>
+
+<style>
+    /* Базовые стили контейнера */
+    .author-support {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 10000;
+    }
+    
+    /* Стили кнопки */
+    .support-btn {
+        background: linear-gradient(135deg, #ff6b6b, #ffa726, #4caf50, #2196f3);
+        background-size: 300% 300%;
+        animation: gradient 4s ease infinite;
+        color: white;
+        padding: 12px 20px;
+        border-radius: 50px;
+        font-size: 14px;
+        font-weight: bold;
+        cursor: pointer;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        transition: all 0.3s;
+        user-select: none;
+        border: 2px solid rgba(255,255,255,0.3);
+        text-align: center;
+    }
+    
+    /* Анимация градиента */
+    @keyframes gradient {
+        0% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
+    }
+    
+    .support-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+    }
+    
+    /* Пульсирующее сердечко */
+    .heart {
+        display: inline-block;
+        animation: heartbeat 1.2s ease-in-out infinite;
+    }
+    
+    @keyframes heartbeat {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.2); }
+    }
+    
+    /* Стили всплывающего окна с QR-кодом */
+    .qr-popup {
+        position: absolute;
+        top: calc(100% + 15px);
+        right: 0;
+        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        padding: 20px;
+        border-radius: 15px;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+        border: 1px solid rgba(255,255,255,0.5);
+        opacity: 0;
+        visibility: hidden;
+        transform: translateY(-10px);
+        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        min-width: 180px;
+    }
+    
+    /* Класс для показа попапа (управляется JavaScript) */
+    .qr-popup.show {
+        opacity: 1;
+        visibility: visible;
+        transform: translateY(0);
+    }
+    
+    /* Рамка для QR-кода */
+    .qr-frame {
+        background: white;
+        padding: 10px;
+        border-radius: 10px;
+        box-shadow: inset 0 0 10px rgba(0,0,0,0.1);
+        margin-bottom: 15px;
+        border: 2px solid #3498db;
+    }
+    
+    .qr-frame img {
+        width: 150px;
+        height: 150px;
+        display: block;
+        border-radius: 5px;
+    }
+    
+    /* Текст под QR-кодом */
+    .qr-text {
+        margin: 10px 0 5px 0;
+        color: #2c3e50;
+        font-size: 13px;
+        font-weight: bold;
+        text-align: center;
+    }
+    
+    .qr-thanks {
+        margin: 0;
+        color: #7f8c8d;
+        font-size: 11px;
+        text-align: center;
+        font-style: italic;
+    }
+    
+    /* Блестящая звездочка */
+    .sparkle {
+        display: inline-block;
+        animation: sparkle 2s infinite;
+    }
+    
+    @keyframes sparkle {
+        0%, 100% { opacity: 0.5; transform: scale(1); }
+        50% { opacity: 1; transform: scale(1.2); }
+    }
+    
+    /* Для мобильных устройств */
+    @media (max-width: 768px) {
+        .author-support {
+            top: 10px;
+            right: 10px;
+        }
+        
+        .support-btn {
+            padding: 10px 16px;
+            font-size: 13px;
+        }
+        
+        .qr-popup {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            right: auto;
+            transform: translate(-50%, -50%) scale(0.9);
+        }
+        
+        .qr-popup.show {
+            transform: translate(-50%, -50%) scale(1);
+        }
+    }
+</style>

@@ -1046,273 +1046,228 @@
         .btn-print:hover {
             background: #8e44ad;
         }
-
-		/* Стили для QR-кода с анимациями */
+		/* Стили для QR-кода */
 		.qr-code-container {
 			position: fixed;
 			top: 20px;
 			right: 20px;
 			z-index: 9999;
-			animation: float 6s ease-in-out infinite;
-		}
-		
-		/* Анимация плавания */
-		@keyframes float {
-			0%, 100% { transform: translateY(0px) rotate(0deg); }
-			50% { transform: translateY(-10px) rotate(1deg); }
 		}
 		
 		.qr-code-tooltip {
 			position: relative;
-			background: linear-gradient(135deg, #ff6b6b, #ffa726, #ffeb3b, #4caf50, #2196f3, #9c27b0);
-			background-size: 400% 400%;
-			animation: gradient 8s ease infinite;
+			background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 			color: white;
-			padding: 12px 20px;
-			border-radius: 50px;
-			font-size: 14px;
+			padding: 10px 15px;
+			border-radius: 8px;
+			font-size: 12px;
 			font-weight: bold;
-			box-shadow: 
-				0 5px 15px rgba(0,0,0,0.3),
-				0 0 20px rgba(255, 107, 107, 0.5);
-			cursor: pointer;
-			transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+			box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+			cursor: help;
+			transition: all 0.3s;
 			text-align: center;
-			backdrop-filter: blur(5px);
-			border: 2px solid rgba(255, 255, 255, 0.2);
-			overflow: hidden;
 		}
 		
-		/* Градиентная анимация */
-		@keyframes gradient {
-			0% { background-position: 0% 50%; }
-			50% { background-position: 100% 50%; }
-			100% { background-position: 0% 50%; }
-		}
-		
-		/* Пульсирующее сердце */
-		@keyframes heartPulse {
-			0%, 100% { transform: scale(1); opacity: 1; }
-			50% { transform: scale(1.3); opacity: 0.8; }
-		}
-		
-		.heart-pulse {
-			display: inline-block;
-			animation: heartPulse 1.5s ease-in-out infinite;
-			margin-right: 5px;
-		}
-		
-		/* Блестящий эффект */
-		@keyframes sparkle {
-			0%, 100% { opacity: 0; transform: scale(0) rotate(0deg); }
-			50% { opacity: 1; transform: scale(1) rotate(180deg); }
-		}
-		
-		.sparkle {
-			display: inline-block;
-			animation: sparkle 2s ease-in-out infinite;
-		}
-		
-		/* Эффект при наведении */
 		.qr-code-tooltip:hover {
-			transform: scale(1.1) rotate(2deg);
-			box-shadow: 
-				0 10px 30px rgba(0,0,0,0.4),
-				0 0 40px rgba(255, 107, 107, 0.7);
-			background-size: 200% 200%;
+			transform: scale(1.05);
+			box-shadow: 0 8px 20px rgba(0,0,0,0.4);
 		}
 		
 		.qr-code-tooltip:hover .qr-code-image {
 			opacity: 1;
 			visibility: visible;
-			transform: translateY(0) scale(1);
+			transform: translateY(0);
 		}
 		
-		/* Скрытый QR-код */
 		.qr-code-image {
 			position: absolute;
-			top: calc(100% + 15px);
+			top: 100%;
 			right: 0;
+			margin-top: 10px;
 			opacity: 0;
 			visibility: hidden;
-			transform: translateY(-20px) scale(0.95);
-			transition: all 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+			transform: translateY(-10px);
+			transition: all 0.3s;
 			z-index: 10000;
-			background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-			padding: 20px;
-			border-radius: 15px;
-			box-shadow: 
-				0 20px 50px rgba(0,0,0,0.4),
-				inset 0 0 0 1px rgba(255, 255, 255, 0.1);
-			backdrop-filter: blur(10px);
-			border: 1px solid rgba(255, 255, 255, 0.2);
-		}
-		
-		/* Рамка для QR-кода */
-		.qr-frame {
-			position: relative;
-			padding: 15px;
 			background: white;
-			border-radius: 10px;
-			box-shadow: 
-				inset 0 0 20px rgba(0,0,0,0.1),
-				0 0 0 3px #3498db,
-				0 0 20px rgba(52, 152, 219, 0.3);
-			animation: borderGlow 3s ease-in-out infinite;
+			padding: 10px;
+			border-radius: 8px;
+			box-shadow: 0 10px 30px rgba(0,0,0,0.3);
 		}
 		
-		/* Анимация свечения рамки */
-		@keyframes borderGlow {
-			0%, 100% { box-shadow: 
-				inset 0 0 20px rgba(0,0,0,0.1),
-				0 0 0 3px #3498db,
-				0 0 20px rgba(52, 152, 219, 0.3); }
-			50% { box-shadow: 
-				inset 0 0 20px rgba(0,0,0,0.1),
-				0 0 0 3px #9b59b6,
-				0 0 40px rgba(155, 89, 182, 0.5); }
-		}
-		
-		/* Иконки QR-кода */
-		.qr-frame img {
+		.qr-code-image img {
 			width: 150px;
 			height: 150px;
-			display: block;
+			border: 2px solid #3498db;
 			border-radius: 5px;
-			filter: drop-shadow(0 5px 10px rgba(0,0,0,0.2));
-			transition: transform 0.3s;
 		}
 		
-		.qr-frame img:hover {
-			transform: scale(1.05);
-		}
-		
-		/* Блестки */
-		.qr-sparkle {
-			position: absolute;
-			width: 10px;
-			height: 10px;
-			background: radial-gradient(circle, #ffeb3b 30%, transparent 70%);
-			border-radius: 50%;
-			animation: sparkleMove 3s linear infinite;
-			opacity: 0;
-		}
-		
-		.qr-sparkle:nth-child(1) { 
-			top: 10px; 
-			left: 10px; 
-			animation-delay: 0s; 
-		}
-		.qr-sparkle:nth-child(2) { 
-			top: 10px; 
-			right: 10px; 
-			animation-delay: 1s; 
-		}
-		.qr-sparkle:nth-child(3) { 
-			bottom: 10px; 
-			left: 50%; 
-			animation-delay: 2s; 
-		}
-		
-		@keyframes sparkleMove {
-			0% { 
-				opacity: 0; 
-				transform: translateY(0) rotate(0deg); 
-			}
-			20% { 
-				opacity: 1; 
-				transform: translateY(-5px) rotate(90deg); 
-			}
-			40% { 
-				opacity: 0; 
-				transform: translateY(-10px) rotate(180deg); 
-			}
-			100% { 
-				opacity: 0; 
-				transform: translateY(-10px) rotate(360deg); 
-			}
-		}
-		
-		/* Текст под QR-кодом */
-		.qr-text {
-			margin-top: 15px;
-			color: white;
-			font-size: 12px;
-			font-weight: bold;
-			text-align: center;
-			text-shadow: 0 2px 5px rgba(0,0,0,0.3);
-			animation: textGlow 2s ease-in-out infinite;
-		}
-		
-		@keyframes textGlow {
-			0%, 100% { opacity: 0.9; text-shadow: 0 2px 5px rgba(0,0,0,0.3); }
-			50% { opacity: 1; text-shadow: 0 2px 10px rgba(255, 255, 255, 0.5); }
-		}
-		
-		/* Спасибо */
-		.qr-thanks {
-			margin-top: 8px;
-			color: #ffeb3b;
-			font-size: 10px;
-			font-style: italic;
-			opacity: 0.8;
-		}
-		
-		/* Мобильная версия */
+		/* Адаптивность */
 		@media (max-width: 768px) {
 			.qr-code-container {
 				top: 10px;
 				right: 10px;
-				animation: floatMobile 4s ease-in-out infinite;
-			}
-			
-			@keyframes floatMobile {
-				0%, 100% { transform: translateY(0px) scale(0.9); }
-				50% { transform: translateY(-5px) scale(0.9); }
 			}
 			
 			.qr-code-tooltip {
-				font-size: 12px;
-				padding: 10px 15px;
-				border-radius: 40px;
+				font-size: 11px;
+				padding: 8px 12px;
 			}
 			
 			.qr-code-image {
 				position: fixed;
 				top: 50%;
 				left: 50%;
-				transform: translate(-50%, -50%) scale(0.8);
-				opacity: 0;
-				visibility: hidden;
+				transform: translate(-50%, -50%) scale(0.9);
 			}
 			
 			.qr-code-tooltip:hover .qr-code-image {
 				transform: translate(-50%, -50%) scale(1);
 			}
+		}
+		/* Стили для QR-кода с анимациями */
+		/* Базовые стили контейнера */
+		.author-support {
+			position: fixed;
+			top: 20px;
+			right: 20px;
+			z-index: 10000;
+		}
+		
+		/* Стили кнопки */
+		.support-btn {
+			background: linear-gradient(135deg, #ff6b6b, #ffa726, #4caf50, #2196f3);
+			background-size: 300% 300%;
+			animation: gradient 4s ease infinite;
+			color: white;
+			padding: 12px 20px;
+			border-radius: 50px;
+			font-size: 14px;
+			font-weight: bold;
+			cursor: pointer;
+			box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+			transition: all 0.3s;
+			user-select: none;
+			border: 2px solid rgba(255,255,255,0.3);
+			text-align: center;
+		}
+		
+		/* Анимация градиента */
+		@keyframes gradient {
+			0% { background-position: 0% 50%; }
+			50% { background-position: 100% 50%; }
+			100% { background-position: 0% 50%; }
+		}
+		
+		.support-btn:hover {
+			transform: translateY(-2px);
+			box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+		}
+		
+		/* Пульсирующее сердечко */
+		.heart {
+			display: inline-block;
+			animation: heartbeat 1.2s ease-in-out infinite;
+		}
+		
+		@keyframes heartbeat {
+			0%, 100% { transform: scale(1); }
+			50% { transform: scale(1.2); }
+		}
+		
+		/* Стили всплывающего окна с QR-кодом */
+		.qr-popup {
+			position: absolute;
+			top: calc(100% + 15px);
+			right: 0;
+			background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+			padding: 20px;
+			border-radius: 15px;
+			box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+			border: 1px solid rgba(255,255,255,0.5);
+			opacity: 0;
+			visibility: hidden;
+			transform: translateY(-10px);
+			transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+			min-width: 180px;
+		}
+		
+		/* Класс для показа попапа (управляется JavaScript) */
+		.qr-popup.show {
+			opacity: 1;
+			visibility: visible;
+			transform: translateY(0);
+		}
+		
+		/* Рамка для QR-кода */
+		.qr-frame {
+			background: white;
+			padding: 10px;
+			border-radius: 10px;
+			box-shadow: inset 0 0 10px rgba(0,0,0,0.1);
+			margin-bottom: 15px;
+			border: 2px solid #3498db;
+		}
+		
+		.qr-frame img {
+			width: 150px;
+			height: 150px;
+			display: block;
+			border-radius: 5px;
+		}
+		
+		/* Текст под QR-кодом */
+		.qr-text {
+			margin: 10px 0 5px 0;
+			color: #2c3e50;
+			font-size: 13px;
+			font-weight: bold;
+			text-align: center;
+		}
+		
+		.qr-thanks {
+			margin: 0;
+			color: #7f8c8d;
+			font-size: 11px;
+			text-align: center;
+			font-style: italic;
+		}
+		
+		/* Блестящая звездочка */
+		.sparkle {
+			display: inline-block;
+			animation: sparkle 2s infinite;
+		}
+		
+		@keyframes sparkle {
+			0%, 100% { opacity: 0.5; transform: scale(1); }
+			50% { opacity: 1; transform: scale(1.2); }
+		}
+		
+		/* Для мобильных устройств */
+		@media (max-width: 768px) {
+			.author-support {
+				top: 10px;
+				right: 10px;
+			}
 			
-			.qr-frame img {
-				width: 120px;
-				height: 120px;
+			.support-btn {
+				padding: 10px 16px;
+				font-size: 13px;
+			}
+			
+			.qr-popup {
+				position: fixed;
+				top: 50%;
+				left: 50%;
+				right: auto;
+				transform: translate(-50%, -50%) scale(0.9);
+			}
+			
+			.qr-popup.show {
+				transform: translate(-50%, -50%) scale(1);
 			}
 		}
-		
-		/* Анимация появления при загрузке */
-		@keyframes slideIn {
-			from { 
-				opacity: 0; 
-				transform: translateX(100px) scale(0.8); 
-			}
-			to { 
-				opacity: 1; 
-				transform: translateX(0) scale(1); 
-			}
-		}
-		
-		.qr-code-container {
-			animation: 
-				slideIn 1s ease-out,
-				float 6s ease-in-out infinite 1s;
-		}		
     </style>
 </head>
 <body>
@@ -1927,8 +1882,29 @@
                 <div id="reportPreview"></div>
             </div>
         </div>
+		
+		
+		
     </div>
 	
+
+	
+	<!-- QR-код для поддержки автора -->
+	<div class="qr-code-container no-print">
+		<div class="qr-code-tooltip">
+			Поддержать проект 💖
+			<div class="qr-code-image">
+				<!-- Замените src на путь к вашему изображению QR-кода -->
+				<img src="qr.png" 
+					 alt="QR-код для поддержки автора" 
+					 title="Сканируйте QR-код для поддержки проекта">
+				<div style="margin-top: 5px; font-size: 10px; color: #333;">
+					Любая сумма на развитие проекта 💫
+				</div>
+			</div>
+		</div>
+	</div>
+
 	<!-- QR-код для поддержки автора -->
 	<div class="qr-code-container no-print">
 		<div class="qr-code-tooltip">
@@ -1949,13 +1925,11 @@
 			</div>
 		</div>
 	</div>
-	
+		
     <script src="script.js"></script>
     <script>
   
-
-
-		
+	
 		
 	    let saveTimeout;
         // Глобальные переменные
