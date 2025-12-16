@@ -18543,120 +18543,371 @@
 		  const totalTasks = appData.tasks.length;
 		  
 		  if (totalStudents === 0 || totalTasks === 0) {
-			container.innerHTML = '<p style="color: #999; text-align: center; padding: 40px;">Нет данных для тепловой карты</p>';
+			container.innerHTML = `
+			  <div style="text-align: center; padding: 40px; color: #999;">
+				<i class="fas fa-chart-heatmap" style="font-size: 48px; margin-bottom: 15px;"></i>
+				<p>Нет данных для тепловой карты</p>
+				<p><small>Добавьте учащихся и задания</small></p>
+			  </div>
+			`;
 			return;
 		  }
 		  
-		  // Используем canvas для большей производительности
-		  const canvas = document.createElement('canvas');
-		  const ctx = canvas.getContext('2d');
+		  // Создаем таблицу вместо canvas для интерактивности
+		  let html = `
+			<div class="heatmap-wrapper" style="overflow-x: auto; position: relative;">
+			  <div class="heatmap-controls" style="margin-bottom: 15px; display: flex; gap: 10px; align-items: center;">
+				<button class="btn btn-sm btn-outline" onclick="toggleHeatmapLabels()">
+				  <i class="fas fa-font"></i> Скрыть имена
+				</button>
+				<button class="btn btn-sm btn-outline" onclick="toggleHeatmapColors()">
+				  <i class="fas fa-palette"></i> Сменить палитру
+				</button>
+				<div style="margin-left: auto; display: flex; align-items: center; gap: 10px;">
+				  <label style="font-size: 12px;">
+					<input type="checkbox" id="heatmapHighlights" checked onchange="updateHeatmap()">
+					Подсвечивать низкие результаты
+				  </label>
+				</div>
+			  </div>
+			  
+			  <table class="heatmap-table" style="border-collapse: collapse; width: 100%; font-size: 12px;">
+				<thead>
+				  <tr>
+					<th style="position: sticky; left: 0; background: #34495e; color: white; padding: 10px; min-width: 150px; z-index: 10;">
+					  Учащийся / Задание
+					</th>
+		  `;
 		  
-		  const cellSize = 30;
-		  const padding = 2;
-		  const headerHeight = 40;
-		  const headerWidth = 150;
-		  
-		  canvas.width = headerWidth + totalTasks * (cellSize + padding);
-		  canvas.height = headerHeight + totalStudents * (cellSize + padding);
-		  
-		  // Очищаем
-		  ctx.fillStyle = '#fff';
-		  ctx.fillRect(0, 0, canvas.width, canvas.height);
-		  
-		  // Заголовки столбцов (задания)
-		  ctx.fillStyle = '#34495e';
-		  ctx.fillRect(headerWidth, 0, canvas.width - headerWidth, headerHeight);
-		  
-		  ctx.fillStyle = '#fff';
-		  ctx.font = '12px Arial';
-		  ctx.textAlign = 'center';
-		  ctx.textBaseline = 'middle';
-		  
+		  // Заголовки заданий
 		  for (let i = 0; i < totalTasks; i++) {
-			const x = headerWidth + i * (cellSize + padding) + cellSize / 2;
-			ctx.fillText(i + 1, x, headerHeight / 2);
+			const task = appData.tasks[i];
+			html += `
+			  <th style="background: #34495e; color: white; padding: 10px 5px; text-align: center; min-width: 40px; position: sticky; top: 0; z-index: 5;">
+				<div title="Задание ${i+1}: ${task.type || ''}">
+				  ${i+1}
+				  <div style="font-size: 9px; opacity: 0.8;">${task.maxScore} б.</div>
+				</div>
+			  </th>
+			`;
 		  }
 		  
-		  // Заголовки строк (учащиеся)
-		  ctx.fillStyle = '#34495e';
-		  ctx.fillRect(0, headerHeight, headerWidth, canvas.height - headerHeight);
+		  html += `
+				  </tr>
+				</thead>
+				<tbody>
+		  `;
 		  
-		  ctx.fillStyle = '#fff';
-		  ctx.font = '11px Arial';
-		  ctx.textAlign = 'left';
-		  ctx.textBaseline = 'middle';
-		  
-		  for (let i = 0; i < totalStudents; i++) {
-			const y = headerHeight + i * (cellSize + padding) + cellSize / 2;
-			const studentName = appData.students[i];
-			const displayName = studentName.length > 15 ? studentName.substring(0, 12) + '...' : studentName;
-			ctx.fillText(displayName, 10, y);
-		  }
-		  
-		  // Ячейки тепловой карты
+		  // Данные учащихся
 		  for (let studentIndex = 0; studentIndex < totalStudents; studentIndex++) {
+			const studentName = appData.students[studentIndex];
+			const totalScore = appData.results[studentIndex]?.reduce((sum, score) => sum + (parseFloat(score) || 0), 0) || 0;
+			const maxPossible = appData.tasks.reduce((sum, task) => sum + task.maxScore, 0);
+			const studentPercentage = maxPossible > 0 ? (totalScore / maxPossible) * 100 : 0;
+			
+			html += `
+			  <tr>
+				<td style="position: sticky; left: 0; background: #f8f9fa; padding: 8px 10px; border-right: 2px solid #ddd; z-index: 2;">
+				  <div style="display: flex; justify-content: space-between; align-items: center;">
+					<div>
+					  <strong>${studentName}</strong>
+					  <div style="font-size: 10px; color: #666;">
+						${totalScore.toFixed(1)}/${maxPossible} б. (${studentPercentage.toFixed(1)}%)
+					  </div>
+					</div>
+					<div style="width: 20px; height: 20px; border-radius: 50%; background: ${getPercentageColor(studentPercentage)};"></div>
+				  </div>
+				</td>
+			`;
+			
+			// Ячейки с результатами
 			for (let taskIndex = 0; taskIndex < totalTasks; taskIndex++) {
 			  const score = parseFloat(appData.results[studentIndex]?.[taskIndex]) || 0;
 			  const maxScore = appData.tasks[taskIndex]?.maxScore || 1;
 			  const percentage = maxScore > 0 ? (score / maxScore) * 100 : 0;
+			  const color = getPercentageColor(percentage);
+			  const textColor = percentage < 30 ? 'white' : 'black';
 			  
-			  // Цвет в зависимости от процента
-			  let color;
-			  if (percentage < 30) color = '#e74c3c';
-			  else if (percentage < 60) color = '#f39c12';
-			  else if (percentage < 90) color = '#3498db';
-			  else color = '#2ecc71';
+			  // Ищем ошибки для этой ячейки
+			  const errors = appData.errors.filter(err => 
+				err.studentIndex === studentIndex && err.taskIndex === taskIndex
+			  );
 			  
-			  const x = headerWidth + taskIndex * (cellSize + padding);
-			  const y = headerHeight + studentIndex * (cellSize + padding);
+			  const hasError = errors.length > 0;
+			  const errorIcon = hasError ? ' ⚠️' : '';
 			  
-			  ctx.fillStyle = color;
-			  ctx.fillRect(x, y, cellSize, cellSize);
-			  
-			  // Отображаем баллы
-			  ctx.fillStyle = '#fff';
-			  ctx.font = '10px Arial';
-			  ctx.textAlign = 'center';
-			  ctx.textBaseline = 'middle';
-			  ctx.fillText(score.toFixed(0), x + cellSize / 2, y + cellSize / 2);
+			  html += `
+				<td class="heatmap-cell" 
+					style="background: ${color}; color: ${textColor}; padding: 8px 5px; text-align: center; cursor: pointer; border: 1px solid rgba(255,255,255,0.3);"
+					onclick="showHeatmapCellDetails(${studentIndex}, ${taskIndex})"
+					onmouseenter="highlightHeatmapRowCol(${studentIndex}, ${taskIndex})"
+					onmouseleave="clearHeatmapHighlights()"
+					data-student="${studentIndex}"
+					data-task="${taskIndex}"
+					title="${studentName} - Задание ${taskIndex+1}: ${score}/${maxScore} б. (${percentage.toFixed(1)}%)${hasError ? '\nЕсть ошибки: ' + errors.map(e => errorTypes[e.type]?.name).join(', ') : ''}">
+				  <div style="font-weight: bold;">${score.toFixed(0)}${errorIcon}</div>
+				  <div style="font-size: 9px; opacity: 0.8;">${percentage.toFixed(0)}%</div>
+				</td>
+			  `;
 			}
+			
+			html += `</tr>`;
 		  }
 		  
-		  // Рамка
-		  ctx.strokeStyle = '#ddd';
-		  ctx.lineWidth = 1;
-		  ctx.strokeRect(0.5, 0.5, canvas.width - 1, canvas.height - 1);
+		  // Итоговая строка (средние по заданиям)
+		  html += `
+			  <tr style="background: rgba(52, 73, 94, 0.1);">
+				<td style="position: sticky; left: 0; background: #34495e; color: white; padding: 10px; font-weight: bold;">
+				  Средний результат
+				</td>
+		  `;
 		  
-		  // Очищаем контейнер и добавляем canvas
-		  container.innerHTML = '';
-		  container.appendChild(canvas);
+		  for (let taskIndex = 0; taskIndex < totalTasks; taskIndex++) {
+			let totalScore = 0;
+			let maxPossible = 0;
+			
+			appData.results.forEach(studentScores => {
+			  const score = parseFloat(studentScores[taskIndex]) || 0;
+			  totalScore += score;
+			  maxPossible += appData.tasks[taskIndex]?.maxScore || 1;
+			});
+			
+			const avgPercentage = maxPossible > 0 ? (totalScore / maxPossible) * 100 : 0;
+			const color = getPercentageColor(avgPercentage);
+			const textColor = avgPercentage < 30 ? 'white' : 'black';
+			
+			html += `
+			  <td style="background: ${color}; color: ${textColor}; padding: 10px 5px; text-align: center; font-weight: bold; border: 2px solid #34495e;">
+				${avgPercentage.toFixed(1)}%
+			  </td>
+			`;
+		  }
 		  
-		  // Добавляем легенду
-		  const legend = document.createElement('div');
-		  legend.className = 'chart-legend';
-		  legend.style.marginTop = '15px';
-		  legend.innerHTML = `
-			<div style="display: flex; justify-content: center; gap: 20px; flex-wrap: wrap;">
-			  <div class="legend-item">
-				<div class="legend-color" style="background-color: #e74c3c"></div>
-				<span>&lt;30% - низкий результат</span>
+		  html += `
+				</tr>
+			  </tbody>
+			</table>
+			
+			<div class="heatmap-legend" style="margin-top: 20px; display: flex; justify-content: center; gap: 20px; flex-wrap: wrap;">
+			  <div style="display: flex; align-items: center; gap: 5px;">
+				<div style="width: 20px; height: 20px; background: #e74c3c;"></div>
+				<span>&lt;30% - низкий</span>
 			  </div>
-			  <div class="legend-item">
-				<div class="legend-color" style="background-color: #f39c12"></div>
-				<span>30-60% - средний результат</span>
+			  <div style="display: flex; align-items: center; gap: 5px;">
+				<div style="width: 20px; height: 20px; background: #f39c12;"></div>
+				<span>30-60% - средний</span>
 			  </div>
-			  <div class="legend-item">
-				<div class="legend-color" style="background-color: #3498db"></div>
-				<span>60-90% - хороший результат</span>
+			  <div style="display: flex; align-items: center; gap: 5px;">
+				<div style="width: 20px; height: 20px; background: #3498db;"></div>
+				<span>60-90% - хороший</span>
 			  </div>
-			  <div class="legend-item">
-				<div class="legend-color" style="background-color: #2ecc71"></div>
-				<span>&gt;90% - отличный результат</span>
+			  <div style="display: flex; align-items: center; gap: 5px;">
+				<div style="width: 20px; height: 20px; background: #2ecc71;"></div>
+				<span>&gt;90% - отличный</span>
+			  </div>
+			</div>
+			
+			<div style="margin-top: 15px; text-align: center; color: #666; font-size: 12px;">
+			  <p>Нажмите на ячейку для просмотра деталей • Наведите для подсветки строки и столбца</p>
+			</div>
+		  </div>
+		  `;
+		  
+		  container.innerHTML = html;
+		  
+		  // Добавляем стили для интерактивности
+		  addHeatmapStyles();
+		}
+
+		// Вспомогательные функции для тепловой карты
+		function getPercentageColor(percentage) {
+		  if (percentage < 30) return '#e74c3c';
+		  if (percentage < 60) return '#f39c12';
+		  if (percentage < 90) return '#3498db';
+		  return '#2ecc71';
+		}
+
+		function addHeatmapStyles() {
+		  const styleId = 'heatmap-styles';
+		  if (document.getElementById(styleId)) return;
+		  
+		  const style = document.createElement('style');
+		  style.id = styleId;
+		  style.textContent = `
+			.heatmap-cell:hover {
+			  transform: scale(1.1);
+			  z-index: 1;
+			  position: relative;
+			  box-shadow: 0 0 10px rgba(0,0,0,0.3);
+			}
+			
+			.heatmap-row-highlight td:not(:first-child) {
+			  background-color: rgba(52, 152, 219, 0.2) !important;
+			}
+			
+			.heatmap-col-highlight {
+			  background-color: rgba(46, 204, 113, 0.2) !important;
+			}
+			
+			.heatmap-cell-highlight {
+			  box-shadow: inset 0 0 0 3px #2c3e50;
+			  z-index: 2;
+			  position: relative;
+			}
+			
+			.heatmap-table th {
+			  transition: background 0.3s;
+			}
+			
+			.heatmap-table th:hover {
+			  background: #2c3e50 !important;
+			}
+		  `;
+		  
+		  document.head.appendChild(style);
+		}
+
+		// Интерактивные функции
+		let currentColorScheme = 0;
+		const colorSchemes = [
+		  { low: '#e74c3c', medium: '#f39c12', high: '#3498db', excellent: '#2ecc71' },
+		  { low: '#ff6b6b', medium: '#ffa726', high: '#42a5f5', excellent: '#66bb6a' },
+		  { low: '#d32f2f', medium: '#f57c00', high: '#1976d2', excellent: '#388e3c' },
+		  { low: '#c2185b', medium: '#fbc02d', high: '#0288d1', excellent: '#689f38' }
+		];
+
+		function toggleHeatmapColors() {
+		  currentColorScheme = (currentColorScheme + 1) % colorSchemes.length;
+		  updateHeatmap();
+		}
+
+		function toggleHeatmapLabels() {
+		  const table = document.querySelector('.heatmap-table');
+		  if (table) {
+			const labels = table.querySelectorAll('td:first-child, th:first-child');
+			labels.forEach(label => {
+			  label.style.display = label.style.display === 'none' ? '' : 'none';
+			});
+		  }
+		}
+
+		function updateHeatmap() {
+		  // Перерисовываем тепловую карту с новыми настройками
+		  renderHeatmap();
+		}
+
+		function showHeatmapCellDetails(studentIndex, taskIndex) {
+		  const studentName = appData.students[studentIndex];
+		  const task = appData.tasks[taskIndex];
+		  const score = parseFloat(appData.results[studentIndex]?.[taskIndex]) || 0;
+		  const maxScore = task.maxScore || 1;
+		  const percentage = (score / maxScore) * 100;
+		  
+		  // Ищем ошибки
+		  const errors = appData.errors.filter(err => 
+			err.studentIndex === studentIndex && err.taskIndex === taskIndex
+		  );
+		  
+		  let html = `
+			<div style="padding: 20px;">
+			  <h3>Детали результата</h3>
+			  
+			  <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 15px 0;">
+				<p><strong>Учащийся:</strong> ${studentName}</p>
+				<p><strong>Задание ${taskIndex + 1}:</strong> ${task.type || 'Задание'}</p>
+				<p><strong>Баллы:</strong> ${score.toFixed(1)} / ${maxScore}</p>
+				<p><strong>Процент выполнения:</strong> ${percentage.toFixed(1)}%</p>
+				<div style="width: 100%; height: 20px; background: #eee; border-radius: 10px; margin-top: 10px; overflow: hidden;">
+				  <div style="width: ${percentage}%; height: 100%; background: ${getPercentageColor(percentage)};"></div>
+				</div>
+			  </div>
+		  `;
+		  
+		  if (errors.length > 0) {
+			html += `
+			  <div style="background: #fff3cd; padding: 15px; border-radius: 8px; margin: 15px 0;">
+				<h4>⚠️ Ошибки в этом задании:</h4>
+				<ul style="margin-top: 10px;">
+			`;
+			
+			errors.forEach(error => {
+			  html += `
+				<li style="margin-bottom: 5px;">
+				  <strong>${errorTypes[error.type]?.name || error.type}:</strong>
+				  ${error.description || 'Описание отсутствует'}
+				  ${error.count > 1 ? ` (повторений: ${error.count})` : ''}
+				</li>
+			  `;
+			});
+			
+			html += `</ul></div>`;
+		  } else {
+			html += `
+			  <div style="background: #d4edda; padding: 15px; border-radius: 8px; margin: 15px 0;">
+				<p>✅ Ошибок не обнаружено</p>
+			  </div>
+			`;
+		  }
+		  
+		  html += `
+			  <div style="margin-top: 20px;">
+				<button class="btn btn-warning" onclick="editStudentScore(${studentIndex}, ${taskIndex}); hideModal()">
+				  ✏️ Изменить оценку
+				</button>
+				<button class="btn btn-info" onclick="addErrorForCell(${studentIndex}, ${taskIndex}); hideModal()">
+				  ⚠️ Добавить ошибку
+				</button>
 			  </div>
 			</div>
 		  `;
 		  
-		  container.appendChild(legend);
+		  showModal(`Результат: ${studentName} - Задание ${taskIndex + 1}`, html);
+		}
+
+		function highlightHeatmapRowCol(studentIndex, taskIndex) {
+		  // Убираем предыдущие подсветки
+		  clearHeatmapHighlights();
+		  
+		  // Подсвечиваем строку
+		  const rows = document.querySelectorAll('.heatmap-table tbody tr');
+		  if (rows[studentIndex]) {
+			rows[studentIndex].classList.add('heatmap-row-highlight');
+		  }
+		  
+		  // Подсвечиваем столбец
+		  const cells = document.querySelectorAll(`.heatmap-cell[data-task="${taskIndex}"]`);
+		  cells.forEach(cell => {
+			cell.classList.add('heatmap-col-highlight');
+		  });
+		  
+		  // Подсвечиваем текущую ячейку
+		  const currentCell = document.querySelector(`.heatmap-cell[data-student="${studentIndex}"][data-task="${taskIndex}"]`);
+		  if (currentCell) {
+			currentCell.classList.add('heatmap-cell-highlight');
+		  }
+		}
+
+		function clearHeatmapHighlights() {
+		  document.querySelectorAll('.heatmap-row-highlight').forEach(el => {
+			el.classList.remove('heatmap-row-highlight');
+		  });
+		  document.querySelectorAll('.heatmap-col-highlight').forEach(el => {
+			el.classList.remove('heatmap-col-highlight');
+		  });
+		  document.querySelectorAll('.heatmap-cell-highlight').forEach(el => {
+			el.classList.remove('heatmap-cell-highlight');
+		  });
+		}
+
+		// Вспомогательные функции
+		function editStudentScore(studentIndex, taskIndex) {
+		  // Ваша существующая функция редактирования
+		  showNotification(`Редактирование оценки для ${appData.students[studentIndex]}`, 'info');
+		}
+
+		function addErrorForCell(studentIndex, taskIndex) {
+		  // Ваша существующая функция добавления ошибки
+		  showNotification(`Добавление ошибки для ${appData.students[studentIndex]}`, 'info');
 		}
 
 		// Инициализация при загрузке
