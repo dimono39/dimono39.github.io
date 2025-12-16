@@ -1952,7 +1952,7 @@
 						<p class="step-description">Это определит остальные настройки и критерии оценивания</p>
 						
 						<div class="worktype-grid">
-							<div class="worktype-card" onclick="selectWorkType('current')">
+							<div class="worktype-card" onclick="selectWorkType('current')" data-type="current">
 								<div class="worktype-icon">📝</div>
 								<h3>Текущая контрольная</h3>
 								<p>Оценка знаний по текущей теме</p>
@@ -1962,7 +1962,7 @@
 								</div>
 							</div>
 							
-							<div class="worktype-card" onclick="selectWorkType('milestone')">
+							<div class="worktype-card" onclick="selectWorkType('milestone')" data-type="milestone">
 								<div class="worktype-icon">🎯</div>
 								<h3>Рубежная</h3>
 								<p>Контроль за четверть/триместр</p>
@@ -1972,7 +1972,7 @@
 								</div>
 							</div>
 							
-							<div class="worktype-card" onclick="selectWorkType('final')">
+							<div class="worktype-card" onclick="selectWorkType('final')" data-type="final">
 								<div class="worktype-icon">🏆</div>
 								<h3>Итоговая</h3>
 								<p>Годовая контрольная работа</p>
@@ -1982,7 +1982,7 @@
 								</div>
 							</div>
 							
-							<div class="worktype-card" onclick="selectWorkType('oge')">
+							<div class="worktype-card" onclick="selectWorkType('oge')" data-type="oge">
 								<div class="worktype-icon">📘</div>
 								<h3>ОГЭ</h3>
 								<p>Государственный экзамен 9 класс</p>
@@ -1992,7 +1992,7 @@
 								</div>
 							</div>
 							
-							<div class="worktype-card" onclick="selectWorkType('ege')">
+							<div class="worktype-card" onclick="selectWorkType('ege')" data-type="ege">
 								<div class="worktype-icon">📗</div>
 								<h3>ЕГЭ</h3>
 								<p>Единый госэкзамен 11 класс</p>
@@ -2002,7 +2002,7 @@
 								</div>
 							</div>
 							
-							<div class="worktype-card" onclick="selectWorkType('vpr')">
+							<div class="worktype-card" onclick="selectWorkType('vpr')" data-type="vpr">
 								<div class="worktype-icon">📙</div>
 								<h3>ВПР</h3>
 								<p>Всероссийская проверочная работа</p>
@@ -2012,7 +2012,7 @@
 								</div>
 							</div>
 							
-							<div class="worktype-card" onclick="selectWorkType('func_literacy')">
+							<div class="worktype-card" onclick="selectWorkType('func_literacy')" data-type="func_literacy">
 								<div class="worktype-icon">🧠</div>
 								<h3>Функциональная грамотность</h3>
 								<p>Оценка практических навыков</p>
@@ -2022,7 +2022,7 @@
 								</div>
 							</div>
 							
-							<div class="worktype-card" onclick="selectWorkType('psychology')">
+							<div class="worktype-card" onclick="selectWorkType('psychology')" data-type="psychology">
 								<div class="worktype-icon">💭</div>
 								<h3>Психологическая диагностика</h3>
 								<p>Оценка личностных качеств</p>
@@ -2345,7 +2345,7 @@
 					</div>
 
 					<!-- ШАГ 4: ПРЕДПРОСМОТР И СОХРАНЕНИЕ -->
-					<div class="step-content" id="stepContent4" style="display: none;">
+					<div class="step-content" id="stepContent4">
 						<div style="text-align: center; padding: 40px;">
 							<div style="font-size: 4em; margin-bottom: 20px;">✅</div>
 							<h2>Настройка завершена!</h2>
@@ -2809,45 +2809,37 @@
 		let sliderHandles = [];
 
 		function showStep(stepNumber) {
-			// Сначала проверяем существование элементов
-			const stepContent = document.getElementById(`stepContent${stepNumber}`);
-			const stepItem = document.querySelector(`.step-item[data-step="${stepNumber}"]`);
+			// Обновляем текущий шаг
+			currentStep = stepNumber;
 			
-			if (!stepContent || !stepItem) {
-				console.warn(`Элементы шага ${stepNumber} не найдены`);
-				return;
-			}
-			
-			// Скрываем все шаги безопасно
+			// Скрываем все шаги
 			document.querySelectorAll('.step-content').forEach(el => {
-				if (el && el.classList) {
-					el.classList.remove('active');
-				}
+				el.classList.remove('active');
 			});
 			
+			// Скрываем все элементы навигации
 			document.querySelectorAll('.step-item').forEach(el => {
-				if (el && el.classList) {
-					el.classList.remove('active');
-				}
+				el.classList.remove('active');
 			});
 			
 			// Показываем выбранный шаг
-			stepContent.classList.add('active');
-			stepItem.classList.add('active');
-			
-			currentStep = stepNumber;
-			
-			// Обновляем кнопки навигации с проверкой
-			updateNavigationButtons();
-			
-			// Если перешли к критериям - обновляем их
-			if (stepNumber === 3) {
-				setTimeout(() => updateCriteriaVisualization(), 100);
+			const stepContent = document.getElementById(`stepContent${stepNumber}`);
+			if (stepContent) {
+				stepContent.classList.add('active');
 			}
 			
-			// Если перешли к предпросмотру - обновляем итоговую конфигурацию
+			// Активируем соответствующий элемент навигации
+			const stepNav = document.querySelector(`.step-item[data-step="${stepNumber}"]`);
+			if (stepNav) {
+				stepNav.classList.add('active');
+			}
+			
+			// Обновляем кнопки навигации
+			updateNavigationButtons();
+			
+			// Если перешли к шагу 4 - обновляем предпросмотр
 			if (stepNumber === 4) {
-				setTimeout(() => updateFinalConfiguration(), 100);
+				updateFinalConfiguration();
 			}
 		}
 
@@ -2866,7 +2858,7 @@
 				showStep(currentStep - 1);
 			}
 		}
-
+		
 		function validateStep(step) {
 			switch(step) {
 				case 1:
@@ -2904,29 +2896,19 @@
 			const prevBtn = document.getElementById('prevStepBtn');
 			const nextBtn = document.getElementById('nextStepBtn');
 			
-			if (!prevBtn || !nextBtn) {
-				console.warn('Кнопки навигации не найдены');
-				return;
+			if (prevBtn) {
+				prevBtn.disabled = currentStep === 1;
+				prevBtn.innerHTML = currentStep === 1 ? '← Начало' : '← Назад';
 			}
 			
-			if (currentStep === 1) {
-				prevBtn.disabled = true;
-				prevBtn.innerHTML = '← Начало';
-			} else {
-				prevBtn.disabled = false;
-				prevBtn.innerHTML = '← Назад';
-			}
-			
-			if (currentStep === 4) {
-				nextBtn.innerHTML = 'Завершить';
-				nextBtn.onclick = () => {
-					if (typeof saveSetup === 'function') {
-						saveSetup();
-					}
-				};
-			} else {
-				nextBtn.innerHTML = 'Далее →';
-				nextBtn.onclick = nextStep;
+			if (nextBtn) {
+				if (currentStep === 4) {
+					nextBtn.innerHTML = 'Завершить';
+					nextBtn.onclick = () => saveSetup();
+				} else {
+					nextBtn.innerHTML = 'Далее →';
+					nextBtn.onclick = nextStep;
+				}
 			}
 		}
 
@@ -3637,38 +3619,155 @@
 		}
 
 		function updateFinalConfiguration() {
-			const configDiv = document.getElementById('finalConfiguration');
+			console.log('🔄 Вызвана updateFinalConfiguration()');
 			
-			configDiv.innerHTML = `
-				<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-					<div>
-						<strong>Тип работы:</strong><br>
-						${workTypes[appData.test.workType]?.name || appData.test.workType}
+			const configDiv = document.getElementById('finalConfiguration');
+			console.log('Найден ли элемент:', configDiv);
+			
+			if (!configDiv) {
+				console.error('❌ Элемент finalConfiguration не найден!');
+				
+				// Попробуем найти элемент по-другому
+				const step4 = document.getElementById('stepContent4');
+				if (step4) {
+					console.log('stepContent4 найден:', step4);
+					// Создаем элемент если он отсутствует
+					const newDiv = document.createElement('div');
+					newDiv.id = 'finalConfiguration';
+					step4.appendChild(newDiv);
+					
+					// Пробуем снова
+					updateFinalConfiguration();
+					return;
+				}
+				return;
+			}
+			
+			// Проверяем данные
+			console.log('Данные appData:', {
+				workType: appData.test.workType,
+				subject: appData.test.subject,
+				class: appData.test.class,
+				theme: appData.test.theme,
+				criteria: appData.test.criteria
+			});
+			
+			// Генерируем HTML
+			const workTypeName = workTypes[appData.test.workType]?.name || appData.test.workType || 'Не выбран';
+			
+			let html = `
+				<div style="padding: 20px; background: #f8f9fa; border-radius: 10px;">
+					<h3 style="margin-top: 0;">📋 Итоговые настройки</h3>
+					
+					<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px;">
+						<div style="background: white; padding: 15px; border-radius: 8px;">
+							<strong>📊 Тип работы:</strong><br>
+							${workTypeName}
+						</div>
+						
+						<div style="background: white; padding: 15px; border-radius: 8px;">
+							<strong>📚 Предмет:</strong><br>
+							${appData.test.subject || '<span style="color: #e74c3c">Не указан</span>'}
+						</div>
+						
+						<div style="background: white; padding: 15px; border-radius: 8px;">
+							<strong>👥 Класс:</strong><br>
+							${appData.test.class || '<span style="color: #e74c3c">Не указан</span>'}
+						</div>
+						
+						<div style="background: white; padding: 15px; border-radius: 8px;">
+							<strong>📖 Тема:</strong><br>
+							${appData.test.theme || '<span style="color: #e74c3c">Не указана</span>'}
+						</div>
 					</div>
-					<div>
-						<strong>Предмет:</strong><br>
-						${appData.test.subject || 'Не указан'}
+			`;
+			
+			// Добавляем критерии если они есть
+			if (appData.test.criteria && Object.keys(appData.test.criteria).length > 0) {
+				html += `
+					<div style="margin-top: 20px; background: white; padding: 15px; border-radius: 8px;">
+						<h4 style="margin-top: 0;">📈 Критерии оценивания</h4>
+						<div style="display: flex; gap: 10px; flex-wrap: wrap;">
+				`;
+				
+				Object.entries(appData.test.criteria).forEach(([grade, range]) => {
+					const color = getGradeColor(grade);
+					html += `
+						<div style="display: flex; align-items: center; gap: 8px; padding: 8px 12px; 
+								  background: ${color}; color: white; border-radius: 6px; font-weight: bold;">
+							<span>Оценка ${grade}</span>
+							<span>${range.min}–${range.max} баллов</span>
+						</div>
+					`;
+				});
+				
+				html += `
+						</div>
 					</div>
-					<div>
-						<strong>Класс:</strong><br>
-						${appData.test.class || 'Не указан'}
+				`;
+			} else {
+				html += `
+					<div style="margin-top: 20px; padding: 15px; background: #fff3cd; border-radius: 8px;">
+						⚠️ Критерии оценивания не настроены
 					</div>
-					<div>
-						<strong>Тема:</strong><br>
-						${appData.test.theme || 'Не указана'}
+				`;
+			}
+			
+			// Добавляем информацию о заданиях
+			if (appData.tasks && appData.tasks.length > 0) {
+				html += `
+					<div style="margin-top: 20px; background: white; padding: 15px; border-radius: 8px;">
+						<h4 style="margin-top: 0;">📝 Задания</h4>
+						<p>Всего заданий: <strong>${appData.tasks.length}</strong></p>
+						<p>Максимальный балл: <strong>${calculateMaxScore()}</strong></p>
 					</div>
-					<div style="grid-column: span 2;">
-						<strong>Критерии оценивания:</strong><br>
-						${Object.entries(appData.test.criteria).map(([grade, range]) => 
-							`<span style="display: inline-block; padding: 2px 8px; margin: 2px; background: ${getGradeColor(grade)}; color: white; border-radius: 4px;">
-								${grade}: ${range.min}-${range.max}
-							</span>`
-						).join(' ')}
+				`;
+			}
+			
+			html += `
+					<div style="margin-top: 20px; padding: 15px; background: #d4edda; border-radius: 8px;">
+						✅ Настройка завершена! Нажмите "Сохранить настройки" для продолжения.
 					</div>
 				</div>
 			`;
+			
+			console.log('HTML для вставки:', html);
+			configDiv.innerHTML = html;
+			console.log('✅ HTML вставлен в элемент');
+		}
+		function testPreview() {
+			console.log('🧪 Тестирование предпросмотра...');
+			
+			// 1. Проверяем шаг 4
+			const step4 = document.getElementById('stepContent4');
+			console.log('Шаг 4 найден:', step4);
+			console.log('Стили шага 4:', step4 ? step4.style.display : 'не найден');
+			
+			// 2. Показываем шаг 4
+			if (step4) {
+				step4.style.display = 'block';
+				step4.style.opacity = '1';
+				step4.style.visibility = 'visible';
+				
+				// Убираем active у других шагов
+				document.querySelectorAll('.step-content').forEach(el => {
+					el.classList.remove('active');
+				});
+				
+				// Делаем шаг 4 активным
+				step4.classList.add('active');
+			}
+			
+			// 3. Вызываем функцию
+			updateFinalConfiguration();
+			
+			// 4. Прокручиваем к шагу 4
+			if (step4) {
+				step4.scrollIntoView({ behavior: 'smooth' });
+			}
 		}
 
+		// Вызовите в консоли: testPreview()
 		// ==================== ИНИЦИАЛИЗАЦИЯ ====================
 
 		document.addEventListener('DOMContentLoaded', function() {
@@ -3688,6 +3787,39 @@
 			setTimeout(() => {
 				if (typeof showStep === 'function') {
 					showStep(1);
+					// Добавляем обработчики на карточки типов работ
+					document.querySelectorAll('.worktype-card').forEach(card => {
+						card.addEventListener('click', function() {
+							// Удаляем выделение у всех карточек
+							document.querySelectorAll('.worktype-card').forEach(c => {
+								c.classList.remove('selected');
+							});
+							
+							// Добавляем выделение текущей
+							this.classList.add('selected');
+							
+							// Получаем тип работы из атрибута или содержимого
+							const type = this.getAttribute('data-type') || 
+										this.querySelector('h3').textContent.toLowerCase();
+							
+							// Сохраняем тип работы
+							if (type.includes('текущая')) appData.test.workType = 'current';
+							else if (type.includes('рубежная')) appData.test.workType = 'milestone';
+							else if (type.includes('итоговая')) appData.test.workType = 'final';
+							else if (type.includes('огэ')) appData.test.workType = 'oge';
+							else if (type.includes('егэ')) appData.test.workType = 'ege';
+							else if (type.includes('впр')) appData.test.workType = 'vpr';
+							else if (type.includes('функциональная')) appData.test.workType = 'func_literacy';
+							else if (type.includes('психологическая')) appData.test.workType = 'psychology';
+							else appData.test.workType = type;
+							
+							// Активируем кнопку "Далее"
+							const nextButton = document.getElementById('nextStep1');
+							if (nextButton) {
+								nextButton.disabled = false;
+							}
+						});
+					});					
 				}
 			}, 300);
 			
@@ -23518,12 +23650,17 @@ ${files.map(f => f ? `- ${f.name}` : '').join('\n')}
 
 		// Вспомогательные функции
 		function getGradeColor(grade) {
-			const colorMap = {
-				'1': '#c0392b', '2': '#e74c3c', '3': '#f39c12',
-				'4': '#3498db', '5': '#27ae60',
-				'?': '#95a5a6'
+			const colors = {
+				'1': '#e74c3c',
+				'2': '#e74c3c',
+				'3': '#f39c12',
+				'4': '#3498db',
+				'5': '#2ecc71',
+				'низкий': '#e74c3c',
+				'средний': '#f39c12',
+				'высокий': '#2ecc71'
 			};
-			return colorMap[grade] || '#3498db';
+			return colors[grade] || '#95a5a6';
 		}
 
 		function safeResizeCharts() {
@@ -29507,7 +29644,7 @@ ${files.map(f => f ? `- ${f.name}` : '').join('\n')}
 		}
 
 		// Обновляем при изменении типа работы
-		function selectWorkType(type) {
+		function selectWorkTypes(type) {
 			appData.test.workType = type;
 			updateWorkTypeName();
 			
@@ -29518,7 +29655,80 @@ ${files.map(f => f ? `- ${f.name}` : '').join('\n')}
 			showWorkTypeInfo(type);
 		}
 
-		function showWorkTypeInfo(type) {
+		function selectWorkType(type) {
+			// Удаляем класс selected у всех карточек
+			document.querySelectorAll('.worktype-card').forEach(card => {
+				card.classList.remove('selected');
+			});
+			
+			// Добавляем класс selected к выбранной карточке
+			event.currentTarget.classList.add('selected');
+			
+			// Сохраняем тип работы
+			appData.test.workType = type;
+			
+			// Показываем информацию о выбранном типе
+			showWorktypeInfo(type);
+			
+			// Активируем кнопку "Далее"
+			document.getElementById('nextStep1').disabled = false;
+			
+			// Обновляем название типа работы для подсказок
+			document.getElementById('workTypeName').textContent = workTypes[type]?.name || type;
+			
+			// Автосохранение
+			scheduleAutoSave();
+			updateProgress();
+		}
+		function showWorktypeInfo(type) {
+			const infoDiv = document.getElementById('worktypeInfo');
+			const title = document.getElementById('selectedWorktypeTitle');
+			const desc = document.getElementById('selectedWorktypeDesc');
+			const infoTime = document.getElementById('infoTime');
+			const infoFormat = document.getElementById('infoFormat');
+			const infoGrading = document.getElementById('infoGrading');
+			
+			if (!infoDiv || !title) return;
+			
+			const workType = workTypes[type];
+			
+			if (workType) {
+				title.textContent = workType.name;
+				infoDiv.style.display = 'block';
+				
+				// Заполняем информацию в зависимости от типа
+				switch(type) {
+					case 'current':
+						desc.textContent = 'Оценка знаний по текущей теме';
+						infoTime.textContent = '40-45 минут';
+						infoFormat.textContent = 'Тест/традиционная';
+						infoGrading.textContent = '5-балльная';
+						break;
+					case 'milestone':
+						desc.textContent = 'Контроль за четверть/триместр';
+						infoTime.textContent = '80-90 минут';
+						infoFormat.textContent = 'Расширенная';
+						infoGrading.textContent = '5-балльная';
+						break;
+					case 'final':
+						desc.textContent = 'Годовая контрольная работа';
+						infoTime.textContent = '90-120 минут';
+						infoFormat.textContent = 'Итоговая';
+						infoGrading.textContent = '5-балльная';
+						break;
+					case 'oge':
+						desc.textContent = 'Государственный экзамен 9 класс';
+						infoTime.textContent = '180-235 минут';
+						infoFormat.textContent = 'Стандартизированная';
+						infoGrading.textContent = 'Баллы ФИПИ';
+						break;
+					// ... добавьте остальные типы
+					default:
+						desc.textContent = workType.name;
+				}
+			}
+		}
+		function showWorkTypeInfos(type) {
 			if (!type) return;
 			
 			const info = workTypes[type];
