@@ -2915,6 +2915,12 @@
 				});
 			});
 		}
+		function selectTemplate(index) {
+			const template = window.templateFilesData[index];
+			if (!template) return;
+			
+			showTemplateConfirmation(template);
+		}
 
 		// ============ ИНТЕГРАЦИЯ С ВАШИМ КОДОМ ============
 

@@ -1,7 +1,219 @@
 {
   "statistics": {
-    "detectionDate": "2025-12-15T17:21:35.419Z",
+    "detectionDate": "2025-12-16T03:36:43.134Z",
     "formats": {
+      "css": {
+        "sources": {
+          "report/html/styles/prism.css": {
+            "lines": 7,
+            "tokens": 234,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "css/styles.css": {
+            "lines": 97,
+            "tokens": 1551,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "styles.css": {
+            "lines": 510,
+            "tokens": 3355,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          }
+        },
+        "total": {
+          "lines": 614,
+          "tokens": 5140,
+          "sources": 3,
+          "clones": 0,
+          "duplicatedLines": 0,
+          "duplicatedTokens": 0,
+          "percentage": 0,
+          "percentageTokens": 0,
+          "newDuplicatedLines": 0,
+          "newClones": 0
+        }
+      },
+      "javascript": {
+        "sources": {
+          "report/html/js/prism.js": {
+            "lines": 15,
+            "tokens": 4583,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "было/js/utils.js": {
+            "lines": 711,
+            "tokens": 5075,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "было/js/fix-app-global.js": {
+            "lines": 69,
+            "tokens": 686,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "было/js/final-fix.js": {
+            "lines": 68,
+            "tokens": 528,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "было/js/export.js": {
+            "lines": 966,
+            "tokens": 8644,
+            "sources": 1,
+            "clones": 20,
+            "duplicatedLines": 146,
+            "duplicatedTokens": 2798,
+            "percentage": 15.11,
+            "percentageTokens": 32.37,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "было/js/core.js": {
+            "lines": 760,
+            "tokens": 7664,
+            "sources": 1,
+            "clones": 4,
+            "duplicatedLines": 39,
+            "duplicatedTokens": 416,
+            "percentage": 5.13,
+            "percentageTokens": 5.43,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "было/js/app.js": {
+            "lines": 541,
+            "tokens": 1961,
+            "sources": 1,
+            "clones": 1,
+            "duplicatedLines": 7,
+            "duplicatedTokens": 98,
+            "percentage": 1.29,
+            "percentageTokens": 5,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "было/build.js": {
+            "lines": 182,
+            "tokens": 1332,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "js/app.js": {
+            "lines": 702,
+            "tokens": 8951,
+            "sources": 1,
+            "clones": 5,
+            "duplicatedLines": 34,
+            "duplicatedTokens": 568,
+            "percentage": 4.84,
+            "percentageTokens": 6.35,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "TemplateStorage.js": {
+            "lines": 195,
+            "tokens": 1952,
+            "sources": 1,
+            "clones": 8,
+            "duplicatedLines": 72,
+            "duplicatedTokens": 820,
+            "percentage": 36.92,
+            "percentageTokens": 42.01,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "ServerTemplateScanner.js": {
+            "lines": 177,
+            "tokens": 1546,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "BackgroundTemplateScanner.js": {
+            "lines": 695,
+            "tokens": 5102,
+            "sources": 1,
+            "clones": 2,
+            "duplicatedLines": 20,
+            "duplicatedTokens": 194,
+            "percentage": 2.88,
+            "percentageTokens": 3.8,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          }
+        },
+        "total": {
+          "lines": 5081,
+          "tokens": 48024,
+          "sources": 12,
+          "clones": 20,
+          "duplicatedLines": 159,
+          "duplicatedTokens": 2447,
+          "percentage": 3.13,
+          "percentageTokens": 5.1,
+          "newDuplicatedLines": 0,
+          "newClones": 0
+        }
+      },
       "markup": {
         "sources": {
           "было/parts/tabs.html": {
@@ -170,154 +382,6 @@
           "duplicatedTokens": 942,
           "percentage": 2.94,
           "percentageTokens": 2.41,
-          "newDuplicatedLines": 0,
-          "newClones": 0
-        }
-      },
-      "javascript": {
-        "sources": {
-          "было/js/utils.js": {
-            "lines": 711,
-            "tokens": 5075,
-            "sources": 1,
-            "clones": 0,
-            "duplicatedLines": 0,
-            "duplicatedTokens": 0,
-            "percentage": 0,
-            "percentageTokens": 0,
-            "newDuplicatedLines": 0,
-            "newClones": 0
-          },
-          "было/js/fix-app-global.js": {
-            "lines": 69,
-            "tokens": 686,
-            "sources": 1,
-            "clones": 0,
-            "duplicatedLines": 0,
-            "duplicatedTokens": 0,
-            "percentage": 0,
-            "percentageTokens": 0,
-            "newDuplicatedLines": 0,
-            "newClones": 0
-          },
-          "было/js/final-fix.js": {
-            "lines": 68,
-            "tokens": 528,
-            "sources": 1,
-            "clones": 0,
-            "duplicatedLines": 0,
-            "duplicatedTokens": 0,
-            "percentage": 0,
-            "percentageTokens": 0,
-            "newDuplicatedLines": 0,
-            "newClones": 0
-          },
-          "было/js/export.js": {
-            "lines": 966,
-            "tokens": 8644,
-            "sources": 1,
-            "clones": 20,
-            "duplicatedLines": 146,
-            "duplicatedTokens": 2798,
-            "percentage": 15.11,
-            "percentageTokens": 32.37,
-            "newDuplicatedLines": 0,
-            "newClones": 0
-          },
-          "было/js/core.js": {
-            "lines": 760,
-            "tokens": 7664,
-            "sources": 1,
-            "clones": 4,
-            "duplicatedLines": 39,
-            "duplicatedTokens": 416,
-            "percentage": 5.13,
-            "percentageTokens": 5.43,
-            "newDuplicatedLines": 0,
-            "newClones": 0
-          },
-          "было/js/app.js": {
-            "lines": 541,
-            "tokens": 1961,
-            "sources": 1,
-            "clones": 1,
-            "duplicatedLines": 7,
-            "duplicatedTokens": 98,
-            "percentage": 1.29,
-            "percentageTokens": 5,
-            "newDuplicatedLines": 0,
-            "newClones": 0
-          },
-          "было/build.js": {
-            "lines": 182,
-            "tokens": 1332,
-            "sources": 1,
-            "clones": 0,
-            "duplicatedLines": 0,
-            "duplicatedTokens": 0,
-            "percentage": 0,
-            "percentageTokens": 0,
-            "newDuplicatedLines": 0,
-            "newClones": 0
-          },
-          "js/app.js": {
-            "lines": 702,
-            "tokens": 8951,
-            "sources": 1,
-            "clones": 5,
-            "duplicatedLines": 34,
-            "duplicatedTokens": 568,
-            "percentage": 4.84,
-            "percentageTokens": 6.35,
-            "newDuplicatedLines": 0,
-            "newClones": 0
-          },
-          "TemplateStorage.js": {
-            "lines": 195,
-            "tokens": 1952,
-            "sources": 1,
-            "clones": 8,
-            "duplicatedLines": 72,
-            "duplicatedTokens": 820,
-            "percentage": 36.92,
-            "percentageTokens": 42.01,
-            "newDuplicatedLines": 0,
-            "newClones": 0
-          },
-          "ServerTemplateScanner.js": {
-            "lines": 177,
-            "tokens": 1546,
-            "sources": 1,
-            "clones": 0,
-            "duplicatedLines": 0,
-            "duplicatedTokens": 0,
-            "percentage": 0,
-            "percentageTokens": 0,
-            "newDuplicatedLines": 0,
-            "newClones": 0
-          },
-          "BackgroundTemplateScanner.js": {
-            "lines": 695,
-            "tokens": 5102,
-            "sources": 1,
-            "clones": 2,
-            "duplicatedLines": 20,
-            "duplicatedTokens": 194,
-            "percentage": 2.88,
-            "percentageTokens": 3.8,
-            "newDuplicatedLines": 0,
-            "newClones": 0
-          }
-        },
-        "total": {
-          "lines": 5066,
-          "tokens": 43441,
-          "sources": 11,
-          "clones": 20,
-          "duplicatedLines": 159,
-          "duplicatedTokens": 2447,
-          "percentage": 3.14,
-          "percentageTokens": 5.63,
           "newDuplicatedLines": 0,
           "newClones": 0
         }
@@ -521,57 +585,17 @@
           "newDuplicatedLines": 0,
           "newClones": 0
         }
-      },
-      "css": {
-        "sources": {
-          "css/styles.css": {
-            "lines": 97,
-            "tokens": 1551,
-            "sources": 1,
-            "clones": 0,
-            "duplicatedLines": 0,
-            "duplicatedTokens": 0,
-            "percentage": 0,
-            "percentageTokens": 0,
-            "newDuplicatedLines": 0,
-            "newClones": 0
-          },
-          "styles.css": {
-            "lines": 510,
-            "tokens": 3355,
-            "sources": 1,
-            "clones": 0,
-            "duplicatedLines": 0,
-            "duplicatedTokens": 0,
-            "percentage": 0,
-            "percentageTokens": 0,
-            "newDuplicatedLines": 0,
-            "newClones": 0
-          }
-        },
-        "total": {
-          "lines": 607,
-          "tokens": 4906,
-          "sources": 2,
-          "clones": 0,
-          "duplicatedLines": 0,
-          "duplicatedTokens": 0,
-          "percentage": 0,
-          "percentageTokens": 0,
-          "newDuplicatedLines": 0,
-          "newClones": 0
-        }
       }
     },
     "total": {
-      "lines": 12495,
-      "tokens": 112867,
-      "sources": 40,
+      "lines": 12517,
+      "tokens": 117684,
+      "sources": 42,
       "clones": 30,
       "duplicatedLines": 1290,
       "duplicatedTokens": 12889,
-      "percentage": 10.32,
-      "percentageTokens": 11.42,
+      "percentage": 10.31,
+      "percentageTokens": 10.95,
       "newDuplicatedLines": 0,
       "newClones": 0
     }
