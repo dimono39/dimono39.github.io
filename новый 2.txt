@@ -1,524 +1,502 @@
-<!-- Обновляем HTML вкладки setup -->
-<div id="setup" class="tab-content active">
-    <header class="header">
-        <h1>🎯 Умный конструктор диагностики</h1>
-        <p class="subtitle">Настройте работу один раз — используйте всегда</p>
-    </header>
+/**
+ * 🛡️ Централизованная обработка ошибок
+ * Стандартизирует обработку ошибок во всем приложении
+ * Добавлена фильтрация шумных ошибок
+ */
 
-    <!-- БЫСТРЫЙ СТАРТ -->
-    <div class="quick-start" style="padding: 20px; background: #f8f9fa; border-radius: 10px; margin: 20px;">
-        <h3>🚀 Быстрый старт (выберите вариант):</h3>
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin: 15px 0;">
-            <button class="btn btn-outline" onclick="quickStart('import')">
-                📥 Импорт готового шаблона
-            </button>
-            <button class="btn btn-outline" onclick="quickStart('duplicate')">
-                🔄 Дублировать прошлую работу
-            </button>
-            <button class="btn btn-outline" onclick="quickStart('ai')">
-                🤖 AI-ассистент настройки
-            </button>
-        </div>
-    </div>
+class ErrorHandler {
+  constructor() {
+    this.errorTypes = {
+      VALIDATION: 'VALIDATION_ERROR',
+      NETWORK: 'NETWORK_ERROR',
 
-    <!-- ОСНОВНАЯ ФОРМА В СТИЛЕ КАНБАН-ДОСКИ -->
-    <div class="setup-board" style="display: grid; grid-template-columns: 300px 1fr; gap: 20px; min-height: 600px;">
-        
-        <!-- ЛЕВАЯ ПАНЕЛЬ - ЭТАПЫ -->
-        <div class="setup-steps" style="background: #2c3e50; color: white; border-radius: 10px; padding: 20px;">
-            <h3 style="color: white; margin-top: 0;">📋 Этапы настройки</h3>
-            <div class="step-nav">
-                <div class="step-item active" data-step="1" onclick="showStep(1)">
-                    <div class="step-icon">1</div>
-                    <div class="step-info">
-                        <strong>Тип работы</strong>
-                        <small>Выберите формат</small>
-                    </div>
-                </div>
-                <div class="step-item" data-step="2" onclick="showStep(2)">
-                    <div class="step-icon">2</div>
-                    <div class="step-info">
-                        <strong>Основные данные</strong>
-                        <small>Предмет, класс, тема</small>
-                    </div>
-                </div>
-                <div class="step-item" data-step="3" onclick="showStep(3)">
-                    <div class="step-icon">3</div>
-                    <div class="step-info">
-                        <strong>Критерии оценивания</strong>
-                        <small>Система оценок</small>
-                    </div>
-                </div>
-                <div class="step-item" data-step="4" onclick="showStep(4)">
-                    <div class="step-icon">4</div>
-                    <div class="step-info">
-                        <strong>Предпросмотр</strong>
-                        <small>Проверка настроек</small>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- БЫСТРЫЕ ДЕЙСТВИЯ -->
-            <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.1);">
-                <h4 style="color: white;">⚡ Быстрые действия</h4>
-                <button class="btn btn-sm btn-outline-light" onclick="importCriteriaFromTemplate()" style="width: 100%; margin: 5px 0;">
-                    📋 Импорт критериев
-                </button>
-                <button class="btn btn-sm btn-outline-light" onclick="syncCriteriaWithTasks()" style="width: 100%; margin: 5px 0;">
-                    🔄 Синхронизировать с заданиями
-                </button>
-                <button class="btn btn-sm btn-outline-light" onclick="resetCriteria()" style="width: 100%; margin: 5px 0;">
-                    🔄 Сбросить критерии
-                </button>
-            </div>
-        </div>
+      PARSING: 'PARSING_ERROR',
+      RUNTIME: 'RUNTIME_ERROR',
+      UNKNOWN: 'UNKNOWN_ERROR',
+      CORS: 'CORS_ERROR'
+    };
+    
+    // Шаблоны для фильтрации шумных ошибок
+    this.noisyErrorPatterns = [
+      // Ошибки расширений Chrome
+      /^Unchecked runtime\.lastError/,
+      /^The message port closed before/,
+      /^A listener indicated an asynchronous response/,
+      /^Extension context invalidated/,
+      
+      // Ошибки CORS при работе с file://
+      /^Access to fetch at 'file:\/\//,
+      /Cross origin requests are only supported/,
+      /from origin 'null' has been blocked by CORS policy/,
+      
+      // Блокировщики рекламы/трекеров
+      /gtmpx\.com/,
+      /googlesyndication/,
+      /doubleclick/,
+      /analytics/,
+      /tracking/,
+      
+      // Service Worker ошибки в file://
+      /ServiceWorker.*The URL protocol.*not supported/,
+      /Failed to register a ServiceWorker/
+    ];
+    
+    // Флаг для отладки
+    this.debugMode = false;
+    
+    this.init();
+  }
 
-        <!-- ПРАВАЯ ПАНЕЛЬ - КОНТЕНТ -->
-        <div class="setup-content" style="background: white; border-radius: 10px; padding: 25px; overflow-y: auto;">
-            
-            <!-- ШАГ 1: ТИП РАБОТЫ (уже есть, оставляем) -->
-            <div class="step-content active" id="stepContent1">
-				<div class="step-header">
-					<span class="step-number">1</span>
-					<h2>📊 Выберите тип работы</h2>
-				</div>
-				<p class="step-description">Это определит остальные настройки и критерии оценивания</p>
-				
-				<div class="worktype-grid">
-					<div class="worktype-card" onclick="selectWorkType('current')">
-						<div class="worktype-icon">📝</div>
-						<h3>Текущая контрольная</h3>
-						<p>Оценка знаний по текущей теме</p>
-						<div class="worktype-details">
-							<span>⏱ 40-45 мин</span>
-							<span>📋 10-15 заданий</span>
-						</div>
-					</div>
-					
-					<div class="worktype-card" onclick="selectWorkType('milestone')">
-						<div class="worktype-icon">🎯</div>
-						<h3>Рубежная</h3>
-						<p>Контроль за четверть/триместр</p>
-						<div class="worktype-details">
-							<span>⏱ 80-90 мин</span>
-							<span>📋 20-25 заданий</span>
-						</div>
-					</div>
-					
-					<div class="worktype-card" onclick="selectWorkType('final')">
-						<div class="worktype-icon">🏆</div>
-						<h3>Итоговая</h3>
-						<p>Годовая контрольная работа</p>
-						<div class="worktype-details">
-							<span>⏱ 90-120 мин</span>
-							<span>📋 25-30 заданий</span>
-						</div>
-					</div>
-					
-					<div class="worktype-card" onclick="selectWorkType('oge')">
-						<div class="worktype-icon">📘</div>
-						<h3>ОГЭ</h3>
-						<p>Государственный экзамен 9 класс</p>
-						<div class="worktype-details">
-							<span>⏱ 180-235 мин</span>
-							<span>📋 Части 1 и 2</span>
-						</div>
-					</div>
-					
-					<div class="worktype-card" onclick="selectWorkType('ege')">
-						<div class="worktype-icon">📗</div>
-						<h3>ЕГЭ</h3>
-						<p>Единый госэкзамен 11 класс</p>
-						<div class="worktype-details">
-							<span>⏱ 180-235 мин</span>
-							<span>📋 Части 1 и 2</span>
-						</div>
-					</div>
-					
-					<div class="worktype-card" onclick="selectWorkType('vpr')">
-						<div class="worktype-icon">📙</div>
-						<h3>ВПР</h3>
-						<p>Всероссийская проверочная работа</p>
-						<div class="worktype-details">
-							<span>⏱ 45-60 мин</span>
-							<span>📋 Стандартный набор</span>
-						</div>
-					</div>
-					
-					<div class="worktype-card" onclick="selectWorkType('func_literacy')">
-						<div class="worktype-icon">🧠</div>
-						<h3>Функциональная грамотность</h3>
-						<p>Оценка практических навыков</p>
-						<div class="worktype-details">
-							<span>⏱ 60-90 мин</span>
-							<span>📋 Контекстные задания</span>
-						</div>
-					</div>
-					
-					<div class="worktype-card" onclick="selectWorkType('psychology')">
-						<div class="worktype-icon">💭</div>
-						<h3>Психологическая диагностика</h3>
-						<p>Оценка личностных качеств</p>
-						<div class="worktype-details">
-							<span>⏱ 40-60 мин</span>
-							<span>📋 Тесты, анкеты</span>
-						</div>
-					</div>
-				</div>
-				
-				<div class="worktype-select-container" style="display: none;">
-					<label for="workType" class="section-label">Или выберите из списка:</label>
-					<select id="workType" class="form-control-large" onchange="updateWorkType(); scheduleAutoSave(); updateProgress();">
-						<option value="">-- Выберите тип работы --</option>
-						<option value="current">Текущая контрольная</option>
-						<option value="milestone">Рубежная</option>
-						<option value="final">Итоговая</option>
-						<option value="oge">ОГЭ</option>
-						<option value="ege">ЕГЭ</option>
-						<option value="vpr">ВПР</option>
-						<option value="func_literacy">Функциональная грамотность</option>
-						<option value="diagnostic">Диагностическая</option>
-						<option value="psychology">Психологическая диагностика</option>
-					</select>
-				</div>
-				
-				<div class="worktype-info" id="worktypeInfo" style="display: none;">
-					<div class="info-card">
-						<h4 id="selectedWorktypeTitle">Название типа</h4>
-						<p id="selectedWorktypeDesc">Описание типа работы</p>
-						<div class="info-grid">
-							<div class="info-item">
-								<span class="info-label">Рекомендуемое время:</span>
-								<span class="info-value" id="infoTime">45 минут</span>
-							</div>
-							<div class="info-item">
-								<span class="info-label">Формат:</span>
-								<span class="info-value" id="infoFormat">Тест</span>
-							</div>
-							<div class="info-item">
-								<span class="info-label">Система оценивания:</span>
-								<span class="info-value" id="infoGrading">5-балльная</span>
-							</div>
-						</div>
-					</div>
-				</div>
-				
-				<button class="btn btn-primary btn-next" onclick="nextStep()" disabled id="nextStep1">
-					Далее → Основная информация
-				</button>
-            </div>
+  init() {
+    // Глобальный обработчик ошибок
+    window.addEventListener('error', (event) => {
+      // Пропускаем ошибки, связанные с расширениями
+      if (this.isNoisyError(event.error || event.message)) {
+        if (this.debugMode) {
+          console.log('[Filtered noisy error]:', event.error?.message || event.message);
+        }
+        return;
+      }
+      this.handleGlobalError(event.error || event.message);
+    });
+    
+    // Обработчик необработанных промисов
+    window.addEventListener('unhandledrejection', (event) => {
+      const reason = event.reason;
+      if (this.isNoisyError(reason?.message || reason)) {
+        if (this.debugMode) {
+          console.log('[Filtered noisy promise rejection]:', reason?.message || reason);
+        }
+        return;
+      }
+      this.handlePromiseRejection(reason);
+    });
+  }
 
-            <!-- ШАГ 2: ОСНОВНЫЕ ДАННЫЕ (уже есть, оставляем) -->
-            <div class="step-content" id="stepContent2">
-				<div class="step-header">
-					<span class="step-number">2</span>
-					<h2>📋 Основная информация</h2>
-				</div>
-				
-				<div class="settings-card">
-					<div class="form-row">
-						<div class="form-group">
-							<label for="subject" class="required">📚 Предмет</label>
-							<input type="text" id="subject" placeholder="Например: Математика" 
-								   oninput="scheduleAutoSave(); updateProgress();" 
-								   class="form-input">
-							<small class="form-hint">Укажите учебный предмет</small>
-						</div>
-						
-						<div class="form-group">
-							<label for="class" class="required">👥 Класс</label>
-							<input type="text" id="class" placeholder="Например: 5А" 
-								   oninput="scheduleAutoSave(); updateProgress();" 
-								   class="form-input">
-							<small class="form-hint">Укажите класс и параллель</small>
-						</div>
-					</div>
-					
-					<div class="form-row">
-						<div class="form-group">
-							<label for="testDate" class="required">📅 Дата проведения</label>
-							<input type="date" id="testDate" 
-								   onchange="scheduleAutoSave(); updateProgress();" 
-								   class="form-input">
-							<small class="form-hint">Дата проведения работы</small>
-						</div>
-						
-						<div class="form-group">
-							<label for="timeLimit" class="required">⏱ Время выполнения (минут)</label>
-							<input type="number" id="timeLimit" min="1" value="45" 
-								   oninput="scheduleAutoSave(); updateProgress();" 
-								   class="form-input">
-							<small class="form-hint">Продолжительность работы в минутах</small>
-						</div>
-					</div>
-				</div>
-				
-				<div class="settings-card">
-					<h3 class="card-title">🎯 Содержание работы</h3>
-					
-					<div class="form-group">
-						<label for="testTheme" class="required">📖 Тема работы</label>
-						<input type="text" id="testTheme" placeholder="Например: Дроби и проценты" 
-							   oninput="scheduleAutoSave(); updateProgress();" 
-							   class="form-input">
-						<small class="form-hint">Основная тема контрольной работы</small>
-					</div>
-					
-					<div class="form-group">
-						<label for="testGoals" class="required">🎯 Проверяемые цели и элементы содержания</label>
-						<textarea id="testGoals" rows="4" 
-								  placeholder="Перечислите проверяемые знания, умения, навыки..." 
-								  oninput="scheduleAutoSave(); updateProgress();" 
-								  class="form-textarea"></textarea>
-						<small class="form-hint">Какие именно умения и знания проверяет эта работа?</small>
-					</div>
-					
-					<div class="form-group">
-						<label for="workFormat" class="required">📄 Формат работы</label>
-						<select id="workFormat" onchange="scheduleAutoSave(); updateProgress();" class="form-select">
-							<option value="traditional">Традиционная (с решениями)</option>
-							<option value="test">Тест (выбор ответа)</option>
-							<option value="mixed">Смешанная</option>
-							<option value="extended">С развернутым ответом</option>
-						</select>
-						<small class="form-hint">Определяет способ проверки и анализа</small>
-					</div>
-				</div>
-				
-				<div class="step-navigation">
-					<button class="btn" onclick="prevStep()">
-						← Назад к типу работы
-					</button>
-					<button class="btn btn-primary" onclick="nextStep()" id="nextStep2">
-						Далее → Учащиеся
-					</button>
-				</div>
-            </div>
+  /**
+   * Проверяет, является ли ошибка "шумной"
+   */
+  isNoisyError(error) {
+    const errorMessage = typeof error === 'string' 
+      ? error 
+      : error?.message || error?.toString() || '';
+    
+    // Проверяем по шаблонам
+    return this.noisyErrorPatterns.some(pattern => pattern.test(errorMessage));
+  }
 
-            <!-- ШАГ 3: КРИТЕРИИ ОЦЕНИВАНИЯ (ПЕРЕРАБОТАННЫЙ) -->
-            <div class="step-content" id="stepContent3">
-                <div class="criteria-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                    <h2 style="margin: 0;">📊 Критерии оценивания</h2>
-                    <div class="criteria-mode-switch">
-                        <button class="btn btn-sm btn-outline" onclick="switchCriteriaMode('visual')">
-                            🎨 Визуальный режим
-                        </button>
-                        <button class="btn btn-sm btn-outline" onclick="switchCriteriaMode('numeric')">
-                            🔢 Числовой режим
-                        </button>
-                        <button class="btn btn-sm btn-outline" onclick="switchCriteriaMode('advanced')">
-                            ⚙️ Расширенный
-                        </button>
-                    </div>
-                </div>
+  /**
+   * Обрабатывает ошибку
+   */
+  handle(error, context = 'Unknown', metadata = {}) {
+    // Проверяем на шумные ошибки
+    if (this.isNoisyError(error)) {
+      if (this.debugMode) {
+        console.log('[Skipped noisy error in context]:', context, error?.message || error);
+      }
+      return null;
+    }
+    
+    const errorObj = this.normalizeError(error);
+    const errorId = this.generateErrorId();
+    
+    // Проверяем, стоит ли логировать эту ошибку
+    if (!this.shouldLogError(errorObj, context)) {
+      return null;
+    }
+    
+    // Логируем ошибку
+    this.logError(errorObj, context, metadata, errorId);
+    
+    // Показываем пользователю (если нужно)
+    if (this.shouldShowToUser(errorObj)) {
+      this.showUserNotification(errorObj, context, errorId);
+    }
+    
+    // Отправляем в аналитику (если настроена)
+    this.sendToAnalytics(errorObj, context, metadata, errorId);
+    
+    return errorId;
+  }
 
-                <!-- ВИЗУАЛЬНЫЙ РЕЖИМ (ПО УМОЛЧАНИЮ) -->
-                <div class="criteria-visual-mode" id="criteriaVisualMode">
-                    <div style="background: #f8f9fa; padding: 20px; border-radius: 10px; margin-bottom: 20px;">
-                        <h4>🎯 Диапазон баллов: <span id="totalScoreRange">0-100</span></h4>
-                        <div class="slider-container" style="margin: 20px 0;">
-                            <div class="slider-track" id="criteriaSlider" style="height: 40px; background: linear-gradient(to right, #e74c3c, #f39c12, #f1c40f, #2ecc71); border-radius: 20px; position: relative;">
-                                <!-- Слайдеры будут добавлены динамически -->
-                            </div>
-                        </div>
-                        
-                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-top: 20px;">
-                            <div class="grade-card" data-grade="2" onclick="editGradeCard(2)">
-                                <div class="grade-badge" style="background: #e74c3c;">2</div>
-                                <div class="grade-range">0-9</div>
-                                <div class="grade-desc">Неудовлетворительно</div>
-                            </div>
-                            <div class="grade-card" data-grade="3" onclick="editGradeCard(3)">
-                                <div class="grade-badge" style="background: #f39c12;">3</div>
-                                <div class="grade-range">10-14</div>
-                                <div class="grade-desc">Удовлетворительно</div>
-                            </div>
-                            <div class="grade-card" data-grade="4" onclick="editGradeCard(4)">
-                                <div class="grade-badge" style="background: #3498db;">4</div>
-                                <div class="grade-range">15-17</div>
-                                <div class="grade-desc">Хорошо</div>
-                            </div>
-                            <div class="grade-card" data-grade="5" onclick="editGradeCard(5)">
-                                <div class="grade-badge" style="background: #2ecc71;">5</div>
-                                <div class="grade-range">18-20</div>
-                                <div class="grade-desc">Отлично</div>
-                            </div>
-                        </div>
-                    </div>
+  /**
+   * Определяет, стоит ли логировать ошибку
+   */
+  shouldLogError(error, context) {
+    // Не логируем ошибки валидации (они обрабатываются отдельно)
+    if (error.type === this.errorTypes.VALIDATION) {
+      return false;
+    }
+    
+    // Не логируем ошибки CORS при работе с локальными файлами
+    if (error.type === this.errorTypes.CORS && 
+        window.location.protocol === 'file:') {
+      return this.debugMode; // Только в режиме отладки
+    }
+    
+    return true;
+  }
 
-                    <!-- ИНТЕЛЛЕКТУАЛЬНЫЕ ПОДСКАЗКИ -->
-                    <div class="criteria-suggestions" style="background: #e8f4fc; padding: 15px; border-radius: 10px; margin: 20px 0;">
-                        <h4>💡 Интеллектуальные подсказки</h4>
-                        <div id="criteriaSuggestions">
-                            <p>На основе типа работы "<span id="workTypeName">Текущая контрольная</span>" рекомендуем:</p>
-                            <ul>
-                                <li>Шкала 2-5 баллов</li>
-                                <li>Порог "3" = 50% выполнения</li>
-                                <li>Порог "4" = 75% выполнения</li>
-                                <li>Порог "5" = 90% выполнения</li>
-                            </ul>
-                            <button class="btn btn-sm btn-primary" onclick="applySuggestions()">
-                                Применить рекомендации
-                            </button>
-                        </div>
-                    </div>
+  /**
+   * Нормализует ошибку к стандартному формату
+   */
+  normalizeError(error) {
+    // Если это уже нормализованный объект
+    if (error && error.type && error.message) {
+      return error;
+    }
+    
+    const errorMessage = typeof error === 'string' ? error : error?.message || 'Неизвестная ошибка';
+    
+    // Определяем тип ошибки
+    let errorType = this.errorTypes.UNKNOWN;
+    
+    if (error instanceof Error) {
+      if (errorMessage.includes('CORS') || errorMessage.includes('Cross origin')) {
+        errorType = this.errorTypes.CORS;
+      } else if (error.name === 'ValidationError' || error.validationErrors) {
+        errorType = this.errorTypes.VALIDATION;
+      } else if (error.name === 'SyntaxError' || errorMessage.includes('parsing')) {
+        errorType = this.errorTypes.PARSING;
+      } else if (error.name === 'NetworkError' || errorMessage.includes('network') || 
+                 errorMessage.includes('fetch') || errorMessage.includes('HTTP')) {
+        errorType = this.errorTypes.NETWORK;
+      } else {
+        errorType = this.errorTypes.RUNTIME;
+      }
+    } else if (typeof error === 'string') {
+      // Анализируем строковые ошибки
+      if (error.includes('CORS') || error.includes('Cross origin')) {
+        errorType = this.errorTypes.CORS;
+      } else if (error.includes('network') || error.includes('fetch')) {
+        errorType = this.errorTypes.NETWORK;
+      }
+    }
+    
+    return {
+      type: errorType,
+      message: errorMessage,
+      stack: error?.stack || new Error(errorMessage).stack,
+      name: error?.name || 'Error',
+      originalError: error
+    };
+  }
 
-                    <!-- ПРЕДПРОСМОТР С УЧЕНИКАМИ -->
-                    <div class="criteria-preview" style="margin-top: 20px;">
-                        <h4>👁️ Предпросмотр для учеников</h4>
-                        <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 15px;">
-                            <span>Если ученик наберет:</span>
-                            <input type="number" id="previewScore" value="15" min="0" max="100" 
-                                   style="width: 80px; padding: 5px; text-align: center;" 
-                                   oninput="updateScorePreview(this.value)">
-                            <span>баллов → оценка:</span>
-                            <div id="previewGrade" style="font-size: 24px; font-weight: bold; color: #3498db;">
-                                4
-                            </div>
-                        </div>
-                        
-                        <!-- ИНТЕРАКТИВНАЯ ТАБЛИЦА ПРИМЕРОВ -->
-                        <div style="background: white; border: 1px solid #eee; border-radius: 8px; padding: 15px;">
-                            <h5>📝 Примеры оценок:</h5>
-                            <table style="width: 100%; font-size: 12px;">
-                                <thead>
-                                    <tr>
-                                        <th>Задание</th>
-                                        <th>Баллы</th>
-                                        <th>Итог</th>
-                                        <th>Оценка</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="exampleScores">
-                                    <!-- Динамически заполнится -->
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
+  /**
+   * Логирует ошибку (улучшенная версия)
+   */
+  logError(error, context, metadata, errorId) {
+    // Создаем компактную запись
+    const logEntry = {
+      timestamp: new Date().toISOString(),
+      errorId,
+      context,
+      errorType: error.type,
+      message: error.message.substring(0, 200), // Ограничиваем длину
+      url: window.location.href,
+      metadataKeys: Object.keys(metadata)
+    };
+    
+    // Группируем логи только для важных ошибок
+    if (this.isImportantError(error)) {
+      console.group(`❌ ВАЖНО: Ошибка [${errorId}] в ${context}`);
+      console.error('Тип:', error.type);
+      console.error('Сообщение:', error.message);
+      console.error('Контекст:', context);
+      
+      if (Object.keys(metadata).length > 0) {
+        console.error('Метаданные:', metadata);
+      }
+      
+      if (error.stack && error.type !== this.errorTypes.CORS) {
+        console.error('Стек вызовов:');
+        console.error(error.stack);
+      }
+      
+      console.groupEnd();
+    } else {
+      // Для менее важных ошибок - компактный вывод
+      console.warn(`⚠️ [${errorId}] ${context}: ${error.message.substring(0, 100)}`);
+    }
+    
+    // Сохраняем в localStorage только важные ошибки
+    if (this.isImportantError(error)) {
+      this.saveToErrorLog(logEntry);
+    }
+  }
 
-                <!-- ЧИСЛОВОЙ РЕЖИМ -->
-                <div class="criteria-numeric-mode" id="criteriaNumericMode" style="display: none;">
-                    <div style="background: #f0f8ff; padding: 20px; border-radius: 10px;">
-                        <h4>🔢 Точные настройки</h4>
-                        <table style="width: 100%;" class="criteria-table">
-                            <thead>
-                                <tr>
-                                    <th>Оценка</th>
-                                    <th>От %</th>
-                                    <th>До %</th>
-                                    <th>От баллов</th>
-                                    <th>До баллов</th>
-                                    <th>Описание</th>
-                                    <th>Цвет</th>
-                                </tr>
-                            </thead>
-                            <tbody id="numericCriteriaTable">
-                                <!-- Заполнится динамически -->
-                            </tbody>
-                        </table>
-                        
-                        <div style="margin-top: 20px;">
-                            <button class="btn btn-success" onclick="saveNumericCriteria()">
-                                💾 Сохранить числовые критерии
-                            </button>
-                        </div>
-                    </div>
-                </div>
+  /**
+   * Определяет важность ошибки
+   */
+  isImportantError(error) {
+    // Ошибки CORS при работе с локальными файлами не важны
+    if (error.type === this.errorTypes.CORS && window.location.protocol === 'file:') {
+      return false;
+    }
+    
+    // Ошибки валидации не важны для лога
+    if (error.type === this.errorTypes.VALIDATION) {
+      return false;
+    }
+    
+    // Все остальные ошибки важны
+    return true;
+  }
 
-                <!-- РАСШИРЕННЫЙ РЕЖИМ -->
-                <div class="criteria-advanced-mode" id="criteriaAdvancedMode" style="display: none;">
-                    <div style="background: #fff8e1; padding: 20px; border-radius: 10px;">
-                        <h4>⚙️ Расширенные настройки</h4>
-                        <div class="form-group">
-                            <label>Тип шкалы:</label>
-                            <select id="scaleType" onchange="changeScaleType()" class="form-control">
-                                <option value="points">Баллы</option>
-                                <option value="percentage">Проценты</option>
-                                <option value="custom">Пользовательская</option>
-                                <option value="levels">Уровни (низкий/средний/высокий)</option>
-                                <option value="competency">Компетентностная (не освоил/освоил)</option>
-                            </select>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label>Количество градаций:</label>
-                            <input type="range" id="gradeCount" min="2" max="10" value="4" 
-                                   oninput="updateGradeCount(this.value)">
-                            <span id="gradeCountValue">4</span>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label>Распределение:</label>
-                            <select id="distributionType" onchange="redistributeGrades()" class="form-control">
-                                <option value="linear">Линейное</option>
-                                <option value="exponential">Экспоненциальное</option>
-                                <option value="custom">Ручное</option>
-                            </select>
-                        </div>
-                        
-                        <div id="advancedControls">
-                            <!-- Динамические контролы -->
-                        </div>
-                    </div>
-                </div>
+  /**
+   * Показывает уведомление пользователю (улучшенное)
+   */
+  showUserNotification(error, context, errorId) {
+    // Не показываем уведомления для определенных типов ошибок
+    if (error.type === this.errorTypes.CORS && window.location.protocol === 'file:') {
+      return; // CORS ошибки при локальной работе - норма
+    }
+    
+    const message = this.getUserFriendlyMessage(error, context);
+    
+    // Создаем уведомление с возможностью скрыть
+    if (window.showNotification) {
+      window.showNotification({
+        title: 'Ошибка',
+        message: `${message} (Код: ${errorId})`,
+        type: 'error',
+        duration: 5000
+      });
+    } else {
+      // Fallback с проверкой, не было ли уже подобного уведомления
+      if (!this.wasNotificationShown(errorId)) {
+        this.markNotificationShown(errorId);
+        const userConfirmed = confirm(`Ошибка: ${message}\nКод ошибки: ${errorId}\n\nПоказать подробности?`);
+        if (userConfirmed) {
+          console.error('Подробности ошибки:', error);
+        }
+      }
+    }
+  }
 
-                <!-- СИНХРОНИЗАЦИЯ С ЗАДАНИЯМИ -->
-                <div class="criteria-sync" style="margin-top: 30px; padding: 20px; background: #e8f4fc; border-radius: 10px;">
-                    <h4>🔄 Синхронизация с заданиями</h4>
-                    <p>Максимальный балл за все задания: <strong id="maxTotalScore">20</strong></p>
-                    <p>Рекомендуемые границы на основе сложности:</p>
-                    <div id="taskBasedSuggestions">
-                        <!-- Заполнится динамически -->
-                    </div>
-                    <button class="btn btn-primary" onclick="autoGenerateCriteria()">
-                        🤖 Автогенерация критериев
-                    </button>
-                </div>
-            </div>
+  /**
+   * Проверяет, было ли уже показано уведомление
+   */
+  wasNotificationShown(errorId) {
+    try {
+      const shownNotifications = JSON.parse(sessionStorage.getItem('shownErrorNotifications') || '[]');
+      return shownNotifications.includes(errorId);
+    } catch {
+      return false;
+    }
+  }
 
-            <!-- ШАГ 4: ПРЕДПРОСМОТР И СОХРАНЕНИЕ -->
-            <div class="step-content" id="stepContent4" style="display: none;">
-                <div style="text-align: center; padding: 40px;">
-                    <div style="font-size: 4em; margin-bottom: 20px;">✅</div>
-                    <h2>Настройка завершена!</h2>
-                    <p>Все параметры сохранены. Проверьте итоговые настройки:</p>
-                    
-                    <div style="max-width: 600px; margin: 30px auto; background: #f8f9fa; padding: 20px; border-radius: 10px;">
-                        <h4>📋 Итоговая конфигурация</h4>
-                        <div id="finalConfiguration">
-                            <!-- Заполнится динамически -->
-                        </div>
-                    </div>
-                    
-                    <div style="display: flex; gap: 10px; justify-content: center; margin-top: 30px;">
-                        <button class="btn btn-primary" onclick="saveSetup()">
-                            💾 Сохранить настройки
-                        </button>
-                        <button class="btn btn-success" onclick="exportSetupAsTemplate()">
-                            📁 Сохранить как шаблон
-                        </button>
-                        <button class="btn" onclick="showStep(3)">
-                            ← Вернуться к редактированию
-                        </button>
-                    </div>
-                </div>
-            </div>
+  /**
+   * Помечает уведомление как показанное
+   */
+  markNotificationShown(errorId) {
+    try {
+      const shownNotifications = JSON.parse(sessionStorage.getItem('shownErrorNotifications') || '[]');
+      shownNotifications.push(errorId);
+      // Храним только последние 20 уведомлений
+      if (shownNotifications.length > 20) {
+        shownNotifications.shift();
+      }
+      sessionStorage.setItem('shownErrorNotifications', JSON.stringify(shownNotifications));
+    } catch {
+      // Игнорируем ошибки сохранения
+    }
+  }
 
-            <!-- НАВИГАЦИЯ ПО ШАГАМ -->
-            <div class="step-navigation" style="display: flex; justify-content: space-between; margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee;">
-                <button class="btn btn-outline" onclick="prevStep()" id="prevStepBtn">
-                    ← Назад
-                </button>
-                <div>
-                    <button class="btn btn-outline" onclick="saveAsDraft()">
-                        💾 Черновик
-                    </button>
-                    <button class="btn btn-primary" onclick="nextStep()" id="nextStepBtn">
-                        Далее →
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
+  /**
+   * Генерирует понятное сообщение для пользователя
+   */
+  getUserFriendlyMessage(error, context) {
+    const messages = {
+      [this.errorTypes.VALIDATION]: 'Ошибка проверки данных',
+      [this.errorTypes.NETWORK]: 'Проблемы с соединением. Проверьте интернет.',
+      [this.errorTypes.PARSING]: 'Ошибка чтения данных',
+      [this.errorTypes.CORS]: 'Ограничение безопасности браузера',
+      [this.errorTypes.RUNTIME]: 'Произошла ошибка в приложении',
+      [this.errorTypes.UNKNOWN]: 'Произошла неизвестная ошибка'
+    };
+    
+    let baseMessage = messages[error.type] || 'Произошла ошибка';
+    
+    // Добавляем контекст
+    const contextMessages = {
+      'saveData': 'при сохранении данных',
+      'loadData': 'при загрузке данных',
+      'renderChart': 'при построении графика',
+      'exportReport': 'при экспорте отчета',
+      'importTemplate': 'при импорте шаблона',
+      'Global': 'в приложении',
+      'UnhandledPromiseRejection': 'в асинхронной операции'
+    };
+    
+    const contextText = contextMessages[context] || (context !== 'Unknown' ? `в ${context}` : '');
+    
+    return `${baseMessage} ${contextText}`.trim();
+  }
+
+  /**
+   * Безопасное выполнение функции с обработкой ошибок
+   */
+  async safeExecute(fn, context, ...args) {
+    try {
+      return await fn(...args);
+    } catch (error) {
+      // Для ошибок CORS при локальной работе возвращаем fallback без логирования
+      const errorMessage = error?.message || error?.toString() || '';
+      if (errorMessage.includes('CORS') && window.location.protocol === 'file:') {
+        console.warn(`[Локальная работа] CORS ошибка в ${context}, возвращаем fallback`);
+        return this.getFallbackValue(context, error);
+      }
+      
+      const errorId = this.handle(error, context, { args });
+      
+      // Возвращаем fallback значение в зависимости от контекста
+      return this.getFallbackValue(context, error);
+    }
+  }
+
+  // Остальные методы остаются без изменений...
+  // (, , generateErrorId, , 
+  // , shouldShowToUser, , 
+  // , , , )
+  
+  
+
+
+  sendToAnalytics(error, context, metadata, errorId) {
+    // Метод для отправки в аналитику (Google Analytics, Yandex.Metrica и т.д.)
+    if (typeof gtag !== 'undefined') {
+      gtag('event', 'exception', {
+        description: `${context}: ${error.message}`,
+        fatal: false
+      });
+    }
+  }
+
+  handleGlobalError(error) {
+    this.handle(error, 'Global');
+  }
+
+  handlePromiseRejection(reason) {
+    this.handle(reason, 'UnhandledPromiseRejection');
+  }
+
+  /**
+   * Получить историю ошибок для отладки
+   */
+  getErrorLog() {
+    try {
+      return JSON.parse(localStorage.getItem('errorLog') || '[]');
+    } catch {
+      return [];
+    }
+  }
+
+  /**
+   * Очистить историю ошибок
+   */
+  clearErrorLog() {
+    localStorage.removeItem('errorLog');
+  }
+
+	getFallbackValue(context, error) {
+    const fallbacks = {
+      'calculateGrade': 2,
+      'calculatePercentage': 0,
+      'loadData': null,
+      'renderChart': '<div class="error">Не удалось построить график</div>',
+      'exportReport': false
+    };
+    
+    return fallbacks[context] !== undefined ? fallbacks[context] : null;
+  }
+
+  /**
+   * Вспомогательные методы
+   */
+  generateErrorId() {
+    return `ERR_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  }
+
+  saveToErrorLog(entry) {
+    try {
+      const errorLog = JSON.parse(localStorage.getItem('errorLog') || '[]');
+      errorLog.push(entry);
+      
+      // Храним только последние 100 ошибок
+      if (errorLog.length > 100) {
+        errorLog.splice(0, errorLog.length - 100);
+      }
+      
+      localStorage.setItem('errorLog', JSON.stringify(errorLog));
+    } catch (e) {
+      console.error('Не удалось сохранить ошибку в лог:', e);
+    }
+  }
+
+  getAppStateSnapshot() {
+    try {
+      return {
+        dataSize: localStorage.getItem('testAnalyticsData')?.length || 0,
+        tasksCount: window.appData?.tasks?.length || 0,
+        studentsCount: window.appData?.students?.length || 0
+      };
+    } catch {
+      return {};
+    }
+  }
+  
+  /**
+   * Валидирует данные по схеме
+   */
+  validate(data, schema, context = 'validation') {
+    try {
+      const errors = [];
+      
+      // Простая валидация по типам
+      if (schema.required && Array.isArray(schema.required)) {
+        schema.required.forEach(field => {
+          if (data[field] === undefined || data[field] === null || data[field] === '') {
+            errors.push(`Поле "${field}" обязательно для заполнения`);
+          }
+        });
+      }
+      
+      // Валидация чисел
+      if (schema.numbers && Array.isArray(schema.numbers)) {
+        schema.numbers.forEach(field => {
+          if (data[field] !== undefined && isNaN(parseFloat(data[field]))) {
+            errors.push(`Поле "${field}" должно быть числом`);
+          }
+        });
+      }
+      
+      if (errors.length > 0) {
+        const error = new Error(errors.join(', '));
+        error.type = this.errorTypes.VALIDATION;
+        error.validationErrors = errors;
+        throw error;
+      }
+      
+      return true;
+    } catch (error) {
+      this.handle(error, context, { data, schema });
+      throw error;
+    }
+  } 
+  
+  
+  
+  
+  
+  /**
+   * Включает/выключает режим отладки
+   */
+  setDebugMode(enabled) {
+    this.debugMode = enabled;
+    console.log(`Режим отладки ошибок: ${enabled ? 'ВКЛ' : 'ВЫКЛ'}`);
+  }
+}
+
+// Экспорт синглтона
+window.ErrorHandler = new ErrorHandler();
