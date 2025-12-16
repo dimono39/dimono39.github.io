@@ -22,6 +22,222 @@
     <script src="https://unpkg.com/html-docx-js@0.3.1/dist/html-docx.js"></script>
     
     <style>
+		/* Стили для новой вкладки настройки */
+		.setup-steps {
+			position: sticky;
+			top: 20px;
+		}
+
+		.step-nav {
+			display: flex;
+			flex-direction: column;
+			gap: 10px;
+		}
+
+		.step-item {
+			display: flex;
+			align-items: center;
+			gap: 15px;
+			padding: 15px;
+			border-radius: 8px;
+			cursor: pointer;
+			transition: all 0.3s;
+			opacity: 0.6;
+		}
+
+		.step-item.active {
+			background: rgba(255, 255, 255, 0.1);
+			opacity: 1;
+		}
+
+		.step-item:hover:not(.active) {
+			background: rgba(255, 255, 255, 0.05);
+			opacity: 0.8;
+		}
+
+		.step-icon {
+			width: 36px;
+			height: 36px;
+			background: #3498db;
+			border-radius: 50%;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			font-weight: bold;
+			font-size: 16px;
+		}
+
+		.step-info {
+			flex: 1;
+		}
+
+		.step-info strong {
+			display: block;
+			font-size: 14px;
+		}
+
+		.step-info small {
+			font-size: 12px;
+			opacity: 0.8;
+		}
+
+		.step-content {
+			display: none;
+			animation: fadeIn 0.3s ease;
+		}
+
+		.step-content.active {
+			display: block;
+		}
+
+		@keyframes fadeIn {
+			from { opacity: 0; transform: translateY(10px); }
+			to { opacity: 1; transform: translateY(0); }
+		}
+
+		/* Карточки оценок */
+		.grade-card {
+			background: white;
+			border: 2px solid #ddd;
+			border-radius: 10px;
+			padding: 15px;
+			text-align: center;
+			cursor: pointer;
+			transition: all 0.3s;
+		}
+
+		.grade-card:hover {
+			transform: translateY(-5px);
+			box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+			border-color: #3498db;
+		}
+
+		.grade-card.selected {
+			border-color: #2ecc71;
+			background: #f0fff4;
+		}
+
+		.grade-badge {
+			width: 50px;
+			height: 50px;
+			border-radius: 50%;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			color: white;
+			font-size: 20px;
+			font-weight: bold;
+			margin: 0 auto 10px;
+		}
+
+		.grade-range {
+			font-size: 18px;
+			font-weight: bold;
+			margin: 5px 0;
+		}
+
+		.grade-desc {
+			font-size: 12px;
+			color: #666;
+		}
+
+		/* Слайдер критериев */
+		.slider-track {
+			position: relative;
+			cursor: pointer;
+		}
+
+		.slider-handle {
+			position: absolute;
+			width: 20px;
+			height: 20px;
+			background: white;
+			border: 3px solid #2c3e50;
+			border-radius: 50%;
+			top: 50%;
+			transform: translateY(-50%);
+			cursor: ew-resize;
+			box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+			z-index: 10;
+		}
+
+		.slider-segment {
+			position: absolute;
+			top: 0;
+			height: 100%;
+			opacity: 0.7;
+			transition: all 0.3s;
+		}
+
+		.slider-segment:hover {
+			opacity: 1;
+		}
+
+		/* Таблица критериев */
+		.criteria-table {
+			width: 100%;
+			border-collapse: collapse;
+			font-size: 13px;
+		}
+
+		.criteria-table th,
+		.criteria-table td {
+			padding: 10px;
+			border: 1px solid #ddd;
+			text-align: center;
+		}
+
+		.criteria-table th {
+			background: #34495e;
+			color: white;
+		}
+
+		.criteria-table tr:hover {
+			background: #f5f5f5;
+		}
+
+		.color-picker {
+			width: 30px;
+			height: 30px;
+			border: none;
+			border-radius: 4px;
+			cursor: pointer;
+			padding: 0;
+		}
+
+		/* Адаптивность */
+		@media (max-width: 768px) {
+			.setup-board {
+				grid-template-columns: 1fr;
+			}
+			
+			.setup-steps {
+				position: static;
+				margin-bottom: 20px;
+			}
+			
+			.step-nav {
+				flex-direction: row;
+				overflow-x: auto;
+				padding-bottom: 10px;
+			}
+			
+			.step-item {
+				flex-direction: column;
+				text-align: center;
+				min-width: 100px;
+			}
+			
+			.step-info small {
+				display: none;
+			}
+			
+			.criteria-mode-switch {
+				display: flex;
+				flex-wrap: wrap;
+				gap: 5px;
+			}
+		}	
 		/* Анимации для горячих клавиш */
 		@keyframes fadeInOut {
 			0% { opacity: 0; transform: translateX(-50%) translateY(10px); }
@@ -1649,428 +1865,530 @@
         </div>
 	
         <!-- Вкладка настройки теста -->
-        <div id="setup" class="tab-content active">
-            <header class="header">
-                <h1>📊 Конструктор диагностических работ</h1>
-                <p class="subtitle">Настройте параметры работы для быстрого анализа результатов</p>
-            </header>
+		<!-- Обновляем HTML вкладки setup -->
+		<div id="setup" class="tab-content active">
+			<header class="header">
+				<h1>🎯 Умный конструктор диагностики</h1>
+				<p class="subtitle">Настройте работу один раз — используйте всегда</p>
+			</header>
 
-            <!-- Индикатор прогресса -->
-            <div class="progress-container">
-                <div class="progress-bar">
-                    <div class="progress-fill" id="setupProgress" style="width: 10%;"></div>
-                </div>
-                <div class="progress-text" id="progressText">Начните с выбора типа работы</div>
-            </div>
+			<!-- БЫСТРЫЙ СТАРТ -->
+			<div class="quick-start" style="padding: 20px; background: #f8f9fa; border-radius: 10px; margin: 20px;">
+				<h3>🚀 Быстрый старт (выберите вариант):</h3>
+				<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin: 15px 0;">
+					<button class="btn btn-outline" onclick="quickStart('import')">
+						📥 Импорт готового шаблона
+					</button>
+					<button class="btn btn-outline" onclick="quickStart('duplicate')">
+						🔄 Дублировать прошлую работу
+					</button>
+					<button class="btn btn-outline" onclick="quickStart('ai')">
+						🤖 AI-ассистент настройки
+					</button>
+				</div>
+			</div>
 
-            <div class="setup-wizard">
-                <!-- Шаг 1: Тип работы -->
-                <div class="wizard-step active" id="step1">
-                    <div class="step-header">
-                        <span class="step-number">1</span>
-                        <h2>📊 Выберите тип работы</h2>
-                    </div>
-                    <p class="step-description">Это определит остальные настройки и критерии оценивания</p>
-                    
-                    <div class="worktype-grid">
-                        <div class="worktype-card" onclick="selectWorkType('current')">
-                            <div class="worktype-icon">📝</div>
-                            <h3>Текущая контрольная</h3>
-                            <p>Оценка знаний по текущей теме</p>
-                            <div class="worktype-details">
-                                <span>⏱ 40-45 мин</span>
-                                <span>📋 10-15 заданий</span>
-                            </div>
-                        </div>
-                        
-                        <div class="worktype-card" onclick="selectWorkType('milestone')">
-                            <div class="worktype-icon">🎯</div>
-                            <h3>Рубежная</h3>
-                            <p>Контроль за четверть/триместр</p>
-                            <div class="worktype-details">
-                                <span>⏱ 80-90 мин</span>
-                                <span>📋 20-25 заданий</span>
-                            </div>
-                        </div>
-                        
-                        <div class="worktype-card" onclick="selectWorkType('final')">
-                            <div class="worktype-icon">🏆</div>
-                            <h3>Итоговая</h3>
-                            <p>Годовая контрольная работа</p>
-                            <div class="worktype-details">
-                                <span>⏱ 90-120 мин</span>
-                                <span>📋 25-30 заданий</span>
-                            </div>
-                        </div>
-                        
-                        <div class="worktype-card" onclick="selectWorkType('oge')">
-                            <div class="worktype-icon">📘</div>
-                            <h3>ОГЭ</h3>
-                            <p>Государственный экзамен 9 класс</p>
-                            <div class="worktype-details">
-                                <span>⏱ 180-235 мин</span>
-                                <span>📋 Части 1 и 2</span>
-                            </div>
-                        </div>
-                        
-                        <div class="worktype-card" onclick="selectWorkType('ege')">
-                            <div class="worktype-icon">📗</div>
-                            <h3>ЕГЭ</h3>
-                            <p>Единый госэкзамен 11 класс</p>
-                            <div class="worktype-details">
-                                <span>⏱ 180-235 мин</span>
-                                <span>📋 Части 1 и 2</span>
-                            </div>
-                        </div>
-                        
-                        <div class="worktype-card" onclick="selectWorkType('vpr')">
-                            <div class="worktype-icon">📙</div>
-                            <h3>ВПР</h3>
-                            <p>Всероссийская проверочная работа</p>
-                            <div class="worktype-details">
-                                <span>⏱ 45-60 мин</span>
-                                <span>📋 Стандартный набор</span>
-                            </div>
-                        </div>
-                        
-                        <div class="worktype-card" onclick="selectWorkType('func_literacy')">
-                            <div class="worktype-icon">🧠</div>
-                            <h3>Функциональная грамотность</h3>
-                            <p>Оценка практических навыков</p>
-                            <div class="worktype-details">
-                                <span>⏱ 60-90 мин</span>
-                                <span>📋 Контекстные задания</span>
-                            </div>
-                        </div>
-                        
-                        <div class="worktype-card" onclick="selectWorkType('psychology')">
-                            <div class="worktype-icon">💭</div>
-                            <h3>Психологическая диагностика</h3>
-                            <p>Оценка личностных качеств</p>
-                            <div class="worktype-details">
-                                <span>⏱ 40-60 мин</span>
-                                <span>📋 Тесты, анкеты</span>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="worktype-select-container" style="display: none;">
-                        <label for="workType" class="section-label">Или выберите из списка:</label>
-                        <select id="workType" class="form-control-large" onchange="updateWorkType(); scheduleAutoSave(); updateProgress();">
-                            <option value="">-- Выберите тип работы --</option>
-                            <option value="current">Текущая контрольная</option>
-                            <option value="milestone">Рубежная</option>
-                            <option value="final">Итоговая</option>
-                            <option value="oge">ОГЭ</option>
-                            <option value="ege">ЕГЭ</option>
-                            <option value="vpr">ВПР</option>
-                            <option value="func_literacy">Функциональная грамотность</option>
-                            <option value="diagnostic">Диагностическая</option>
-                            <option value="psychology">Психологическая диагностика</option>
-                        </select>
-                    </div>
-                    
-                    <div class="worktype-info" id="worktypeInfo" style="display: none;">
-                        <div class="info-card">
-                            <h4 id="selectedWorktypeTitle">Название типа</h4>
-                            <p id="selectedWorktypeDesc">Описание типа работы</p>
-                            <div class="info-grid">
-                                <div class="info-item">
-                                    <span class="info-label">Рекомендуемое время:</span>
-                                    <span class="info-value" id="infoTime">45 минут</span>
-                                </div>
-                                <div class="info-item">
-                                    <span class="info-label">Формат:</span>
-                                    <span class="info-value" id="infoFormat">Тест</span>
-                                </div>
-                                <div class="info-item">
-                                    <span class="info-label">Система оценивания:</span>
-                                    <span class="info-value" id="infoGrading">5-балльная</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <button class="btn btn-primary btn-next" onclick="nextStep()" disabled id="nextStep1">
-                        Далее → Основная информация
-                    </button>
-                </div>
+			<!-- ОСНОВНАЯ ФОРМА В СТИЛЕ КАНБАН-ДОСКИ -->
+			<div class="setup-board" style="display: grid; grid-template-columns: 300px 1fr; gap: 20px; min-height: 600px;">
+				
+				<!-- ЛЕВАЯ ПАНЕЛЬ - ЭТАПЫ -->
+				<div class="setup-steps" style="background: #2c3e50; color: white; border-radius: 10px; padding: 20px;">
+					<h3 style="color: white; margin-top: 0;">📋 Этапы настройки</h3>
+					<div class="step-nav">
+						<div class="step-item active" data-step="1" onclick="showStep(1)">
+							<div class="step-icon">1</div>
+							<div class="step-info">
+								<strong>Тип работы</strong>
+								<small>Выберите формат</small>
+							</div>
+						</div>
+						<div class="step-item" data-step="2" onclick="showStep(2)">
+							<div class="step-icon">2</div>
+							<div class="step-info">
+								<strong>Основные данные</strong>
+								<small>Предмет, класс, тема</small>
+							</div>
+						</div>
+						<div class="step-item" data-step="3" onclick="showStep(3)">
+							<div class="step-icon">3</div>
+							<div class="step-info">
+								<strong>Критерии оценивания</strong>
+								<small>Система оценок</small>
+							</div>
+						</div>
+						<div class="step-item" data-step="4" onclick="showStep(4)">
+							<div class="step-icon">4</div>
+							<div class="step-info">
+								<strong>Предпросмотр</strong>
+								<small>Проверка настроек</small>
+							</div>
+						</div>
+					</div>
+					
+					<!-- БЫСТРЫЕ ДЕЙСТВИЯ -->
+					<div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.1);">
+						<h4 style="color: white;">⚡ Быстрые действия</h4>
+						<button class="btn btn-sm btn-outline-light" onclick="importCriteriaFromTemplate()" style="width: 100%; margin: 5px 0;">
+							📋 Импорт критериев
+						</button>
+						<button class="btn btn-sm btn-outline-light" onclick="syncCriteriaWithTasks()" style="width: 100%; margin: 5px 0;">
+							🔄 Синхронизировать с заданиями
+						</button>
+						<button class="btn btn-sm btn-outline-light" onclick="resetCriteria()" style="width: 100%; margin: 5px 0;">
+							🔄 Сбросить критерии
+						</button>
+					</div>
+				</div>
 
-                <!-- Шаг 2: Основная информация -->
-                <div class="wizard-step" id="step2">
-                    <div class="step-header">
-                        <span class="step-number">2</span>
-                        <h2>📋 Основная информация</h2>
-                    </div>
-                    
-                    <div class="settings-card">
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="subject" class="required">📚 Предмет</label>
-                                <input type="text" id="subject" placeholder="Например: Математика" 
-                                       oninput="scheduleAutoSave(); updateProgress();" 
-                                       class="form-input">
-                                <small class="form-hint">Укажите учебный предмет</small>
-                            </div>
-                            
-                            <div class="form-group">
-                                <label for="class" class="required">👥 Класс</label>
-                                <input type="text" id="class" placeholder="Например: 5А" 
-                                       oninput="scheduleAutoSave(); updateProgress();" 
-                                       class="form-input">
-                                <small class="form-hint">Укажите класс и параллель</small>
-                            </div>
-                        </div>
-                        
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="testDate" class="required">📅 Дата проведения</label>
-                                <input type="date" id="testDate" 
-                                       onchange="scheduleAutoSave(); updateProgress();" 
-                                       class="form-input">
-                                <small class="form-hint">Дата проведения работы</small>
-                            </div>
-                            
-                            <div class="form-group">
-                                <label for="timeLimit" class="required">⏱ Время выполнения (минут)</label>
-                                <input type="number" id="timeLimit" min="1" value="45" 
-                                       oninput="scheduleAutoSave(); updateProgress();" 
-                                       class="form-input">
-                                <small class="form-hint">Продолжительность работы в минутах</small>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="settings-card">
-                        <h3 class="card-title">🎯 Содержание работы</h3>
-                        
-                        <div class="form-group">
-                            <label for="testTheme" class="required">📖 Тема работы</label>
-                            <input type="text" id="testTheme" placeholder="Например: Дроби и проценты" 
-                                   oninput="scheduleAutoSave(); updateProgress();" 
-                                   class="form-input">
-                            <small class="form-hint">Основная тема контрольной работы</small>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="testGoals" class="required">🎯 Проверяемые цели и элементы содержания</label>
-                            <textarea id="testGoals" rows="4" 
-                                      placeholder="Перечислите проверяемые знания, умения, навыки..." 
-                                      oninput="scheduleAutoSave(); updateProgress();" 
-                                      class="form-textarea"></textarea>
-                            <small class="form-hint">Какие именно умения и знания проверяет эта работа?</small>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="workFormat" class="required">📄 Формат работы</label>
-                            <select id="workFormat" onchange="scheduleAutoSave(); updateProgress();" class="form-select">
-                                <option value="traditional">Традиционная (с решениями)</option>
-                                <option value="test">Тест (выбор ответа)</option>
-                                <option value="mixed">Смешанная</option>
-                                <option value="extended">С развернутым ответом</option>
-                            </select>
-                            <small class="form-hint">Определяет способ проверки и анализа</small>
-                        </div>
-                    </div>
-                    
-                    <div class="step-navigation">
-                        <button class="btn" onclick="prevStep()">
-                            ← Назад к типу работы
-                        </button>
-                        <button class="btn btn-primary" onclick="nextStep()" id="nextStep2">
-                            Далее → Учащиеся
-                        </button>
-                    </div>
-                </div>
+				<!-- ПРАВАЯ ПАНЕЛЬ - КОНТЕНТ -->
+				<div class="setup-content" style="background: white; border-radius: 10px; padding: 25px; overflow-y: auto;">
+					
+					<!-- ШАГ 1: ТИП РАБОТЫ (уже есть, оставляем) -->
+					<div class="step-content active" id="stepContent1">
+						<div class="step-header">
+							<span class="step-number">1</span>
+							<h2>📊 Выберите тип работы</h2>
+						</div>
+						<p class="step-description">Это определит остальные настройки и критерии оценивания</p>
+						
+						<div class="worktype-grid">
+							<div class="worktype-card" onclick="selectWorkType('current')">
+								<div class="worktype-icon">📝</div>
+								<h3>Текущая контрольная</h3>
+								<p>Оценка знаний по текущей теме</p>
+								<div class="worktype-details">
+									<span>⏱ 40-45 мин</span>
+									<span>📋 10-15 заданий</span>
+								</div>
+							</div>
+							
+							<div class="worktype-card" onclick="selectWorkType('milestone')">
+								<div class="worktype-icon">🎯</div>
+								<h3>Рубежная</h3>
+								<p>Контроль за четверть/триместр</p>
+								<div class="worktype-details">
+									<span>⏱ 80-90 мин</span>
+									<span>📋 20-25 заданий</span>
+								</div>
+							</div>
+							
+							<div class="worktype-card" onclick="selectWorkType('final')">
+								<div class="worktype-icon">🏆</div>
+								<h3>Итоговая</h3>
+								<p>Годовая контрольная работа</p>
+								<div class="worktype-details">
+									<span>⏱ 90-120 мин</span>
+									<span>📋 25-30 заданий</span>
+								</div>
+							</div>
+							
+							<div class="worktype-card" onclick="selectWorkType('oge')">
+								<div class="worktype-icon">📘</div>
+								<h3>ОГЭ</h3>
+								<p>Государственный экзамен 9 класс</p>
+								<div class="worktype-details">
+									<span>⏱ 180-235 мин</span>
+									<span>📋 Части 1 и 2</span>
+								</div>
+							</div>
+							
+							<div class="worktype-card" onclick="selectWorkType('ege')">
+								<div class="worktype-icon">📗</div>
+								<h3>ЕГЭ</h3>
+								<p>Единый госэкзамен 11 класс</p>
+								<div class="worktype-details">
+									<span>⏱ 180-235 мин</span>
+									<span>📋 Части 1 и 2</span>
+								</div>
+							</div>
+							
+							<div class="worktype-card" onclick="selectWorkType('vpr')">
+								<div class="worktype-icon">📙</div>
+								<h3>ВПР</h3>
+								<p>Всероссийская проверочная работа</p>
+								<div class="worktype-details">
+									<span>⏱ 45-60 мин</span>
+									<span>📋 Стандартный набор</span>
+								</div>
+							</div>
+							
+							<div class="worktype-card" onclick="selectWorkType('func_literacy')">
+								<div class="worktype-icon">🧠</div>
+								<h3>Функциональная грамотность</h3>
+								<p>Оценка практических навыков</p>
+								<div class="worktype-details">
+									<span>⏱ 60-90 мин</span>
+									<span>📋 Контекстные задания</span>
+								</div>
+							</div>
+							
+							<div class="worktype-card" onclick="selectWorkType('psychology')">
+								<div class="worktype-icon">💭</div>
+								<h3>Психологическая диагностика</h3>
+								<p>Оценка личностных качеств</p>
+								<div class="worktype-details">
+									<span>⏱ 40-60 мин</span>
+									<span>📋 Тесты, анкеты</span>
+								</div>
+							</div>
+						</div>
+						
+						<div class="worktype-select-container" style="display: none;">
+							<label for="workType" class="section-label">Или выберите из списка:</label>
+							<select id="workType" class="form-control-large" onchange="updateWorkType(); scheduleAutoSave(); updateProgress();">
+								<option value="">-- Выберите тип работы --</option>
+								<option value="current">Текущая контрольная</option>
+								<option value="milestone">Рубежная</option>
+								<option value="final">Итоговая</option>
+								<option value="oge">ОГЭ</option>
+								<option value="ege">ЕГЭ</option>
+								<option value="vpr">ВПР</option>
+								<option value="func_literacy">Функциональная грамотность</option>
+								<option value="diagnostic">Диагностическая</option>
+								<option value="psychology">Психологическая диагностика</option>
+							</select>
+						</div>
+						
+						<div class="worktype-info" id="worktypeInfo" style="display: none;">
+							<div class="info-card">
+								<h4 id="selectedWorktypeTitle">Название типа</h4>
+								<p id="selectedWorktypeDesc">Описание типа работы</p>
+								<div class="info-grid">
+									<div class="info-item">
+										<span class="info-label">Рекомендуемое время:</span>
+										<span class="info-value" id="infoTime">45 минут</span>
+									</div>
+									<div class="info-item">
+										<span class="info-label">Формат:</span>
+										<span class="info-value" id="infoFormat">Тест</span>
+									</div>
+									<div class="info-item">
+										<span class="info-label">Система оценивания:</span>
+										<span class="info-value" id="infoGrading">5-балльная</span>
+									</div>
+								</div>
+							</div>
+						</div>
+						
+						<button class="btn btn-primary btn-next" onclick="nextStep()" disabled id="nextStep1">
+							Далее → Основная информация
+						</button>
+					</div>
 
-                <!-- Шаг 3: Учащиеся -->
-                <div class="wizard-step" id="step3">
-                    <div class="step-header">
-                        <span class="step-number">3</span>
-                        <h2>👥 Учащиеся</h2>
-                    </div>
-                    
-                    <div class="settings-card">
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="totalStudents" class="required">📋 Количество учащихся по списку</label>
-                                <input type="number" id="totalStudents" min="1" max="100" value="25" 
-                                       oninput="updatePresentStudents(); scheduleAutoSave(); updateProgress();" 
-                                       class="form-input">
-                                <small class="form-hint">Общее количество учеников в классе</small>
-                            </div>
-                            
-                            <div class="form-group">
-                                <label for="presentStudents" class="required">✏️ Количество писавших работу</label>
-                                <div class="input-with-button">
-                                    <input type="number" id="presentStudents" min="1" max="100" value="23" 
-                                           oninput="scheduleAutoSave(); updateProgress();" 
-                                           class="form-input">
-                                    <button type="button" class="btn-icon" onclick="syncStudentsCount()" 
-                                            title="Синхронизировать с текущим списком">
-                                        🔄
-                                    </button>
-                                </div>
-                                <small class="form-hint">Сколько учеников присутствовало на работе</small>
-                            </div>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="absentReason">📝 Причины отсутствия</label>
-                            <textarea id="absentReason" rows="3" 
-                                      placeholder="Указать причины отсутствия учащихся..." 
-                                      oninput="scheduleAutoSave();" 
-                                      class="form-textarea"></textarea>
-                            <small class="form-hint">Болезнь, соревнования, семейные обстоятельства и т.д.</small>
-                        </div>
-                        
-                        <div class="attendance-stats">
-                            <div class="stat-card">
-                                <div class="stat-value" id="attendancePercent">92%</div>
-                                <div class="stat-label">Посещаемость</div>
-                            </div>
-                            <div class="stat-card">
-                                <div class="stat-value" id="absentCount">2</div>
-                                <div class="stat-label">Отсутствуют</div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="step-navigation">
-                        <button class="btn" onclick="prevStep()">
-                            ← Назад к информации
-                        </button>
-                        <button class="btn btn-primary" onclick="nextStep()" id="nextStep3">
-                            Далее → Критерии
-                        </button>
-                    </div>
-                </div>
+					<!-- ШАГ 2: ОСНОВНЫЕ ДАННЫЕ (уже есть, оставляем) -->
+					<div class="step-content" id="stepContent2">
+						<div class="step-header">
+							<span class="step-number">2</span>
+							<h2>📋 Основная информация</h2>
+						</div>
+						
+						<div class="settings-card">
+							<div class="form-row">
+								<div class="form-group">
+									<label for="subject" class="required">📚 Предмет</label>
+									<input type="text" id="subject" placeholder="Например: Математика" 
+										   oninput="scheduleAutoSave(); updateProgress();" 
+										   class="form-input">
+									<small class="form-hint">Укажите учебный предмет</small>
+								</div>
+								
+								<div class="form-group">
+									<label for="class" class="required">👥 Класс</label>
+									<input type="text" id="class" placeholder="Например: 5А" 
+										   oninput="scheduleAutoSave(); updateProgress();" 
+										   class="form-input">
+									<small class="form-hint">Укажите класс и параллель</small>
+								</div>
+							</div>
+							
+							<div class="form-row">
+								<div class="form-group">
+									<label for="testDate" class="required">📅 Дата проведения</label>
+									<input type="date" id="testDate" 
+										   onchange="scheduleAutoSave(); updateProgress();" 
+										   class="form-input">
+									<small class="form-hint">Дата проведения работы</small>
+								</div>
+								
+								<div class="form-group">
+									<label for="timeLimit" class="required">⏱ Время выполнения (минут)</label>
+									<input type="number" id="timeLimit" min="1" value="45" 
+										   oninput="scheduleAutoSave(); updateProgress();" 
+										   class="form-input">
+									<small class="form-hint">Продолжительность работы в минутах</small>
+								</div>
+							</div>
+						</div>
+						
+						<div class="settings-card">
+							<h3 class="card-title">🎯 Содержание работы</h3>
+							
+							<div class="form-group">
+								<label for="testTheme" class="required">📖 Тема работы</label>
+								<input type="text" id="testTheme" placeholder="Например: Дроби и проценты" 
+									   oninput="scheduleAutoSave(); updateProgress();" 
+									   class="form-input">
+								<small class="form-hint">Основная тема контрольной работы</small>
+							</div>
+							
+							<div class="form-group">
+								<label for="testGoals" class="required">🎯 Проверяемые цели и элементы содержания</label>
+								<textarea id="testGoals" rows="4" 
+										  placeholder="Перечислите проверяемые знания, умения, навыки..." 
+										  oninput="scheduleAutoSave(); updateProgress();" 
+										  class="form-textarea"></textarea>
+								<small class="form-hint">Какие именно умения и знания проверяет эта работа?</small>
+							</div>
+							
+							<div class="form-group">
+								<label for="workFormat" class="required">📄 Формат работы</label>
+								<select id="workFormat" onchange="scheduleAutoSave(); updateProgress();" class="form-select">
+									<option value="traditional">Традиционная (с решениями)</option>
+									<option value="test">Тест (выбор ответа)</option>
+									<option value="mixed">Смешанная</option>
+									<option value="extended">С развернутым ответом</option>
+								</select>
+								<small class="form-hint">Определяет способ проверки и анализа</small>
+							</div>
+						</div>
+						
+						<div class="step-navigation">
+							<button class="btn" onclick="prevStep()">
+								← Назад к типу работы
+							</button>
+							<button class="btn btn-primary" onclick="nextStep()" id="nextStep2">
+								Далее → Учащиеся
+							</button>
+						</div>
+					</div>
 
-                <!-- Шаг 4: Критерии оценивания -->
-                <div class="wizard-step" id="step4">
-                    <div class="step-header">
-                        <span class="step-number">4</span>
-                        <h2>📊 Критерии оценивания</h2>
-                    </div>
-                    
-                    <div class="settings-card">
-                        <div class="criteria-header">
-                            <h3>Система оценивания</h3>
-                            <div class="criteria-type-selector">
-                                <label>Тип шкалы:</label>
-                                <select id="criteriaType" onchange="changeCriteriaType()">
-                                    <option value="points">Баллы (0-100)</option>
-                                    <option value="percent">Проценты (0-100%)</option>
-                                    <option value="custom">Своя шкала</option>
-                                </select>
-                            </div>
-                        </div>
-                        
-                        <div id="criteriaSettingsContainer">
-                            <!-- Динамически загружаемые критерии -->
-                        </div>
-                        
-                        <div class="criteria-presets">
-                            <h4>🚀 Быстрые пресеты:</h4>
-                            <div class="preset-grid">
-                                <button class="preset-btn" onclick="applyPreset('standard_5')">
-                                    📊 Стандартная (2-5)
-                                </button>
-                                <button class="preset-btn" onclick="applyPreset('five_point')">
-                                    1️⃣ Пятибалльная (1-5)
-                                </button>
-                                <button class="preset-btn" onclick="applyPreset('vpr_percent')">
-                                    📝 ВПР (проценты)
-                                </button>
-                                <button class="preset-btn" onclick="applyPreset('psychology_levels')">
-                                    🧠 Психология (уровни)
-                                </button>
-                                <button class="preset-btn" onclick="applyPreset('ege_scaled')">
-                                    📘 ЕГЭ (шкалированные)
-                                </button>
-                            </div>
-                        </div>
-                        
-                        <div class="criteria-controls">
-                            <button class="btn btn-success" onclick="saveCriteriaSettings()">
-                                💾 Сохранить критерии
-                            </button>
-                            <button class="btn" onclick="loadDefaultCriteria()">
-                                🔄 Стандартные настройки
-                            </button>
-                            <button class="btn" onclick="generateAutoCriteria()">
-                                🎯 Автогенерация
-                            </button>
-                        </div>
-                        
-                        <div class="recommendation-card">
-                            <strong>💡 Подсказка:</strong>
-                            <ul>
-                                <li><strong>Баллы</strong> - классическая система оценивания</li>
-                                <li><strong>Проценты</strong> - удобно для тестов и ВПР</li>
-                                <li><strong>Своя шкала</strong> - для нестандартных систем оценивания</li>
-                            </ul>
-                        </div>
-                    </div>
-                    
-                    <div class="settings-card">
-                        <h3>🎯 Предварительный просмотр</h3>
-                        <div class="preview-grid" id="criteriaPreview">
-                            <!-- Предпросмотр критериев -->
-                        </div>
-                    </div>
-                    
-                    <div class="step-navigation">
-                        <button class="btn" onclick="prevStep()">
-                            ← Назад к учащимся
-                        </button>
-                        <button class="btn btn-primary" onclick="completeSetup()" id="completeSetup">
-                            ✅ Завершить настройку
-                        </button>
-                    </div>
-                </div>
-            </div>
+					<!-- ШАГ 3: КРИТЕРИИ ОЦЕНИВАНИЯ (ПЕРЕРАБОТАННЫЙ) -->
+					<div class="step-content" id="stepContent3">
+						<div class="criteria-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+							<h2 style="margin: 0;">📊 Критерии оценивания</h2>
+							<div class="criteria-mode-switch">
+								<button class="btn btn-sm btn-outline" onclick="switchCriteriaMode('visual')">
+									🎨 Визуальный режим
+								</button>
+								<button class="btn btn-sm btn-outline" onclick="switchCriteriaMode('numeric')">
+									🔢 Числовой режим
+								</button>
+								<button class="btn btn-sm btn-outline" onclick="switchCriteriaMode('advanced')">
+									⚙️ Расширенный
+								</button>
+							</div>
+						</div>
 
-            <!-- Кнопки действий (показываются после завершения) -->
-            <div class="action-buttons" id="actionButtons" style="display: none;">
-                <button class="btn btn-success" onclick="saveTestSettings()">
-                    💾 Сохранить настройки
-                </button>
-                <button class="btn btn-warning" onclick="loadSampleData()">
-                    🔄 Загрузить пример
-                </button>
-                <button class="btn" onclick="restoreBackupDialog()">
-                    💾 Восстановить из резервной копии
-                </button>
-                <button class="btn btn-outline" onclick="editSetup()">
-                    ✏️ Редактировать настройки
-                </button>
-                <button class="btn btn-danger" onclick="showResetDialog()">
-                    ⚠️ Сброс всех данных
-                </button>
-            </div>
+						<!-- ВИЗУАЛЬНЫЙ РЕЖИМ (ПО УМОЛЧАНИЮ) -->
+						<div class="criteria-visual-mode" id="criteriaVisualMode">
+							<div style="background: #f8f9fa; padding: 20px; border-radius: 10px; margin-bottom: 20px;">
+								<h4>🎯 Диапазон баллов: <span id="totalScoreRange">0-100</span></h4>
+								<div class="slider-container" style="margin: 20px 0;">
+									<div class="slider-track" id="criteriaSlider" style="height: 40px; background: linear-gradient(to right, #e74c3c, #f39c12, #f1c40f, #2ecc71); border-radius: 20px; position: relative;">
+										<!-- Слайдеры будут добавлены динамически -->
+									</div>
+								</div>
+								
+								<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-top: 20px;">
+									<div class="grade-card" data-grade="2" onclick="editGradeCard(2)">
+										<div class="grade-badge" style="background: #e74c3c;">2</div>
+										<div class="grade-range">0-9</div>
+										<div class="grade-desc">Неудовлетворительно</div>
+									</div>
+									<div class="grade-card" data-grade="3" onclick="editGradeCard(3)">
+										<div class="grade-badge" style="background: #f39c12;">3</div>
+										<div class="grade-range">10-14</div>
+										<div class="grade-desc">Удовлетворительно</div>
+									</div>
+									<div class="grade-card" data-grade="4" onclick="editGradeCard(4)">
+										<div class="grade-badge" style="background: #3498db;">4</div>
+										<div class="grade-range">15-17</div>
+										<div class="grade-desc">Хорошо</div>
+									</div>
+									<div class="grade-card" data-grade="5" onclick="editGradeCard(5)">
+										<div class="grade-badge" style="background: #2ecc71;">5</div>
+										<div class="grade-range">18-20</div>
+										<div class="grade-desc">Отлично</div>
+									</div>
+								</div>
+							</div>
 
-            <!-- Модальные окна -->
-			<div class="modal-overlay" id="resetDialog">
-				<div class="modal-content">
-					<h3>⚠️ Подтверждение сброса</h3>
-					<p>Вы уверены, что хотите сбросить все данные? Это действие нельзя отменить.</p>
-					<div class="modal-actions">
-						<button class="btn" onclick="closeModal('resetDialog')">Отмена</button>
-						<button class="btn btn-danger" onclick="resetAllData()">Сбросить всё</button>
+							<!-- ИНТЕЛЛЕКТУАЛЬНЫЕ ПОДСКАЗКИ -->
+							<div class="criteria-suggestions" style="background: #e8f4fc; padding: 15px; border-radius: 10px; margin: 20px 0;">
+								<h4>💡 Интеллектуальные подсказки</h4>
+								<div id="criteriaSuggestions">
+									<p>На основе типа работы "<span id="workTypeName">Текущая контрольная</span>" рекомендуем:</p>
+									<ul>
+										<li>Шкала 2-5 баллов</li>
+										<li>Порог "3" = 50% выполнения</li>
+										<li>Порог "4" = 75% выполнения</li>
+										<li>Порог "5" = 90% выполнения</li>
+									</ul>
+									<button class="btn btn-sm btn-primary" onclick="applySuggestions()">
+										Применить рекомендации
+									</button>
+								</div>
+							</div>
+
+							<!-- ПРЕДПРОСМОТР С УЧЕНИКАМИ -->
+							<div class="criteria-preview" style="margin-top: 20px;">
+								<h4>👁️ Предпросмотр для учеников</h4>
+								<div style="display: flex; gap: 10px; align-items: center; margin-bottom: 15px;">
+									<span>Если ученик наберет:</span>
+									<input type="number" id="previewScore" value="15" min="0" max="100" 
+										   style="width: 80px; padding: 5px; text-align: center;" 
+										   oninput="updateScorePreview(this.value)">
+									<span>баллов → оценка:</span>
+									<div id="previewGrade" style="font-size: 24px; font-weight: bold; color: #3498db;">
+										4
+									</div>
+								</div>
+								
+								<!-- ИНТЕРАКТИВНАЯ ТАБЛИЦА ПРИМЕРОВ -->
+								<div style="background: white; border: 1px solid #eee; border-radius: 8px; padding: 15px;">
+									<h5>📝 Примеры оценок:</h5>
+									<table style="width: 100%; font-size: 12px;">
+										<thead>
+											<tr>
+												<th>Задание</th>
+												<th>Баллы</th>
+												<th>Итог</th>
+												<th>Оценка</th>
+											</tr>
+										</thead>
+										<tbody id="exampleScores">
+											<!-- Динамически заполнится -->
+										</tbody>
+									</table>
+								</div>
+							</div>
+						</div>
+
+						<!-- ЧИСЛОВОЙ РЕЖИМ -->
+						<div class="criteria-numeric-mode" id="criteriaNumericMode" style="display: none;">
+							<div style="background: #f0f8ff; padding: 20px; border-radius: 10px;">
+								<h4>🔢 Точные настройки</h4>
+								<table style="width: 100%;" class="criteria-table">
+									<thead>
+										<tr>
+											<th>Оценка</th>
+											<th>От %</th>
+											<th>До %</th>
+											<th>От баллов</th>
+											<th>До баллов</th>
+											<th>Описание</th>
+											<th>Цвет</th>
+										</tr>
+									</thead>
+									<tbody id="numericCriteriaTable">
+										<!-- Заполнится динамически -->
+									</tbody>
+								</table>
+								
+								<div style="margin-top: 20px;">
+									<button class="btn btn-success" onclick="saveNumericCriteria()">
+										💾 Сохранить числовые критерии
+									</button>
+								</div>
+							</div>
+						</div>
+
+						<!-- РАСШИРЕННЫЙ РЕЖИМ -->
+						<div class="criteria-advanced-mode" id="criteriaAdvancedMode" style="display: none;">
+							<div style="background: #fff8e1; padding: 20px; border-radius: 10px;">
+								<h4>⚙️ Расширенные настройки</h4>
+								<div class="form-group">
+									<label>Тип шкалы:</label>
+									<select id="scaleType" onchange="changeScaleType()" class="form-control">
+										<option value="points">Баллы</option>
+										<option value="percentage">Проценты</option>
+										<option value="custom">Пользовательская</option>
+										<option value="levels">Уровни (низкий/средний/высокий)</option>
+										<option value="competency">Компетентностная (не освоил/освоил)</option>
+									</select>
+								</div>
+								
+								<div class="form-group">
+									<label>Количество градаций:</label>
+									<input type="range" id="gradeCount" min="2" max="10" value="4" 
+										   oninput="updateGradeCount(this.value)">
+									<span id="gradeCountValue">4</span>
+								</div>
+								
+								<div class="form-group">
+									<label>Распределение:</label>
+									<select id="distributionType" onchange="redistributeGrades()" class="form-control">
+										<option value="linear">Линейное</option>
+										<option value="exponential">Экспоненциальное</option>
+										<option value="custom">Ручное</option>
+									</select>
+								</div>
+								
+								<div id="advancedControls">
+									<!-- Динамические контролы -->
+								</div>
+							</div>
+						</div>
+
+						<!-- СИНХРОНИЗАЦИЯ С ЗАДАНИЯМИ -->
+						<div class="criteria-sync" style="margin-top: 30px; padding: 20px; background: #e8f4fc; border-radius: 10px;">
+							<h4>🔄 Синхронизация с заданиями</h4>
+							<p>Максимальный балл за все задания: <strong id="maxTotalScore">20</strong></p>
+							<p>Рекомендуемые границы на основе сложности:</p>
+							<div id="taskBasedSuggestions">
+								<!-- Заполнится динамически -->
+							</div>
+							<button class="btn btn-primary" onclick="autoGenerateCriteria()">
+								🤖 Автогенерация критериев
+							</button>
+						</div>
+					</div>
+
+					<!-- ШАГ 4: ПРЕДПРОСМОТР И СОХРАНЕНИЕ -->
+					<div class="step-content" id="stepContent4" style="display: none;">
+						<div style="text-align: center; padding: 40px;">
+							<div style="font-size: 4em; margin-bottom: 20px;">✅</div>
+							<h2>Настройка завершена!</h2>
+							<p>Все параметры сохранены. Проверьте итоговые настройки:</p>
+							
+							<div style="max-width: 600px; margin: 30px auto; background: #f8f9fa; padding: 20px; border-radius: 10px;">
+								<h4>📋 Итоговая конфигурация</h4>
+								<div id="finalConfiguration">
+									<!-- Заполнится динамически -->
+								</div>
+							</div>
+							
+							<div style="display: flex; gap: 10px; justify-content: center; margin-top: 30px;">
+								<button class="btn btn-primary" onclick="saveSetup()">
+									💾 Сохранить настройки
+								</button>
+								<button class="btn btn-success" onclick="exportSetupAsTemplate()">
+									📁 Сохранить как шаблон
+								</button>
+								<button class="btn" onclick="showStep(3)">
+									← Вернуться к редактированию
+								</button>
+							</div>
+						</div>
+					</div>
+
+					<!-- НАВИГАЦИЯ ПО ШАГАМ -->
+					<div class="step-navigation" style="display: flex; justify-content: space-between; margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee;">
+						<button class="btn btn-outline" onclick="prevStep()" id="prevStepBtn">
+							← Назад
+						</button>
+						<div>
+							<button class="btn btn-outline" onclick="saveAsDraft()">
+								💾 Черновик
+							</button>
+							<button class="btn btn-primary" onclick="nextStep()" id="nextStepBtn">
+								Далее →
+							</button>
+						</div>
 					</div>
 				</div>
 			</div>
-
-			<div class="modal-overlay" id="successModal">
-				<div class="modal-content success">
-					<div class="modal-icon">✅</div>
-					<h3>Настройки сохранены!</h3>
-					<p>Все параметры успешно сохранены. Теперь вы можете перейти к добавлению заданий.</p>
-					<button class="btn btn-success" onclick="closeModal('successModal')">Продолжить</button>
-				</div>
-			</div>
-        </div>
+		</div>
 
         <!-- Вкладка таксономии заданий -->
         <div id="tasks" class="tab-content">
@@ -2484,7 +2802,757 @@
             social: "Общественный",
             global: "Глобальный"
         };
+		// ==================== УМНЫЕ КРИТЕРИИ ОЦЕНИВАНИЯ ====================
 
+		let currentStep = 1;
+		let criteriaMode = 'visual';
+		let sliderHandles = [];
+
+		function showStep(stepNumber) {
+			// Скрываем все шаги
+			document.querySelectorAll('.step-content').forEach(el => {
+				el.classList.remove('active');
+			});
+			document.querySelectorAll('.step-item').forEach(el => {
+				el.classList.remove('active');
+			});
+			
+			// Показываем выбранный шаг
+			document.getElementById(`stepContent${stepNumber}`).classList.add('active');
+			document.querySelector(`.step-item[data-step="${stepNumber}"]`).classList.add('active');
+			
+			currentStep = stepNumber;
+			
+			// Обновляем кнопки навигации
+			updateNavigationButtons();
+			
+			// Если перешли к критериям - обновляем их
+			if (stepNumber === 3) {
+				updateCriteriaVisualization();
+			}
+			
+			// Если перешли к предпросмотру - обновляем итоговую конфигурацию
+			if (stepNumber === 4) {
+				updateFinalConfiguration();
+			}
+		}
+
+		function nextStep() {
+			if (currentStep < 4) {
+				// Проверяем валидность текущего шага
+				if (validateStep(currentStep)) {
+					showStep(currentStep + 1);
+				}
+			}
+		}
+
+		function prevStep() {
+			if (currentStep > 1) {
+				showStep(currentStep - 1);
+			}
+		}
+
+		function validateStep(step) {
+			switch(step) {
+				case 1:
+					if (!appData.test.workType) {
+						showNotification('Выберите тип работы', 'error');
+						return false;
+					}
+					return true;
+					
+				case 2:
+					const subject = document.getElementById('subject')?.value;
+					const className = document.getElementById('class')?.value;
+					const theme = document.getElementById('testTheme')?.value;
+					
+					if (!subject || !className || !theme) {
+						showNotification('Заполните все обязательные поля', 'error');
+						return false;
+					}
+					return true;
+					
+				case 3:
+					// Проверяем, что критерии заданы
+					if (Object.keys(appData.test.criteria).length === 0) {
+						showNotification('Настройте критерии оценивания', 'error');
+						return false;
+					}
+					return true;
+					
+				default:
+					return true;
+			}
+		}
+
+		function updateNavigationButtons() {
+			const prevBtn = document.getElementById('prevStepBtn');
+			const nextBtn = document.getElementById('nextStepBtn');
+			
+			if (currentStep === 1) {
+				prevBtn.disabled = true;
+				prevBtn.innerHTML = '← Начало';
+			} else {
+				prevBtn.disabled = false;
+				prevBtn.innerHTML = '← Назад';
+			}
+			
+			if (currentStep === 4) {
+				nextBtn.innerHTML = 'Завершить';
+				nextBtn.onclick = saveSetup;
+			} else {
+				nextBtn.innerHTML = 'Далее →';
+				nextBtn.onclick = nextStep;
+			}
+		}
+
+		function switchCriteriaMode(mode) {
+			criteriaMode = mode;
+			
+			// Скрываем все режимы
+			document.getElementById('criteriaVisualMode').style.display = 'none';
+			document.getElementById('criteriaNumericMode').style.display = 'none';
+			document.getElementById('criteriaAdvancedMode').style.display = 'none';
+			
+			// Показываем выбранный режим
+			document.getElementById(`criteria${mode.charAt(0).toUpperCase() + mode.slice(1)}Mode`).style.display = 'block';
+			
+			// Обновляем режим
+			switch(mode) {
+				case 'visual':
+					updateCriteriaVisualization();
+					break;
+				case 'numeric':
+					updateNumericCriteriaTable();
+					break;
+				case 'advanced':
+					updateAdvancedControls();
+					break;
+			}
+			
+			showNotification(`Режим критериев: ${mode === 'visual' ? 'Визуальный' : mode === 'numeric' ? 'Числовой' : 'Расширенный'}`, 'info');
+		}
+
+		function updateCriteriaVisualization() {
+			const maxScore = calculateMaxScore();
+			const criteria = appData.test.criteria;
+			
+			// Обновляем диапазон
+			document.getElementById('totalScoreRange').textContent = `0-${maxScore}`;
+			
+			// Обновляем карточки оценок
+			Object.entries(criteria).forEach(([grade, range]) => {
+				const card = document.querySelector(`.grade-card[data-grade="${grade}"]`);
+				if (card) {
+					card.querySelector('.grade-range').textContent = `${range.min}-${range.max}`;
+					
+					// Добавляем описание на основе типа работы
+					const descriptions = {
+						'2': 'Не освоил материал',
+						'3': 'Освоил частично',
+						'4': 'Освоил хорошо',
+						'5': 'Освоил отлично'
+					};
+					
+					if (appData.test.workType === 'psychology') {
+						card.querySelector('.grade-desc').textContent = getPsychologyDescription(grade);
+					} else {
+						card.querySelector('.grade-desc').textContent = descriptions[grade] || '';
+					}
+				}
+			});
+			
+			// Обновляем слайдер
+			updateCriteriaSlider();
+			
+			// Обновляем примеры оценок
+			updateExampleScores();
+			
+			// Обновляем предпросмотр
+			updateScorePreview(15);
+		}
+
+		function updateCriteriaSlider() {
+			const slider = document.getElementById('criteriaSlider');
+			const maxScore = calculateMaxScore();
+			const criteria = appData.test.criteria;
+			
+			// Очищаем слайдер
+			slider.innerHTML = '';
+			sliderHandles = [];
+			
+			// Создаем сегменты
+			const grades = Object.keys(criteria).map(Number).sort((a, b) => a - b);
+			
+			grades.forEach((grade, index) => {
+				const range = criteria[grade];
+				const startPercent = (range.min / maxScore) * 100;
+				const endPercent = (range.max / maxScore) * 100;
+				const width = endPercent - startPercent;
+				
+				// Создаем сегмент
+				const segment = document.createElement('div');
+				segment.className = 'slider-segment';
+				segment.style.left = `${startPercent}%`;
+				segment.style.width = `${width}%`;
+				segment.style.background = getGradeColor(grade);
+				segment.style.borderRadius = index === 0 ? '20px 0 0 20px' : 
+											 index === grades.length - 1 ? '0 20px 20px 0' : '0';
+				segment.title = `Оценка ${grade}: ${range.min}-${range.max} баллов`;
+				
+				slider.appendChild(segment);
+				
+				// Создаем хэндлы (кроме первого и последнего)
+				if (index < grades.length - 1) {
+					const handle = createSliderHandle(endPercent, grade, grade + 1);
+					slider.appendChild(handle);
+					sliderHandles.push(handle);
+				}
+			});
+			
+			setupSliderHandlers();
+		}
+
+		function createSliderHandle(position, leftGrade, rightGrade) {
+			const handle = document.createElement('div');
+			handle.className = 'slider-handle';
+			handle.style.left = `${position}%`;
+			handle.dataset.leftGrade = leftGrade;
+			handle.dataset.rightGrade = rightGrade;
+			
+			// Drag & Drop функционал
+			let isDragging = false;
+			
+			handle.addEventListener('mousedown', (e) => {
+				isDragging = true;
+				document.body.style.cursor = 'ew-resize';
+				e.preventDefault();
+			});
+			
+			document.addEventListener('mousemove', (e) => {
+				if (!isDragging) return;
+				
+				const sliderRect = document.getElementById('criteriaSlider').getBoundingClientRect();
+				const newPosition = ((e.clientX - sliderRect.left) / sliderRect.width) * 100;
+				const clampedPosition = Math.max(0, Math.min(100, newPosition));
+				
+				handle.style.left = `${clampedPosition}%`;
+				updateCriteriaFromHandle(handle, clampedPosition);
+			});
+			
+			document.addEventListener('mouseup', () => {
+				isDragging = false;
+				document.body.style.cursor = '';
+			});
+			
+			return handle;
+		}
+
+		function updateCriteriaFromHandle(handle, position) {
+			const leftGrade = parseInt(handle.dataset.leftGrade);
+			const rightGrade = parseInt(handle.dataset.rightGrade);
+			const maxScore = calculateMaxScore();
+			
+			// Обновляем границы оценок
+			const boundary = Math.round((position / 100) * maxScore);
+			
+			appData.test.criteria[leftGrade].max = boundary - 1;
+			appData.test.criteria[rightGrade].min = boundary;
+			
+			// Обновляем визуализацию
+			updateCriteriaVisualization();
+		}
+
+		function getGradeColor(grade) {
+			const colors = {
+				2: '#e74c3c',
+				3: '#f39c12',
+				4: '#3498db',
+				5: '#2ecc71'
+			};
+			return colors[grade] || '#95a5a6';
+		}
+
+		function calculateMaxScore() {
+			if (appData.tasks && appData.tasks.length > 0) {
+				return appData.tasks.reduce((sum, task) => sum + (task.maxScore || 1), 0);
+			}
+			return 100; // По умолчанию
+		}
+
+		function updateExampleScores() {
+			const examples = [
+				{ tasks: [5, 5, 5, 5], desc: "Все задания на максимум" },
+				{ tasks: [4, 4, 4, 4], desc: "Хорошие результаты" },
+				{ tasks: [3, 3, 3, 3], desc: "Средние результаты" },
+				{ tasks: [1, 2, 2, 1], desc: "Слабые результаты" }
+			];
+			
+			const tableBody = document.getElementById('exampleScores');
+			tableBody.innerHTML = '';
+			
+			examples.forEach(example => {
+				const totalScore = example.tasks.reduce((a, b) => a + b, 0);
+				const grade = safeCalculateGrade(totalScore);
+				
+				const row = document.createElement('tr');
+				row.innerHTML = `
+					<td>${example.desc}</td>
+					<td>${example.tasks.join('+')} = ${totalScore}</td>
+					<td>${totalScore}/${calculateMaxScore()}</td>
+					<td><span style="color: ${getGradeColor(grade)}; font-weight: bold;">${grade}</span></td>
+				`;
+				tableBody.appendChild(row);
+			});
+		}
+
+		function updateScorePreview(score) {
+			const grade = safeCalculateGrade(parseInt(score) || 0);
+			const maxScore = calculateMaxScore();
+			const percentage = Math.round((score / maxScore) * 100);
+			
+			document.getElementById('previewGrade').textContent = grade;
+			document.getElementById('previewGrade').style.color = getGradeColor(grade);
+			
+			// Обновляем подсказку
+			const hint = document.querySelector('.score-preview-hint') || document.createElement('div');
+			hint.className = 'score-preview-hint';
+			hint.innerHTML = `
+				<small style="display: block; margin-top: 5px; color: #666;">
+					${score} баллов = ${percentage}% → ${getGradeDescription(grade)}
+				</small>
+			`;
+			
+			const previewDiv = document.getElementById('previewGrade').parentElement;
+			if (!previewDiv.querySelector('.score-preview-hint')) {
+				previewDiv.appendChild(hint);
+			}
+		}
+
+		function getGradeDescription(grade) {
+			const descriptions = {
+				2: 'Неудовлетворительно',
+				3: 'Удовлетворительно',
+				4: 'Хорошо',
+				5: 'Отлично'
+			};
+			return descriptions[grade] || '';
+		}
+
+		// ==================== ИМПОРТ КРИТЕРИЕВ ИЗ ШАБЛОНА ====================
+
+		function importCriteriaFromTemplate() {
+			const templates = window.templateFilesData || [];
+			
+			if (templates.length === 0) {
+				showNotification('Сначала загрузите шаблоны', 'warning');
+				scanTemplateFolder();
+				return;
+			}
+			
+			let html = `
+				<div style="max-width: 600px;">
+					<h3>📥 Импорт критериев из шаблона</h3>
+					<p>Выберите шаблон, из которого хотите импортировать критерии:</p>
+					
+					<div style="max-height: 300px; overflow-y: auto; margin: 15px 0;">
+						<table style="width: 100%; font-size: 13px;">
+							<thead>
+								<tr>
+									<th>Шаблон</th>
+									<th>Тип</th>
+									<th>Критерии</th>
+									<th>Выбрать</th>
+								</tr>
+							</thead>
+							<tbody>
+			`;
+			
+			templates.forEach((template, index) => {
+				const criteria = template.data?.test?.criteria;
+				const criteriaCount = criteria ? Object.keys(criteria).length : 0;
+				
+				html += `
+					<tr>
+						<td>${template.file.name}</td>
+						<td>${template.workType}</td>
+						<td>${criteriaCount} градаций</td>
+						<td>
+							<button class="btn btn-sm btn-primary" onclick="applyTemplateCriteria(${index})">
+								Использовать
+							</button>
+						</td>
+					</tr>
+				`;
+			});
+			
+			html += `
+							</tbody>
+						</table>
+					</div>
+					
+					<div style="margin-top: 20px;">
+						<label>
+							<input type="checkbox" id="importTasksToo" checked>
+							Импортировать задания тоже
+						</label>
+					</div>
+				</div>
+			`;
+			
+			showModal('Импорт критериев из шаблона', html);
+		}
+
+		function applyTemplateCriteria(templateIndex) {
+			const templates = window.templateFilesData || [];
+			if (!templates[templateIndex]) return;
+			
+			const template = templates[templateIndex].data;
+			const importTasks = document.getElementById('importTasksToo')?.checked;
+			
+			// Импортируем критерии
+			if (template.test.criteria) {
+				appData.test.criteria = JSON.parse(JSON.stringify(template.test.criteria));
+				showNotification('Критерии импортированы', 'success');
+			}
+			
+			// Импортируем задания если нужно
+			if (importTasks && template.tasks) {
+				appData.tasks = JSON.parse(JSON.stringify(template.tasks));
+				showNotification('Задания импортированы', 'success');
+			}
+			
+			hideModal();
+			updateCriteriaVisualization();
+		}
+
+		// ==================== АВТОГЕНЕРАЦИЯ КРИТЕРИЕВ ====================
+
+		function autoGenerateCriteria() {
+			const workType = appData.test.workType || 'current';
+			const maxScore = calculateMaxScore();
+			
+			let criteria = {};
+			
+			switch(workType) {
+				case 'current':
+				case 'milestone':
+				case 'final':
+					// Традиционная 5-балльная система
+					const step = Math.round(maxScore / 5);
+					criteria = {
+						2: { min: 0, max: step - 1 },
+						3: { min: step, max: step * 2 - 1 },
+						4: { min: step * 2, max: step * 3 - 1 },
+						5: { min: step * 3, max: maxScore }
+					};
+					break;
+					
+				case 'oge':
+				case 'ege':
+					// Баллы ЕГЭ/ОГЭ
+					criteria = {
+						2: { min: 0, max: Math.round(maxScore * 0.3) },
+						3: { min: Math.round(maxScore * 0.31), max: Math.round(maxScore * 0.5) },
+						4: { min: Math.round(maxScore * 0.51), max: Math.round(maxScore * 0.7) },
+						5: { min: Math.round(maxScore * 0.71), max: maxScore }
+					};
+					break;
+					
+				case 'vpr':
+					// ВПР - проценты
+					criteria = {
+						2: { min: 0, max: Math.round(maxScore * 0.49) },
+						3: { min: Math.round(maxScore * 0.5), max: Math.round(maxScore * 0.69) },
+						4: { min: Math.round(maxScore * 0.7), max: Math.round(maxScore * 0.84) },
+						5: { min: Math.round(maxScore * 0.85), max: maxScore }
+					};
+					break;
+					
+				case 'func_literacy':
+				case 'psychology':
+					// Уровневая система
+					criteria = {
+						1: { min: 0, max: Math.round(maxScore * 0.33), name: 'Низкий уровень' },
+						2: { min: Math.round(maxScore * 0.34), max: Math.round(maxScore * 0.66), name: 'Средний уровень' },
+						3: { min: Math.round(maxScore * 0.67), max: maxScore, name: 'Высокий уровень' }
+					};
+					break;
+					
+				default:
+					// Стандартная система
+					criteria = {
+						2: { min: 0, max: Math.round(maxScore * 0.49) },
+						3: { min: Math.round(maxScore * 0.5), max: Math.round(maxScore * 0.74) },
+						4: { min: Math.round(maxScore * 0.75), max: Math.round(maxScore * 0.89) },
+						5: { min: Math.round(maxScore * 0.9), max: maxScore }
+					};
+			}
+			
+			appData.test.criteria = criteria;
+			updateCriteriaVisualization();
+			showNotification('Критерии сгенерированы автоматически', 'success');
+		}
+
+		// ==================== РЕДАКТИРОВАНИЕ КАРТОЧЕК ОЦЕНОК ====================
+
+		function editGradeCard(grade) {
+			const criteria = appData.test.criteria[grade];
+			if (!criteria) return;
+			
+			const maxScore = calculateMaxScore();
+			
+			const html = `
+				<div style="max-width: 400px;">
+					<h3>✏️ Редактирование оценки ${grade}</h3>
+					
+					<div class="form-group">
+						<label>Диапазон баллов:</label>
+						<div style="display: flex; gap: 10px; align-items: center;">
+							<input type="number" id="editMin" value="${criteria.min}" min="0" max="${maxScore}" 
+								   class="form-control" style="width: 100px;">
+							<span>до</span>
+							<input type="number" id="editMax" value="${criteria.max}" min="0" max="${maxScore}" 
+								   class="form-control" style="width: 100px;">
+							<span>из ${maxScore}</span>
+						</div>
+					</div>
+					
+					<div class="form-group">
+						<label>Название оценки:</label>
+						<input type="text" id="editName" value="${criteria.name || getDefaultGradeName(grade)}" 
+							   class="form-control" placeholder="Например: Отлично">
+					</div>
+					
+					<div class="form-group">
+						<label>Описание:</label>
+						<textarea id="editDescription" rows="3" class="form-control">${criteria.description || ''}</textarea>
+					</div>
+					
+					<div class="form-group">
+						<label>Цвет:</label>
+						<input type="color" id="editColor" value="${getGradeColor(grade)}" class="form-control">
+					</div>
+					
+					<div style="margin-top: 20px;">
+						<button class="btn btn-success" onclick="saveGradeEdit(${grade})">
+							💾 Сохранить
+						</button>
+						<button class="btn btn-outline" onclick="hideModal()">
+							Отмена
+						</button>
+					</div>
+				</div>
+			`;
+			
+			showModal('Редактирование оценки', html);
+		}
+
+		function saveGradeEdit(grade) {
+			const min = parseInt(document.getElementById('editMin').value);
+			const max = parseInt(document.getElementById('editMax').value);
+			const name = document.getElementById('editName').value;
+			const description = document.getElementById('editDescription').value;
+			const color = document.getElementById('editColor').value;
+			
+			if (min > max) {
+				showNotification('Минимальное значение не может быть больше максимального', 'error');
+				return;
+			}
+			
+			appData.test.criteria[grade] = {
+				min: min,
+				max: max,
+				name: name,
+				description: description,
+				color: color
+			};
+			
+			hideModal();
+			updateCriteriaVisualization();
+			showNotification(`Оценка ${grade} обновлена`, 'success');
+		}
+
+		function getDefaultGradeName(grade) {
+			const names = {
+				2: 'Неудовлетворительно',
+				3: 'Удовлетворительно',
+				4: 'Хорошо',
+				5: 'Отлично'
+			};
+			return names[grade] || `Оценка ${grade}`;
+		}
+
+		// ==================== СИНХРОНИЗАЦИЯ С ЗАДАНИЯМИ ====================
+
+		function syncCriteriaWithTasks() {
+			if (!appData.tasks || appData.tasks.length === 0) {
+				showNotification('Сначала добавьте задания', 'warning');
+				showTab('tasks');
+				return;
+			}
+			
+			const maxScore = calculateMaxScore();
+			const suggestionDiv = document.getElementById('taskBasedSuggestions');
+			
+			let html = '<div style="font-size: 13px;">';
+			
+			// Анализ сложности заданий
+			const levels = {};
+			appData.tasks.forEach(task => {
+				const level = task.level || 1;
+				levels[level] = (levels[level] || 0) + (task.maxScore || 1);
+			});
+			
+			html += '<p><strong>Распределение по сложности:</strong></p>';
+			Object.entries(levels).forEach(([level, score]) => {
+				const levelName = complexityLevels[level]?.name || `Уровень ${level}`;
+				const percent = Math.round((score / maxScore) * 100);
+				html += `<div>${levelName}: ${score} баллов (${percent}%)</div>`;
+			});
+			
+			// Рекомендации по критериям
+			html += '<p style="margin-top: 10px;"><strong>Рекомендации:</strong></p>';
+			
+			if (levels[1] && levels[1] > maxScore * 0.5) {
+				html += '<div>✅ Много базовых заданий - можно сделать порог "3" выше</div>';
+			}
+			
+			if (levels[4] && levels[4] > maxScore * 0.3) {
+				html += '<div>⚠️ Много сложных заданий - можно снизить порог "5"</div>';
+			}
+			
+			// Предложение скорректировать критерии
+			const easyTasks = (levels[1] || 0) + (levels[2] || 0);
+			const hardTasks = (levels[3] || 0) + (levels[4] || 0);
+			
+			if (easyTasks > hardTasks * 2) {
+				html += '<div>🎯 Предлагаем: "3" = 40%, "4" = 65%, "5" = 85%</div>';
+			} else if (hardTasks > easyTasks * 2) {
+				html += '<div>🎯 Предлагаем: "3" = 30%, "4" = 55%, "5" = 75%</div>';
+			} else {
+				html += '<div>🎯 Предлагаем: "3" = 50%, "4" = 75%, "5" = 90%</div>';
+			}
+			
+			html += '</div>';
+			suggestionDiv.innerHTML = html;
+			
+			// Обновляем максимальный балл
+			document.getElementById('maxTotalScore').textContent = maxScore;
+			
+			showNotification('Критерии синхронизированы с заданиями', 'info');
+		}
+
+		// ==================== СОХРАНЕНИЕ И ЭКСПОРТ ====================
+
+		function saveSetup() {
+			// Сохраняем все данные
+			saveAllData();
+			
+			// Показываем успешное сообщение
+			showModal('✅ Настройка сохранена', `
+				<div style="text-align: center; padding: 20px;">
+					<div style="font-size: 4em; margin-bottom: 20px;">🎉</div>
+					<h3>Настройки успешно сохранены!</h3>
+					<p>Теперь вы можете перейти к добавлению заданий или учащихся.</p>
+					
+					<div style="display: flex; gap: 10px; justify-content: center; margin-top: 30px;">
+						<button class="btn btn-success" onclick="showTab('tasks'); hideModal();">
+							📝 Добавить задания
+						</button>
+						<button class="btn btn-primary" onclick="showTab('students'); hideModal();">
+							👥 Добавить учащихся
+						</button>
+					</div>
+				</div>
+			`);
+		}
+
+		function exportSetupAsTemplate() {
+			const templateName = prompt('Введите название шаблона:', 
+				`${appData.test.subject} - ${appData.test.theme}`);
+			
+			if (!templateName) return;
+			
+			// Создаем объект шаблона
+			const template = {
+				test: JSON.parse(JSON.stringify(appData.test)),
+				tasks: JSON.parse(JSON.stringify(appData.tasks)),
+				criteria: JSON.parse(JSON.stringify(appData.test.criteria)),
+				metadata: {
+					created: new Date().toISOString(),
+					author: 'Система анализа',
+					version: '1.0'
+				}
+			};
+			
+			// Сохраняем в localStorage
+			const userTemplates = JSON.parse(localStorage.getItem('userTemplates') || '[]');
+			userTemplates.push({
+				name: templateName,
+				data: template,
+				date: new Date().toLocaleDateString()
+			});
+			
+			localStorage.setItem('userTemplates', JSON.stringify(userTemplates));
+			
+			// Предлагаем скачать файл
+			const blob = new Blob([JSON.stringify(template, null, 2)], {type: 'application/json'});
+			const url = URL.createObjectURL(blob);
+			const a = document.createElement('a');
+			a.href = url;
+			a.download = `${templateName.replace(/[^a-z0-9]/gi, '_')}.json`;
+			document.body.appendChild(a);
+			a.click();
+			document.body.removeChild(a);
+			
+			showNotification(`Шаблон "${templateName}" сохранен и скачан`, 'success');
+		}
+
+		function updateFinalConfiguration() {
+			const configDiv = document.getElementById('finalConfiguration');
+			
+			configDiv.innerHTML = `
+				<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+					<div>
+						<strong>Тип работы:</strong><br>
+						${workTypes[appData.test.workType]?.name || appData.test.workType}
+					</div>
+					<div>
+						<strong>Предмет:</strong><br>
+						${appData.test.subject || 'Не указан'}
+					</div>
+					<div>
+						<strong>Класс:</strong><br>
+						${appData.test.class || 'Не указан'}
+					</div>
+					<div>
+						<strong>Тема:</strong><br>
+						${appData.test.theme || 'Не указана'}
+					</div>
+					<div style="grid-column: span 2;">
+						<strong>Критерии оценивания:</strong><br>
+						${Object.entries(appData.test.criteria).map(([grade, range]) => 
+							`<span style="display: inline-block; padding: 2px 8px; margin: 2px; background: ${getGradeColor(grade)}; color: white; border-radius: 4px;">
+								${grade}: ${range.min}-${range.max}
+							</span>`
+						).join(' ')}
+					</div>
+				</div>
+			`;
+		}
+
+		// ==================== ИНИЦИАЛИЗАЦИЯ ====================
+
+		document.addEventListener('DOMContentLoaded', function() {
+			// Инициализируем настройки если они пустые
+			if (!appData.test.criteria || Object.keys(appData.test.criteria).length === 0) {
+				autoGenerateCriteria();
+			}
+			
+			// Показываем первый шаг
+			showStep(1);
+		});
 		// ==================== PWA ФУНКЦИИ ====================
 
 		let deferredPrompt = null;
