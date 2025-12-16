@@ -431,8 +431,62 @@ function syncStudentsCount() {
     showNotification('Количество синхронизировано', 'success');
 }
 
-// Обновление прогресса
+
 function updateProgress() {
+    let progress = 0;
+    
+    // Прогресс зависит от текущего шага
+    progress = ((appState.currentStep - 1) / appState.totalSteps) * 100;
+    
+    // Добавляем прогресс заполнения текущего шага
+    switch(appState.currentStep) {
+        case 1:
+            progress += appState.workType ? 25 : 0;
+            break;
+        case 2:
+            const step2Fields = ['subject', 'class', 'testDate', 'testTheme'];
+            const filled2 = step2Fields.filter(id => {
+                const field = document.getElementById(id);
+                return field && field.value.trim();
+            }).length;
+            progress += (filled2 / step2Fields.length) * 25;
+            break;
+        case 3:
+            const step3Fields = ['totalStudents', 'presentStudents'];
+            const filled3 = step3Fields.filter(id => {
+                const field = document.getElementById(id);
+                return field && field.value && parseInt(field.value) > 0;
+            }).length;
+            progress += (filled3 / step3Fields.length) * 25;
+            break;
+        case 4:
+            progress += 25; // Шаг критериев считается полностью заполненным
+            break;
+    }
+    
+	const progressBar = document.getElementById('setupProgress');
+    const progressText = document.getElementById('progressText');
+
+    if (progressBar) {
+        progressBar.style.width = `${progress}%`;
+    }
+    
+    if (progressText) {
+        const progressTexts = [
+            'Выберите тип работы',
+            'Заполните основную информацию',
+            'Укажите данные об учащихся',
+            'Настройте критерии оценивания',
+            'Настройка завершена!'
+        ];
+        let textIndex = Math.min(appState.currentStep - 1, progressTexts.length - 1);
+        progressText.textContent = progressTexts[textIndex];
+    }
+}
+
+
+// Обновление прогресса
+function updateProgresss() {
     let progress = 0;
     
     // Прогресс зависит от текущего шага
