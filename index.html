@@ -1,4 +1,4 @@
-</html><!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
@@ -16704,10 +16704,12 @@
 
 		// Нормализация имени класса
 		function normalizeClassName(className) {
+			// FIX: Ensure it is a string and not undefined/null
 			if (!className) return '';
+			const str = String(className); 
 			
 			// Удаляем слово "класс" и лишние пробелы
-			let normalized = className.replace(/[\s\-]*к?л?а?с?с?/gi, '').trim();
+			let normalized = str.replace(/[\s\-]*к?л?а?с?с?/gi, '').trim();
 			
 			// Добавляем букву "А", если только номер
 			if (normalized.match(/^[0-9]+$/)) {

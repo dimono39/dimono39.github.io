@@ -464,20 +464,24 @@ function updateProgress() {
             break;
     }
     
-    // Обновляем прогресс бар
-    document.getElementById('setupProgress').style.width = `${progress}%`;
+	const progressBar = document.getElementById('setupProgress');
+    const progressText = document.getElementById('progressText');
+
+    if (progressBar) {
+        progressBar.style.width = `${progress}%`;
+    }
     
-    // Обновляем текст
-    const progressTexts = [
-        'Выберите тип работы',
-        'Заполните основную информацию',
-        'Укажите данные об учащихся',
-        'Настройте критерии оценивания',
-        'Настройка завершена!'
-    ];
-    
-    let textIndex = Math.min(appState.currentStep - 1, progressTexts.length - 1);
-    document.getElementById('progressText').textContent = progressTexts[textIndex];
+    if (progressText) {
+        const progressTexts = [
+            'Выберите тип работы',
+            'Заполните основную информацию',
+            'Укажите данные об учащихся',
+            'Настройте критерии оценивания',
+            'Настройка завершена!'
+        ];
+        let textIndex = Math.min(appState.currentStep - 1, progressTexts.length - 1);
+        progressText.textContent = progressTexts[textIndex];
+    }
 }
 
 // Автосохранение
