@@ -1,4 +1,3 @@
-// service-worker.js
 const CACHE_NAME = 'edu-analytics-v1';
 const urlsToCache = [
   '/',

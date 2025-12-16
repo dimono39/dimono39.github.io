@@ -20,7 +20,28 @@ document.addEventListener('DOMContentLoaded', function() {
     updateProgress();
     setupEventListeners();
 });
-
+// Закрытие модальных окон при клике вне контента
+document.addEventListener('DOMContentLoaded', function() {
+    // Добавляем обработчик клика вне модального окна
+    document.querySelectorAll('.modal-overlay').forEach(modal => {
+        modal.addEventListener('click', function(e) {
+            if (e.target === this) {
+                this.classList.remove('show');
+                document.body.style.overflow = 'auto';
+            }
+        });
+    });
+    
+    // Закрытие по клавише Escape
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            document.querySelectorAll('.modal-overlay.show').forEach(modal => {
+                modal.classList.remove('show');
+                document.body.style.overflow = 'auto';
+            });
+        }
+    });
+});
 // Функция для сохранения состояния текущей вкладки
 function saveTabState(tabId) {
     if (!tabId) return;
@@ -1668,3 +1689,85 @@ window.addEventListener('load', function() {
     // Инициализируем предпросмотр
     updateCriteriaPreview();
 });
+// 📦 Инициализация модулей
+document.addEventListener('DOMContentLoaded', function() {
+  // Инициализируем обработчик ошибок
+  if (!window.ErrorHandler) {
+    console.error('ErrorHandler не загружен');
+  }
+  
+  // Инициализируем рендерер таблиц
+  if (!window.TableRenderer) {
+    console.error('TableRenderer не загружен');
+  }
+  
+  // Заменяем старые функции рендеринга таблиц
+  replaceLegacyTableFunctions();
+});
+
+/**
+ * Заменяет старые функции рендеринга на новые
+ */
+function replaceLegacyTableFunctions() {
+  // Сохраняем старые функции для обратной совместимости
+  window.legacyRenderResults = window.renderResults;
+  window.legacyRenderTasks = window.renderTasks;
+  
+  // Переопределяем функции
+  window.renderResults = function() {
+    const container = document.getElementById('resultsContainer');
+    if (!container || !window.TableRenderer) {
+      // Fallback на старую реализацию
+      if (window.legacyRenderResults) {
+        return window.legacyRenderResults();
+      }
+      return;
+    }
+    
+    try {
+      window.TableRenderer.renderResultsTable(
+        container,
+        appData.results,
+        appData.students,
+        appData.tasks
+      );
+    } catch (error) {
+      window.ErrorHandler.handle(error, 'renderResults');
+      // Fallback
+      container.innerHTML = '<div class="alert alert-danger">Ошибка при отображении результатов</div>';
+    }
+  };
+  
+  window.renderTasks = function() {
+    const container = document.getElementById('tasksContainer');
+    if (!container || !window.TableRenderer) {
+      if (window.legacyRenderTasks) {
+        return window.legacyRenderTasks();
+      }
+      return;
+    }
+    
+    try {
+      const columns = [
+        { field: 'number', title: '№', width: '50px' },
+        { field: 'type', title: 'Тип' },
+        { field: 'text', title: 'Текст задания', render: (text) => 
+          `<div style="max-width: 300px; overflow: hidden; text-overflow: ellipsis;">${text}</div>`
+        },
+        { field: 'maxScore', title: 'Макс. балл', width: '100px', align: 'center' },
+        { field: 'level', title: 'Уровень', width: '100px', align: 'center',
+          render: (level) => `<span class="badge" style="background-color: ${complexityLevels[level]?.color || '#ccc'}">${level}</span>`
+        }
+      ];
+      
+      window.TableRenderer.renderTable(
+        container,
+        appData.tasks,
+        columns,
+        { sortable: true, searchable: true }
+      );
+    } catch (error) {
+      window.ErrorHandler.handle(error, 'renderTasks');
+    }
+  };
+}
