@@ -2638,6 +2638,15 @@
 		  
 		  // Показываем промпт установки при долгом использовании
 		  setTimeout(showPwaInstallPrompt, 30000); // 30 секунд
+
+		  // Проверка иконок
+		  setTimeout(checkPwaIcons, 3000);
+		  
+		  // Кнопка отладки (только в dev режиме)
+		  if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+			addPwaDebugButton();
+		  }		  
+		  
 		});
 
 		// Мобильная навигация
@@ -18173,6 +18182,7 @@
 			chartCache.grades = { labels: [], datasets: [] };
 			chartCache.solvability = { labels: [], data: [] };
 			chartCache.complexity = { labels: [], data: [] };
+			chartCache.scatterData = []; // Добавим для точечного графика
 			return;
 		  }
 		  
@@ -18242,48 +18252,66 @@
 		  };
 		  
 		  // 3. Сложность vs Решаемость
-		  const complexityData = [];
-		  const complexityLabels = ['Базовый', 'Применение', 'Анализ', 'Творчество'];
-		  const complexityColors = ['#27ae60', '#3498db', '#f39c12', '#e74c3c'];
+		  chartCache.scatterData = [];
 		  
-		  const tasksByComplexity = { 1: [], 2: [], 3: [], 4: [] };
-		  
-		  appData.tasks.forEach((task, taskIndex) => {
+		  // Для КАЖДОГО задания собираем данные
+		  for (let taskIndex = 0; taskIndex < totalTasks; taskIndex++) {
+			const task = appData.tasks[taskIndex];
 			const complexity = task.level || 1;
-			if (tasksByComplexity[complexity]) {
-			  // Рассчитываем решаемость для этого задания
-			  let totalScore = 0;
-			  let maxPossible = 0;
-			  
-			  appData.results.forEach(studentScores => {
-				const score = parseFloat(studentScores[taskIndex]) || 0;
-				totalScore += score;
-				maxPossible += task.maxScore;
-			  });
-			  
-			  const percentage = maxPossible > 0 ? (totalScore / maxPossible) * 100 : 0;
-			  tasksByComplexity[complexity].push(percentage);
+			
+			// Рассчитываем решаемость для ЭТОГО задания
+			let totalScore = 0;
+			let maxPossible = 0;
+			
+			appData.results.forEach(studentScores => {
+			  const score = parseFloat(studentScores[taskIndex]) || 0;
+			  totalScore += score;
+			  maxPossible += task.maxScore;
+			});
+			
+			const percentage = maxPossible > 0 ? (totalScore / maxPossible) * 100 : 0;
+			
+			// Добавляем точку
+			chartCache.scatterData.push({
+			  x: complexity, // Уровень сложности (1-4)
+			  y: percentage, // Процент выполнения
+			  r: 8 + (task.maxScore || 1), // Размер точки зависит от максимального балла
+			  taskIndex: taskIndex,
+			  taskNumber: taskIndex + 1,
+			  maxScore: task.maxScore,
+			  label: complexityLevels[complexity]?.name || `Уровень ${complexity}`
+			});
+		  }
+		  
+		  // Для линейного графика (средние значения)
+		  const complexityAverages = { 1: [], 2: [], 3: [], 4: [] };
+		  const complexityLabels = ['Базовый', 'Применение', 'Анализ', 'Творчество'];
+		  
+		  // Группируем задания по сложности
+		  chartCache.scatterData.forEach(point => {
+			if (complexityAverages[point.x]) {
+			  complexityAverages[point.x].push(point.y);
 			}
 		  });
 		  
-		  complexityLabels.forEach((label, index) => {
-			const level = index + 1;
-			const percentages = tasksByComplexity[level];
-			const avgPercentage = percentages.length > 0 
-			  ? percentages.reduce((a, b) => a + b, 0) / percentages.length 
-			  : 0;
-			
-			complexityData.push({
-			  x: label,
-			  y: avgPercentage,
-			  count: percentages.length,
-			  color: complexityColors[index]
-			});
-		  });
-		  
+		  // Рассчитываем средние
 		  chartCache.complexity = {
 			labels: complexityLabels,
-			data: complexityData
+			datasets: [
+			  {
+				label: 'Средний процент выполнения',
+				data: complexityLabels.map((label, index) => {
+				  const level = index + 1;
+				  const percentages = complexityAverages[level];
+				  return percentages.length > 0 
+					? percentages.reduce((a, b) => a + b, 0) / percentages.length 
+					: 0;
+				}),
+				backgroundColor: ['#27ae60', '#3498db', '#f39c12', '#e74c3c'],
+				borderColor: '#fff',
+				borderWidth: 2
+			  }
+			]
 		  };
 		}
 
@@ -18466,6 +18494,7 @@
 		}
 
 		// График сложности vs решаемости
+		// График сложности vs решаемости (точечный)
 		function renderComplexityChart() {
 		  const canvas = document.getElementById('complexityChart');
 		  if (!canvas) return;
@@ -18475,7 +18504,8 @@
 		  // Дестрой старый график
 		  window.complexityChartInstance = destroyChartIfExists(window.complexityChartInstance);
 		  
-		  if (!chartCache.complexity || chartCache.complexity.labels.length === 0) {
+		  if (!chartCache.scatterData || chartCache.scatterData.length === 0) {
+			// Показываем placeholder
 			ctx.clearRect(0, 0, canvas.width, canvas.height);
 			ctx.fillStyle = '#999';
 			ctx.textAlign = 'center';
@@ -18484,31 +18514,46 @@
 			return;
 		  }
 		  
+		  // Подготавливаем данные для Chart.js
+		  const scatterDataset = {
+			label: 'Задания',
+			data: chartCache.scatterData,
+			backgroundColor: chartCache.scatterData.map(point => {
+			  // Цвет в зависимости от процента выполнения
+			  if (point.y < 30) return 'rgba(231, 76, 60, 0.7)';
+			  if (point.y < 60) return 'rgba(241, 196, 15, 0.7)';
+			  if (point.y < 90) return 'rgba(52, 152, 219, 0.7)';
+			  return 'rgba(46, 204, 113, 0.7)';
+			}),
+			borderColor: '#fff',
+			borderWidth: 1,
+			pointRadius: chartCache.scatterData.map(point => point.r || 8),
+			pointHoverRadius: chartCache.scatterData.map(point => (point.r || 8) + 3)
+		  };
+		  
+		  // Создаем график
 		  window.complexityChartInstance = new Chart(ctx, {
 			type: 'scatter',
 			data: {
-			  datasets: [{
-				label: 'Уровень сложности',
-				data: chartCache.complexity.data.map(d => ({ x: d.x, y: d.y })),
-				backgroundColor: chartCache.complexity.data.map(d => d.color),
-				borderColor: '#fff',
-				borderWidth: 2,
-				pointRadius: chartCache.complexity.data.map(d => 10 + (d.count || 0) * 2),
-				pointHoverRadius: chartCache.complexity.data.map(d => 15 + (d.count || 0) * 2)
-			  }]
+			  datasets: [scatterDataset]
 			},
 			options: {
 			  responsive: true,
 			  maintainAspectRatio: false,
 			  plugins: {
+				legend: {
+				  display: true,
+				  position: 'top'
+				},
 				tooltip: {
 				  callbacks: {
 					label: function(context) {
-					  const point = chartCache.complexity.data[context.dataIndex];
+					  const point = context.raw;
 					  return [
-						`Уровень: ${context.parsed.x}`,
-						`Решаемость: ${context.parsed.y.toFixed(1)}%`,
-						`Заданий: ${point.count}`
+						`Задание ${point.taskNumber}`,
+						`Уровень: ${point.label}`,
+						`Решаемость: ${point.y.toFixed(1)}%`,
+						`Макс. балл: ${point.maxScore}`
 					  ];
 					}
 				  }
@@ -18520,18 +18565,93 @@
 				  max: 100,
 				  title: {
 					display: true,
-					text: 'Средний процент выполнения (%)'
+					text: 'Процент выполнения (%)',
+					font: {
+					  size: 14,
+					  weight: 'bold'
+					}
+				  },
+				  ticks: {
+					callback: function(value) {
+					  return value + '%';
+					}
 				  }
 				},
 				x: {
+				  type: 'linear',
+				  min: 0.5,
+				  max: 4.5,
 				  title: {
 					display: true,
-					text: 'Уровень сложности'
+					text: 'Уровень сложности',
+					font: {
+					  size: 14,
+					  weight: 'bold'
+					}
+				  },
+				  ticks: {
+					stepSize: 1,
+					callback: function(value) {
+					  const levels = {
+						1: '1. Базовый',
+						2: '2. Применение', 
+						3: '3. Анализ',
+						4: '4. Творчество'
+					  };
+					  return levels[value] || '';
+					}
+				  },
+				  grid: {
+					color: 'rgba(0,0,0,0.1)'
 				  }
 				}
 			  }
 			}
 		  });
+		  
+		  // Добавляем легенду уровней сложности
+		  addComplexityLegend();
+		}
+
+		function addComplexityLegend() {
+		  const container = document.querySelector('#complexityChart').parentElement;
+		  if (!container) return;
+		  
+		  // Удаляем старую легенду
+		  const oldLegend = container.querySelector('.complexity-legend');
+		  if (oldLegend) oldLegend.remove();
+		  
+		  const legend = document.createElement('div');
+		  legend.className = 'complexity-legend';
+		  legend.style.marginTop = '15px';
+		  legend.style.textAlign = 'center';
+		  legend.style.fontSize = '12px';
+		  
+		  legend.innerHTML = `
+			<div style="display: flex; justify-content: center; gap: 20px; flex-wrap: wrap;">
+			  <div style="display: flex; align-items: center; gap: 5px;">
+				<div style="width: 15px; height: 15px; background: #27ae60; border-radius: 50%;"></div>
+				<span>Уровень 1: Базовый/Репродуктивный</span>
+			  </div>
+			  <div style="display: flex; align-items: center; gap: 5px;">
+				<div style="width: 15px; height: 15px; background: #3498db; border-radius: 50%;"></div>
+				<span>Уровень 2: Применение</span>
+			  </div>
+			  <div style="display: flex; align-items: center; gap: 5px;">
+				<div style="width: 15px; height: 15px; background: #f39c12; border-radius: 50%;"></div>
+				<span>Уровень 3: Анализ/Синтез</span>
+			  </div>
+			  <div style="display: flex; align-items: center; gap: 5px;">
+				<div style="width: 15px; height: 15px; background: #e74c3c; border-radius: 50%;"></div>
+				<span>Уровень 4: Творчество</span>
+			  </div>
+			</div>
+			<p style="margin-top: 10px; color: #666;">
+			  Размер точки показывает максимальный балл задания
+			</p>
+		  `;
+		  
+		  container.appendChild(legend);
 		}
 
 		// Тепловая карта (Canvas-based для производительности)
@@ -20989,6 +21109,168 @@ ${files.map(f => f ? `- ${f.name}` : '').join('\n')}
 			
 			return html;
 		}
+		// Генератор иконок для PWA
+		function generatePwaIcons() {
+		  console.log('Генерация иконок PWA...');
+		  
+		  const sizes = [72, 96, 128, 144, 152, 192, 384, 512];
+		  
+		  sizes.forEach(size => {
+			const canvas = document.createElement('canvas');
+			canvas.width = size;
+			canvas.height = size;
+			const ctx = canvas.getContext('2d');
+			
+			// Градиентный фон
+			const gradient = ctx.createLinearGradient(0, 0, size, size);
+			gradient.addColorStop(0, '#667eea');
+			gradient.addColorStop(1, '#764ba2');
+			ctx.fillStyle = gradient;
+			ctx.fillRect(0, 0, size, size);
+			
+			// Белый круг
+			ctx.fillStyle = 'white';
+			ctx.beginPath();
+			ctx.arc(size/2, size/2, size/3, 0, Math.PI * 2);
+			ctx.fill();
+			
+			// Иконка графика
+			ctx.fillStyle = '#667eea';
+			ctx.font = `bold ${size/4}px Arial`;
+			ctx.textAlign = 'center';
+			ctx.textBaseline = 'middle';
+			ctx.fillText('📊', size/2, size/2);
+			
+			// Генерируем URL для скачивания
+			const link = document.createElement('a');
+			link.download = `icon-${size}x${size}.png`;
+			link.href = canvas.toDataURL('image/png');
+			link.click();
+			
+			console.log(`Создана иконка ${size}x${size}`);
+		  });
+		  
+		  showNotification('Иконки сгенерированы и скачаны! Положите их в корень проекта.', 'success');
+		}
+
+		// Функция проверки иконок
+		function checkPwaIcons() {
+		  const requiredIcons = [
+			'icon-72x72.png',
+			'icon-96x96.png', 
+			'icon-128x128.png',
+			'icon-144x144.png',
+			'icon-152x152.png',
+			'icon-192x192.png',
+			'icon-384x384.png',
+			'icon-512x512.png'
+		  ];
+		  
+		  let missingIcons = [];
+		  
+		  requiredIcons.forEach(icon => {
+			const img = new Image();
+			img.onerror = () => {
+			  missingIcons.push(icon);
+			  console.warn(`Иконка отсутствует: ${icon}`);
+			};
+			img.src = icon;
+		  });
+		  
+		  setTimeout(() => {
+			if (missingIcons.length > 0) {
+			  console.warn('Отсутствуют иконки:', missingIcons);
+			  
+			  // Показываем уведомление и предлагаем сгенерировать
+			  showModal('Отсутствуют иконки PWA', `
+				<div style="padding: 20px;">
+				  <h3>⚠️ Требуются иконки для PWA</h3>
+				  <p>Отсутствуют иконки: ${missingIcons.join(', ')}</p>
+				  
+				  <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 15px 0;">
+					<h4>Варианты решения:</h4>
+					<ol>
+					  <li>Создать иконки автоматически (нажмите кнопку ниже)</li>
+					  <li>Скачать готовые с <a href="https://www.pwabuilder.com/imageGenerator" target="_blank">PWABuilder</a></li>
+					  <li>Создать вручную в графическом редакторе</li>
+					</ol>
+				  </div>
+				  
+				  <div style="margin-top: 20px; display: flex; gap: 10px;">
+					<button class="btn btn-primary" onclick="generatePwaIcons()">
+					  🎨 Сгенерировать иконки
+					</button>
+					<button class="btn" onclick="hideModal()">
+					  Позже
+					</button>
+				  </div>
+				</div>
+			  `);
+			}
+		  }, 1000);
+		}
+
+		// Добавьте кнопку в интерфейс для отладки
+		function addPwaDebugButton() {
+		  const debugBtn = document.createElement('button');
+		  debugBtn.innerHTML = '🛠 PWA Debug';
+		  debugBtn.className = 'btn btn-sm btn-outline-warning';
+		  debugBtn.style.position = 'fixed';
+		  debugBtn.style.top = '10px';
+		  debugBtn.style.right = '10px';
+		  debugBtn.style.zIndex = '10000';
+		  debugBtn.onclick = function() {
+			showModal('Отладка PWA', `
+			  <div style="padding: 20px;">
+				<h3>Информация PWA</h3>
+				
+				<div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 10px 0;">
+				  <p><strong>Установлено:</strong> ${checkIfPwaInstalled() ? '✅ Да' : '❌ Нет'}</p>
+				  <p><strong>Service Worker:</strong> ${'serviceWorker' in navigator ? '✅ Поддерживается' : '❌ Не поддерживается'}</p>
+				  <p><strong>Офлайн:</strong> ${navigator.onLine ? '✅ Онлайн' : '⚠️ Офлайн'}</p>
+				  <p><strong>Промпт доступен:</strong> ${deferredPrompt ? '✅ Да' : '❌ Нет'}</p>
+				</div>
+				
+				<div style="display: flex; flex-direction: column; gap: 10px; margin-top: 20px;">
+				  <button class="btn" onclick="checkPwaIcons()">🔍 Проверить иконки</button>
+				  <button class="btn" onclick="installPwa()">📱 Запустить установку</button>
+				  <button class="btn" onclick="registerServiceWorker()">🔄 Перерегистрировать SW</button>
+				  <button class="btn" onclick="generatePwaIcons()">🎨 Сгенерировать иконки</button>
+				  <button class="btn btn-danger" onclick="uninstallPwa()">🗑️ Удалить PWA</button>
+				</div>
+			  </div>
+			`);
+		  };
+		  
+		  document.body.appendChild(debugBtn);
+		}
+
+		// Функция удаления PWA (для тестирования)
+		function uninstallPwa() {
+		  if (confirm('Удалить установленное PWA? Это очистит все данные.')) {
+			if ('serviceWorker' in navigator) {
+			  navigator.serviceWorker.getRegistrations().then(registrations => {
+				registrations.forEach(registration => {
+				  registration.unregister();
+				});
+			  });
+			}
+			
+			// Очищаем кэш
+			caches.keys().then(cacheNames => {
+			  cacheNames.forEach(cacheName => {
+				caches.delete(cacheName);
+			  });
+			});
+			
+			// Очищаем localStorage
+			localStorage.clear();
+			
+			showNotification('PWA удалено. Перезагрузите страницу.', 'warning');
+			setTimeout(() => location.reload(), 2000);
+		  }
+		}
+
 
 		// Рекомендации для урока
 		function generateLessonRecommendations() {
