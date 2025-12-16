@@ -380,7 +380,26 @@ class ErrorHandler {
   }
 
   handleGlobalError(error) {
-    this.handle(error, 'Global');
+    try {
+        // Проверяем, что есть event и его свойства
+        if (!event) {
+            console.warn('Empty error event');
+            return;
+        }
+        
+        const error = event.error || event.reason || new Error('Unknown error');
+        
+        // Проверяем, что error - это объект
+        if (typeof error !== 'object') {
+            error = new Error(String(error));
+        }
+		this.handle(error, 'Global');
+
+	} catch (handlerError) {
+        console.error('Error handler failed:', handlerError);
+    }		
+	
+    
   }
 
   handlePromiseRejection(reason) {

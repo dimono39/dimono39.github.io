@@ -859,28 +859,128 @@ function generateFivePointCriteria() {
     `;
 }
 
+// ==================== ОБНОВЛЕННАЯ ФУНКЦИЯ ПРЕДПРОСМОТРА КРИТЕРИЕВ ====================
+
 function updateCriteriaPreview() {
     const preview = document.getElementById('criteriaPreview');
-    const rows = document.querySelectorAll('.criteria-row:not(.header)');
+    if (!preview) {
+        console.warn('Элемент criteriaPreview не найден - возможно, это новая версия интерфейса');
+        return;
+    }
     
-    let previewHTML = '<div class="criteria-preview-grid">';
+    const criteria = appData.test.criteria;
+    if (!criteria || Object.keys(criteria).length === 0) {
+        preview.innerHTML = '<div style="text-align: center; padding: 20px; color: #999;">Критерии не настроены</div>';
+        return;
+    }
     
-    rows.forEach(row => {
-        const grade = row.querySelector('.grade-badge').textContent;
-        const min = row.querySelector('.criteria-min').value;
-        const max = row.querySelector('.criteria-max').value;
-        const desc = row.querySelector('.criteria-desc').value;
+    const maxScore = calculateMaxScore();
+    let previewHTML = '<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px;">';
+    
+    Object.entries(criteria).forEach(([grade, data]) => {
+        const percentageMin = Math.round((data.min / maxScore) * 100);
+        const percentageMax = Math.round((data.max / maxScore) * 100);
+        const gradeColor = data.color || getGradeColor(grade);
         
         previewHTML += `
-            <div class="preview-item">
-                <div class="preview-grade grade-${grade}">${grade}</div>
-                <div class="preview-range">${min}-${max}</div>
-                <div class="preview-desc">${desc}</div>
+            <div class="preview-card" style="
+                background: white; 
+                border-radius: 10px; 
+                padding: 15px; 
+                text-align: center;
+                border: 3px solid ${gradeColor};
+                box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+                transition: transform 0.3s;
+                cursor: pointer;
+            " onclick="editGradeCard(${grade})" title="Нажмите для редактирования">
+                <div style="
+                    width: 50px; 
+                    height: 50px; 
+                    background: ${gradeColor}; 
+                    color: white; 
+                    border-radius: 50%; 
+                    display: flex; 
+                    align-items: center; 
+                    justify-content: center; 
+                    font-weight: bold; 
+                    font-size: 20px;
+                    margin: 0 auto 10px;
+                ">
+                    ${grade}
+                </div>
+                <div style="font-size: 18px; font-weight: bold; margin-bottom: 5px;">
+                    ${data.name || getDefaultGradeName(grade)}
+                </div>
+                <div style="color: #666; font-size: 14px; margin-bottom: 10px;">
+                    ${data.min} - ${data.max} баллов
+                </div>
+                <div style="font-size: 12px; color: #999;">
+                    (${percentageMin}% - ${percentageMax}%)
+                </div>
+                ${data.description ? `
+                <div style="
+                    margin-top: 10px; 
+                    padding-top: 10px; 
+                    border-top: 1px dashed #eee; 
+                    font-size: 11px; 
+                    color: #666;
+                    text-align: left;
+                ">
+                    ${data.description.substring(0, 60)}${data.description.length > 60 ? '...' : ''}
+                </div>
+                ` : ''}
             </div>
         `;
     });
     
     previewHTML += '</div>';
+    
+    // Добавляем статистику
+    previewHTML += `
+        <div style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <strong>Статистика критериев:</strong>
+                    <div style="font-size: 12px; color: #666;">
+                        ${Object.keys(criteria).length} градаций • 
+                        Максимальный балл: ${maxScore} • 
+                        Охват: 0-${maxScore} баллов
+                    </div>
+                </div>
+                <button class="btn btn-sm btn-outline-primary" onclick="switchCriteriaMode('visual')">
+                    🎨 Настроить визуально
+                </button>
+            </div>
+            
+            <!-- Прогресс-бар распределения -->
+            <div style="margin-top: 10px;">
+                <div style="height: 10px; background: #e9ecef; border-radius: 5px; overflow: hidden; position: relative;">
+                    ${Object.entries(criteria).map(([grade, data], index) => {
+                        const width = ((data.max - data.min + 1) / maxScore) * 100;
+                        const left = (data.min / maxScore) * 100;
+                        const gradeColor = data.color || getGradeColor(grade);
+                        return `
+                            <div style="
+                                position: absolute;
+                                left: ${left}%;
+                                width: ${width}%;
+                                height: 100%;
+                                background: ${gradeColor};
+                                ${index === 0 ? 'border-top-left-radius: 5px; border-bottom-left-radius: 5px;' : ''}
+                                ${index === Object.keys(criteria).length - 1 ? 'border-top-right-radius: 5px; border-bottom-right-radius: 5px;' : ''}
+                            " title="${grade}: ${data.min}-${data.max}"></div>
+                        `;
+                    }).join('')}
+                </div>
+                <div style="display: flex; justify-content: space-between; font-size: 11px; color: #666; margin-top: 5px;">
+                    <span>0</span>
+                    <span>${Math.round(maxScore/2)}</span>
+                    <span>${maxScore}</span>
+                </div>
+            </div>
+        </div>
+    `;
+    
     preview.innerHTML = previewHTML;
 }
 
@@ -924,7 +1024,100 @@ function applyPreset(presetName) {
     }
 }
 // Вставьте этот код в конец файла script.js, после всех существующих функций
-
+function updateCriteriaPreviewLegacy() {
+    // Эта функция для совместимости со старым интерфейсом
+    const preview = document.getElementById('criteriaPreview');
+    if (!preview) return;
+    
+    const rows = document.querySelectorAll('.criteria-row:not(.header)');
+    if (rows.length === 0) {
+        // Используем новые данные если старых элементов нет
+        updateCriteriaPreview();
+        return;
+    }
+    
+    let previewHTML = '<div class="preview-grid" id="previewGridContainer">';
+    
+    rows.forEach(row => {
+        const gradeElement = row.querySelector('.grade-badge');
+        const minInput = row.querySelector('.criteria-min');
+        const maxInput = row.querySelector('.criteria-max');
+        const descInput = row.querySelector('.criteria-desc input');
+        
+        if (!gradeElement || !minInput || !maxInput) {
+            console.warn('Не найден элемент критериев');
+            return;
+        }
+        
+        const grade = gradeElement.textContent;
+        const min = minInput.value;
+        const max = maxInput.value;
+        const desc = descInput ? descInput.value : '';
+        
+        previewHTML += `
+            <div class="preview-item">
+                <div class="preview-grade grade-${grade}">${grade}</div>
+                <div class="preview-range">${min}-${max}</div>
+                <div class="preview-desc">${desc}</div>
+            </div>
+        `;
+    });
+    
+    previewHTML += '</div>';
+    preview.innerHTML = previewHTML;
+    
+    // Добавляем стили если их нет
+    if (!document.querySelector('#previewStyles')) {
+        const styles = `
+            <style id="previewStyles">
+                .preview-grid {
+                    display: grid;
+                    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                    gap: 15px;
+                    margin-top: 15px;
+                }
+                
+                .preview-item {
+                    background: white;
+                    border-radius: 8px;
+                    padding: 15px;
+                    border: 2px solid #e9ecef;
+                    text-align: center;
+                    transition: all 0.3s ease;
+                }
+                
+                .preview-item:hover {
+                    border-color: #667eea;
+                    transform: translateY(-2px);
+                }
+                
+                .preview-grade {
+                    font-size: 1.8em;
+                    font-weight: bold;
+                    margin-bottom: 5px;
+                }
+                
+                .preview-range {
+                    color: #666;
+                    font-size: 0.9em;
+                    margin-bottom: 10px;
+                }
+                
+                .preview-desc {
+                    font-size: 0.85em;
+                    color: #333;
+                    line-height: 1.4;
+                }
+                
+                .grade-5 { color: #4CAF50; }
+                .grade-4 { color: #8BC34A; }
+                .grade-3 { color: #FFC107; }
+                .grade-2 { color: #F44336; }
+            </style>
+        `;
+        document.head.insertAdjacentHTML('beforeend', styles);
+    }
+}
 // ========== ФУНКЦИИ ДЛЯ КРИТЕРИЕВ ОЦЕНИВАНИЯ ==========
 
 function generateOgeCriteria() {

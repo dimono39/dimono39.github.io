@@ -2809,33 +2809,48 @@
 		let sliderHandles = [];
 
 		function showStep(stepNumber) {
-			// Скрываем все шаги
+			// Сначала проверяем существование элементов
+			const stepContent = document.getElementById(`stepContent${stepNumber}`);
+			const stepItem = document.querySelector(`.step-item[data-step="${stepNumber}"]`);
+			
+			if (!stepContent || !stepItem) {
+				console.warn(`Элементы шага ${stepNumber} не найдены`);
+				return;
+			}
+			
+			// Скрываем все шаги безопасно
 			document.querySelectorAll('.step-content').forEach(el => {
-				el.classList.remove('active');
+				if (el && el.classList) {
+					el.classList.remove('active');
+				}
 			});
+			
 			document.querySelectorAll('.step-item').forEach(el => {
-				el.classList.remove('active');
+				if (el && el.classList) {
+					el.classList.remove('active');
+				}
 			});
 			
 			// Показываем выбранный шаг
-			document.getElementById(`stepContent${stepNumber}`).classList.add('active');
-			document.querySelector(`.step-item[data-step="${stepNumber}"]`).classList.add('active');
+			stepContent.classList.add('active');
+			stepItem.classList.add('active');
 			
 			currentStep = stepNumber;
 			
-			// Обновляем кнопки навигации
+			// Обновляем кнопки навигации с проверкой
 			updateNavigationButtons();
 			
 			// Если перешли к критериям - обновляем их
 			if (stepNumber === 3) {
-				updateCriteriaVisualization();
+				setTimeout(() => updateCriteriaVisualization(), 100);
 			}
 			
 			// Если перешли к предпросмотру - обновляем итоговую конфигурацию
 			if (stepNumber === 4) {
-				updateFinalConfiguration();
+				setTimeout(() => updateFinalConfiguration(), 100);
 			}
 		}
+
 
 		function nextStep() {
 			if (currentStep < 4) {
@@ -2889,6 +2904,11 @@
 			const prevBtn = document.getElementById('prevStepBtn');
 			const nextBtn = document.getElementById('nextStepBtn');
 			
+			if (!prevBtn || !nextBtn) {
+				console.warn('Кнопки навигации не найдены');
+				return;
+			}
+			
 			if (currentStep === 1) {
 				prevBtn.disabled = true;
 				prevBtn.innerHTML = '← Начало';
@@ -2899,7 +2919,11 @@
 			
 			if (currentStep === 4) {
 				nextBtn.innerHTML = 'Завершить';
-				nextBtn.onclick = saveSetup;
+				nextBtn.onclick = () => {
+					if (typeof saveSetup === 'function') {
+						saveSetup();
+					}
+				};
 			} else {
 				nextBtn.innerHTML = 'Далее →';
 				nextBtn.onclick = nextStep;
@@ -2909,61 +2933,93 @@
 		function switchCriteriaMode(mode) {
 			criteriaMode = mode;
 			
-			// Скрываем все режимы
-			document.getElementById('criteriaVisualMode').style.display = 'none';
-			document.getElementById('criteriaNumericMode').style.display = 'none';
-			document.getElementById('criteriaAdvancedMode').style.display = 'none';
+			// Находим элементы с проверкой на null
+			const visualMode = document.getElementById('criteriaVisualMode');
+			const numericMode = document.getElementById('criteriaNumericMode');
+			const advancedMode = document.getElementById('criteriaAdvancedMode');
+			
+			// Скрываем все режимы безопасно
+			[visualMode, numericMode, advancedMode].forEach(el => {
+				if (el) el.style.display = 'none';
+			});
 			
 			// Показываем выбранный режим
-			document.getElementById(`criteria${mode.charAt(0).toUpperCase() + mode.slice(1)}Mode`).style.display = 'block';
-			
-			// Обновляем режим
-			switch(mode) {
-				case 'visual':
-					updateCriteriaVisualization();
-					break;
-				case 'numeric':
-					updateNumericCriteriaTable();
-					break;
-				case 'advanced':
-					updateAdvancedControls();
-					break;
+			const targetMode = document.getElementById(`criteria${mode.charAt(0).toUpperCase() + mode.slice(1)}Mode`);
+			if (targetMode) {
+				targetMode.style.display = 'block';
 			}
+			
+			// Обновляем режим с задержкой для гарантии рендеринга
+			setTimeout(() => {
+				switch(mode) {
+					case 'visual':
+						updateCriteriaVisualization();
+						break;
+					case 'numeric':
+						updateNumericCriteriaTable();
+						break;
+					case 'advanced':
+						updateAdvancedControls();
+						break;
+				}
+			}, 50);
 			
 			showNotification(`Режим критериев: ${mode === 'visual' ? 'Визуальный' : mode === 'numeric' ? 'Числовой' : 'Расширенный'}`, 'info');
 		}
 
+
 		function updateCriteriaVisualization() {
+			// Проверяем элементы
+			const totalScoreRange = document.getElementById('totalScoreRange');
+			const criteriaSlider = document.getElementById('criteriaSlider');
+			
+			if (!totalScoreRange || !criteriaSlider) {
+				console.warn('Элементы визуализации критериев не найдены');
+				return;
+			}
+			
 			const maxScore = calculateMaxScore();
 			const criteria = appData.test.criteria;
 			
+			if (!criteria) {
+				console.warn('Критерии не определены в appData');
+				return;
+			}
+			
 			// Обновляем диапазон
-			document.getElementById('totalScoreRange').textContent = `0-${maxScore}`;
+			totalScoreRange.textContent = `0-${maxScore}`;
 			
 			// Обновляем карточки оценок
 			Object.entries(criteria).forEach(([grade, range]) => {
 				const card = document.querySelector(`.grade-card[data-grade="${grade}"]`);
 				if (card) {
-					card.querySelector('.grade-range').textContent = `${range.min}-${range.max}`;
+					const gradeRange = card.querySelector('.grade-range');
+					const gradeDesc = card.querySelector('.grade-desc');
 					
-					// Добавляем описание на основе типа работы
-					const descriptions = {
-						'2': 'Не освоил материал',
-						'3': 'Освоил частично',
-						'4': 'Освоил хорошо',
-						'5': 'Освоил отлично'
-					};
+					if (gradeRange) gradeRange.textContent = `${range.min}-${range.max}`;
 					
-					if (appData.test.workType === 'psychology') {
-						card.querySelector('.grade-desc').textContent = getPsychologyDescription(grade);
-					} else {
-						card.querySelector('.grade-desc').textContent = descriptions[grade] || '';
+					if (gradeDesc) {
+						if (appData.test.workType === 'psychology') {
+							gradeDesc.textContent = getPsychologyDescription(grade);
+						} else {
+							const descriptions = {
+								'2': 'Не освоил материал',
+								'3': 'Освоил частично',
+								'4': 'Освоил хорошо',
+								'5': 'Освоил отлично'
+							};
+							gradeDesc.textContent = descriptions[grade] || '';
+						}
 					}
 				}
 			});
 			
-			// Обновляем слайдер
-			updateCriteriaSlider();
+			// Обновляем слайдер с проверкой
+			try {
+				updateCriteriaSlider();
+			} catch (error) {
+				console.error('Ошибка обновления слайдера:', error);
+			}
 			
 			// Обновляем примеры оценок
 			updateExampleScores();
@@ -2974,8 +3030,18 @@
 
 		function updateCriteriaSlider() {
 			const slider = document.getElementById('criteriaSlider');
+			if (!slider) {
+				console.warn('Слайдер не найден');
+				return;
+			}
+			
 			const maxScore = calculateMaxScore();
 			const criteria = appData.test.criteria;
+			
+			if (!criteria || Object.keys(criteria).length === 0) {
+				slider.innerHTML = '<div style="text-align: center; padding: 10px; color: #999;">Критерии не настроены</div>';
+				return;
+			}
 			
 			// Очищаем слайдер
 			slider.innerHTML = '';
@@ -2986,15 +3052,20 @@
 			
 			grades.forEach((grade, index) => {
 				const range = criteria[grade];
+				if (!range) return;
+				
 				const startPercent = (range.min / maxScore) * 100;
 				const endPercent = (range.max / maxScore) * 100;
 				const width = endPercent - startPercent;
 				
+				// Проверяем корректность значений
+				if (isNaN(startPercent) || isNaN(width) || width <= 0) return;
+				
 				// Создаем сегмент
 				const segment = document.createElement('div');
 				segment.className = 'slider-segment';
-				segment.style.left = `${startPercent}%`;
-				segment.style.width = `${width}%`;
+				segment.style.left = `${Math.max(0, startPercent)}%`;
+				segment.style.width = `${Math.min(100, width)}%`;
 				segment.style.background = getGradeColor(grade);
 				segment.style.borderRadius = index === 0 ? '20px 0 0 20px' : 
 											 index === grades.length - 1 ? '0 20px 20px 0' : '0';
@@ -3002,11 +3073,14 @@
 				
 				slider.appendChild(segment);
 				
-				// Создаем хэндлы (кроме первого и последнего)
+				// Создаем хэндлы (кроме последнего)
 				if (index < grades.length - 1) {
-					const handle = createSliderHandle(endPercent, grade, grade + 1);
-					slider.appendChild(handle);
-					sliderHandles.push(handle);
+					const nextRange = criteria[grades[index + 1]];
+					if (nextRange) {
+						const handle = createSliderHandle(endPercent, grade, grade + 1);
+						slider.appendChild(handle);
+						sliderHandles.push(handle);
+					}
 				}
 			});
 			
@@ -3016,71 +3090,109 @@
 		function createSliderHandle(position, leftGrade, rightGrade) {
 			const handle = document.createElement('div');
 			handle.className = 'slider-handle';
-			handle.style.left = `${position}%`;
+			handle.style.left = `${Math.min(100, Math.max(0, position))}%`;
 			handle.dataset.leftGrade = leftGrade;
 			handle.dataset.rightGrade = rightGrade;
 			
-			// Drag & Drop функционал
+			// Drag & Drop функционал с проверками
 			let isDragging = false;
 			
 			handle.addEventListener('mousedown', (e) => {
 				isDragging = true;
-				document.body.style.cursor = 'ew-resize';
+				if (document.body) {
+					document.body.style.cursor = 'ew-resize';
+				}
 				e.preventDefault();
 			});
 			
-			document.addEventListener('mousemove', (e) => {
+			const mouseMoveHandler = (e) => {
 				if (!isDragging) return;
 				
-				const sliderRect = document.getElementById('criteriaSlider').getBoundingClientRect();
+				const slider = document.getElementById('criteriaSlider');
+				if (!slider) return;
+				
+				const sliderRect = slider.getBoundingClientRect();
 				const newPosition = ((e.clientX - sliderRect.left) / sliderRect.width) * 100;
 				const clampedPosition = Math.max(0, Math.min(100, newPosition));
 				
 				handle.style.left = `${clampedPosition}%`;
 				updateCriteriaFromHandle(handle, clampedPosition);
-			});
+			};
 			
-			document.addEventListener('mouseup', () => {
+			const mouseUpHandler = () => {
 				isDragging = false;
-				document.body.style.cursor = '';
-			});
+				if (document.body) {
+					document.body.style.cursor = '';
+				}
+				document.removeEventListener('mousemove', mouseMoveHandler);
+				document.removeEventListener('mouseup', mouseUpHandler);
+			};
+			
+			document.addEventListener('mousemove', mouseMoveHandler);
+			document.addEventListener('mouseup', mouseUpHandler);
 			
 			return handle;
 		}
 
 		function updateCriteriaFromHandle(handle, position) {
+			if (!handle || !appData.test.criteria) return;
+			
 			const leftGrade = parseInt(handle.dataset.leftGrade);
 			const rightGrade = parseInt(handle.dataset.rightGrade);
 			const maxScore = calculateMaxScore();
 			
+			// Проверяем существование критериев
+			if (!appData.test.criteria[leftGrade] || !appData.test.criteria[rightGrade]) {
+				return;
+			}
+			
 			// Обновляем границы оценок
 			const boundary = Math.round((position / 100) * maxScore);
 			
-			appData.test.criteria[leftGrade].max = boundary - 1;
-			appData.test.criteria[rightGrade].min = boundary;
+			appData.test.criteria[leftGrade].max = Math.max(0, boundary - 1);
+			appData.test.criteria[rightGrade].min = Math.min(maxScore, boundary);
 			
 			// Обновляем визуализацию
 			updateCriteriaVisualization();
 		}
 
 		function getGradeColor(grade) {
+			const gradeNum = parseInt(grade);
+			if (isNaN(gradeNum)) return '#95a5a6';
+			
 			const colors = {
+				1: '#e74c3c',
 				2: '#e74c3c',
 				3: '#f39c12',
 				4: '#3498db',
 				5: '#2ecc71'
 			};
-			return colors[grade] || '#95a5a6';
+			return colors[gradeNum] || '#95a5a6';
 		}
 
 		function calculateMaxScore() {
-			if (appData.tasks && appData.tasks.length > 0) {
-				return appData.tasks.reduce((sum, task) => sum + (task.maxScore || 1), 0);
+			if (!appData.tasks || !Array.isArray(appData.tasks)) {
+				return 100; // Значение по умолчанию
 			}
-			return 100; // По умолчанию
+			
+			try {
+				const total = appData.tasks.reduce((sum, task) => {
+					const score = parseInt(task.maxScore) || 1;
+					return sum + score;
+				}, 0);
+				
+				return total > 0 ? total : 100;
+			} catch (error) {
+				console.error('Ошибка расчета максимального балла:', error);
+				return 100;
+			}
 		}
 
 		function updateExampleScores() {
+			const tableBody = document.getElementById('exampleScores');
+			if (!tableBody) return;
+			
+			// Безопасные примеры
 			const examples = [
 				{ tasks: [5, 5, 5, 5], desc: "Все задания на максимум" },
 				{ tasks: [4, 4, 4, 4], desc: "Хорошие результаты" },
@@ -3088,55 +3200,70 @@
 				{ tasks: [1, 2, 2, 1], desc: "Слабые результаты" }
 			];
 			
-			const tableBody = document.getElementById('exampleScores');
 			tableBody.innerHTML = '';
 			
 			examples.forEach(example => {
-				const totalScore = example.tasks.reduce((a, b) => a + b, 0);
-				const grade = safeCalculateGrade(totalScore);
-				
-				const row = document.createElement('tr');
-				row.innerHTML = `
-					<td>${example.desc}</td>
-					<td>${example.tasks.join('+')} = ${totalScore}</td>
-					<td>${totalScore}/${calculateMaxScore()}</td>
-					<td><span style="color: ${getGradeColor(grade)}; font-weight: bold;">${grade}</span></td>
-				`;
-				tableBody.appendChild(row);
+				try {
+					const totalScore = example.tasks.reduce((a, b) => a + b, 0);
+					const grade = safeCalculateGrade(totalScore);
+					
+					const row = document.createElement('tr');
+					row.innerHTML = `
+						<td>${example.desc}</td>
+						<td>${example.tasks.join('+')} = ${totalScore}</td>
+						<td>${totalScore}/${calculateMaxScore()}</td>
+						<td><span style="color: ${getGradeColor(grade)}; font-weight: bold;">${grade}</span></td>
+					`;
+					tableBody.appendChild(row);
+				} catch (error) {
+					console.error('Ошибка создания примера:', error);
+				}
 			});
 		}
 
 		function updateScorePreview(score) {
-			const grade = safeCalculateGrade(parseInt(score) || 0);
-			const maxScore = calculateMaxScore();
-			const percentage = Math.round((score / maxScore) * 100);
+			const previewGrade = document.getElementById('previewGrade');
+			if (!previewGrade) return;
 			
-			document.getElementById('previewGrade').textContent = grade;
-			document.getElementById('previewGrade').style.color = getGradeColor(grade);
+			const numScore = parseInt(score) || 0;
+			const grade = safeCalculateGrade(numScore);
+			const maxScore = calculateMaxScore();
+			const percentage = Math.round((numScore / maxScore) * 100);
+			
+			previewGrade.textContent = grade;
+			previewGrade.style.color = getGradeColor(grade);
 			
 			// Обновляем подсказку
-			const hint = document.querySelector('.score-preview-hint') || document.createElement('div');
-			hint.className = 'score-preview-hint';
-			hint.innerHTML = `
-				<small style="display: block; margin-top: 5px; color: #666;">
-					${score} баллов = ${percentage}% → ${getGradeDescription(grade)}
-				</small>
-			`;
+			const previewDiv = previewGrade.parentElement;
+			if (!previewDiv) return;
 			
-			const previewDiv = document.getElementById('previewGrade').parentElement;
-			if (!previewDiv.querySelector('.score-preview-hint')) {
+			let hint = previewDiv.querySelector('.score-preview-hint');
+			if (!hint) {
+				hint = document.createElement('div');
+				hint.className = 'score-preview-hint';
 				previewDiv.appendChild(hint);
 			}
+			
+			hint.innerHTML = `
+				<small style="display: block; margin-top: 5px; color: #666;">
+					${numScore} баллов = ${percentage}% → ${getGradeDescription(grade)}
+				</small>
+			`;
 		}
 
 		function getGradeDescription(grade) {
+			const gradeNum = parseInt(grade);
+			if (isNaN(gradeNum)) return '';
+			
 			const descriptions = {
+				1: 'Неудовлетворительно',
 				2: 'Неудовлетворительно',
 				3: 'Удовлетворительно',
 				4: 'Хорошо',
 				5: 'Отлично'
 			};
-			return descriptions[grade] || '';
+			
+			return descriptions[gradeNum] || '';
 		}
 
 		// ==================== ИМПОРТ КРИТЕРИЕВ ИЗ ШАБЛОНА ====================
@@ -3545,14 +3672,107 @@
 		// ==================== ИНИЦИАЛИЗАЦИЯ ====================
 
 		document.addEventListener('DOMContentLoaded', function() {
-			// Инициализируем настройки если они пустые
+			// Загружаем данные
+			loadAppData();
+			
+			// Инициализируем с проверкой
 			if (!appData.test.criteria || Object.keys(appData.test.criteria).length === 0) {
-				autoGenerateCriteria();
+				setTimeout(() => {
+					if (typeof autoGenerateCriteria === 'function') {
+						autoGenerateCriteria();
+					}
+				}, 500);
 			}
 			
-			// Показываем первый шаг
-			showStep(1);
+			// Показываем первый шаг с задержкой
+			setTimeout(() => {
+				if (typeof showStep === 'function') {
+					showStep(1);
+				}
+			}, 300);
+			
+			// Инициализируем горячие клавиши
+			setTimeout(() => {
+				if (typeof setupHotkeys === 'function') {
+					setupHotkeys();
+				}
+			}, 500);
+			
+			// Добавляем глобальный обработчик ошибок
+			window.addEventListener('error', function(e) {
+				console.error('Глобальная ошибка:', e.error);
+				
+				// Показываем пользователю сообщение только для критических ошибок
+				if (e.error.toString().includes('Cannot read') || 
+					e.error.toString().includes('undefined')) {
+					// Не показываем пользователю технические ошибки
+					console.warn('Техническая ошибка проигнорирована');
+				}
+			});
 		});
+		
+		function reloadInterface() {
+			console.log('Перезагрузка интерфейса...');
+			
+			// Сбрасываем состояние
+			currentStep = 1;
+			criteriaMode = 'visual';
+			sliderHandles = [];
+			
+			// Перезагружаем данные
+			loadAppData();
+			
+			// Обновляем все элементы
+			setTimeout(() => {
+				if (document.getElementById('stepContent1')) {
+					showStep(1);
+				}
+				
+				if (typeof updateCriteriaVisualization === 'function') {
+					updateCriteriaVisualization();
+				}
+				
+				if (typeof updateCriteriaDisplay === 'function') {
+					updateCriteriaDisplay();
+				}
+				
+				showNotification('Интерфейс перезагружен', 'success');
+			}, 500);
+		}		
+		
+		function addReloadButton() {
+			const reloadBtn = document.createElement('button');
+			reloadBtn.innerHTML = '🔄';
+			reloadBtn.title = 'Перезагрузить интерфейс (при ошибках)';
+			reloadBtn.style.cssText = `
+				position: fixed;
+				bottom: 60px;
+				left: 10px;
+				background: #f39c12;
+				color: white;
+				border: none;
+				border-radius: 50%;
+				width: 40px;
+				height: 40px;
+				font-size: 18px;
+				cursor: pointer;
+				z-index: 9999;
+				box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+				display: none; /* Скрыта по умолчанию */
+			`;
+			reloadBtn.onclick = reloadInterface;
+			
+			document.body.appendChild(reloadBtn);
+			
+			// Показываем кнопку только в режиме разработки
+			if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+				reloadBtn.style.display = 'block';
+			}
+		}
+
+		// Инициализируем кнопку перезагрузки
+		setTimeout(addReloadButton, 1000);
+		
 		// ==================== PWA ФУНКЦИИ ====================
 
 		let deferredPrompt = null;
@@ -8266,27 +8486,36 @@
 		// ==================== ЗАЩИТА ОТ ОШИБОК В ВЫЧИСЛЕНИЯХ ====================
 		function safeCalculateGrade(totalScore) {
 			try {
-				if (typeof totalScore !== 'number' || isNaN(totalScore)) {
-					return 2;
-				}
+				const score = parseInt(totalScore);
+				if (isNaN(score)) return 2;
 				
 				if (!appData.test || !appData.test.criteria) {
 					return 2;
 				}
 				
+				const criteria = appData.test.criteria;
+				
 				// Ищем подходящую оценку
-				for (let grade of [5, 4, 3, 2]) {
-					const criteria = appData.test.criteria[grade];
-					if (criteria && 
-						typeof criteria.min === 'number' && 
-						typeof criteria.max === 'number' &&
-						totalScore >= criteria.min && 
-						totalScore <= criteria.max) {
-						return grade;
+				for (let grade in criteria) {
+					const range = criteria[grade];
+					if (range && 
+						typeof range.min === 'number' && 
+						typeof range.max === 'number' &&
+						score >= range.min && 
+						score <= range.max) {
+						return parseInt(grade);
 					}
 				}
 				
-				return 2; // По умолчанию
+				// Если не нашли - определяем по процентам
+				const maxScore = calculateMaxScore();
+				const percentage = (score / maxScore) * 100;
+				
+				if (percentage >= 85) return 5;
+				if (percentage >= 70) return 4;
+				if (percentage >= 50) return 3;
+				return 2;
+				
 			} catch (error) {
 				console.warn('Ошибка расчета оценки:', error);
 				return 2;
@@ -12372,6 +12601,396 @@
 				console.log(`${score} баллов → ${grade} (${getGradeDisplay(grade)})`);
 			});
 		}
+		
+		
+		// ==================== УНИВЕРСАЛЬНАЯ ФУНКЦИЯ ДЛЯ ВСЕХ ВЕРСИЙ ====================
+
+		function updateCriteriaDisplay() {
+			try {
+				// Определяем, какая версия интерфейса активна
+				const newInterface = document.getElementById('criteriaVisualMode');
+				const oldInterface = document.querySelector('.criteria-row.header');
+				const preview = document.getElementById('criteriaPreview');
+				
+				if (!preview) {
+					console.warn('Элемент предпросмотра критериев не найден');
+					return;
+				}
+				
+				const criteria = appData.test.criteria;
+				if (!criteria || Object.keys(criteria).length === 0) {
+					preview.innerHTML = `
+						<div style="text-align: center; padding: 30px; color: #999;">
+							<div style="font-size: 3em; margin-bottom: 10px;">📊</div>
+							<h4>Критерии оценивания не настроены</h4>
+							<p>Перейдите к настройке критериев</p>
+						</div>
+					`;
+					return;
+				}
+				
+				if (newInterface && newInterface.style.display !== 'none') {
+					// Новая версия интерфейса
+					updateCriteriaPreviewNew();
+				} else if (oldInterface) {
+					// Старая версия интерфейса
+					updateCriteriaPreviewLegacy();
+				} else {
+					// Универсальный предпросмотр
+					updateUniversalCriteriaPreview();
+				}
+			} catch (error) {
+				console.error('Критическая ошибка в updateCriteriaDisplay:', error);
+				
+				const preview = document.getElementById('criteriaPreview');
+				if (preview) {
+					preview.innerHTML = `
+						<div style="color: #e74c3c; padding: 20px; text-align: center;">
+							<h4>⚠️ Ошибка отображения критериев</h4>
+							<p>Пожалуйста, обновите страницу или начните заново</p>
+							<button class="btn btn-sm btn-outline" onclick="location.reload()">
+								Обновить страницу
+							</button>
+						</div>
+					`;
+				}
+			}
+		}
+
+		function updateCriteriaPreviewNew() {
+			const preview = document.getElementById('criteriaPreview');
+			if (!preview) return;
+			
+			const criteria = appData.test.criteria;
+			const maxScore = calculateMaxScore();
+			
+			let html = `
+				<div style="margin-bottom: 20px;">
+					<h4 style="margin-bottom: 15px; color: #2c3e50;">📊 Система оценивания</h4>
+				</div>
+				
+				<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-bottom: 25px;">
+			`;
+			
+			Object.entries(criteria).forEach(([grade, data]) => {
+				if (!data || typeof data.min === 'undefined' || typeof data.max === 'undefined') return;
+				
+				const percentage = Math.round(((data.max - data.min + 1) / maxScore) * 100);
+				const color = data.color || getGradeColor(grade);
+				
+				html += `
+					<div style="
+						background: white;
+						border: 3px solid ${color};
+						border-radius: 10px;
+						padding: 15px;
+						text-align: center;
+						box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+						transition: transform 0.3s;
+					" onmouseover="this.style.transform='translateY(-5px)'" 
+					   onmouseout="this.style.transform='translateY(0)'">
+						<div style="
+							width: 50px;
+							height: 50px;
+							background: ${color};
+							color: white;
+							border-radius: 50%;
+							display: flex;
+							align-items: center;
+							justify-content: center;
+							font-weight: bold;
+							font-size: 20px;
+							margin: 0 auto 10px;
+						">
+							${grade}
+						</div>
+						<div style="font-size: 16px; font-weight: bold; margin-bottom: 5px; color: #2c3e50;">
+							${data.name || getDefaultGradeName(grade)}
+						</div>
+						<div style="color: #666; font-size: 14px; margin-bottom: 5px;">
+							${data.min} - ${data.max} баллов
+						</div>
+						<div style="font-size: 12px; color: #999;">
+							(${percentage}% диапазона)
+						</div>
+					</div>
+				`;
+			});
+			
+			html += `</div>`;
+			
+			// Добавляем тестер
+			html += `
+				<div style="
+					background: #f8f9fa;
+					padding: 15px;
+					border-radius: 8px;
+					border-left: 4px solid #3498db;
+				">
+					<h5 style="margin-top: 0; margin-bottom: 10px;">🔍 Тестирование критериев</h5>
+					<div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+						<span>Если ученик наберет:</span>
+						<input type="number" id="testCriteriaInput" 
+							   style="width: 80px; padding: 6px; border: 1px solid #ddd; border-radius: 4px;"
+							   value="15" min="0" max="${maxScore}"
+							   oninput="testCriteriaScore(this.value)">
+						<span>баллов → оценка:</span>
+						<div id="testCriteriaResult" style="
+							font-size: 20px;
+							font-weight: bold;
+							color: #3498db;
+							padding: 5px 15px;
+							background: white;
+							border-radius: 4px;
+							min-width: 50px;
+							text-align: center;
+							border: 2px solid #3498db;
+						">?</div>
+					</div>
+					<div id="testCriteriaDetails" style="
+						font-size: 13px;
+						color: #666;
+						margin-top: 8px;
+						padding: 8px;
+						background: white;
+						border-radius: 4px;
+					"></div>
+				</div>
+			`;
+			
+			preview.innerHTML = html;
+			
+			// Инициализируем тестер
+			setTimeout(() => testCriteriaScore(15), 100);
+		}
+
+		function updateUniversalCriteriaPreview() {
+			const preview = document.getElementById('criteriaPreview');
+			if (!preview) return;
+			
+			const criteria = appData.test.criteria;
+			if (!criteria || Object.keys(criteria).length === 0) {
+				preview.innerHTML = `
+					<div style="text-align: center; padding: 30px;">
+						<div style="font-size: 3em; margin-bottom: 10px;">📊</div>
+						<h4>Критерии оценивания</h4>
+						<p style="color: #666;">Настройте критерии оценивания во вкладке "Настройки"</p>
+						<button class="btn btn-primary" onclick="showStep(3)">
+							Перейти к настройке критериев
+						</button>
+					</div>
+				`;
+				return;
+			}
+			
+			const maxScore = calculateMaxScore();
+			
+			let html = `
+				<div style="margin-bottom: 20px;">
+					<h4>🎯 Система оценивания</h4>
+					<p style="color: #666; margin-bottom: 15px;">
+						Максимальный балл: <strong>${maxScore}</strong>
+					</p>
+				</div>
+				
+				<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px;">
+			`;
+			
+			Object.entries(criteria).forEach(([grade, data]) => {
+				const percentage = Math.round(((data.max - data.min + 1) / maxScore) * 100);
+				const color = data.color || getGradeColor(grade);
+				
+				html += `
+					<div style="
+						background: ${color}15;
+						border: 2px solid ${color};
+						border-radius: 8px;
+						padding: 12px;
+						text-align: center;
+					">
+						<div style="
+							font-size: 24px;
+							font-weight: bold;
+							color: ${color};
+							margin-bottom: 5px;
+						">
+							${grade}
+						</div>
+						<div style="font-size: 14px; font-weight: bold;">
+							${data.min} - ${data.max}
+						</div>
+						<div style="font-size: 11px; color: #666; margin-top: 3px;">
+							${percentage}% диапазона
+						</div>
+						${data.name ? `
+						<div style="
+							font-size: 12px;
+							margin-top: 5px;
+							padding-top: 5px;
+							border-top: 1px dashed rgba(0,0,0,0.1);
+						">
+							${data.name}
+						</div>
+						` : ''}
+					</div>
+				`;
+			});
+			
+			html += `
+				</div>
+				
+				<!-- Интерактивный тестер -->
+				<div style="
+					margin-top: 25px;
+					padding: 15px;
+					background: #f8f9fa;
+					border-radius: 8px;
+					border-left: 4px solid #3498db;
+				">
+					<h5>🔍 Тестирование критериев</h5>
+					<div style="display: flex; align-items: center; gap: 10px; margin-top: 10px;">
+						<span>Если ученик наберет:</span>
+						<input type="number" id="testScoreInput" 
+							   style="width: 80px; padding: 5px; border: 1px solid #ddd; border-radius: 4px;"
+							   value="15" min="0" max="${maxScore}"
+							   oninput="testCriteriaScore(this.value)">
+						<span>баллов → оценка:</span>
+						<div id="testScoreResult" style="
+							font-size: 20px;
+							font-weight: bold;
+							color: #3498db;
+							padding: 5px 10px;
+							background: white;
+							border-radius: 4px;
+							min-width: 40px;
+							text-align: center;
+						">4</div>
+					</div>
+					<div id="testScoreDetails" style="
+						font-size: 12px;
+						color: #666;
+						margin-top: 5px;
+					"></div>
+				</div>
+			`;
+			
+			preview.innerHTML = html;
+			
+			// Инициализируем тестер
+			testCriteriaScore(15);
+		}
+
+		function testCriteriaScore(score) {
+			try {
+				const numScore = parseInt(score) || 0;
+				const maxScore = calculateMaxScore();
+				const grade = safeCalculateGrade(numScore);
+				const percentage = Math.round((numScore / maxScore) * 100);
+				
+				const resultElement = document.getElementById('testCriteriaResult');
+				const detailsElement = document.getElementById('testCriteriaDetails');
+				
+				if (resultElement) {
+					resultElement.textContent = grade;
+					resultElement.style.color = getGradeColor(grade);
+					resultElement.style.borderColor = getGradeColor(grade);
+				}
+				
+				if (detailsElement) {
+					const criteria = appData.test.criteria[grade];
+					if (criteria) {
+						detailsElement.innerHTML = `
+							<strong>${numScore} баллов</strong> = <strong>${percentage}%</strong><br>
+							<strong>Оценка ${grade}:</strong> ${criteria.name || getDefaultGradeName(grade)}<br>
+							<em>Диапазон: ${criteria.min}-${criteria.max} баллов</em>
+						`;
+					} else {
+						detailsElement.innerHTML = `Нет данных для оценки ${grade}`;
+					}
+				}
+			} catch (error) {
+				console.error('Ошибка тестирования критериев:', error);
+			}
+		}
+
+		// ==================== ОБНОВЛЕНИЕ ПРИ ИЗМЕНЕНИИ ДАННЫХ ====================
+
+		// Модифицируем существующие функции для обновления предпросмотра
+
+		function saveCriteriaSettings() {
+			saveData();
+			
+			// Обновляем предпросмотр
+			updateCriteriaDisplay();
+			
+			showNotification("Критерии оценивания сохранены!", "success");
+		}
+
+		function loadDefaultCriteria() {
+			const maxPossible = appData.tasks.reduce((sum, task) => sum + task.maxScore, 0) || 100;
+			
+			appData.test.criteria = {
+				1: { min: 0, max: Math.round(maxPossible * 0.49) },
+				2: { min: Math.round(maxPossible * 0.5), max: Math.round(maxPossible * 0.69) },
+				3: { min: Math.round(maxPossible * 0.7), max: Math.round(maxPossible * 0.84) },
+				4: { min: Math.round(maxPossible * 0.85), max: maxPossible }
+			};
+			
+			updateCriteriaDisplay();
+			showNotification("Загружены стандартные критерии", "success");
+		}
+
+		function generateAutoCriteria() {
+			const type = appData.test.criteriaType || 'points';
+			const count = appData.test.criteriaCount || 4;
+			const maxPossible = appData.tasks.reduce((sum, task) => sum + task.maxScore, 0) || 100;
+			
+			if (type === 'percentage') {
+				const step = 100 / count;
+				for (let i = 1; i <= count; i++) {
+					appData.test.criteria[i] = {
+						min: Math.round((i-1) * step),
+						max: Math.round(i * step)
+					};
+				}
+				appData.test.criteria[count].max = 100;
+			} else {
+				const step = maxPossible / count;
+				for (let i = 1; i <= count; i++) {
+					appData.test.criteria[i] = {
+						min: Math.round((i-1) * step),
+						max: Math.round(i * step)
+					};
+				}
+				appData.test.criteria[count].max = maxPossible;
+			}
+			
+			updateCriteriaDisplay();
+			showNotification("Критерии сгенерированы автоматически", "success");
+		}
+
+		// ==================== ИНИЦИАЛИЗАЦИЯ ПРИ ЗАГРУЗКЕ ====================
+
+		document.addEventListener('DOMContentLoaded', function() {
+			// Запускаем обновление предпросмотра через короткую задержку
+			setTimeout(() => {
+				updateCriteriaDisplay();
+			}, 500);
+			
+			// Также обновляем при переключении вкладок
+			const originalShowTab = window.showTab;
+			window.showTab = function(tabId) {
+				originalShowTab(tabId);
+				
+				// Если переключились на вкладку с предпросмотром критериев
+				if (tabId === 'setup' || document.getElementById('criteriaPreview')) {
+					setTimeout(() => {
+						updateCriteriaDisplay();
+					}, 100);
+				}
+			};
+		});		
+		
 		// Сохранение настроек теста
 		function saveTestSettings() {
 			console.log('=== СОХРАНЕНИЕ НАСТРОЕК ТЕСТА ===');
@@ -17101,24 +17720,7 @@
             `;
         }
 
-		// ГЛОБАЛЬНЫЙ ОБРАБОТЧИК ОШИБОК
-		window.addEventListener('error', function(event) {
-			console.error('Глобальная ошибка:', event.error);
-			
-			// Показываем пользователю сообщение об ошибке
-			if (event.error.message && event.error.message.includes('Cannot read properties')) {
-				showNotification('Обнаружена ошибка в данных. Попробуйте перезагрузить страницу.', 'error');
-			}
-			
-			// Предотвращаем стандартное поведение ошибки
-			event.preventDefault();
-		});
-
-		// ОБРАБОТЧИК ДЛЯ PROMISE ОШИБОК
-		window.addEventListener('unhandledrejection', function(event) {
-			console.error('Необработанная ошибка Promise:', event.reason);
-			showNotification('Произошла ошибка при выполнении операции', 'error');
-		});
+		//тут удалил
 
 		// ФУНКЦИЯ ДЛЯ ИНИЦИАЛИЗАЦИИ ДАННЫХ ПО УМОЛЧАНИЮ
 		function initializeDefaultData() {
@@ -28070,6 +28672,928 @@ ${files.map(f => f ? `- ${f.name}` : '').join('\n')}
 			
 			renderCriteriaSettings();
 		}
+
+		// ==================== РАСШИРЕННЫЕ ФУНКЦИИ КРИТЕРИЕВ ====================
+
+		function updateGradeCount(count) {
+			// Обновляем отображение количества
+			document.getElementById('gradeCountValue').textContent = count;
+			
+			// Сохраняем настройку
+			appData.test.criteriaCount = parseInt(count);
+			
+			// Если в расширенном режиме - обновляем интерфейс
+			if (criteriaMode === 'advanced') {
+				updateAdvancedControls();
+			}
+		}
+
+		function changeScaleType() {
+			const scaleType = document.getElementById('scaleType').value;
+			appData.test.criteriaScale = scaleType;
+			
+			// Обновляем интерфейс в зависимости от типа шкалы
+			updateAdvancedControls();
+			
+			// Перестраиваем критерии под новый тип
+			rebuildCriteriaForScale(scaleType);
+		}
+
+		function rebuildCriteriaForScale(scaleType) {
+			const maxScore = calculateMaxScore();
+			let newCriteria = {};
+			
+			switch(scaleType) {
+				case 'points':
+					// Стандартная балльная система
+					const grades = [2, 3, 4, 5];
+					const step = Math.round(maxScore / grades.length);
+					
+					grades.forEach((grade, index) => {
+						const min = index * step;
+						const max = (index === grades.length - 1) ? maxScore : (index + 1) * step - 1;
+						newCriteria[grade] = { min, max };
+					});
+					break;
+					
+				case 'percentage':
+					// Процентная система (1-100%)
+					const percentages = [0, 50, 75, 90, 100];
+					for (let i = 1; i < percentages.length; i++) {
+						const minScore = Math.round((percentages[i-1] / 100) * maxScore);
+						const maxScoreVal = (i === percentages.length - 1) ? maxScore : Math.round((percentages[i] / 100) * maxScore) - 1;
+						newCriteria[i+1] = { min: minScore, max: maxScoreVal };
+					}
+					break;
+					
+				case 'levels':
+					// Уровневая система (низкий/средний/высокий)
+					newCriteria = {
+						1: { min: 0, max: Math.round(maxScore * 0.33), name: 'Низкий уровень' },
+						2: { min: Math.round(maxScore * 0.34), max: Math.round(maxScore * 0.66), name: 'Средний уровень' },
+						3: { min: Math.round(maxScore * 0.67), max: maxScore, name: 'Высокий уровень' }
+					};
+					break;
+					
+				case 'competency':
+					// Компетентностная (не освоил/освоил)
+					newCriteria = {
+						1: { min: 0, max: Math.round(maxScore * 0.49), name: 'Не освоил' },
+						2: { min: Math.round(maxScore * 0.5), max: maxScore, name: 'Освоил' }
+					};
+					break;
+					
+				case 'custom':
+					// Пользовательская - оставляем как есть или создаем по умолчанию
+					if (Object.keys(appData.test.criteria).length === 0) {
+						newCriteria = {
+							1: { min: 0, max: Math.round(maxScore * 0.33), name: 'Уровень 1' },
+							2: { min: Math.round(maxScore * 0.34), max: Math.round(maxScore * 0.66), name: 'Уровень 2' },
+							3: { min: Math.round(maxScore * 0.67), max: Math.round(maxScore * 0.89), name: 'Уровень 3' },
+							4: { min: Math.round(maxScore * 0.9), max: maxScore, name: 'Уровень 4' }
+						};
+					} else {
+						newCriteria = appData.test.criteria;
+					}
+					break;
+			}
+			
+			appData.test.criteria = newCriteria;
+			updateCriteriaVisualization();
+			showNotification(`Шкала изменена на: ${getScaleTypeName(scaleType)}`, 'success');
+		}
+
+		function getScaleTypeName(scaleType) {
+			const names = {
+				'points': 'Балльная',
+				'percentage': 'Процентная',
+				'levels': 'Уровневая',
+				'competency': 'Компетентностная',
+				'custom': 'Пользовательская'
+			};
+			return names[scaleType] || scaleType;
+		}
+
+		function updateAdvancedControls() {
+			const scaleType = document.getElementById('scaleType').value;
+			const gradeCount = document.getElementById('gradeCount').value;
+			const distributionType = document.getElementById('distributionType').value;
+			
+			let controlsHTML = '';
+			
+			if (scaleType === 'custom') {
+				controlsHTML = `
+					<div class="form-group">
+						<label>Названия оценок/уровней (через запятую):</label>
+						<input type="text" id="customNames" class="form-control" 
+							   value="${getCustomNames()}" 
+							   placeholder="Например: Неудовлетворительно, Удовлетворительно, Хорошо, Отлично">
+					</div>
+					
+					<div class="form-group">
+						<label>Описания (каждое с новой строки):</label>
+						<textarea id="customDescriptions" rows="4" class="form-control" 
+								  placeholder="Опишите каждый уровень...">${getCustomDescriptions()}</textarea>
+					</div>
+					
+					<div class="form-group">
+						<label>Цвета (через запятую, hex-коды):</label>
+						<input type="text" id="customColors" class="form-control" 
+							   value="${getCustomColors()}" 
+							   placeholder="#e74c3c, #f39c12, #3498db, #2ecc71">
+					</div>
+				`;
+			} else if (scaleType === 'percentage') {
+				controlsHTML = `
+					<div class="form-group">
+						<label>Пороги в % (через запятую):</label>
+						<input type="text" id="percentageThresholds" class="form-control" 
+							   value="0,50,75,90,100" 
+							   placeholder="0,50,75,90,100">
+						<small>Укажите границы между оценками в процентах</small>
+					</div>
+				`;
+			} else if (scaleType === 'competency') {
+				controlsHTML = `
+					<div class="form-group">
+						<label>Порог освоения (%):</label>
+						<input type="range" id="competencyThreshold" min="0" max="100" value="50" 
+							   oninput="document.getElementById('thresholdValue').textContent = this.value + '%'">
+						<span id="thresholdValue">50%</span>
+					</div>
+					
+					<div class="form-group">
+						<label>Название для "Не освоил":</label>
+						<input type="text" id="notMasteredName" class="form-control" value="Не освоил">
+					</div>
+					
+					<div class="form-group">
+						<label>Название для "Освоил":</label>
+						<input type="text" id="masteredName" class="form-control" value="Освоил">
+					</div>
+				`;
+			}
+			
+			// Добавляем кнопку для применения распределения
+			if (distributionType === 'exponential' || distributionType === 'custom') {
+				controlsHTML += `
+					<div style="margin-top: 15px;">
+						<button class="btn btn-sm btn-primary" onclick="applyDistribution('${distributionType}')">
+							Применить распределение "${distributionType}"
+						</button>
+					</div>
+				`;
+			}
+			
+			document.getElementById('advancedControls').innerHTML = controlsHTML;
+		}
+
+		function getCustomNames() {
+			if (!appData.test.criteria) return '';
+			return Object.values(appData.test.criteria)
+				.map(c => c.name || '')
+				.filter(name => name)
+				.join(', ');
+		}
+
+		function getCustomDescriptions() {
+			if (!appData.test.criteria) return '';
+			return Object.values(appData.test.criteria)
+				.map(c => c.description || '')
+				.join('\n');
+		}
+
+		function getCustomColors() {
+			if (!appData.test.criteria) return '';
+			const colors = Object.keys(appData.test.criteria).map(grade => 
+				appData.test.criteria[grade].color || getGradeColor(grade)
+			);
+			return colors.join(', ');
+		}
+
+		function applyDistribution(distributionType) {
+			const maxScore = calculateMaxScore();
+			const gradeCount = parseInt(document.getElementById('gradeCount').value);
+			const criteria = {};
+			
+			switch(distributionType) {
+				case 'linear':
+					// Линейное распределение
+					const step = maxScore / gradeCount;
+					for (let i = 0; i < gradeCount; i++) {
+						const gradeKey = i + 1;
+						criteria[gradeKey] = {
+							min: Math.round(i * step),
+							max: Math.round((i === gradeCount - 1) ? maxScore : (i + 1) * step - 1)
+						};
+					}
+					break;
+					
+				case 'exponential':
+					// Экспоненциальное (сложные оценки получить труднее)
+					let total = 0;
+					for (let i = 0; i < gradeCount; i++) {
+						const gradeKey = i + 1;
+						const weight = Math.pow(2, i); // Вес увеличивается экспоненциально
+						const segment = (weight / (Math.pow(2, gradeCount) - 1)) * maxScore;
+						
+						criteria[gradeKey] = {
+							min: Math.round(total),
+							max: Math.round(total + segment - (i === gradeCount - 1 ? 0 : 1))
+						};
+						total += segment;
+					}
+					// Корректируем последнее значение
+					criteria[gradeCount].max = maxScore;
+					break;
+					
+				case 'custom':
+					// Ручное распределение - используем существующие критерии
+					return; // Не меняем
+			}
+			
+			appData.test.criteria = criteria;
+			updateCriteriaVisualization();
+			showNotification(`Применено распределение: ${distributionType}`, 'success');
+		}
+
+		function redistributeGrades() {
+			const distributionType = document.getElementById('distributionType').value;
+			applyDistribution(distributionType);
+		}
+
+		// ==================== ОБНОВЛЕНИЕ ТАБЛИЦЫ ЧИСЛОВЫХ КРИТЕРИЕВ ====================
+
+		function updateNumericCriteriaTable() {
+			const tableBody = document.getElementById('numericCriteriaTable');
+			const criteria = appData.test.criteria;
+			const maxScore = calculateMaxScore();
+			
+			tableBody.innerHTML = '';
+			
+			Object.entries(criteria).forEach(([grade, range]) => {
+				const percentageMin = Math.round((range.min / maxScore) * 100);
+				const percentageMax = Math.round((range.max / maxScore) * 100);
+				
+				const row = document.createElement('tr');
+				row.innerHTML = `
+					<td>
+						<input type="text" class="form-control-sm grade-name" 
+							   value="${grade}" 
+							   onchange="updateGradeKey('${grade}', this.value)"
+							   style="width: 60px; text-align: center;">
+					</td>
+					<td>${percentageMin}%</td>
+					<td>${percentageMax}%</td>
+					<td>
+						<input type="number" class="form-control-sm" 
+							   value="${range.min}" 
+							   onchange="updateCriteriaMin('${grade}', this.value)"
+							   style="width: 80px;">
+					</td>
+					<td>
+						<input type="number" class="form-control-sm" 
+							   value="${range.max}" 
+							   onchange="updateCriteriaMax('${grade}', this.value)"
+							   style="width: 80px;">
+					</td>
+					<td>
+						<input type="text" class="form-control-sm" 
+							   value="${range.name || getDefaultGradeName(grade)}" 
+							   onchange="updateCriteriaName('${grade}', this.value)"
+							   style="width: 150px;">
+					</td>
+					<td>
+						<input type="color" class="color-picker" 
+							   value="${range.color || getGradeColor(grade)}" 
+							   onchange="updateCriteriaColor('${grade}', this.value)">
+					</td>
+				`;
+				tableBody.appendChild(row);
+			});
+			
+			// Добавляем строку для новой оценки
+			const addRow = document.createElement('tr');
+			addRow.innerHTML = `
+				<td colspan="7" style="text-align: center; padding: 15px;">
+					<button class="btn btn-sm btn-outline-primary" onclick="addNewGrade()">
+						+ Добавить новую оценку
+					</button>
+				</td>
+			`;
+			tableBody.appendChild(addRow);
+		}
+
+		function updateGradeKey(oldKey, newKey) {
+			if (oldKey === newKey) return;
+			
+			const criteria = appData.test.criteria;
+			if (criteria[newKey]) {
+				showNotification('Такая оценка уже существует!', 'error');
+				return;
+			}
+			
+			// Создаем новую запись с новым ключом
+			criteria[newKey] = criteria[oldKey];
+			delete criteria[oldKey];
+			
+			// Сортируем ключи
+			const sortedCriteria = {};
+			Object.keys(criteria).sort((a, b) => a - b).forEach(key => {
+				sortedCriteria[key] = criteria[key];
+			});
+			
+			appData.test.criteria = sortedCriteria;
+			updateNumericCriteriaTable();
+			updateCriteriaVisualization();
+		}
+
+		function updateCriteriaMin(grade, value) {
+			const min = parseInt(value);
+			if (isNaN(min)) return;
+			
+			if (min < 0) {
+				showNotification('Минимальное значение не может быть отрицательным', 'error');
+				return;
+			}
+			
+			appData.test.criteria[grade].min = min;
+			
+			// Проверяем, что min <= max
+			if (min > appData.test.criteria[grade].max) {
+				appData.test.criteria[grade].max = min;
+			}
+			
+			updateCriteriaVisualization();
+		}
+
+		function updateCriteriaMax(grade, value) {
+			const max = parseInt(value);
+			const maxScore = calculateMaxScore();
+			
+			if (isNaN(max)) return;
+			
+			if (max > maxScore) {
+				showNotification(`Максимальное значение не может превышать ${maxScore}`, 'error');
+				return;
+			}
+			
+			appData.test.criteria[grade].max = max;
+			
+			// Проверяем, что min <= max
+			if (max < appData.test.criteria[grade].min) {
+				appData.test.criteria[grade].min = max;
+			}
+			
+			updateCriteriaVisualization();
+		}
+
+		function updateCriteriaName(grade, name) {
+			appData.test.criteria[grade].name = name;
+		}
+
+		function updateCriteriaColor(grade, color) {
+			appData.test.criteria[grade].color = color;
+			updateCriteriaVisualization();
+		}
+
+		function addNewGrade() {
+			const grades = Object.keys(appData.test.criteria).map(Number);
+			const newGrade = Math.max(...grades) + 1;
+			const maxScore = calculateMaxScore();
+			
+			// Находим предыдущую оценку для определения диапазона
+			const lastGrade = Math.max(...grades);
+			const lastMax = appData.test.criteria[lastGrade].max;
+			
+			// Новая оценка начинается после предыдущей
+			appData.test.criteria[newGrade] = {
+				min: lastMax + 1,
+				max: maxScore,
+				name: `Оценка ${newGrade}`,
+				color: getRandomColor()
+			};
+			
+			// Корректируем предыдущую оценку
+			appData.test.criteria[lastGrade].max = lastMax;
+			
+			updateNumericCriteriaTable();
+			updateCriteriaVisualization();
+			showNotification(`Добавлена новая оценка: ${newGrade}`, 'success');
+		}
+
+		function getRandomColor() {
+			const colors = [
+				'#9b59b6', // Фиолетовый
+				'#1abc9c', // Бирюзовый
+				'#d35400', // Тыквенный
+				'#c0392b', // Красный
+				'#16a085', // Зеленый морской
+				'#8e44ad', // Пурпурный
+				'#2c3e50', // Темно-синий
+				'#f39c12', // Оранжевый
+				'#2980b9', // Синий
+				'#27ae60'  // Зеленый
+			];
+			return colors[Math.floor(Math.random() * colors.length)];
+		}
+
+		function saveNumericCriteria() {
+			// Собираем все изменения из таблицы
+			document.querySelectorAll('#numericCriteriaTable input').forEach(input => {
+				// Изменения уже применяются через onchange
+			});
+			
+			saveData();
+			showNotification('Числовые критерии сохранены', 'success');
+		}
+
+		// ==================== НАСТРОЙКА СЛАЙДЕРОВ ====================
+
+		function setupSliderHandlers() {
+			const slider = document.getElementById('criteriaSlider');
+			if (!slider) return;
+			
+			slider.addEventListener('click', (e) => {
+				try {
+					const rect = slider.getBoundingClientRect();
+					const clickX = e.clientX - rect.left;
+					const percentage = (clickX / rect.width) * 100;
+					const maxScore = calculateMaxScore();
+					const score = Math.round((percentage / 100) * maxScore);
+					
+					// Показываем подсказку о баллах в этом месте
+					showScoreTooltip(e.clientX, e.clientY, score, percentage);
+				} catch (error) {
+					console.error('Ошибка обработки клика по слайдеру:', error);
+				}
+			});
+		}
+
+		function showScoreTooltip(x, y, score, percentage) {
+			// Удаляем старый тултип
+			const oldTooltip = document.getElementById('scoreTooltip');
+			if (oldTooltip && oldTooltip.parentElement) {
+				oldTooltip.remove();
+			}
+			
+			// Проверяем координаты
+			if (isNaN(x) || isNaN(y)) return;
+			
+			// Создаем новый тултип
+			const tooltip = document.createElement('div');
+			tooltip.id = 'scoreTooltip';
+			
+			// Определяем оценку для этого балла
+			const grade = safeCalculateGrade(score);
+			
+			tooltip.innerHTML = `
+				<div><strong>${score} баллов</strong> (${Math.round(percentage)}%)</div>
+				<div>Оценка: <span style="color: ${getGradeColor(grade)}">${grade}</span></div>
+			`;
+			
+			// Стили с проверкой на переполнение экрана
+			const screenWidth = window.innerWidth;
+			const screenHeight = window.innerHeight;
+			
+			let left = x + 10;
+			let top = y - 40;
+			
+			// Корректируем если выходит за границы
+			if (left + 150 > screenWidth) left = x - 160;
+			if (top < 10) top = y + 20;
+			if (top + 60 > screenHeight) top = screenHeight - 70;
+			
+			tooltip.style.cssText = `
+				position: fixed;
+				left: ${left}px;
+				top: ${top}px;
+				background: rgba(0, 0, 0, 0.85);
+				color: white;
+				padding: 8px 12px;
+				border-radius: 6px;
+				font-size: 12px;
+				z-index: 10001;
+				pointer-events: none;
+				animation: fadeIn 0.2s ease;
+				max-width: 200px;
+				box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+			`;
+			
+			document.body.appendChild(tooltip);
+			
+			// Автоудаление через 2 секунды
+			setTimeout(() => {
+				if (tooltip.parentElement) {
+					tooltip.remove();
+				}
+			}, 2000);
+		}
+
+		// ==================== БЫСТРЫЙ СТАРТ ====================
+
+		function quickStart(type) {
+			switch(type) {
+				case 'import':
+					showTemplateSelection();
+					break;
+					
+				case 'duplicate':
+					duplicateLastWork();
+					break;
+					
+				case 'ai':
+					startAIAssistant();
+					break;
+			}
+		}
+
+		function duplicateLastWork() {
+			// Ищем последнюю сохраненную работу
+			const backups = Object.keys(localStorage)
+				.filter(key => key.startsWith('backup_'))
+				.map(key => ({
+					key,
+					data: JSON.parse(localStorage.getItem(key))
+				}))
+				.sort((a, b) => b.data.timestamp - a.data.timestamp);
+			
+			if (backups.length === 0) {
+				showNotification('Нет сохраненных работ для копирования', 'warning');
+				return;
+			}
+			
+			const lastWork = backups[0].data.data;
+			
+			if (confirm(`Скопировать настройки из работы "${lastWork.test.theme}"?`)) {
+				// Копируем основные настройки
+				appData.test = {
+					...appData.test,
+					workType: lastWork.test.workType,
+					subject: lastWork.test.subject,
+					workFormat: lastWork.test.workFormat,
+					timeLimit: lastWork.test.timeLimit
+				};
+				
+				// Копируем критерии
+				if (lastWork.test.criteria) {
+					appData.test.criteria = JSON.parse(JSON.stringify(lastWork.test.criteria));
+				}
+				
+				// Обновляем интерфейс
+				updateCriteriaVisualization();
+				showNotification('Настройки скопированы из предыдущей работы', 'success');
+			}
+		}
+
+		function startAIAssistant() {
+			const html = `
+				<div style="max-width: 500px;">
+					<h3>🤖 AI-ассистент настройки</h3>
+					<p>Ответьте на несколько вопросов, и система предложит оптимальные настройки:</p>
+					
+					<div class="form-group">
+						<label>1. Цель работы:</label>
+						<select id="aiGoal" class="form-control">
+							<option value="diagnostic">Диагностика знаний</option>
+							<option value="control">Контроль усвоения</option>
+							<option value="preparation">Подготовка к экзамену</option>
+							<option value="psychology">Психологическая диагностика</option>
+						</select>
+					</div>
+					
+					<div class="form-group">
+						<label>2. Уровень класса:</label>
+						<select id="aiLevel" class="form-control">
+							<option value="elementary">Начальная школа</option>
+							<option value="middle">Средняя школа</option>
+							<option value="high">Старшая школа</option>
+							<option value="exam">Подготовка к ОГЭ/ЕГЭ</option>
+						</select>
+					</div>
+					
+					<div class="form-group">
+						<label>3. Желаемая строгость оценивания:</label>
+						<select id="aiStrictness" class="form-control">
+							<option value="soft">Мягкая</option>
+							<option value="medium">Средняя</option>
+							<option value="strict">Строгая</option>
+						</select>
+					</div>
+					
+					<div style="margin-top: 20px;">
+						<button class="btn btn-primary" onclick="generateAIRecommendations()">
+							🧠 Сгенерировать рекомендации
+						</button>
+					</div>
+				</div>
+			`;
+			
+			showModal('AI-ассистент', html);
+		}
+
+		function generateAIRecommendations() {
+			const goal = document.getElementById('aiGoal').value;
+			const level = document.getElementById('aiLevel').value;
+			const strictness = document.getElementById('aiStrictness').value;
+			
+			let recommendations = {
+				workType: 'current',
+				criteria: {},
+				suggestions: []
+			};
+			
+			// Определяем тип работы
+			switch(goal) {
+				case 'diagnostic':
+					recommendations.workType = 'diagnostic';
+					recommendations.suggestions.push('Рекомендуем многоуровневые задания');
+					break;
+				case 'control':
+					recommendations.workType = 'milestone';
+					recommendations.suggestions.push('Используйте смешанные типы заданий');
+					break;
+				case 'preparation':
+					recommendations.workType = level === 'exam' ? 'oge' : 'final';
+					recommendations.suggestions.push('Формат как на реальном экзамене');
+					break;
+				case 'psychology':
+					recommendations.workType = 'psychology';
+					recommendations.suggestions.push('Используйте уровневое оценивание');
+					break;
+			}
+			
+			// Определяем критерии в зависимости от строгости
+			const maxScore = calculateMaxScore();
+			
+			switch(strictness) {
+				case 'soft':
+					recommendations.criteria = {
+						2: { min: 0, max: Math.round(maxScore * 0.29) },
+						3: { min: Math.round(maxScore * 0.3), max: Math.round(maxScore * 0.59) },
+						4: { min: Math.round(maxScore * 0.6), max: Math.round(maxScore * 0.79) },
+						5: { min: Math.round(maxScore * 0.8), max: maxScore }
+					};
+					recommendations.suggestions.push('Мягкие критерии - больше "4" и "5"');
+					break;
+					
+				case 'medium':
+					recommendations.criteria = {
+						2: { min: 0, max: Math.round(maxScore * 0.39) },
+						3: { min: Math.round(maxScore * 0.4), max: Math.round(maxScore * 0.69) },
+						4: { min: Math.round(maxScore * 0.7), max: Math.round(maxScore * 0.84) },
+						5: { min: Math.round(maxScore * 0.85), max: maxScore }
+					};
+					recommendations.suggestions.push('Сбалансированные критерии');
+					break;
+					
+				case 'strict':
+					recommendations.criteria = {
+						2: { min: 0, max: Math.round(maxScore * 0.49) },
+						3: { min: Math.round(maxScore * 0.5), max: Math.round(maxScore * 0.74) },
+						4: { min: Math.round(maxScore * 0.75), max: Math.round(maxScore * 0.89) },
+						5: { min: Math.round(maxScore * 0.9), max: maxScore }
+					};
+					recommendations.suggestions.push('Строгие критерии - стимулируют лучше готовиться');
+					break;
+			}
+			
+			// Показываем рекомендации
+			const html = `
+				<div style="max-width: 600px;">
+					<h3>🎯 Рекомендации AI-ассистента</h3>
+					
+					<div style="background: #e8f4fc; padding: 15px; border-radius: 8px; margin: 15px 0;">
+						<h4>Основные рекомендации:</h4>
+						<ul>
+							${recommendations.suggestions.map(s => `<li>${s}</li>`).join('')}
+						</ul>
+					</div>
+					
+					<div style="background: #f0fff4; padding: 15px; border-radius: 8px; margin: 15px 0;">
+						<h4>Предлагаемые критерии:</h4>
+						<div style="display: flex; gap: 10px; flex-wrap: wrap;">
+							${Object.entries(recommendations.criteria).map(([grade, range]) => `
+								<div style="text-align: center;">
+									<div style="width: 50px; height: 50px; background: ${getGradeColor(grade)}; 
+											  color: white; border-radius: 50%; display: flex; align-items: center; 
+											  justify-content: center; font-weight: bold; margin: 0 auto 5px;">
+										${grade}
+									</div>
+									<div>${range.min}-${range.max}</div>
+								</div>
+							`).join('')}
+						</div>
+					</div>
+					
+					<div style="margin-top: 20px;">
+						<button class="btn btn-success" onclick="applyAIRecommendations(${JSON.stringify(recommendations).replace(/"/g, '&quot;')})">
+							✅ Применить рекомендации
+						</button>
+						<button class="btn btn-outline" onclick="hideModal()">
+							Отмена
+						</button>
+					</div>
+				</div>
+			`;
+			
+			showModal('Рекомендации AI', html);
+		}
+
+		function applyAIRecommendations(recommendations) {
+			appData.test.workType = recommendations.workType;
+			appData.test.criteria = recommendations.criteria;
+			
+			hideModal();
+			updateCriteriaVisualization();
+			showNotification('Рекомендации AI применены', 'success');
+		}
+
+		// ==================== ДОПОЛНИТЕЛЬНЫЕ ФУНКЦИИ ====================
+
+		function applySuggestions() {
+			const workType = appData.test.workType;
+			
+			switch(workType) {
+				case 'vpr':
+					appData.test.criteria = {
+						2: { min: 0, max: Math.round(calculateMaxScore() * 0.49) },
+						3: { min: Math.round(calculateMaxScore() * 0.5), max: Math.round(calculateMaxScore() * 0.69) },
+						4: { min: Math.round(calculateMaxScore() * 0.7), max: Math.round(calculateMaxScore() * 0.84) },
+						5: { min: Math.round(calculateMaxScore() * 0.85), max: calculateMaxScore() }
+					};
+					break;
+					
+				case 'oge':
+				case 'ege':
+					appData.test.criteria = {
+						2: { min: 0, max: Math.round(calculateMaxScore() * 0.39) },
+						3: { min: Math.round(calculateMaxScore() * 0.4), max: Math.round(calculateMaxScore() * 0.59) },
+						4: { min: Math.round(calculateMaxScore() * 0.6), max: Math.round(calculateMaxScore() * 0.79) },
+						5: { min: Math.round(calculateMaxScore() * 0.8), max: calculateMaxScore() }
+					};
+					break;
+					
+				default:
+					appData.test.criteria = {
+						2: { min: 0, max: Math.round(calculateMaxScore() * 0.49) },
+						3: { min: Math.round(calculateMaxScore() * 0.5), max: Math.round(calculateMaxScore() * 0.74) },
+						4: { min: Math.round(calculateMaxScore() * 0.75), max: Math.round(calculateMaxScore() * 0.89) },
+						5: { min: Math.round(calculateMaxScore() * 0.9), max: calculateMaxScore() }
+					};
+			}
+			
+			updateCriteriaVisualization();
+			showNotification('Рекомендации применены', 'success');
+		}
+
+		function resetCriteria() {
+			if (confirm('Сбросить все критерии к настройкам по умолчанию?')) {
+				autoGenerateCriteria();
+			}
+		}
+
+		function saveAsDraft() {
+			saveData();
+			showNotification('Черновик сохранен', 'success');
+		}
+
+		function getPsychologyDescription(grade) {
+			const descriptions = {
+				1: 'Требуется коррекция',
+				2: 'Нормативное развитие',
+				3: 'Высокий уровень развития',
+				4: 'Выдающиеся способности',
+				5: 'Экстраординарные способности'
+			};
+			return descriptions[grade] || '';
+		}
+
+		// ==================== ИНИЦИАЛИЗАЦИЯ ====================
+
+		// Добавляем в существующий DOMContentLoaded
+		document.addEventListener('DOMContentLoaded', function() {
+			// ... существующий код ...
+			
+			// Инициализируем настройки критериев
+			if (!appData.test.criteria || Object.keys(appData.test.criteria).length === 0) {
+				autoGenerateCriteria();
+			}
+			
+			// Устанавливаем начальные значения
+			if (appData.test.criteriaScale) {
+				document.getElementById('scaleType').value = appData.test.criteriaScale;
+			}
+			
+			if (appData.test.criteriaCount) {
+				document.getElementById('gradeCount').value = appData.test.criteriaCount;
+				document.getElementById('gradeCountValue').textContent = appData.test.criteriaCount;
+			}
+			
+			// Обновляем название типа работы
+			updateWorkTypeName();
+		});
+
+		function updateWorkTypeName() {
+			if (!appData.test || !appData.test.workType) return;
+			
+			const workTypeName = workTypes[appData.test.workType]?.name || appData.test.workType;
+			const element = document.getElementById('workTypeName');
+			if (element) {
+				element.textContent = workTypeName;
+			}
+		}
+
+		// Обновляем при изменении типа работы
+		function selectWorkType(type) {
+			appData.test.workType = type;
+			updateWorkTypeName();
+			
+			// Обновляем критерии под новый тип
+			autoGenerateCriteria();
+			
+			// Показываем информацию о типе работы
+			showWorkTypeInfo(type);
+		}
+
+		function showWorkTypeInfo(type) {
+			if (!type) return;
+			
+			const info = workTypes[type];
+			if (!info) return;
+			
+			const infoDiv = document.getElementById('worktypeInfo');
+			if (!infoDiv) return;
+			
+			infoDiv.style.display = 'block';
+			
+			try {
+				infoDiv.innerHTML = `
+					<div class="info-card">
+						<h4>${info.name || type}</h4>
+						${info.criteria ? `<p>Критерии: ${info.criteria}</p>` : ''}
+						<div class="info-grid">
+							<div class="info-item">
+								<span class="info-label">📊 Тип:</span>
+								<span class="info-value">${getWorkTypeDescription(type)}</span>
+							</div>
+							<div class="info-item">
+								<span class="info-label">🎯 Цель:</span>
+								<span class="info-value">${getWorkTypeGoal(type)}</span>
+							</div>
+							<div class="info-item">
+								<span class="info-label">💡 Рекомендации:</span>
+								<span class="info-value">${getWorkTypeTips(type)}</span>
+							</div>
+						</div>
+					</div>
+				`;
+			} catch (error) {
+				console.error('Ошибка отображения информации о типе работы:', error);
+			}
+		}
+
+		function getWorkTypeDescription(type) {
+			const descriptions = {
+				'current': 'Оценка знаний по текущей теме',
+				'milestone': 'Контроль за четверть/триместр',
+				'final': 'Годовая контрольная работа',
+				'oge': 'Государственный экзамен 9 класс',
+				'ege': 'Единый госэкзамен 11 класс',
+				'vpr': 'Всероссийская проверочная работа',
+				'func_literacy': 'Оценка практических навыков',
+				'psychology': 'Оценка личностных качеств'
+			};
+			return descriptions[type] || '';
+		}
+
+		function getWorkTypeGoal(type) {
+			const goals = {
+				'current': 'Выявить пробелы в знаниях',
+				'milestone': 'Оценить усвоение раздела',
+				'final': 'Подвести итоги года',
+				'oge': 'Подготовка к экзамену',
+				'ege': 'Подготовка к экзамену',
+				'vpr': 'Оценка соответствия ФГОС',
+				'func_literacy': 'Развитие практических умений',
+				'psychology': 'Диагностика развития'
+			};
+			return goals[type] || '';
+		}
+
+		function getWorkTypeTips(type) {
+			const tips = {
+				'current': 'Используйте разноуровневые задания',
+				'milestone': 'Включите задания за весь период',
+				'final': 'Охватите все изученные темы',
+				'oge': 'Соблюдайте формат экзамена',
+				'ege': 'Включите задания повышенной сложности',
+				'vpr': 'Используйте контекстные задания',
+				'func_literacy': 'Реальные жизненные ситуации',
+				'psychology': 'Анонимное тестирование'
+			};
+			return tips[type] || '';
+		}		
 
 		function initializeDefaultCriteria() {
 			const maxPossible = appData.tasks.reduce((sum, task) => sum + task.maxScore, 0) || 100;
