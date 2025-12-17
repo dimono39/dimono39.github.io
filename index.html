@@ -1835,7 +1835,91 @@
 			min-width: 80px !important;
 		  }
 		}		
-		
+		/* Стили для таблицы результатов */
+		.results-table {
+			font-size: 13px;
+		}
+
+		.results-table th {
+			position: sticky;
+			top: 0;
+			background: #34495e;
+			color: white;
+			font-weight: 500;
+			padding: 8px;
+			text-align: center;
+			border: 1px solid #2c3e50;
+		}
+
+		.results-table td {
+			padding: 4px;
+			border: 1px solid #ecf0f1;
+			text-align: center;
+			vertical-align: middle;
+		}
+
+		.score-input {
+			transition: all 0.3s;
+			font-size: 14px;
+		}
+
+		.score-input:focus {
+			transform: scale(1.05);
+			box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.3);
+			z-index: 1;
+			position: relative;
+		}
+
+		/* Подсветка текущей строки */
+		.results-table tbody tr:hover {
+			background-color: #e8f4fc;
+		}
+
+		/* Фиксированные колонки */
+		.results-table th:first-child,
+		.results-table td:first-child {
+			position: sticky;
+			left: 0;
+			z-index: 2;
+			background: white;
+		}
+
+		.results-table th:first-child {
+			z-index: 11;
+		}
+
+		/* Кнопки действий */
+		.btn-group {
+			display: flex;
+			gap: 5px;
+		}
+
+		.btn-icon.small {
+			width: 30px;
+			height: 30px;
+			padding: 0;
+			display: inline-flex;
+			align-items: center;
+			justify-content: center;
+			font-size: 12px;
+		}
+
+		/* Адаптивность */
+		@media (max-width: 768px) {
+			.results-controls {
+				flex-direction: column;
+				align-items: stretch;
+			}
+			
+			.score-input {
+				width: 100% !important;
+				max-width: 60px;
+			}
+			
+			.results-table {
+				font-size: 11px;
+			}
+		}		
     </style>
 </head>
 <body>
@@ -2802,6 +2886,97 @@
             social: "Общественный",
             global: "Глобальный"
         };
+		// ==================== Визуализация =================================
+		
+		// В script.js добавьте:
+
+		// Глобальные переменные для навигации
+		let currentCell = { row: 0, col: 0 };
+		let resultsGrid = [];
+
+		function setupResultsNavigation() {
+			const resultsContainer = document.getElementById('resultsContainer');
+			if (!resultsContainer) return;
+			
+			// Обработчик клавиатуры для навигации
+			document.addEventListener('keydown', handleResultsNavigation);
+			
+			// Добавляем кнопки быстрого заполнения
+			addQuickFillButtons();
+			
+			// Автофокус на первом поле
+			setTimeout(() => {
+				const firstInput = resultsContainer.querySelector('input[type="number"]');
+				if (firstInput) firstInput.focus();
+			}, 500);
+		}
+
+		function handleResultsNavigation(e) {
+			const activeElement = document.activeElement;
+			if (!activeElement || !activeElement.classList.contains('score-input')) return;
+			
+			const inputs = Array.from(document.querySelectorAll('.score-input'));
+			const currentIndex = inputs.indexOf(activeElement);
+			
+			switch(e.key) {
+				case 'ArrowRight':
+				case 'Tab':
+					if (currentIndex < inputs.length - 1) {
+						e.preventDefault();
+						inputs[currentIndex + 1].focus();
+						inputs[currentIndex + 1].select();
+					}
+					break;
+				case 'ArrowLeft':
+					if (currentIndex > 0) {
+						e.preventDefault();
+						inputs[currentIndex - 1].focus();
+						inputs[currentIndex - 1].select();
+					}
+					break;
+				case 'ArrowDown':
+					// Переход к той же ячейке в следующей строке
+					moveToCell(currentCell.row + 1, currentCell.col);
+					e.preventDefault();
+					break;
+				case 'ArrowUp':
+					if (currentCell.row > 0) {
+						moveToCell(currentCell.row - 1, currentCell.col);
+						e.preventDefault();
+					}
+					break;
+				case 'Enter':
+					if (currentCell.row < appData.students.length - 1) {
+						moveToCell(currentCell.row + 1, currentCell.col);
+						e.preventDefault();
+					}
+					break;
+				case ' ':
+					// Пробел - переключение 0/максимальный балл
+					toggleScore(activeElement);
+					e.preventDefault();
+					break;
+			}
+		}
+
+		function moveToCell(row, col) {
+			const cellId = `score_${row}_${col}`;
+			const cell = document.getElementById(cellId);
+			if (cell) {
+				cell.focus();
+				cell.select();
+				currentCell = { row, col };
+			}
+		}
+
+		function toggleScore(input) {
+			const maxScore = input.max || 1;
+			input.value = input.value === maxScore ? 0 : maxScore;
+			input.dispatchEvent(new Event('change'));
+		}		
+
+
+		
 		// ==================== УМНЫЕ КРИТЕРИИ ОЦЕНИВАНИЯ ====================
 
 		let currentStep = 1;
@@ -4196,6 +4371,10 @@
 		  setupHotkeys();
 		  setupProgressiveSaving();
 		  enhanceExportSection();
+		  
+		  // Инициализация горячих клавиш для результатов
+		  setupResultsNavigation();		  
+		  
 		  // Проверяем и показываем тур если нужно
 		const tourCompleted = localStorage.getItem('tourCompleted');
 		if (!tourCompleted) {
@@ -9562,162 +9741,452 @@
 		// 10. ОБНОВЛЕННАЯ ФУНКЦИЯ renderResults() С КНОПКАМИ УПРАВЛЕНИЯ
 		function renderResults() {
 			const container = document.getElementById('resultsContainer');
-			container.innerHTML = '';
+			if (!container) return;
 			
-			// Кнопки управления ошибками
-			const errorControls = document.createElement('div');
-			errorControls.style.marginBottom = '20px';
-			errorControls.style.padding = '15px';
-			errorControls.style.background = '#f8f9fa';
-			errorControls.style.borderRadius = '8px';
-			errorControls.innerHTML = `
-				<h4>⚙️ Управление ошибками</h4>
-				<div style="display: flex; gap: 10px; flex-wrap: wrap;">
-					<button class="btn btn-success" onclick="showErrorsManagement()">
-						📊 Управление ошибками
-					</button>
-					<button class="btn btn-warning" onclick="showBulkDeleteErrors()">
-						🗑️ Массовое удаление
-					</button>
-					<button class="btn" onclick="exportErrorsToCSV()">
-						📥 Экспорт ошибок
-					</button>
-					${appData.errors.length > 0 ? `
-						<button class="btn btn-danger" onclick="deleteAllErrors()">
-							⚠️ Удалить все ошибки
+			if (!appData.tasks || appData.tasks.length === 0) {
+				container.innerHTML = `
+					<div class="info-card">
+						<h4>📝 Сначала добавьте задания</h4>
+						<p>Перейдите во вкладку "Таксономия заданий" и добавьте задания.</p>
+						<button class="btn btn-primary" onclick="showTab('tasks')">
+							📝 Перейти к заданиям
 						</button>
-					` : ''}
-				</div>
-				<p style="margin-top: 10px; color: #666; font-size: 13px;">
-					Всего ошибок: ${appData.errors.length} | 
-					Учащихся с ошибками: ${new Set(appData.errors.map(e => e.studentIndex)).size}
-				</p>
-			`;
-			
-			container.appendChild(errorControls);
-				
-			if (appData.results.length === 0) {
-				for (let i = 0; i < appData.test.presentStudents; i++) {
-					appData.results.push(new Array(appData.tasks.length).fill(0));
-				}
+					</div>
+				`;
+				return;
 			}
 			
-			let html = '<div class="table-container"><table>';
-			
-			html += '<thead><tr><th>Учащийся</th>';
-			for (let i = 0; i < appData.tasks.length; i++) {
-				const task = appData.tasks[i];
-				html += `<th title="Ур. ${task.level}: ${task.type}">${i+1}</th>`;
-			}
-			html += '<th>∑</th><th>Оценка</th><th>Анализ ошибок</th><th>Действия</th></tr></thead><tbody>';
-			
-			appData.students.forEach((student, studentIndex) => {
-				const scores = appData.results[studentIndex] || [];
-				const totalScore = scores.reduce((sum, score) => sum + score, 0);
-				const grade = calculateGrade(totalScore);
-				console.log(`Student ${studentIndex}: totalScore=${totalScore}, grade=${grade}`);
-				const gradeClass = typeof grade === 'string' ? grade.replace(/\s+/g, '-').toLowerCase() : `grade-${grade}`;
-				const studentErrors = appData.errors.filter(e => e.studentIndex === studentIndex);
-				
-				html += `<tr>
-					<td><strong>${student}</strong></td>`;
-				
-				for (let taskIndex = 0; taskIndex < appData.tasks.length; taskIndex++) {
-					const maxScore = appData.tasks[taskIndex].maxScore;
-					const score = scores[taskIndex] || 0;
-					const percentage = (score / maxScore) * 100;
-					const heatmapClass = `heatmap-${Math.floor(percentage / 20) * 20}`;
-					
-					html += `<td class="heatmap-cell ${heatmapClass}">
-						<input type="number" min="0" max="${maxScore}" value="${score}" 
-							   style="width: 50px; text-align: center; border: none; background: transparent;"
-							   onchange="updateResult(${studentIndex}, ${taskIndex}, parseInt(this.value))">
-					</td>`;
-				}
-				
-				html += `<td><strong>${totalScore}</strong></td>`;
-				//	<td class="grade-${grade}"><strong>${grade}</strong></td>`;
-				//html += `<td class="grade-${grade}"><strong>${getGradeDisplay(grade)}</strong></td>`; //добавил тут для теста
-				html += `<td class="${gradeClass}"><strong>${getGradeDisplay(grade)}</strong><small style="display: block; font-size: 10px; color: #666;">${totalScore} баллов</small></td>`;
-				// Колонка с ошибками
-				html += `<td><small>`;
-				if (studentErrors.length > 0) {
-					studentErrors.forEach((error, errorIndex) => {
-						html += `
-							<span class="error-type error-${error.type}" 
-								  title="${error.description || errorTypes[error.type].desc}"
-								  onclick="editError(${appData.errors.indexOf(error)})"
-								  style="cursor: pointer; margin: 2px; display: inline-block;">
-								${errorTypes[error.type].name}
-								<small style="font-size: 9px;">[${error.taskIndex + 1}]</small>
-							</span>
-						`;
-					});
-				} else {
-					html += '—';
-				}
-				html += `</small></td>`;
-				
-				// Колонка с действиями
-				html += `<td>
-					<button class="btn btn-sm" onclick="showStudentErrors(${studentIndex})" title="Ошибки учащегося">
-						📊
-					</button>
-					${studentErrors.length > 0 ? `
-						<button class="btn btn-sm btn-danger" onclick="deleteAllStudentErrors(${studentIndex})" title="Удалить все ошибки">
-							🗑️
+			if (!appData.students || appData.students.length === 0) {
+				container.innerHTML = `
+					<div class="info-card">
+						<h4>👥 Сначала добавьте учащихся</h4>
+						<p>Перейдите во вкладку "Учащиеся" и добавьте список учащихся.</p>
+						<button class="btn btn-primary" onclick="showTab('students')">
+							👥 Перейти к учащимся
 						</button>
-					` : ''}
-				</td></tr>`;
-			});
+					</div>
+				`;
+				return;
+			}
 			
-			html += '</tbody></table></div>';
-			
-			// Форма добавления ошибок
-			html += `
-				<div class="chart-container">
-					<h3>➕ Добавить анализ ошибок</h3>
-					<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-						<div>
-							<div class="form-group">
-								<label>Учащийся:</label>
-								<select id="errorStudent">
-									${appData.students.map((student, index) => 
-										`<option value="${index}">${student}</option>`
-									).join('')}
-								</select>
-							</div>
-							<div class="form-group">
-								<label>Задание:</label>
-								<select id="errorTask">
-									${appData.tasks.map((task, index) => 
-										`<option value="${index}">${index + 1}. ${task.type}</option>`
-									).join('')}
-								</select>
-							</div>
+			let html = `
+				<div class="results-controls" style="margin-bottom: 20px;">
+					<div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
+						<div class="btn-group">
+							<button class="btn btn-sm btn-outline" onclick="fillAllWithMax()" title="Заполнить все максимальными баллами">
+								✅ Все верно
+							</button>
+							<button class="btn btn-sm btn-outline" onclick="fillAllWithZero()" title="Заполнить все нулями">
+								❌ Все неверно
+							</button>
+							<button class="btn btn-sm btn-outline" onclick="autoFillRandom()" title="Заполнить случайными значениями">
+								🎲 Случайно
+							</button>
 						</div>
-						<div>
-							<div class="form-group">
-								<label>Тип ошибки:</label>
-								<select id="errorType">
-									${Object.entries(errorTypes).map(([key, data]) => 
-										`<option value="${key}">${data.name}</option>`
-									).join('')}
-								</select>
-							</div>
-							<div class="form-group">
-								<label>Описание ошибки:</label>
-								<input type="text" id="errorDescription" placeholder="Конкретное описание ошибки...">
+						
+						<div class="btn-group" style="margin-left: 10px;">
+							<button class="btn btn-sm btn-outline" onclick="copyRowAbove()" title="Скопировать значения из строки выше">
+								📋 Копировать сверху
+							</button>
+							<button class="btn btn-sm btn-outline" onclick="fillPattern()" title="Заполнить по шаблону">
+								🔄 Шаблон
+							</button>
+						</div>
+						
+						<div style="margin-left: auto; display: flex; align-items: center; gap: 10px;">
+							<label style="font-size: 12px;">
+								<input type="checkbox" id="autoCalculate" checked onchange="toggleAutoCalculate()">
+								Авторасчет
+							</label>
+							<div class="status-indicator" id="calcStatus" style="background: #d4edda; color: #27ae60;">
+								Готово
 							</div>
 						</div>
 					</div>
-					<button class="btn btn-warning" onclick="addError()">➕ Добавить ошибку</button>
-					<button class="btn" onclick="showQuickErrorAdd()" style="margin-left: 10px;">⚡ Быстрое добавление</button>
+					
+					<div style="margin-top: 10px; font-size: 12px; color: #666;">
+						<kbd>Tab</kbd>/<kbd>→</kbd> - вправо • <kbd>Shift+Tab</kbd>/<kbd>←</kbd> - влево • 
+						<kbd>Enter</kbd>/<kbd>↓</kbd> - вниз • <kbd>↑</kbd> - вверх • 
+						<kbd>Space</kbd> - 0/макс • <kbd>Ctrl+Z</kbd> - отмена
+					</div>
 				</div>
+				
+				<div class="table-container" style="max-height: 70vh; overflow: auto;">
+					<table class="results-table" style="width: 100%; border-collapse: collapse;">
+						<thead>
+							<tr>
+								<th style="position: sticky; top: 0; background: #34495e; z-index: 10; width: 200px;">
+									👤 Учащийся
+								</th>
 			`;
 			
-			container.innerHTML += html;
+			// Заголовки заданий
+			appData.tasks.forEach((task, taskIndex) => {
+				const maxScore = task.maxScore || 1;
+				html += `
+					<th style="position: sticky; top: 0; background: #34495e; z-index: 10; min-width: 80px; text-align: center;">
+						<div style="font-size: 11px;">${taskIndex + 1}</div>
+						<div style="font-size: 10px; color: #95a5a6;">/${maxScore}</div>
+						<div style="font-size: 9px; color: ${complexityLevels[task.level || 1]?.color || '#95a5a6'}">
+							${complexityLevels[task.level || 1]?.name?.charAt(0) || 'Б'}
+						</div>
+					</th>
+				`;
+			});
+			
+			html += `
+								<th style="position: sticky; top: 0; background: #34495e; z-index: 10; width: 80px;">
+									∑ Баллы
+								</th>
+								<th style="position: sticky; top: 0; background: #34495e; z-index: 10; width: 80px;">
+									Оценка
+								</th>
+								<th style="position: sticky; top: 0; background: #34495e; z-index: 10; width: 120px;">
+									Действия
+								</th>
+							</tr>
+						</thead>
+						<tbody>
+			`;
+			
+			// Строки для каждого учащегося
+			appData.students.forEach((student, studentIndex) => {
+				const studentId = student.id || studentIndex;
+				const results = appData.results[studentId] || {};
+				
+				html += `
+					<tr data-student-id="${studentId}" style="transition: background 0.3s;">
+						<td style="position: sticky; left: 0; background: white; z-index: 5; border-right: 2px solid #eee;">
+							<div style="font-weight: 500;">${student.lastName} ${student.firstName}</div>
+							<div style="font-size: 11px; color: #666;">${student.middleName || ''}</div>
+						</td>
+				`;
+				
+				let totalScore = 0;
+				
+				// Ячейки для каждого задания
+				appData.tasks.forEach((task, taskIndex) => {
+					const taskId = task.id || taskIndex;
+					const maxScore = task.maxScore || 1;
+					const score = results[taskId] || 0;
+					const cellId = `score_${studentIndex}_${taskIndex}`;
+					
+					totalScore += parseFloat(score) || 0;
+					
+					html += `
+						<td style="text-align: center; padding: 2px;">
+							<input type="number"
+								   id="${cellId}"
+								   class="score-input"
+								   min="0"
+								   max="${maxScore}"
+								   step="0.5"
+								   value="${score}"
+								   style="width: 60px; padding: 8px; text-align: center; border: 2px solid ${score == maxScore ? '#2ecc71' : score > 0 ? '#f39c12' : '#e74c3c'}; border-radius: 4px; font-weight: bold;"
+								   onfocus="currentCell = {row: ${studentIndex}, col: ${taskIndex}}; this.select();"
+								   onchange="updateScore('${studentId}', '${taskId}', this.value)"
+								   oninput="updateCellStyle(this)"
+								   onkeydown="handleCellKeydown(event, ${studentIndex}, ${taskIndex})">
+						</td>
+					`;
+				});
+				
+				// Итоговый балл и оценка
+				const grade = calculateGrade(totalScore);
+				const gradeColor = getGradeColor(grade);
+				
+				html += `
+						<td style="text-align: center; font-weight: bold; background: ${totalScore > 0 ? '#e8f4fc' : '#f8f9fa'};">
+							<span id="total_${studentId}">${totalScore.toFixed(1)}</span>
+						</td>
+						<td style="text-align: center;">
+							<div style="width: 40px; height: 40px; border-radius: 50%; background: ${gradeColor}; color: white; display: flex; align-items: center; justify-content: center; font-weight: bold; margin: 0 auto;"
+								 id="grade_${studentId}">
+								${grade}
+							</div>
+						</td>
+						<td style="text-align: center;">
+							<button class="btn-icon small" onclick="fillRowMax(${studentIndex})" title="Заполнить строку максимумом">
+								✅
+							</button>
+							<button class="btn-icon small" onclick="fillRowZero(${studentIndex})" title="Очистить строку">
+								❌
+							</button>
+							<button class="btn-icon small" onclick="copyRow(${studentIndex})" title="Копировать строку">
+								📋
+							</button>
+						</td>
+					</tr>
+				`;
+			});
+			
+			// Строка итогов
+			html += `
+					<tr style="background: #f8f9fa; font-weight: bold;">
+						<td style="position: sticky; left: 0; background: #f8f9fa; z-index: 5; border-right: 2px solid #ddd;">
+							📊 ИТОГО (среднее):
+						</td>
+			`;
+			
+			// Средние по заданиям
+			appData.tasks.forEach((task, taskIndex) => {
+				const taskId = task.id || taskIndex;
+				const maxScore = task.maxScore || 1;
+				let sum = 0;
+				let count = 0;
+				
+				appData.students.forEach(student => {
+					const studentId = student.id;
+					const results = appData.results[studentId] || {};
+					sum += parseFloat(results[taskId]) || 0;
+					count++;
+				});
+				
+				const average = count > 0 ? (sum / count).toFixed(1) : 0;
+				const percentage = maxScore > 0 ? Math.round((average / maxScore) * 100) : 0;
+				
+				html += `
+					<td style="text-align: center; background: ${getPercentageColor(percentage)}; color: white; font-weight: bold;">
+						${average}<br>
+						<small style="font-size: 9px;">${percentage}%</small>
+					</td>
+				`;
+			});
+			
+			html += `
+						<td colspan="3" style="text-align: center;">
+							<button class="btn btn-sm btn-primary" onclick="analyzeResults()">
+								📈 Анализировать
+							</button>
+						</td>
+					</tr>
+				</tbody>
+			</table>
+		</div>
+			`;
+			
+			container.innerHTML = html;
+			
+			// Инициализируем навигацию
+			setTimeout(() => setupResultsNavigation(), 100);
 		}
+
+
+		// Вспомогательные функции
+		function updateCellStyle(input) {
+			const value = parseFloat(input.value) || 0;
+			const max = parseFloat(input.max) || 1;
+			
+			if (value === max) {
+				input.style.borderColor = '#2ecc71';
+				input.style.background = '#f0fff4';
+			} else if (value > 0) {
+				input.style.borderColor = '#f39c12';
+				input.style.background = '#fff8e1';
+			} else {
+				input.style.borderColor = '#e74c3c';
+				input.style.background = '#fff5f5';
+			}
+		}
+
+		function handleCellKeydown(e, row, col) {
+			// Enter для перехода вниз
+			if (e.key === 'Enter' && !e.shiftKey) {
+				e.preventDefault();
+				if (row < appData.students.length - 1) {
+					moveToCell(row + 1, col);
+				}
+			}
+		}
+
+		function getPercentageColor(percentage) {
+			if (percentage >= 80) return '#27ae60';
+			if (percentage >= 60) return '#3498db';
+			if (percentage >= 40) return '#f39c12';
+			return '#e74c3c';
+		}
+
+		// Функции массового заполнения
+		function fillAllWithMax() {
+			if (!confirm('Заполнить все ячейки максимальными баллами?')) return;
+			
+			appData.tasks.forEach((task, taskIndex) => {
+				const taskId = task.id || taskIndex;
+				const maxScore = task.maxScore || 1;
+				
+				appData.students.forEach(student => {
+					const studentId = student.id;
+					if (!appData.results[studentId]) appData.results[studentId] = {};
+					appData.results[studentId][taskId] = maxScore;
+				});
+			});
+			
+			renderResults();
+			showNotification('Все ячейки заполнены максимальными баллами', 'success');
+		}
+
+		function fillAllWithZero() {
+			if (!confirm('Обнулить все ячейки?')) return;
+			
+			appData.tasks.forEach((task, taskIndex) => {
+				const taskId = task.id || taskIndex;
+				
+				appData.students.forEach(student => {
+					const studentId = student.id;
+					if (!appData.results[studentId]) appData.results[studentId] = {};
+					appData.results[studentId][taskId] = 0;
+				});
+			});
+			
+			renderResults();
+			showNotification('Все ячейки обнулены', 'warning');
+		}
+
+		function fillRowMax(rowIndex) {
+			const student = appData.students[rowIndex];
+			if (!student) return;
+			
+			appData.tasks.forEach((task, taskIndex) => {
+				const taskId = task.id || taskIndex;
+				const maxScore = task.maxScore || 1;
+				const studentId = student.id;
+				
+				if (!appData.results[studentId]) appData.results[studentId] = {};
+				appData.results[studentId][taskId] = maxScore;
+			});
+			
+			renderResults();
+			showNotification(`Строка "${student.lastName}" заполнена максимумом`, 'info');
+		}
+
+		function fillRowZero(rowIndex) {
+			const student = appData.students[rowIndex];
+			if (!student) return;
+			
+			appData.tasks.forEach((task, taskIndex) => {
+				const taskId = task.id || taskIndex;
+				const studentId = student.id;
+				
+				if (!appData.results[studentId]) appData.results[studentId] = {};
+				appData.results[studentId][taskId] = 0;
+			});
+			
+			renderResults();
+			showNotification(`Строка "${student.lastName}" обнулена`, 'warning');
+		}
+
+		function autoFillRandom() {
+			appData.tasks.forEach((task, taskIndex) => {
+				const taskId = task.id || taskIndex;
+				const maxScore = task.maxScore || 1;
+				
+				appData.students.forEach(student => {
+					const studentId = student.id;
+					if (!appData.results[studentId]) appData.results[studentId] = {};
+					
+					// Случайное значение с учетом сложности задания
+					const level = task.level || 1;
+					let randomScore;
+					
+					if (level <= 2) {
+						// Базовые задания - чаще правильно
+						randomScore = Math.random() > 0.3 ? maxScore : Math.random() * maxScore;
+					} else {
+						// Сложные задания - чаще ошибаются
+						randomScore = Math.random() > 0.6 ? maxScore : Math.random() * maxScore * 0.7;
+					}
+					
+					appData.results[studentId][taskId] = randomScore.toFixed(1);
+				});
+			});
+			
+			renderResults();
+			showNotification('Заполнено случайными значениями', 'info');
+		}
+
+		function copyRowAbove() {
+			// Копирует значения из строки выше для всех строк
+			for (let i = 1; i < appData.students.length; i++) {
+				const prevStudent = appData.students[i-1];
+				const currentStudent = appData.students[i];
+				
+				if (prevStudent && currentStudent) {
+					const prevResults = appData.results[prevStudent.id] || {};
+					const currentResults = appData.results[currentStudent.id] || {};
+					
+					appData.tasks.forEach(task => {
+						const taskId = task.id;
+						if (prevResults[taskId] !== undefined) {
+							currentResults[taskId] = prevResults[taskId];
+						}
+					});
+				}
+			}
+			
+			renderResults();
+			showNotification('Значения скопированы сверху', 'info');
+		}
+
+		function updateScore(studentId, taskId, value) {
+			if (!appData.results[studentId]) appData.results[studentId] = {};
+			
+			const numValue = parseFloat(value) || 0;
+			const task = appData.tasks.find(t => t.id === taskId || t.id === parseInt(taskId));
+			const maxScore = task?.maxScore || 1;
+			
+			// Ограничиваем максимальным значением
+			appData.results[studentId][taskId] = Math.min(numValue, maxScore);
+			
+			// Автоматически пересчитываем итоги
+			if (document.getElementById('autoCalculate')?.checked) {
+				calculateStudentTotals(studentId);
+			}
+		}
+
+		function calculateStudentTotals(studentId) {
+			const results = appData.results[studentId] || {};
+			let totalScore = 0;
+			
+			appData.tasks.forEach(task => {
+				const taskId = task.id;
+				const score = parseFloat(results[taskId]) || 0;
+				totalScore += score;
+			});
+			
+			const grade = calculateGrade(totalScore);
+			
+			// Обновляем отображение
+			const totalElement = document.getElementById(`total_${studentId}`);
+			const gradeElement = document.getElementById(`grade_${studentId}`);
+			
+			if (totalElement) totalElement.textContent = totalScore.toFixed(1);
+			if (gradeElement) {
+				gradeElement.textContent = grade;
+				gradeElement.style.background = getGradeColor(grade);
+			}
+		}
+
+		// Обновляем обработчик показа вкладки
+		function showTab(tabId) {
+			document.querySelectorAll('.tab-content').forEach(tab => {
+				tab.classList.remove('active');
+			});
+			document.querySelectorAll('.tab-btn').forEach(btn => {
+				btn.classList.remove('active');
+			});
+			
+			const tab = document.getElementById(tabId);
+			const btn = document.querySelector(`[onclick="showTab('${tabId}')"]`);
+			
+			if (tab) tab.classList.add('active');
+			if (btn) btn.classList.add('active');
+			
+			// Если показываем вкладку результатов - рендерим их
+			if (tabId === 'results') {
+				renderResults();
+			}
+		}
+
 		
 		function generateCriteriaSummary() {
 			const type = appData.test.criteriaType;
