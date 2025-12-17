@@ -6580,7 +6580,7 @@
 			localStorage.setItem('debugMode', debugMode.toString());
 		}
 
-		function addDebugPanel() {
+		function addDebugPanel1() {
 			const panel = document.createElement('div');
 			panel.id = 'debugPanel';
 			panel.style.cssText = `
@@ -13286,6 +13286,9 @@
 			
 			// Пересчитываем итоги
 			updateStudentTotal(studentIndex);
+			
+			// Обновляем строку итогов
+			renderSummaryRow();
 			
 			// Сохраняем данные
 			saveData();
