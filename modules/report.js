@@ -4319,7 +4319,7 @@ function generatePresentationHTML(reportData) {
     `;
 }
 
-function exportToExcel() {
+function exportToExcel1() {
     if (!appData.students || appData.students.length === 0) {
         showNotification('Нет данных для экспорта', 'warning');
         return;
@@ -6859,7 +6859,7 @@ function analyzeTrendsComparison(current, previous) {
 }
 
 // Функция для экспорта в Excel
-function exportToExcel() {
+function exportToExcels() {
     if (!appData.students || appData.students.length === 0) {
         showNotification('Нет данных для экспорта', 'warning');
         return;
