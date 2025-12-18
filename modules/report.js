@@ -9,6 +9,18 @@ let aiAnalysis = null;
 let speechSynthesis = window.speechSynthesis;
 let isSpeaking = false;
 
+// Глобальная проверка appData
+if (typeof window.appData === 'undefined') {
+    console.warn('appData не определен, создаю пустой объект');
+    window.appData = {
+        test: {},
+        tasks: [],
+        students: [],
+        results: [],
+        errors: []
+    };
+}
+
 // Инициализация при показе вкладки
 function initReportTab() {
     updateReportTemplate();
@@ -80,7 +92,7 @@ function generateAIInsights() {
     const insights = [];
     
     try {
-        const stats = calculateStatistics();
+        const stats = safecalculateStatistics();
         
         // Проверяем, есть ли данные для анализа
         if (stats.totalStudents === 0 || stats.totalTasks === 0) {
@@ -245,7 +257,7 @@ function generateBenchmarkReport() {
     // Безопасный расчет текущей статистики
     let currentStats;
     try {
-        currentStats = calculateGradeDistribution();
+        currentStats = safecalculateGradeDistribution();
     } catch (error) {
         console.error('Ошибка расчета распределения оценок:', error);
         currentStats = { '5': 0, '4': 0, '3': 0, '2': 0 };
@@ -1622,7 +1634,7 @@ function collectReportSettings() {
 
 // Генерация распределения оценок для отчета
 function generateGradesDistribution(settings) {
-    const distribution = calculateGradeDistribution();
+    const distribution = safecalculateGradeDistribution();
     
     return {
         labels: ['5', '4', '3', '2'],
@@ -2224,10 +2236,10 @@ function calculateMaxScore() {
     }
 }
 
-f// Расчет распределения оценок
+// Расчет распределения оценок
 function calculateGradeDistribution() {
     // Проверяем наличие данных
-    if (!appData || !appData.students || !Array.isArray(appData.students)) {
+    if (!window.appData || !window.appData.students || !Array.isArray(window.appData.students)) {
         console.warn('Нет данных об учащихся для расчета распределения оценок');
         return { '2': 0, '3': 0, '4': 0, '5': 0 };
     }
@@ -2235,17 +2247,22 @@ function calculateGradeDistribution() {
     const distribution = { '2': 0, '3': 0, '4': 0, '5': 0 };
     let totalStudents = 0;
     
-    appData.students.forEach(student => {
-        if (!student || !student.id) return;
-        
-        const totalScore = calculateStudentTotal(student.id);
-        const grade = calculateGrade(totalScore);
-        
-        if (grade && distribution[grade] !== undefined) {
-            distribution[grade]++;
-            totalStudents++;
-        }
-    });
+    // Безопасный перебор
+    try {
+        window.appData.students.forEach(student => {
+            if (!student || !student.id) return;
+            
+            const totalScore = calculateStudentTotal(student.id);
+            const grade = calculateGrade(totalScore);
+            
+            if (grade && distribution[grade] !== undefined) {
+                distribution[grade]++;
+                totalStudents++;
+            }
+        });
+    } catch (error) {
+        console.error('Ошибка в calculateGradeDistribution:', error);
+    }
     
     // Конвертируем в проценты
     Object.keys(distribution).forEach(grade => {
@@ -2964,7 +2981,7 @@ function validateReportData1() {
 }
 
 // Генерация AI-рекомендаций
-function generateAIRecommendationss() {
+function generateAIRecommendations() {
     const recommendations = [];
     
     // Безопасный расчет статистики
@@ -2975,11 +2992,16 @@ function generateAIRecommendationss() {
         console.error('Ошибка расчета статистики:', error);
         stats = {
             averageGrade: 0,
-            weakPercentage: 0
+            weakPercentage: 0,
+            excellentPercentage: 0,
+            goodPercentage: 0,
+            averagePercentage: 0,
+            successRate: 0
         };
     }
     
-    if (stats.averageGrade < 3.0) {
+    // Рекомендации с проверками
+    if (stats.averageGrade && stats.averageGrade < 3.0) {
         recommendations.push({
             priority: 'high',
             action: 'Провести дополнительные занятия',
@@ -2988,11 +3010,11 @@ function generateAIRecommendationss() {
         });
     }
     
-    if (stats.weakPercentage > 30) {
+    if (stats.weakPercentage && stats.weakPercentage > 30) {
         recommendations.push({
             priority: 'high',
             action: 'Индивидуальная работа с отстающими',
-            description: 'Более 30% учащихся получили неудовлетворительные оценки',
+            description: `Более ${stats.weakPercentage}% учащихся получили неудовлетворительные оценки`,
             timeline: '2 недели'
         });
     }
@@ -3000,15 +3022,17 @@ function generateAIRecommendationss() {
     // Безопасный анализ заданий
     try {
         const taskAnalysis = analyzeTasks();
-        const weakTasks = taskAnalysis.filter(t => t && t.successRate < 50);
-        
-        if (weakTasks.length > 0) {
-            recommendations.push({
-                priority: 'medium',
-                action: 'Пересмотреть сложные задания',
-                description: `${weakTasks.length} заданий выполнено менее чем на 50%`,
-                timeline: '1 неделя'
-            });
+        if (taskAnalysis && taskAnalysis.length > 0) {
+            const weakTasks = taskAnalysis.filter(t => t && t.successRate && t.successRate < 50);
+            
+            if (weakTasks.length > 0) {
+                recommendations.push({
+                    priority: 'medium',
+                    action: 'Пересмотреть сложные задания',
+                    description: `${weakTasks.length} заданий выполнено менее чем на 50%`,
+                    timeline: '1 неделя'
+                });
+            }
         }
     } catch (error) {
         console.error('Ошибка анализа заданий:', error);
@@ -3019,7 +3043,7 @@ function generateAIRecommendationss() {
 
 // Генерация статистики для отчета
 function generateStatistics(settings) {
-    const stats = calculateStatistics();
+    const stats = safecalculateStatistics();
     
     return {
         totalStudents: stats.totalStudents,
@@ -3060,3 +3084,30 @@ function generateRecommendations(settings) {
     };
 }
 
+/ Безопасные версии функций
+function safeCalculateGradeDistribution() {
+    try {
+        return calculateGradeDistribution();
+    } catch (error) {
+        console.error('Ошибка в safeCalculateGradeDistribution:', error);
+        return { '2': 0, '3': 0, '4': 0, '5': 0 };
+    }
+}
+
+function safeCalculateStatistics() {
+    try {
+        return calculateStatistics();
+    } catch (error) {
+        console.error('Ошибка в safeCalculateStatistics:', error);
+        return {
+            totalStudents: 0,
+            totalTasks: 0,
+            averageGrade: 0,
+            successRate: 0,
+            excellentPercentage: 0,
+            goodPercentage: 0,
+            averagePercentage: 0,
+            weakPercentage: 0
+        };
+    }
+}
