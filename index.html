@@ -23037,8 +23037,8 @@
 		function initializeAppData() {
 			try {
 				// Проверяем существование appData
-				if (!window.appData) {
-					window.appData = {
+				if (!appData) {
+					appData = {
 						test: {},
 						tasks: [],
 						students: [],
@@ -23090,7 +23090,7 @@
 			} catch (error) {
 				console.error('Ошибка инициализации данных:', error);
 				// Создаем минимальную структуру при критической ошибке
-				window.appData = {
+				appData = {
 					test: {
 						subject: "Новый тест",
 						class: "5А",

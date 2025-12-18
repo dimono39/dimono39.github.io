@@ -10,9 +10,9 @@ let speechSynthesis = window.speechSynthesis;
 let isSpeaking = false;
 
 // Глобальная проверка appData
-if (typeof window.appData === 'undefined') {
+if (typeof appData === 'undefined') {
     console.warn('appData не определен, создаю пустой объект');
-    window.appData = {
+    appData = {
         test: {
             subject: 'Не указан',
             class: 'Не указан',
@@ -107,24 +107,24 @@ function calculateStatistics() {
     };
     
     // Проверяем данные
-    if (!window.appData || !window.appData.students || !Array.isArray(window.appData.students)) {
+    if (!appData || !appData.students || !Array.isArray(appData.students)) {
         console.warn('Нет данных об учащихся для расчета статистики');
         return stats;
     }
     
-    if (!window.appData.tasks || !Array.isArray(window.appData.tasks)) {
+    if (!appData.tasks || !Array.isArray(appData.tasks)) {
         console.warn('Нет данных о заданиях для расчета статистики');
         return stats;
     }
     
-    stats.totalStudents = window.appData.students.length;
-    stats.totalTasks = window.appData.tasks.length;
+    stats.totalStudents = appData.students.length;
+    stats.totalTasks = appData.tasks.length;
     
     // Расчет среднего балла
     let totalScore = 0;
     let studentCount = 0;
     
-    window.appData.students.forEach(student => {
+    appData.students.forEach(student => {
         if (!student || !student.id) return;
         
         const studentScore = calculateStudentTotal(student.id);
@@ -136,7 +136,7 @@ function calculateStatistics() {
     
     stats.averageGrade = studentCount > 0 ? totalScore / studentCount : 0;
     // Интегрируем критерии перед генерацией отчета
-    const integratedAppData = integrateCriteriaForReports(window.appData);
+    const integratedAppData = integrateCriteriaForReports(appData);
     
     // Теперь можем безопасно использовать
     const validation = integratedAppData.helpers.validateCriteria();
@@ -330,7 +330,7 @@ function generateBenchmarkReport() {
     let currentStats;
     try {
 		// Интегрируем критерии перед генерацией отчета
-		const integratedAppData = integrateCriteriaForReports(window.appData);
+		const integratedAppData = integrateCriteriaForReports(appData);
 		
 		// Теперь можем безопасно использовать
 		const validation = integratedAppData.helpers.validateCriteria();
@@ -632,7 +632,7 @@ function generateDynamicCharts(reportData) {
     
     // 1. Распределение оценок
     // Интегрируем критерии перед генерацией отчета
-    const integratedAppData = integrateCriteriaForReports(window.appData);
+    const integratedAppData = integrateCriteriaForReports(appData);
     
     // Теперь можем безопасно использовать
     const validation = integratedAppData.helpers.validateCriteria();
@@ -1196,19 +1196,19 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // ==================== ДОПОЛНИТЕЛЬНЫЕ ФУНКЦИИ ОТЧЕТОВ ====================
 function validateReportData() {
-    if (!window.appData) return false;
+    if (!appData) return false;
     
     const errors = [];
     
-    if (!window.appData.test || !window.appData.test.subject) {
+    if (!appData.test || !appData.test.subject) {
         errors.push('Не указан предмет');
     }
     
-    if (!window.appData.students || !Array.isArray(window.appData.students) || window.appData.students.length === 0) {
+    if (!appData.students || !Array.isArray(appData.students) || appData.students.length === 0) {
         errors.push('Нет данных об учащихся');
     }
     
-    if (!window.appData.tasks || !Array.isArray(window.appData.tasks) || window.appData.tasks.length === 0) {
+    if (!appData.tasks || !Array.isArray(appData.tasks) || appData.tasks.length === 0) {
         errors.push('Нет данных о заданиях');
     }
     
@@ -1715,7 +1715,7 @@ function collectReportSettings() {
 // Генерация распределения оценок для отчета
 function generateGradesDistribution(settings) {
 	// Интегрируем критерии перед генерацией отчета
-    const integratedAppData = integrateCriteriaForReports(window.appData);
+    const integratedAppData = integrateCriteriaForReports(appData);
     
     // Теперь можем безопасно использовать
     const validation = integratedAppData.helpers.validateCriteria();
@@ -1977,7 +1977,7 @@ function getPriorityBadgeColor(priority) {
 function generateSummary() {
     const stats = calculateStatistics();
     // Интегрируем критерии перед генерацией отчета
-    const integratedAppData = integrateCriteriaForReports(window.appData);
+    const integratedAppData = integrateCriteriaForReports(appData);
     
     // Теперь можем безопасно использовать
     const validation = integratedAppData.helpers.validateCriteria();
@@ -2072,7 +2072,7 @@ function generateActionPlanByGroups(recommendationsData) {
 
 function generateMethodologicalRecommendations(recommendationsData) {
     // Интегрируем критерии перед генерацией отчета
-    const integratedAppData = integrateCriteriaForReports(window.appData);
+    const integratedAppData = integrateCriteriaForReports(appData);
     
     // Теперь можем безопасно использовать
     const validation = integratedAppData.helpers.validateCriteria();
@@ -2555,7 +2555,7 @@ function generateTextSummary(data) {
 // Функция для генерации данных рекомендаций
 function generateRecommendations(settings) {
     // Интегрируем критерии перед генерацией отчета
-    const integratedAppData = integrateCriteriaForReports(window.appData);
+    const integratedAppData = integrateCriteriaForReports(appData);
     
     // Теперь можем безопасно использовать
     const validation = integratedAppData.helpers.validateCriteria();
@@ -2951,7 +2951,7 @@ function calculateGiniCoefficient(values) {
 // Функция для генерации распределения оценок в данных отчета
 function generateGradesDistributionn(settings) {
     // Интегрируем критерии перед генерацией отчета
-    const integratedAppData = integrateCriteriaForReports(window.appData);
+    const integratedAppData = integrateCriteriaForReports(appData);
     
     // Теперь можем безопасно использовать
     const validation = integratedAppData.helpers.validateCriteria();
@@ -3530,12 +3530,12 @@ function generateReportPreview() {
     console.log('Генерация предпросмотра отчета...');
     
     // Проверка данных перед генерацией
-    if (!window.appData || !window.appData.students || window.appData.students.length === 0) {
+    if (!appData || !appData.students || appData.students.length === 0) {
         showNotification('Нет данных учащихся для генерации отчета', 'error');
         return;
     }
     
-    if (!window.appData.tasks || window.appData.tasks.length === 0) {
+    if (!appData.tasks || appData.tasks.length === 0) {
         showNotification('Нет данных заданий для генерации отчета', 'error');
         return;
     }
@@ -3562,10 +3562,10 @@ function generateReportPreview() {
 }
 
 function calculateStudentTotal(studentId) {
-    if (!studentId || !window.appData || !window.appData.results) return 0;
+    if (!studentId || !appData || !appData.results) return 0;
     
     let total = 0;
-    const studentResults = window.appData.results[studentId];
+    const studentResults = appData.results[studentId];
     
     if (!studentResults) return 0;
     
@@ -3586,7 +3586,7 @@ function calculateStudentTotal(studentId) {
 function calculateGrade(totalScore) {
     if (typeof totalScore !== 'number' || isNaN(totalScore)) return null;
     
-    if (!window.appData || !window.appData.test || !window.appData.test.criteria) {
+    if (!appData || !appData.test || !appData.test.criteria) {
         // Простая логика по умолчанию
         const maxScore = calculateMaxScores();
         const percentage = (totalScore / maxScore) * 100;
@@ -3598,7 +3598,7 @@ function calculateGrade(totalScore) {
     }
     
     // Использовать критерии из appData
-    const criteria = window.appData.test.criteria;
+    const criteria = appData.test.criteria;
     const maxScore = calculateMaxScores();
     const percentage = (totalScore / maxScore) * 100;
     
@@ -3612,12 +3612,12 @@ function calculateGrade(totalScore) {
 }
 
 function calculateMaxScores() {
-    if (!window.appData || !window.appData.tasks || !Array.isArray(window.appData.tasks)) {
+    if (!appData || !appData.tasks || !Array.isArray(appData.tasks)) {
         return 100; // Значение по умолчанию
     }
     
     try {
-        return window.appData.tasks.reduce((sum, task) => {
+        return appData.tasks.reduce((sum, task) => {
             const score = parseInt(task.maxScore) || 1;
             return sum + score;
         }, 0);
@@ -3659,7 +3659,7 @@ function safe1calculateStatistics() {
 // Расчет распределения оценок
 function calculateGradeDistributionn() {
     // Проверяем наличие данных
-    if (!window.appData || !window.appData.students || !Array.isArray(window.appData.students)) {
+    if (!appData || !appData.students || !Array.isArray(appData.students)) {
         console.warn('Нет данных об учащихся для расчета распределения оценок');
         return { '2': 0, '3': 0, '4': 0, '5': 0 };
     }
@@ -3669,7 +3669,7 @@ function calculateGradeDistributionn() {
     
     // Безопасный перебор
     try {
-        window.appData.students.forEach(student => {
+        appData.students.forEach(student => {
             if (!student || !student.id) return;
             
             const totalScore = calculateStudentTotal(student.id);
@@ -3825,7 +3825,7 @@ function detectAnomalies() {
         anomalies.push('Аномально низкий средний балл. Проверьте сложность заданий.');
     }
     // Интегрируем критерии перед генерацией отчета
-    const integratedAppData = integrateCriteriaForReports(window.appData);
+    const integratedAppData = integrateCriteriaForReports(appData);
     
     // Теперь можем безопасно использовать
     const validation = integratedAppData.helpers.validateCriteria();
@@ -5193,7 +5193,7 @@ function getGradeColor(grade) {
 
 // Функция для применения исправлений
 function applyCriteriaFix() {
-    if (window.appData && fixAppDataCriteria(window.appData)) {
+    if (appData && fixAppDataCriteria(appData)) {
         showNotification('Критерии успешно исправлены', 'success');
         hideModal();
         // Обновить интерфейс если нужно
@@ -5207,7 +5207,7 @@ function applyCriteriaFix() {
 
 // Функция для проверки перед генерацией отчета
 function checkCriteriaBeforeReport() {
-    const validation = validateAppDataCriteria(window.appData);
+    const validation = validateAppDataCriteria(appData);
     
     if (!validation.isValid) {
         showNotification('Ошибка в критериях оценивания: ' + validation.errors[0], 'error');

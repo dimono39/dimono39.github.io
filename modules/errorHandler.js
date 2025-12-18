@@ -463,8 +463,8 @@ class ErrorHandler {
     try {
       return {
         dataSize: localStorage.getItem('testAnalyticsData')?.length || 0,
-        tasksCount: window.appData?.tasks?.length || 0,
-        studentsCount: window.appData?.students?.length || 0
+        tasksCount: appData?.tasks?.length || 0,
+        studentsCount: appData?.students?.length || 0
       };
     } catch {
       return {};
