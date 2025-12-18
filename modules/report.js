@@ -809,7 +809,7 @@ function downloadReportAssets() {
 
 // Управление шаблонами
 function manageTemplates() {
-    const userTemplates = JSON.parse(localStorage.getItem('reportTemplatesss') || '[]');
+    const userTemplates = JSON.parse(localStorage.getItem('reportTemplates') || '[]');
     
     let html = `
         <div style="max-width: 800px;">
@@ -1080,6 +1080,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     };
 });
+
 // ==================== ДОПОЛНИТЕЛЬНЫЕ ФУНКЦИИ ОТЧЕТОВ ====================
 
 // Инициализация голосового синтеза
@@ -1203,7 +1204,33 @@ function validateReportData() {
     
     return true;
 }
+// Безопасные версии функций
+function safeCalculateGradeDistribution() {
+    try {
+        return calculateGradeDistribution();
+    } catch (error) {
+        console.error('Ошибка в safeCalculateGradeDistribution:', error);
+        return { '2': 0, '3': 0, '4': 0, '5': 0 };
+    }
+}
 
+function safeCalculateStatistics() {
+    try {
+        return calculateStatistics();
+    } catch (error) {
+        console.error('Ошибка в safeCalculateStatistics:', error);
+        return {
+            totalStudents: 0,
+            totalTasks: 0,
+            averageGrade: 0,
+            successRate: 0,
+            excellentPercentage: 0,
+            goodPercentage: 0,
+            averagePercentage: 0,
+            weakPercentage: 0
+        };
+    }
+}
 // Настройка AI-рекомендаций
 function setupAIRecommendations() {
     // AI рекомендует поля в зависимости от типа работы
@@ -1245,7 +1272,7 @@ function toggleAllFields() {
 
 // Загрузка пользовательских шаблонов
 function loadUserTemplates() {
-    const userTemplates = JSON.parse(localStorage.getItem('reportTemplatesss') || '[]');
+    const userTemplates = JSON.parse(localStorage.getItem('reportTemplates') || '[]');
     const container = document.getElementById('userTemplatesList');
     
     if (userTemplates.length === 0) {
@@ -1284,7 +1311,7 @@ function createNewTemplate() {
     }
     
     const settings = collectReportSettings();
-    const userTemplates = JSON.parse(localStorage.getItem('reportTemplatesss') || '[]');
+    const userTemplates = JSON.parse(localStorage.getItem('reportTemplates') || '[]');
     
     userTemplates.push({
         name: nameInput.value,
@@ -1292,7 +1319,7 @@ function createNewTemplate() {
         date: new Date().toISOString()
     });
     
-    localStorage.setItem('reportTemplatesss', JSON.stringify(userTemplates));
+    localStorage.setItem('reportTemplates', JSON.stringify(userTemplates));
     hideModal();
     loadUserTemplates();
     
@@ -1301,7 +1328,7 @@ function createNewTemplate() {
 
 // Загрузка шаблона
 function loadTemplateReport(index) {
-    const userTemplates = JSON.parse(localStorage.getItem('reportTemplatesss') || '[]');
+    const userTemplates = JSON.parse(localStorage.getItem('reportTemplates') || '[]');
     if (!userTemplates[index]) return;
     
     const template = userTemplates[index];
@@ -1471,6 +1498,7 @@ function safeExecute(fn, context = 'Неизвестный контекст', fa
         return fallback;
     }
 }
+
 // Обнаружение типичных ошибок
 function detectCommonErrors() {
     const errorCounts = {};
@@ -1922,7 +1950,7 @@ function generateWordHTML(reportData) {
 }
 
 // Шаблоны отчетов
-const reportTemplatesss = {
+const reportTemplates = {
     teacher: {
         name: 'Педагогический анализ',
         fields: ['basic_info', 'statistics', 'grades_distribution', 'task_analysis', 'error_analysis', 'recommendations'],
@@ -1982,14 +2010,14 @@ function saveReportTemplate() {
     
     const settings = collectReportSettings();
     
-    const userTemplates = JSON.parse(localStorage.getItem('reportTemplatesss') || '[]');
+    const userTemplates = JSON.parse(localStorage.getItem('reportTemplates') || '[]');
     userTemplates.push({
         name: templateName,
         settings: settings,
         date: new Date().toISOString()
     });
     
-    localStorage.setItem('reportTemplatesss', JSON.stringify(userTemplates));
+    localStorage.setItem('reportTemplates', JSON.stringify(userTemplates));
     showNotification('Шаблон сохранен', 'success');
 }
 

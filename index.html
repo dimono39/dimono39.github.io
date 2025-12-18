@@ -4828,7 +4828,6 @@
 					}, 300);
 				}
 			};
-			
 		});		
 		
 		function handleResultsNavigation(e) {
@@ -8075,13 +8074,6 @@
 		let customTemplates = JSON.parse(localStorage.getItem('reportTemplates') || '[]');
 
 		function showReportTemplateManager() {
-			if (!templateManager || !templateManager.templates) {
-				console.warn('templateManager.templates не определен');
-				return;
-			}		
-			// Использование join только если templates существует
-			const templateNames = Object.keys(templateManager.templates).join(', ');
-			
 			const html = `
 				<div style="max-width: 800px;">
 					<h3>🎨 Управление шаблонами отчетов</h3>
@@ -9270,7 +9262,6 @@
 		  
 		  // Проверяем первый визит
 		  checkFirstVisit();
-		  
 		});		
 		
 		// ============ ИНТЕГРАЦИЯ ГИБРИДНОГО СКАНЕРА ============
@@ -23095,6 +23086,7 @@
 				showEmergencyInterface();
 			}
 		});
+		
 		function showEmergencyInterface() {
 			const container = document.querySelector('.container');
 			if (!container) return;
