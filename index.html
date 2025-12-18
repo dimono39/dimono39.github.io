@@ -6018,6 +6018,9 @@
 			showNotification('Критерии сгенерированы автоматически', 'success');
 		}
 
+
+
+
 		// ==================== РЕДАКТИРОВАНИЕ КАРТОЧЕК ОЦЕНОК ====================
 
 		function editGradeCard(grade) {
@@ -8026,7 +8029,7 @@
 		
 		// ==================== ШАБЛОНЫ ОТЧЕТОВ ====================
 
-		const reportTemplates = {
+		const reportTemplatesss = {
 			default: {
 				name: "Стандартный отчет",
 				sections: ['header', 'grades_distribution', 'task_analysis', 'student_performance', 'recommendations'],
@@ -34413,7 +34416,7 @@ ${files.map(f => f ? `- ${f.name}` : '').join('\n')}
 					</div>
 					
 					<div style="margin-top: 20px;">
-						<button class="btn btn-primary" onclick="generateAIRecommendations()">
+						<button class="btn btn-primary" onclick="generateAIRecommendationsss()">
 							🧠 Сгенерировать рекомендации
 						</button>
 					</div>
@@ -34423,7 +34426,7 @@ ${files.map(f => f ? `- ${f.name}` : '').join('\n')}
 			showModal('AI-ассистент', html);
 		}
 
-		function generateAIRecommendations() {
+		function generateAIRecommendationsss() {
 			const goal = document.getElementById('aiGoal').value;
 			const level = document.getElementById('aiLevel').value;
 			const strictness = document.getElementById('aiStrictness').value;

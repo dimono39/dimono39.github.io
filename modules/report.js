@@ -86,13 +86,68 @@ function generateAIAnalysis() {
         }
     }, 2000);
 }
+// Расчет статистики
+function calculateStatistics() {
+    const stats = {
+        totalStudents: 0,
+        totalTasks: 0,
+        averageGrade: 0,
+        successRate: 0,
+        excellentPercentage: 0,
+        goodPercentage: 0,
+        averagePercentage: 0,
+        weakPercentage: 0
+    };
+    
+    // Проверяем данные
+    if (!appData.students || !Array.isArray(appData.students)) {
+        console.warn('Нет данных об учащихся для расчета статистики');
+        return stats;
+    }
+    
+    if (!appData.tasks || !Array.isArray(appData.tasks)) {
+        console.warn('Нет данных о заданиях для расчета статистики');
+        return stats;
+    }
+    
+    stats.totalStudents = appData.students.length;
+    stats.totalTasks = appData.tasks.length;
+    
+    // Расчет среднего балла
+    let totalScore = 0;
+    let studentCount = 0;
+    
+    appData.students.forEach(student => {
+        if (!student || !student.id) return;
+        
+        const studentScore = calculateStudentTotal(student.id);
+        if (studentScore !== null && !isNaN(studentScore)) {
+            totalScore += studentScore;
+            studentCount++;
+        }
+    });
+    
+    stats.averageGrade = studentCount > 0 ? totalScore / studentCount : 0;
+    
+    // Распределение оценок
+    const distribution = calculateGradeDistribution();
+    stats.excellentPercentage = distribution['5'] || 0;
+    stats.goodPercentage = distribution['4'] || 0;
+    stats.averagePercentage = distribution['3'] || 0;
+    stats.weakPercentage = distribution['2'] || 0;
+    
+    // Процент успеваемости (3 и выше)
+    stats.successRate = stats.excellentPercentage + stats.goodPercentage + stats.averagePercentage;
+    
+    return stats;
+}
 
 // Генерация AI-инсайтов
 function generateAIInsights() {
     const insights = [];
     
     try {
-        const stats = safecalculateStatistics();
+        const stats = CalculateStatistics();
         
         // Проверяем, есть ли данные для анализа
         if (stats.totalStudents === 0 || stats.totalTasks === 0) {
@@ -257,7 +312,7 @@ function generateBenchmarkReport() {
     // Безопасный расчет текущей статистики
     let currentStats;
     try {
-        currentStats = safecalculateGradeDistribution();
+        currentStats = CalculateGradeDistribution();
     } catch (error) {
         console.error('Ошибка расчета распределения оценок:', error);
         currentStats = { '5': 0, '4': 0, '3': 0, '2': 0 };
@@ -549,7 +604,7 @@ function generateDynamicCharts(reportData) {
     const charts = [];
     
     // 1. Распределение оценок
-    const gradeDistribution = calculateGradeDistribution();
+    const gradeDistribution = CalculateGradeDistribution();
     charts.push({
         type: 'pie',
         title: 'Распределение оценок',
@@ -1204,33 +1259,7 @@ function validateReportData() {
     
     return true;
 }
-// Безопасные версии функций
-function safeCalculateGradeDistribution() {
-    try {
-        return calculateGradeDistribution();
-    } catch (error) {
-        console.error('Ошибка в safeCalculateGradeDistribution:', error);
-        return { '2': 0, '3': 0, '4': 0, '5': 0 };
-    }
-}
 
-function safeCalculateStatistics() {
-    try {
-        return calculateStatistics();
-    } catch (error) {
-        console.error('Ошибка в safeCalculateStatistics:', error);
-        return {
-            totalStudents: 0,
-            totalTasks: 0,
-            averageGrade: 0,
-            successRate: 0,
-            excellentPercentage: 0,
-            goodPercentage: 0,
-            averagePercentage: 0,
-            weakPercentage: 0
-        };
-    }
-}
 // Настройка AI-рекомендаций
 function setupAIRecommendations() {
     // AI рекомендует поля в зависимости от типа работы
@@ -1381,61 +1410,6 @@ function applyTemplateSettings(settings) {
     }
 }
 
-// Расчет статистики
-function calculateStatistics() {
-    const stats = {
-        totalStudents: 0,
-        totalTasks: 0,
-        averageGrade: 0,
-        successRate: 0,
-        excellentPercentage: 0,
-        goodPercentage: 0,
-        averagePercentage: 0,
-        weakPercentage: 0
-    };
-    
-    // Проверяем данные
-    if (!appData.students || !Array.isArray(appData.students)) {
-        console.warn('Нет данных об учащихся для расчета статистики');
-        return stats;
-    }
-    
-    if (!appData.tasks || !Array.isArray(appData.tasks)) {
-        console.warn('Нет данных о заданиях для расчета статистики');
-        return stats;
-    }
-    
-    stats.totalStudents = appData.students.length;
-    stats.totalTasks = appData.tasks.length;
-    
-    // Расчет среднего балла
-    let totalScore = 0;
-    let studentCount = 0;
-    
-    appData.students.forEach(student => {
-        if (!student || !student.id) return;
-        
-        const studentScore = calculateStudentTotal(student.id);
-        if (studentScore !== null && !isNaN(studentScore)) {
-            totalScore += studentScore;
-            studentCount++;
-        }
-    });
-    
-    stats.averageGrade = studentCount > 0 ? totalScore / studentCount : 0;
-    
-    // Распределение оценок
-    const distribution = calculateGradeDistribution();
-    stats.excellentPercentage = distribution['5'] || 0;
-    stats.goodPercentage = distribution['4'] || 0;
-    stats.averagePercentage = distribution['3'] || 0;
-    stats.weakPercentage = distribution['2'] || 0;
-    
-    // Процент успеваемости (3 и выше)
-    stats.successRate = stats.excellentPercentage + stats.goodPercentage + stats.averagePercentage;
-    
-    return stats;
-}
 
 // Анализ заданий
 function analyzeTasks() {
@@ -1662,7 +1636,7 @@ function collectReportSettings() {
 
 // Генерация распределения оценок для отчета
 function generateGradesDistribution(settings) {
-    const distribution = safecalculateGradeDistribution();
+    const distribution = CalculateGradeDistribution();
     
     return {
         labels: ['5', '4', '3', '2'],
@@ -2264,6 +2238,35 @@ function calculateMaxScore() {
     }
 }
 
+
+// Безопасные версии функций
+function safe1CalculateGradeDistribution() {
+    try {
+        return calculateGradeDistribution();
+    } catch (error) {
+        console.error('Ошибка в CalculateGradeDistribution:', error);
+        return { '2': 0, '3': 0, '4': 0, '5': 0 };
+    }
+}
+
+function safe1CalculateStatistics() {
+    try {
+        return calculateStatistics();
+    } catch (error) {
+        console.error('Ошибка в CalculateStatistics:', error);
+        return {
+            totalStudents: 0,
+            totalTasks: 0,
+            averageGrade: 0,
+            successRate: 0,
+            excellentPercentage: 0,
+            goodPercentage: 0,
+            averagePercentage: 0,
+            weakPercentage: 0
+        };
+    }
+}
+
 // Расчет распределения оценок
 function calculateGradeDistribution() {
     // Проверяем наличие данных
@@ -2434,7 +2437,7 @@ function detectAnomalies() {
     }
     
     // Проверка распределения оценок
-    const distribution = calculateGradeDistribution();
+    const distribution = CalculateGradeDistribution();
     if (distribution['5'] > 80) {
         anomalies.push('Более 80% отличников - возможно, задания слишком простые');
     }
@@ -3071,7 +3074,7 @@ function generateAIRecommendations() {
 
 // Генерация статистики для отчета
 function generateStatistics(settings) {
-    const stats = safecalculateStatistics();
+    const stats = CalculateStatistics();
     
     return {
         totalStudents: stats.totalStudents,
@@ -3112,30 +3115,4 @@ function generateRecommendations(settings) {
     };
 }
 
-// Безопасные версии функций
-function safeCalculateGradeDistribution() {
-    try {
-        return calculateGradeDistribution();
-    } catch (error) {
-        console.error('Ошибка в safeCalculateGradeDistribution:', error);
-        return { '2': 0, '3': 0, '4': 0, '5': 0 };
-    }
-}
 
-function safeCalculateStatistics() {
-    try {
-        return calculateStatistics();
-    } catch (error) {
-        console.error('Ошибка в safeCalculateStatistics:', error);
-        return {
-            totalStudents: 0,
-            totalTasks: 0,
-            averageGrade: 0,
-            successRate: 0,
-            excellentPercentage: 0,
-            goodPercentage: 0,
-            averagePercentage: 0,
-            weakPercentage: 0
-        };
-    }
-}

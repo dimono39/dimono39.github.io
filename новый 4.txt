@@ -1,0 +1,2448 @@
+		window.currentAnalysis = null;
+		function analyzeResults() {
+			console.log('📈 Анализ результатов...');
+			
+			// Проверяем наличие данных
+			if (!appData.tasks || appData.tasks.length === 0) {
+				showNotification('Сначала добавьте задания', 'warning');
+				return;
+			}
+			
+			if (!appData.students || appData.students.length === 0) {
+				showNotification('Сначала добавьте учащихся', 'warning');
+				return;
+			}
+			
+			const hasResults = appData.students.some(student => {
+				const studentResults = appData.results[student.id];
+				return studentResults && Object.keys(studentResults).length > 0;
+			});
+			
+			if (!hasResults) {
+				showNotification('Сначала введите результаты', 'warning');
+				return;
+			}
+			
+			// Собираем статистику
+			const analysis = {
+				summary: {},
+				byTask: [],
+				byStudent: [],
+				byLevel: {},
+				byErrorType: {},
+				correlations: [],
+				insights: []
+			};
+			
+			// 1. Общая статистика
+			analysis.summary = calculateSummaryStatistics();
+			
+			// 2. Анализ по заданиям
+			analysis.byTask = analyzeTasksPerformance();
+			
+			// 3. Анализ по учащимся
+			analysis.byStudent = analyzeStudentsPerformance();
+			
+			// 4. Анализ по уровням сложности
+			analysis.byLevel = analyzeByComplexityLevels();
+			
+			// 5. Анализ по типам ошибок
+			analysis.byErrorType = analyzeByErrorTypes();
+			
+			// 6. Корреляции
+			analysis.correlations = findCorrelations();
+			
+			// 7. Инсайты и рекомендации
+			analysis.insights = generateInsights(analysis);
+			// Сохраняем анализ
+			window.currentAnalysis = analysis;
+			// Показываем результаты анализа
+			showAnalysisResults(analysis);
+		}
+
+		function calculateSummaryStatistics() {
+			console.log('📊 Расчет общей статистики...');
+			
+			const totalStudents = appData.students.length;
+			const totalTasks = appData.tasks.length;
+			const maxTotalScore = calculateMaxScore();
+			
+			let completedStudents = 0;
+			let totalScoreAll = 0;
+			const scores = [];
+			const grades = [];
+			
+			// Собираем данные по каждому учащемуся
+			appData.students.forEach(student => {
+				const studentId = student.id;
+				const results = appData.results[studentId] || {};
+				
+				let studentScore = 0;
+				let completedTasks = 0;
+				
+				appData.tasks.forEach(task => {
+					const taskId = task.id || task.number;
+					const score = parseFloat(results[taskId]) || 0;
+					studentScore += score;
+					
+					if (results[taskId] !== undefined) {
+						completedTasks++;
+					}
+				});
+				
+				if (completedTasks > 0) {
+					completedStudents++;
+					totalScoreAll += studentScore;
+					scores.push(studentScore);
+					
+					const grade = calculateGrade(studentScore);
+					grades.push(grade);
+				}
+			});
+			
+			// Рассчитываем статистики
+			const avgScore = scores.length > 0 ? totalScoreAll / scores.length : 0;
+			const avgPercentage = maxTotalScore > 0 ? (avgScore / maxTotalScore * 100) : 0;
+			
+			// Средняя оценка
+			const avgGrade = grades.length > 0 ? 
+				grades.reduce((a, b) => a + b, 0) / grades.length : 0;
+			
+			// Медиана
+			const sortedScores = [...scores].sort((a, b) => a - b);
+			const medianScore = sortedScores.length > 0 ?
+				sortedScores[Math.floor(sortedScores.length / 2)] : 0;
+			
+			// Стандартное отклонение
+			const variance = scores.length > 0 ?
+				scores.reduce((sum, score) => sum + Math.pow(score - avgScore, 2), 0) / scores.length : 0;
+			const stdDev = Math.sqrt(variance);
+			
+			// Процент выполнения
+			const completionRate = totalStudents > 0 ? (completedStudents / totalStudents * 100) : 0;
+			
+			return {
+				totalStudents,
+				totalTasks,
+				maxTotalScore,
+				completedStudents,
+				completionRate: completionRate.toFixed(1),
+				avgScore: avgScore.toFixed(2),
+				avgPercentage: avgPercentage.toFixed(1),
+				avgGrade: avgGrade.toFixed(2),
+				medianScore: medianScore.toFixed(2),
+				stdDev: stdDev.toFixed(2),
+				minScore: scores.length > 0 ? Math.min(...scores).toFixed(2) : 0,
+				maxScore: scores.length > 0 ? Math.max(...scores).toFixed(2) : 0,
+				scoreRange: scores.length > 0 ? (Math.max(...scores) - Math.min(...scores)).toFixed(2) : 0
+			};
+		}
+
+		function analyzeTasksPerformance() {
+			console.log('📝 Анализ выполнения заданий...');
+			
+			const taskAnalysis = [];
+			
+			appData.tasks.forEach((task, taskIndex) => {
+				const taskId = task.id || taskIndex;
+				const maxScore = task.maxScore || 1;
+				const level = task.level || 1;
+				
+				let totalScore = 0;
+				let completedBy = 0;
+				const scores = [];
+				
+				appData.students.forEach(student => {
+					const studentId = student.id;
+					const results = appData.results[studentId] || {};
+					const score = parseFloat(results[taskId]) || 0;
+					
+					if (results[taskId] !== undefined) {
+						totalScore += score;
+						completedBy++;
+						scores.push(score);
+					}
+				});
+				
+				const avgScore = completedBy > 0 ? totalScore / completedBy : 0;
+				const percentage = maxScore > 0 ? (avgScore / maxScore * 100) : 0;
+				
+				// Определяем зону решаемости
+				let zone = 'unknown';
+				if (percentage >= 80) zone = 'excellent';
+				else if (percentage >= 60) zone = 'good';
+				else if (percentage >= 40) zone = 'average';
+				else if (percentage >= 20) zone = 'weak';
+				else zone = 'critical';
+				
+				// Стандартное отклонение
+				const variance = scores.length > 0 ?
+					scores.reduce((sum, score) => sum + Math.pow(score - avgScore, 2), 0) / scores.length : 0;
+				const stdDev = Math.sqrt(variance);
+				
+				taskAnalysis.push({
+					number: taskIndex + 1,
+					taskId,
+					description: task.description || `Задание ${taskIndex + 1}`,
+					level,
+					maxScore,
+					completedBy,
+					completionRate: (completedBy / appData.students.length * 100).toFixed(1),
+					avgScore: avgScore.toFixed(2),
+					percentage: percentage.toFixed(1),
+					zone,
+					stdDev: stdDev.toFixed(2),
+					discrimination: calculateDiscrimination(scores),
+					difficulty: (100 - percentage).toFixed(1) // Чем выше - тем сложнее
+				});
+			});
+			
+			return taskAnalysis;
+		}
+
+		function calculateDiscrimination(scores) {
+			if (scores.length < 2) return 0;
+			
+			// Разделяем на верхнюю и нижнюю группы (27% лучших и 27% худших)
+			const sorted = [...scores].sort((a, b) => a - b);
+			const n = Math.floor(scores.length * 0.27);
+			
+			if (n < 1) return 0;
+			
+			const highGroup = sorted.slice(-n);
+			const lowGroup = sorted.slice(0, n);
+			
+			const highAvg = highGroup.reduce((a, b) => a + b, 0) / highGroup.length;
+			const lowAvg = lowGroup.reduce((a, b) => a + b, 0) / lowGroup.length;
+			
+			// Дискриминация - разница между средними верхней и нижней групп
+			return (highAvg - lowAvg).toFixed(2);
+		}
+
+		function analyzeStudentsPerformance() {
+			console.log('👥 Анализ успеваемости учащихся...');
+			
+			const studentAnalysis = [];
+			
+			appData.students.forEach((student, studentIndex) => {
+				const studentId = student.id;
+				const results = appData.results[studentId] || {};
+				
+				let totalScore = 0;
+				let completedTasks = 0;
+				const taskScores = [];
+				const levelScores = {};
+				
+				appData.tasks.forEach(task => {
+					const taskId = task.id || task.number;
+					const score = parseFloat(results[taskId]) || 0;
+					const level = task.level || 1;
+					
+					if (results[taskId] !== undefined) {
+						totalScore += score;
+						completedTasks++;
+						taskScores.push({
+							score,
+							maxScore: task.maxScore || 1,
+							percentage: task.maxScore > 0 ? (score / task.maxScore * 100) : 0,
+							level
+						});
+						
+						// Группируем по уровням
+						if (!levelScores[level]) {
+							levelScores[level] = { total: 0, count: 0 };
+						}
+						levelScores[level].total += score;
+						levelScores[level].count++;
+					}
+				});
+				
+				const maxPossible = calculateMaxScore();
+				const percentage = maxPossible > 0 ? (totalScore / maxPossible * 100) : 0;
+				const grade = calculateGrade(totalScore);
+				
+				// Анализ по уровням сложности
+				const levelAnalysis = {};
+				Object.entries(levelScores).forEach(([level, data]) => {
+					const avg = data.count > 0 ? data.total / data.count : 0;
+					levelAnalysis[level] = {
+						avgScore: avg.toFixed(2),
+						completionRate: (data.count / appData.tasks.filter(t => t.level == level).length * 100).toFixed(1)
+					};
+				});
+				
+				// Определяем сильные и слабые стороны
+				const strengths = [];
+				const weaknesses = [];
+				
+				taskScores.forEach((taskScore, index) => {
+					if (taskScore.percentage >= 80) {
+						strengths.push(index + 1);
+					} else if (taskScore.percentage <= 40) {
+						weaknesses.push(index + 1);
+					}
+				});
+				
+				// Стабильность результатов
+				const stability = calculateStability(taskScores.map(t => t.percentage));
+				
+				studentAnalysis.push({
+					id: studentId,
+					index: studentIndex,
+					name: `${student.lastName} ${student.firstName}`,
+					totalScore: totalScore.toFixed(2),
+					maxPossible,
+					percentage: percentage.toFixed(1),
+					grade,
+					completedTasks,
+					completionRate: (completedTasks / appData.tasks.length * 100).toFixed(1),
+					levelAnalysis,
+					strengths: strengths.slice(0, 3),
+					weaknesses: weaknesses.slice(0, 3),
+					stability: stability.toFixed(2),
+					rank: 0 // Заполнится позже
+				});
+			});
+			
+			// Сортируем по баллам и присваиваем ранги
+			studentAnalysis.sort((a, b) => b.totalScore - a.totalScore);
+			studentAnalysis.forEach((student, index) => {
+				student.rank = index + 1;
+				student.percentile = ((1 - index / studentAnalysis.length) * 100).toFixed(1);
+			});
+			
+			return studentAnalysis;
+		}
+
+		function calculateStability(percentages) {
+			if (percentages.length < 2) return 100;
+			
+			// Рассчитываем коэффициент вариации (ниже = стабильнее)
+			const mean = percentages.reduce((a, b) => a + b, 0) / percentages.length;
+			const variance = percentages.reduce((sum, p) => sum + Math.pow(p - mean, 2), 0) / percentages.length;
+			const stdDev = Math.sqrt(variance);
+			const cv = (stdDev / mean) * 100;
+			
+			// Преобразуем в стабильность (0-100)
+			return Math.max(0, 100 - cv);
+		}
+
+		function analyzeByComplexityLevels() {
+			console.log('🎯 Анализ по уровням сложности...');
+			
+			const levelAnalysis = {};
+			
+			// Инициализируем объекты для каждого уровня
+			for (let level = 1; level <= 4; level++) {
+				levelAnalysis[level] = {
+					count: 0,
+					totalMaxScore: 0,
+					totalActualScore: 0,
+					studentsCompleted: 0,
+					tasks: []
+				};
+			}
+			
+			// Собираем данные по каждому уровню
+			appData.tasks.forEach((task, taskIndex) => {
+				const level = task.level || 1;
+				const taskId = task.id || taskIndex;
+				const maxScore = task.maxScore || 1;
+				
+				let taskTotalScore = 0;
+				let studentsCompleted = 0;
+				
+				appData.students.forEach(student => {
+					const studentId = student.id;
+					const results = appData.results[studentId] || {};
+					const score = parseFloat(results[taskId]) || 0;
+					
+					if (results[taskId] !== undefined) {
+						taskTotalScore += score;
+						studentsCompleted++;
+					}
+				});
+				
+				levelAnalysis[level].count++;
+				levelAnalysis[level].totalMaxScore += maxScore;
+				levelAnalysis[level].totalActualScore += taskTotalScore;
+				levelAnalysis[level].studentsCompleted += studentsCompleted;
+				
+				levelAnalysis[level].tasks.push({
+					number: taskIndex + 1,
+					avgScore: studentsCompleted > 0 ? taskTotalScore / studentsCompleted : 0,
+					completionRate: (studentsCompleted / appData.students.length * 100).toFixed(1)
+				});
+			});
+			
+			// Рассчитываем итоговые показатели
+			const result = {};
+			
+			Object.entries(levelAnalysis).forEach(([level, data]) => {
+				if (data.count === 0) return;
+				
+				const avgPercentage = data.totalMaxScore > 0 ? 
+					(data.totalActualScore / data.totalMaxScore / appData.students.length * 100) : 0;
+				
+				const avgCompletion = data.studentsCompleted > 0 ?
+					(data.studentsCompleted / (data.count * appData.students.length) * 100) : 0;
+				
+				// Сравнение с ожидаемыми значениями
+				const expectedPercentage = getExpectedLevelPercentage(parseInt(level));
+				const deviation = avgPercentage - expectedPercentage;
+				
+				result[level] = {
+					levelName: complexityLevels[level]?.name || `Уровень ${level}`,
+					taskCount: data.count,
+					avgPercentage: avgPercentage.toFixed(1),
+					avgCompletion: avgCompletion.toFixed(1),
+					expectedPercentage,
+					deviation: deviation.toFixed(1),
+					performance: deviation >= 10 ? 'excellent' : 
+							   deviation >= 0 ? 'good' : 
+							   deviation >= -10 ? 'average' : 'weak',
+					color: complexityLevels[level]?.color || '#95a5a6'
+				};
+			});
+			
+			return result;
+		}
+
+		function getExpectedLevelPercentage(level) {
+			// Ожидаемый процент выполнения по уровням
+			const expectations = {
+				1: 85, // Базовые задания
+				2: 70, // Применение
+				3: 50, // Анализ
+				4: 30  // Творчество
+			};
+			
+			return expectations[level] || 50;
+		}
+
+		function analyzeByErrorTypes() {
+			console.log('🔍 Анализ по типам ошибок...');
+			
+			const errorAnalysis = {};
+			
+			// Инициализируем для каждого типа ошибок
+			Object.keys(errorTypes).forEach(errorKey => {
+				errorAnalysis[errorKey] = {
+					count: 0,
+					totalScore: 0,
+					maxPossible: 0,
+					tasks: [],
+					students: new Set()
+				};
+			});
+			
+			// Собираем данные
+			appData.tasks.forEach((task, taskIndex) => {
+				const taskId = task.id || taskIndex;
+				const errorType = task.errorType;
+				
+				if (!errorType || !errorAnalysis[errorType]) return;
+				
+				let taskTotalScore = 0;
+				let taskMaxScore = 0;
+				
+				appData.students.forEach(student => {
+					const studentId = student.id;
+					const results = appData.results[studentId] || {};
+					const score = parseFloat(results[taskId]) || 0;
+					
+					if (results[taskId] !== undefined) {
+						taskTotalScore += score;
+						taskMaxScore += task.maxScore || 1;
+						errorAnalysis[errorType].students.add(studentId);
+					}
+				});
+				
+				errorAnalysis[errorType].count++;
+				errorAnalysis[errorType].totalScore += taskTotalScore;
+				errorAnalysis[errorType].maxPossible += taskMaxScore;
+				
+				const percentage = taskMaxScore > 0 ? (taskTotalScore / taskMaxScore * 100) : 0;
+				errorAnalysis[errorType].tasks.push({
+					number: taskIndex + 1,
+					percentage: percentage.toFixed(1)
+				});
+			});
+			
+			// Фильтруем только те типы ошибок, которые встречаются
+			const filteredAnalysis = {};
+			
+			Object.entries(errorAnalysis).forEach(([errorKey, data]) => {
+				if (data.count === 0) return;
+				
+				const errorType = errorTypes[errorKey];
+				const percentage = data.maxPossible > 0 ? 
+					(data.totalScore / data.maxPossible * 100) : 0;
+				const studentCount = data.students.size;
+				
+				filteredAnalysis[errorKey] = {
+					name: errorType?.name || errorKey,
+					color: errorType?.color || '#95a5a6',
+					count: data.count,
+					studentCount,
+					percentage: percentage.toFixed(1),
+					avgPerStudent: studentCount > 0 ? (data.totalScore / studentCount).toFixed(2) : 0,
+					tasks: data.tasks
+				};
+			});
+			
+			return filteredAnalysis;
+		}
+
+		function findCorrelations() {
+			console.log('🔗 Поиск корреляций...');
+			
+			const correlations = [];
+			
+			if (appData.tasks.length < 2) return correlations;
+			
+			// Матрица корреляций между заданиями
+			const taskScores = [];
+			
+			// Собираем баллы по заданиям
+			appData.tasks.forEach((task, taskIndex) => {
+				const taskId = task.id || taskIndex;
+				const scores = [];
+				
+				appData.students.forEach(student => {
+					const studentId = student.id;
+					const results = appData.results[studentId] || {};
+					scores.push(parseFloat(results[taskId]) || 0);
+				});
+				
+				taskScores.push(scores);
+			});
+			
+			// Рассчитываем корреляции между всеми парами заданий
+			for (let i = 0; i < taskScores.length; i++) {
+				for (let j = i + 1; j < taskScores.length; j++) {
+					const correlation = calculateCorrelation(taskScores[i], taskScores[j]);
+					
+					if (Math.abs(correlation) > 0.5) {
+						correlations.push({
+							task1: i + 1,
+							task2: j + 1,
+							correlation: correlation.toFixed(3),
+							strength: Math.abs(correlation) > 0.7 ? 'strong' : 
+									 Math.abs(correlation) > 0.5 ? 'moderate' : 'weak',
+							type: correlation > 0 ? 'positive' : 'negative'
+						});
+					}
+				}
+			}
+			
+			// Сортируем по силе корреляции
+			correlations.sort((a, b) => Math.abs(b.correlation) - Math.abs(a.correlation));
+			
+			return correlations.slice(0, 10); // Только топ-10
+		}
+
+		function calculateCorrelation(x, y) {
+			const n = x.length;
+			if (n !== y.length || n < 2) return 0;
+			
+			const sumX = x.reduce((a, b) => a + b, 0);
+			const sumY = y.reduce((a, b) => a + b, 0);
+			const sumXY = x.reduce((sum, xi, i) => sum + xi * y[i], 0);
+			const sumX2 = x.reduce((sum, xi) => sum + xi * xi, 0);
+			const sumY2 = y.reduce((sum, yi) => sum + yi * yi, 0);
+			
+			const numerator = n * sumXY - sumX * sumY;
+			const denominator = Math.sqrt((n * sumX2 - sumX * sumX) * (n * sumY2 - sumY * sumY));
+			
+			return denominator !== 0 ? numerator / denominator : 0;
+		}
+
+		function generateInsights(analysis) {
+			console.log('💡 Генерация инсайтов...');
+			
+			const insights = [];
+			
+			// 1. Инсайты на основе общей статистики
+			const summary = analysis.summary;
+			
+			if (summary.completionRate < 50) {
+				insights.push({
+					type: 'warning',
+					title: 'Низкий процент выполнения',
+					message: `Только ${summary.completionRate}% учащихся выполнили все задания`,
+					suggestion: 'Рассмотрите возможность продления срока или дополнительных консультаций'
+				});
+			}
+			
+			if (summary.stdDev > summary.avgScore * 0.5) {
+				insights.push({
+					type: 'info',
+					title: 'Большой разброс результатов',
+					message: `Стандартное отклонение (${summary.stdDev}) составляет более 50% от среднего балла`,
+					suggestion: 'Уровень сложности заданий может быть неадекватным для данной группы'
+				});
+			}
+			
+			// 2. Инсайты на основе анализа заданий
+			const criticalTasks = analysis.byTask.filter(task => task.zone === 'critical');
+			if (criticalTasks.length > 0) {
+				insights.push({
+					type: 'danger',
+					title: 'Критические задания',
+					message: `${criticalTasks.length} заданий выполнены менее чем на 20%`,
+					suggestion: `Задания: ${criticalTasks.map(t => t.number).join(', ')}. Требуется повторное объяснение.`
+				});
+			}
+			
+			// 3. Инсайты на основе уровней сложности
+			Object.entries(analysis.byLevel).forEach(([level, data]) => {
+				if (data.deviation < -15) {
+					insights.push({
+						type: 'warning',
+						title: `Слабые результаты по ${data.levelName}`,
+						message: `Выполнение на ${data.percentage}% (ожидалось ${data.expectedPercentage}%)`,
+						suggestion: `Необходимо уделить больше внимания заданиям уровня ${level}`
+					});
+				}
+			});
+			
+			// 4. Инсайты на основе типов ошибок
+			const weakErrorTypes = Object.entries(analysis.byErrorType)
+				.filter(([_, data]) => data.percentage < 50);
+			
+			if (weakErrorTypes.length > 0) {
+				const worst = weakErrorTypes.sort((a, b) => a[1].percentage - b[1].percentage)[0];
+				insights.push({
+					type: 'info',
+					title: 'Проблемный тип ошибок',
+					message: `Наименьший процент выполнения по типу "${worst[1].name}" (${worst[1].percentage}%)`,
+					suggestion: 'Проведите дополнительные занятия по этой теме'
+				});
+			}
+			
+			// 5. Инсайты на основе корреляций
+			if (analysis.correlations.length > 0) {
+				const strongest = analysis.correlations[0];
+				if (Math.abs(strongest.correlation) > 0.8) {
+					insights.push({
+						type: 'success',
+						title: 'Сильная взаимосвязь заданий',
+						message: `Задания ${strongest.task1} и ${strongest.task2} сильно коррелируют (${strongest.correlation})`,
+						suggestion: 'Возможно, задания проверяют схожие умения или имеют общую тематику'
+					});
+				}
+			}
+			
+			// 6. Положительные инсайты
+			const excellentTasks = analysis.byTask.filter(task => task.zone === 'excellent');
+			if (excellentTasks.length > appData.tasks.length * 0.3) {
+				insights.push({
+					type: 'success',
+					title: 'Хорошее усвоение материала',
+					message: `Более 30% заданий выполнены на отлично (>80%)`,
+					suggestion: 'Группа хорошо усвоила основные темы'
+				});
+			}
+			
+			return insights;
+		}
+
+		function showAnalysisResults(analysis) {
+			console.log('📊 Показ результатов анализа:', analysis);
+			
+			let html = `
+				<div style="max-width: 1200px;">
+					<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+						<h3 style="margin: 0;">📈 Комплексный анализ результатов</h3>
+						<div>
+							<button class="btn btn-sm btn-outline" onclick="exportAnalysisReport(${JSON.stringify(analysis).replace(/"/g, '&quot;')})">
+								📥 Экспорт отчета
+							</button>
+							<button class="btn btn-sm btn-outline" onclick="printAnalysisReport(${JSON.stringify(analysis).replace(/"/g, '&quot;')})">
+								🖨️ Печать
+							</button>
+						</div>
+					</div>
+					
+					<!-- Ключевые показатели -->
+					<div style="background: #f8f9fa; padding: 20px; border-radius: 10px; margin-bottom: 20px;">
+						<h4 style="margin-top: 0;">📊 Ключевые показатели</h4>
+						<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px;">
+							<div style="text-align: center; padding: 15px; background: white; border-radius: 8px;">
+								<div style="font-size: 24px; font-weight: bold; color: #3498db;">
+									${analysis.summary.avgPercentage}%
+								</div>
+								<div style="font-size: 12px; color: #666;">Средний % выполнения</div>
+							</div>
+							
+							<div style="text-align: center; padding: 15px; background: white; border-radius: 8px;">
+								<div style="font-size: 24px; font-weight: bold; color: #2ecc71;">
+									${analysis.summary.avgGrade}
+								</div>
+								<div style="font-size: 12px; color: #666;">Средняя оценка</div>
+							</div>
+							
+							<div style="text-align: center; padding: 15px; background: white; border-radius: 8px;">
+								<div style="font-size: 24px; font-weight: bold; color: #f39c12;">
+									${analysis.summary.completionRate}%
+								</div>
+								<div style="font-size: 12px; color: #666;">Выполнили все задания</div>
+							</div>
+							
+							<div style="text-align: center; padding: 15px; background: white; border-radius: 8px;">
+								<div style="font-size: 24px; font-weight: bold; color: #e74c3c;">
+									${analysis.summary.stdDev}
+								</div>
+								<div style="font-size: 12px; color: #666;">Разброс (σ)</div>
+							</div>
+						</div>
+					</div>
+					
+					<!-- Инсайты и рекомендации -->
+					<div style="margin-bottom: 20px;">
+						<h4>💡 Ключевые выводы</h4>
+						<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 15px;">
+			`;
+			
+			// Показываем инсайты
+			analysis.insights.forEach((insight, index) => {
+				const bgColor = insight.type === 'danger' ? '#f8d7da' :
+							   insight.type === 'warning' ? '#fff3cd' :
+							   insight.type === 'info' ? '#d1ecf1' : '#d4edda';
+				
+				const borderColor = insight.type === 'danger' ? '#f5c6cb' :
+								  insight.type === 'warning' ? '#ffeaa7' :
+								  insight.type === 'info' ? '#bee5eb' : '#c3e6cb';
+				
+				html += `
+					<div style="background: ${bgColor}; border-left: 4px solid ${borderColor}; padding: 15px; border-radius: 8px;">
+						<div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+							<span style="font-size: 20px;">
+								${insight.type === 'danger' ? '⚠️' : 
+								  insight.type === 'warning' ? '⚡' : 
+								  insight.type === 'info' ? 'ℹ️' : '✅'}
+							</span>
+							<strong>${insight.title}</strong>
+						</div>
+						<div style="margin-bottom: 10px; font-size: 14px;">${insight.message}</div>
+						<div style="font-size: 12px; color: #666; font-style: italic;">${insight.suggestion}</div>
+					</div>
+				`;
+			});
+			
+			html += `
+						</div>
+					</div>
+					
+					<!-- Табы для детального анализа -->
+					<div style="margin-bottom: 20px;">
+						<div class="tabs" style="background: #f8f9fa; border-radius: 8px; padding: 5px; display: flex; gap: 5px;">
+							<button class="tab-btn" onclick="showAnalysisTab('tasks', this)" style="flex: 1;">📝 По заданиям</button>
+							<button class="tab-btn" onclick="showAnalysisTab('students', this)" style="flex: 1;">👥 По учащимся</button>
+							<button class="tab-btn" onclick="showAnalysisTab('levels', this)" style="flex: 1;">🎯 По уровням</button>
+							<button class="tab-btn" onclick="showAnalysisTab('errors', this)" style="flex: 1;">🔍 По ошибкам</button>
+							<button class="tab-btn" onclick="showAnalysisTab('correlations', this)" style="flex: 1;">🔗 Корреляции</button>
+						</div>
+						
+						<div id="analysisTabContent" style="background: white; padding: 20px; border-radius: 0 0 8px 8px; border: 1px solid #eee; border-top: none;">
+							<!-- Контент будет заполняться динамически -->
+						</div>
+					</div>
+				</div>
+			`;
+			
+			showModal('Анализ результатов', html);
+			
+			// Показываем первую вкладку
+			setTimeout(() => {
+				showAnalysisTab('tasks', document.querySelector('.tab-btn'));
+			}, 100);
+		}
+
+		function showAnalysisTab(tabName, button) {
+			// Сбрасываем активность всех кнопок
+			document.querySelectorAll('.tab-btn').forEach(btn => {
+				btn.classList.remove('active');
+			});
+			
+			// Активируем текущую кнопку
+			button.classList.add('active');
+			
+			const contentDiv = document.getElementById('analysisTabContent');
+			if (!contentDiv) return;
+			
+			let html = '';
+			
+			switch(tabName) {
+				case 'tasks':
+					html = renderTasksAnalysis();
+					break;
+				case 'students':
+					html = renderStudentsAnalysis();
+					break;
+				case 'levels':
+					html = renderLevelsAnalysis();
+					break;
+				case 'errors':
+					html = renderErrorsAnalysis();
+					break;
+				case 'correlations':
+					html = renderCorrelationsAnalysis();
+					break;
+			}
+			
+			contentDiv.innerHTML = html;
+		}
+
+		function renderTasksAnalysis() {
+			const analysis = window.currentAnalysis || {};
+			const tasks = analysis.byTask || [];
+			
+			let html = `
+				<h4 style="margin-top: 0;">📝 Анализ выполнения заданий</h4>
+				<p style="color: #666; margin-bottom: 15px;">${tasks.length} заданий, отсортированных по сложности</p>
+				
+				<div style="max-height: 400px; overflow-y: auto;">
+					<table style="width: 100%; font-size: 12px; border-collapse: collapse;">
+						<thead>
+							<tr>
+								<th style="padding: 10px; background: #f8f9fa; text-align: center;">№</th>
+								<th style="padding: 10px; background: #f8f9fa;">Задание</th>
+								<th style="padding: 10px; background: #f8f9fa; text-align: center;">Уровень</th>
+								<th style="padding: 10px; background: #f8f9fa; text-align: center;">% выполнения</th>
+								<th style="padding: 10px; background: #f8f9fa; text-align: center;">Зона</th>
+								<th style="padding: 10px; background: #f8f9fa; text-align: center;">Сложность</th>
+								<th style="padding: 10px; background: #f8f9fa; text-align: center;">Действия</th>
+							</tr>
+						</thead>
+						<tbody>
+			`;
+			
+			tasks.sort((a, b) => a.percentage - b.percentage).forEach(task => {
+				const zoneColor = task.zone === 'excellent' ? '#27ae60' :
+								 task.zone === 'good' ? '#3498db' :
+								 task.zone === 'average' ? '#f39c12' :
+								 task.zone === 'weak' ? '#e67e22' : '#e74c3c';
+				
+				const zoneName = task.zone === 'excellent' ? 'Отлично' :
+								task.zone === 'good' ? 'Хорошо' :
+								task.zone === 'average' ? 'Средне' :
+								task.zone === 'weak' ? 'Слабо' : 'Критично';
+				
+				html += `
+					<tr>
+						<td style="padding: 8px; text-align: center; font-weight: bold;">${task.number}</td>
+						<td style="padding: 8px;">${task.description.substring(0, 50)}${task.description.length > 50 ? '...' : ''}</td>
+						<td style="padding: 8px; text-align: center;">
+							<span style="display: inline-block; padding: 3px 8px; background: ${complexityLevels[task.level]?.color || '#95a5a6'}; color: white; border-radius: 10px;">
+								${task.level}
+							</span>
+						</td>
+						<td style="padding: 8px; text-align: center;">
+							<div style="font-weight: bold;">${task.percentage}%</div>
+							<div style="font-size: 10px; color: #666;">(${task.avgScore}/${task.maxScore})</div>
+						</td>
+						<td style="padding: 8px; text-align: center;">
+							<span style="color: ${zoneColor}; font-weight: bold;">${zoneName}</span>
+						</td>
+						<td style="padding: 8px; text-align: center;">
+							<div>${task.difficulty}</div>
+							<div style="font-size: 10px; color: #666;">(чем выше - тем сложнее)</div>
+						</td>
+						<td style="padding: 8px; text-align: center;">
+							<button class="btn-icon small" onclick="showTaskDetails(${task.number - 1})" title="Детали">
+								🔍
+							</button>
+						</td>
+					</tr>
+				`;
+			});
+			
+			html += `
+						</tbody>
+					</table>
+				</div>
+				
+				<div style="margin-top: 15px; padding: 10px; background: #f8f9fa; border-radius: 5px; font-size: 12px;">
+					<strong>Легенда зон:</strong>
+					<span style="color: #27ae60; margin-left: 10px;">✅ Отлично (>80%)</span>
+					<span style="color: #3498db; margin-left: 10px;">👍 Хорошо (60-80%)</span>
+					<span style="color: #f39c12; margin-left: 10px;">⚠️ Средне (40-60%)</span>
+					<span style="color: #e67e22; margin-left: 10px;">🔻 Слабо (20-40%)</span>
+					<span style="color: #e74c3c; margin-left: 10px;">🚨 Критично (<20%)</span>
+				</div>
+			`;
+			
+			return html;
+		}
+
+
+
+		function addErrorToStudentPrompt(studentId) {
+			if (!appData.tasks || appData.tasks.length === 0) {
+				showNotification('Сначала добавьте задания', 'warning');
+				return;
+			}
+			
+			let html = `
+				<div style="max-width: 500px;">
+					<h4>Добавить ошибку ученику</h4>
+					
+					<div class="form-group">
+						<label>Выберите задание:</label>
+						<select id="errorTaskSelect" class="form-control">
+							${appData.tasks.map((task, index) => `
+								<option value="${task.id || index}">
+									Задание ${index + 1}: ${task.description || 'Без описания'}
+								</option>
+							`).join('')}
+						</select>
+					</div>
+					
+					<div class="form-group">
+						<label>Тип ошибки:</label>
+						<select id="errorTypeSelect" class="form-control">
+							<option value="">-- Выберите тип --</option>
+							${Object.entries(errorTypes).map(([key, type]) => `
+								<option value="${key}">${type.name}</option>
+							`).join('')}
+						</select>
+					</div>
+					
+					<div class="form-group">
+						<label>Описание ошибки:</label>
+						<textarea id="errorDescription" class="form-control" rows="3" placeholder="Подробное описание ошибки..."></textarea>
+					</div>
+					
+					<div style="margin-top: 20px;">
+						<button class="btn btn-success" onclick="saveStudentError('${studentId}')">
+							💾 Сохранить ошибку
+						</button>
+						<button class="btn btn-outline" onclick="hideModal()">
+							Отмена
+						</button>
+					</div>
+				</div>
+			`;
+			
+			showModal('Добавить ошибку', html);
+		}
+
+		function saveStudentError(studentId) {
+			const taskId = document.getElementById('errorTaskSelect').value;
+			const errorType = document.getElementById('errorTypeSelect').value;
+			const description = document.getElementById('errorDescription').value;
+			
+			if (!errorType) {
+				showNotification('Выберите тип ошибки', 'error');
+				return;
+			}
+			
+			addErrorToStudent(studentId, taskId, errorType, description);
+			hideModal();
+			showNotification('Ошибка добавлена', 'success');
+		}
+		// Вспомогательные функции
+		function updateCellStyle(input) {
+			const value = parseFloat(input.value) || 0;
+			const max = parseFloat(input.max) || 1;
+			
+			if (value === max) {
+				input.style.borderColor = '#2ecc71';
+				input.style.background = '#f0fff4';
+			} else if (value > 0) {
+				input.style.borderColor = '#f39c12';
+				input.style.background = '#fff8e1';
+			} else {
+				input.style.borderColor = '#e74c3c';
+				input.style.background = '#fff5f5';
+			}
+		}
+
+		function handleCellKeydown(e, row, col) {
+			// Enter для перехода вниз
+			if (e.key === 'Enter' && !e.shiftKey) {
+				e.preventDefault();
+				if (row < appData.students.length - 1) {
+					moveToCell(row + 1, col);
+				}
+			}
+		}
+
+		function getPercentageColor(percentage) {
+			if (percentage >= 90) return '#27ae60';
+			if (percentage >= 75) return '#2ecc71';
+			if (percentage >= 60) return '#3498db';
+			if (percentage >= 40) return '#f39c12';
+			if (percentage >= 25) return '#e67e22';
+			return '#e74c3c';
+		}
+		
+		
+		// ==================== RENDER STUDENTS ANALYSIS ====================
+
+function renderStudentsAnalysis() {
+    const analysis = window.currentAnalysis || {};
+    const students = analysis.byStudent || [];
+    const summary = analysis.summary || {};
+    
+    let html = `
+        <h4 style="margin-top: 0;">👥 Анализ успеваемости учащихся</h4>
+        <p style="color: #666; margin-bottom: 15px;">${students.length} учащихся, отсортированных по рейтингу</p>
+        
+        <!-- Фильтры и сортировка -->
+        <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+            <select id="studentSort" onchange="sortStudentsAnalysis()" style="padding: 5px; border-radius: 4px; border: 1px solid #ddd;">
+                <option value="rank">По рейтингу</option>
+                <option value="score">По баллам</option>
+                <option value="percentage">По % выполнения</option>
+                <option value="stability">По стабильности</option>
+            </select>
+            
+            <input type="text" id="studentSearch" placeholder="Поиск по имени..." 
+                   oninput="searchStudents()" style="flex: 1; padding: 5px; border-radius: 4px; border: 1px solid #ddd;">
+            
+            <button class="btn btn-sm btn-outline" onclick="exportStudentList()">
+                📥 Экспорт списка
+            </button>
+        </div>
+        
+        <div style="max-height: 400px; overflow-y: auto;">
+            <table style="width: 100%; font-size: 12px; border-collapse: collapse;">
+                <thead style="position: sticky; top: 0; background: white; z-index: 10;">
+                    <tr>
+                        <th style="padding: 10px; background: #f8f9fa; text-align: center; width: 50px;">Ранг</th>
+                        <th style="padding: 10px; background: #f8f9fa;">Учащийся</th>
+                        <th style="padding: 10px; background: #f8f9fa; text-align: center; width: 80px;">Баллы</th>
+                        <th style="padding: 10px; background: #f8f9fa; text-align: center; width: 80px;">%</th>
+                        <th style="padding: 10px; background: #f8f9fa; text-align: center; width: 60px;">Оценка</th>
+                        <th style="padding: 10px; background: #f8f9fa; text-align: center; width: 80px;">Стабильность</th>
+                        <th style="padding: 10px; background: #f8f9fa; text-align: center; width: 100px;">Сильные/слабые</th>
+                        <th style="padding: 10px; background: #f8f9fa; text-align: center; width: 80px;">Действия</th>
+                    </tr>
+                </thead>
+                <tbody id="studentsAnalysisBody">
+    `;
+    
+    // Рендерим таблицу
+    students.forEach(student => {
+        const gradeColor = getGradeColor(student.grade);
+        const stabilityColor = student.stability >= 80 ? '#27ae60' :
+                             student.stability >= 60 ? '#3498db' :
+                             student.stability >= 40 ? '#f39c12' : '#e74c3c';
+        
+        html += `
+            <tr data-student-id="${student.id}" data-student-name="${student.name.toLowerCase()}">
+                <td style="padding: 8px; text-align: center; font-weight: bold;">
+                    <span style="display: inline-block; width: 25px; height: 25px; background: ${student.rank <= 3 ? '#f39c12' : '#3498db'}; color: white; border-radius: 50%; line-height: 25px;">
+                        ${student.rank}
+                    </span>
+                </td>
+                <td style="padding: 8px;">
+                    <div style="font-weight: 500;">${student.name}</div>
+                    <div style="font-size: 10px; color: #666;">Выполнено: ${student.completedTasks}/${appData.tasks.length}</div>
+                </td>
+                <td style="padding: 8px; text-align: center;">
+                    <div style="font-weight: bold;">${student.totalScore}</div>
+                    <div style="font-size: 10px; color: #666;">/${student.maxPossible}</div>
+                </td>
+                <td style="padding: 8px; text-align: center;">
+                    <div style="font-weight: bold; color: ${getPercentageColor(student.percentage)};">
+                        ${student.percentage}%
+                    </div>
+                    <div style="font-size: 10px; color: #666;">${student.percentile} перцентиль</div>
+                </td>
+                <td style="padding: 8px; text-align: center;">
+                    <div style="width: 30px; height: 30px; background: ${gradeColor}; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; margin: 0 auto;">
+                        ${student.grade}
+                    </div>
+                </td>
+                <td style="padding: 8px; text-align: center;">
+                    <div style="color: ${stabilityColor}; font-weight: bold;">${student.stability}</div>
+                    <div style="font-size: 10px; color: #666;">из 100</div>
+                </td>
+                <td style="padding: 8px; text-align: center;">
+                    <div style="font-size: 10px;">
+                        <span style="color: #27ae60;">Сильные: ${student.strengths.length > 0 ? student.strengths.join(',') : '-'}</span><br>
+                        <span style="color: #e74c3c;">Слабые: ${student.weaknesses.length > 0 ? student.weaknesses.join(',') : '-'}</span>
+                    </div>
+                </td>
+                <td style="padding: 8px; text-align: center;">
+                    <button class="btn-icon small" onclick="showStudentDetails(${student.index})" title="Детальный анализ">
+                        📊
+                    </button>
+                    <button class="btn-icon small" onclick="generateStudentReport(${student.index})" title="Отчет">
+                        📄
+                    </button>
+                </td>
+            </tr>
+        `;
+    });
+    
+    html += `
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Групповой анализ -->
+        <div style="margin-top: 20px;">
+            <h5>📊 Групповые показатели</h5>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-top: 10px;">
+                <div style="background: #f8f9fa; padding: 15px; border-radius: 8px;">
+                    <strong>Распределение оценок:</strong>
+                    <div style="margin-top: 10px;">
+    `;
+    
+    // Распределение оценок
+    const gradeDistribution = {2: 0, 3: 0, 4: 0, 5: 0};
+    students.forEach(student => {
+        const grade = Math.floor(student.grade);
+        if (gradeDistribution[grade] !== undefined) {
+            gradeDistribution[grade]++;
+        }
+    });
+    
+    Object.entries(gradeDistribution).forEach(([grade, count]) => {
+        const percentage = (count / students.length * 100).toFixed(1);
+        html += `
+            <div style="display: flex; justify-content: space-between; margin: 5px 0;">
+                <span>Оценка ${grade}:</span>
+                <span>${count} (${percentage}%)</span>
+            </div>
+        `;
+    });
+    
+    html += `
+                    </div>
+                </div>
+                
+                <div style="background: #f8f9fa; padding: 15px; border-radius: 8px;">
+                    <strong>Категории учащихся:</strong>
+                    <div style="margin-top: 10px;">
+    `;
+    
+    // Категории успеваемости
+    const categories = {
+        excellent: students.filter(s => s.percentage >= 80).length,
+        good: students.filter(s => s.percentage >= 60 && s.percentage < 80).length,
+        average: students.filter(s => s.percentage >= 40 && s.percentage < 60).length,
+        weak: students.filter(s => s.percentage >= 20 && s.percentage < 40).length,
+        critical: students.filter(s => s.percentage < 20).length
+    };
+    
+    Object.entries(categories).forEach(([category, count]) => {
+        const names = {
+            excellent: 'Отличники',
+            good: 'Хорошисты', 
+            average: 'Средние',
+            weak: 'Слабые',
+            critical: 'Критические'
+        };
+        const percentage = (count / students.length * 100).toFixed(1);
+        html += `
+            <div style="display: flex; justify-content: space-between; margin: 5px 0;">
+                <span>${names[category]}:</span>
+                <span>${count} (${percentage}%)</span>
+            </div>
+        `;
+    });
+    
+    html += `
+                    </div>
+                </div>
+                
+                <div style="background: #f8f9fa; padding: 15px; border-radius: 8px;">
+                    <strong>Статистика:</strong>
+                    <div style="margin-top: 10px;">
+                        <div style="display: flex; justify-content: space-between; margin: 5px 0;">
+                            <span>Макс. балл:</span>
+                            <span>${summary.maxScore}</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; margin: 5px 0;">
+                            <span>Мин. балл:</span>
+                            <span>${summary.minScore}</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; margin: 5px 0;">
+                            <span>Разброс:</span>
+                            <span>${summary.scoreRange}</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; margin: 5px 0;">
+                            <span>Медиана:</span>
+                            <span>${summary.medianScore}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    return html;
+}
+
+function sortStudentsAnalysis() {
+    const sortBy = document.getElementById('studentSort').value;
+    const students = window.currentAnalysis?.byStudent || [];
+    
+    const sorted = [...students].sort((a, b) => {
+        switch(sortBy) {
+            case 'score': return b.totalScore - a.totalScore;
+            case 'percentage': return b.percentage - a.percentage;
+            case 'stability': return b.stability - a.stability;
+            default: return a.rank - b.rank;
+        }
+    });
+    
+    // Обновляем таблицу
+    const tbody = document.getElementById('studentsAnalysisBody');
+    if (tbody) {
+        tbody.innerHTML = '';
+        
+        sorted.forEach(student => {
+            const gradeColor = getGradeColor(student.grade);
+            const stabilityColor = student.stability >= 80 ? '#27ae60' :
+                                 student.stability >= 60 ? '#3498db' :
+                                 student.stability >= 40 ? '#f39c12' : '#e74c3c';
+            
+            const row = document.createElement('tr');
+            row.dataset.studentId = student.id;
+            row.dataset.studentName = student.name.toLowerCase();
+            row.innerHTML = `
+                <td style="padding: 8px; text-align: center; font-weight: bold;">
+                    <span style="display: inline-block; width: 25px; height: 25px; background: ${student.rank <= 3 ? '#f39c12' : '#3498db'}; color: white; border-radius: 50%; line-height: 25px;">
+                        ${student.rank}
+                    </span>
+                </td>
+                <td style="padding: 8px;">
+                    <div style="font-weight: 500;">${student.name}</div>
+                    <div style="font-size: 10px; color: #666;">Выполнено: ${student.completedTasks}/${appData.tasks.length}</div>
+                </td>
+                <td style="padding: 8px; text-align: center;">
+                    <div style="font-weight: bold;">${student.totalScore}</div>
+                    <div style="font-size: 10px; color: #666;">/${student.maxPossible}</div>
+                </td>
+                <td style="padding: 8px; text-align: center;">
+                    <div style="font-weight: bold; color: ${getPercentageColor(student.percentage)};">
+                        ${student.percentage}%
+                    </div>
+                    <div style="font-size: 10px; color: #666;">${student.percentile} перцентиль</div>
+                </td>
+                <td style="padding: 8px; text-align: center;">
+                    <div style="width: 30px; height: 30px; background: ${gradeColor}; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; margin: 0 auto;">
+                        ${student.grade}
+                    </div>
+                </td>
+                <td style="padding: 8px; text-align: center;">
+                    <div style="color: ${stabilityColor}; font-weight: bold;">${student.stability}</div>
+                    <div style="font-size: 10px; color: #666;">из 100</div>
+                </td>
+                <td style="padding: 8px; text-align: center;">
+                    <div style="font-size: 10px;">
+                        <span style="color: #27ae60;">Сильные: ${student.strengths.length > 0 ? student.strengths.join(',') : '-'}</span><br>
+                        <span style="color: #e74c3c;">Слабые: ${student.weaknesses.length > 0 ? student.weaknesses.join(',') : '-'}</span>
+                    </div>
+                </td>
+                <td style="padding: 8px; text-align: center;">
+                    <button class="btn-icon small" onclick="showStudentDetails(${student.index})" title="Детальный анализ">
+                        📊
+                    </button>
+                    <button class="btn-icon small" onclick="generateStudentReport(${student.index})" title="Отчет">
+                        📄
+                    </button>
+                </td>
+            `;
+            
+            tbody.appendChild(row);
+        });
+    }
+}
+
+function searchStudents() {
+    const searchTerm = document.getElementById('studentSearch').value.toLowerCase();
+    const rows = document.querySelectorAll('#studentsAnalysisBody tr');
+    
+    rows.forEach(row => {
+        const studentName = row.dataset.studentName || '';
+        if (studentName.includes(searchTerm)) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+}
+
+// ==================== RENDER LEVELS ANALYSIS ====================
+
+function renderLevelsAnalysis() {
+    const analysis = window.currentAnalysis || {};
+    const levels = analysis.byLevel || {};
+    
+    let html = `
+        <h4 style="margin-top: 0;">🎯 Анализ по уровням сложности</h4>
+        <p style="color: #666; margin-bottom: 15px;">Выполнение заданий по таксономии Блума</p>
+        
+        <!-- Визуализация -->
+        <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 20px; margin-bottom: 20px;">
+            <!-- График -->
+            <div style="background: white; padding: 15px; border-radius: 8px; border: 1px solid #eee;">
+                <h5 style="margin-top: 0;">Процент выполнения по уровням</h5>
+                <div id="levelsChart" style="height: 200px; position: relative;">
+    `;
+    
+    // Создаем график
+    const levelData = Object.values(levels);
+    if (levelData.length > 0) {
+        const maxPercentage = Math.max(...levelData.map(l => parseFloat(l.avgPercentage))) || 100;
+        
+        levelData.forEach(level => {
+            const percentage = parseFloat(level.avgPercentage);
+            const barWidth = (percentage / maxPercentage * 100) + '%';
+            const deviation = parseFloat(level.deviation);
+            
+            html += `
+                <div style="margin-bottom: 15px;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                        <span style="font-weight: 500;">${level.levelName}</span>
+                        <span style="font-weight: bold; color: ${level.color}">${percentage}%</span>
+                    </div>
+                    <div style="height: 20px; background: #f8f9fa; border-radius: 10px; overflow: hidden; position: relative;">
+                        <div style="height: 100%; width: ${barWidth}; background: ${level.color}; transition: width 1s;"></div>
+                        <div style="position: absolute; left: ${level.expectedPercentage / maxPercentage * 100}%; top: 0; bottom: 0; width: 2px; background: #2c3e50;"></div>
+                    </div>
+                    <div style="font-size: 11px; color: #666; margin-top: 3px;">
+                        <span>Ожидалось: ${level.expectedPercentage}%</span>
+                        <span style="margin-left: 10px; color: ${deviation >= 0 ? '#27ae60' : '#e74c3c'}">
+                            ${deviation >= 0 ? '+' : ''}${deviation}%
+                        </span>
+                    </div>
+                </div>
+            `;
+        });
+    }
+    
+    html += `
+                </div>
+            </div>
+            
+            <!-- Легенда и статистика -->
+            <div style="background: #f8f9fa; padding: 15px; border-radius: 8px;">
+                <h5 style="margin-top: 0;">Статистика по уровням</h5>
+                <div style="margin-top: 10px;">
+    `;
+    
+    Object.entries(levels).forEach(([level, data]) => {
+        const deviation = parseFloat(data.deviation);
+        const performanceIcon = deviation >= 10 ? '🚀' :
+                              deviation >= 0 ? '✅' :
+                              deviation >= -10 ? '⚠️' : '🔻';
+        
+        html += `
+            <div style="margin-bottom: 15px; padding: 10px; background: white; border-radius: 5px; border-left: 4px solid ${data.color};">
+                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 5px;">
+                    <span style="font-size: 20px;">${performanceIcon}</span>
+                    <strong>${data.levelName}</strong>
+                </div>
+                <div style="font-size: 12px;">
+                    <div>Заданий: ${data.taskCount}</div>
+                    <div>Выполнение: ${data.avgPercentage}%</div>
+                    <div>Ожидалось: ${data.expectedPercentage}%</div>
+                    <div style="color: ${deviation >= 0 ? '#27ae60' : '#e74c3c'};">
+                        Отклонение: ${deviation >= 0 ? '+' : ''}${deviation}%
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+    
+    html += `
+                </div>
+            </div>
+        </div>
+        
+        <!-- Детальная таблица -->
+        <h5>📊 Детальный анализ по уровням</h5>
+        <div style="max-height: 300px; overflow-y: auto; margin-top: 10px;">
+            <table style="width: 100%; font-size: 12px; border-collapse: collapse;">
+                <thead>
+                    <tr>
+                        <th style="padding: 10px; background: #f8f9fa; text-align: center;">Уровень</th>
+                        <th style="padding: 10px; background: #f8f9fa; text-align: center;">Заданий</th>
+                        <th style="padding: 10px; background: #f8f9fa; text-align: center;">% выполнения</th>
+                        <th style="padding: 10px; background: #f8f9fa; text-align: center;">Ожидалось</th>
+                        <th style="padding: 10px; background: #f8f9fa; text-align: center;">Отклонение</th>
+                        <th style="padding: 10px; background: #f8f9fa; text-align: center;">Статус</th>
+                        <th style="padding: 10px; background: #f8f9fa; text-align: center;">Рекомендации</th>
+                    </tr>
+                </thead>
+                <tbody>
+    `;
+    
+    Object.entries(levels).forEach(([level, data]) => {
+        const deviation = parseFloat(data.deviation);
+        let status = '';
+        let recommendation = '';
+        
+        if (deviation >= 15) {
+            status = '<span style="color: #27ae60;">✅ Выше нормы</span>';
+            recommendation = 'Можно добавить более сложные задания этого уровня';
+        } else if (deviation >= 0) {
+            status = '<span style="color: #3498db;">👍 Норма</span>';
+            recommendation = 'Уровень сложности соответствует группе';
+        } else if (deviation >= -15) {
+            status = '<span style="color: #f39c12;">⚠️ Ниже нормы</span>';
+            recommendation = 'Требуется дополнительная отработка';
+        } else {
+            status = '<span style="color: #e74c3c;">🔻 Критично</span>';
+            recommendation = 'Необходимо повторное объяснение темы';
+        }
+        
+        html += `
+            <tr>
+                <td style="padding: 8px; text-align: center;">
+                    <span style="display: inline-block; padding: 5px 10px; background: ${data.color}; color: white; border-radius: 15px; font-weight: bold;">
+                        ${level}. ${data.levelName}
+                    </span>
+                </td>
+                <td style="padding: 8px; text-align: center;">${data.taskCount}</td>
+                <td style="padding: 8px; text-align: center; font-weight: bold;">${data.avgPercentage}%</td>
+                <td style="padding: 8px; text-align: center;">${data.expectedPercentage}%</td>
+                <td style="padding: 8px; text-align: center; color: ${deviation >= 0 ? '#27ae60' : '#e74c3c'}; font-weight: bold;">
+                    ${deviation >= 0 ? '+' : ''}${deviation}%
+                </td>
+                <td style="padding: 8px; text-align: center;">${status}</td>
+                <td style="padding: 8px; font-size: 11px;">${recommendation}</td>
+            </tr>
+        `;
+    });
+    
+    html += `
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Рекомендации -->
+        <div style="margin-top: 20px; padding: 15px; background: #e8f4fc; border-radius: 8px;">
+            <h5 style="margin-top: 0;">💡 Общие рекомендации</h5>
+            <ul style="margin: 10px 0 0 20px; font-size: 13px;">
+                <li>Если отклонение положительное - группа хорошо усвоила материал этого уровня</li>
+                <li>Отрицательное отклонение более 10% требует коррекционной работы</li>
+                <li>Равномерное распределение по уровням обеспечивает объективную оценку</li>
+                <li>Для подготовки к экзаменам увеличивайте долю заданий 2-3 уровня</li>
+            </ul>
+        </div>
+    `;
+    
+    return html;
+}
+
+// ==================== RENDER ERRORS ANALYSIS ====================
+
+function renderErrorsAnalysis() {
+    const analysis = window.currentAnalysis || {};
+    const errors = analysis.byErrorType || {};
+    
+    let html = `
+        <h4 style="margin-top: 0;">🔍 Анализ по типам ошибок</h4>
+        <p style="color: #666; margin-bottom: 15px;">${Object.keys(errors).length} типов ошибок, выявленных в заданиях</p>
+        
+        <!-- Круговая диаграмма -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+            <div style="background: white; padding: 15px; border-radius: 8px; border: 1px solid #eee; text-align: center;">
+                <h5 style="margin-top: 0;">Распределение ошибок</h5>
+                <div id="errorsPieChart" style="height: 200px; display: flex; align-items: center; justify-content: center;">
+                    <div style="position: relative; width: 150px; height: 150px;">
+    `;
+    
+    // Создаем круговую диаграмму
+    const errorEntries = Object.entries(errors);
+    if (errorEntries.length > 0) {
+        let startAngle = 0;
+        const totalTasks = errorEntries.reduce((sum, [_, data]) => sum + data.count, 0);
+        
+        errorEntries.forEach(([errorKey, data], index) => {
+            const percentage = (data.count / totalTasks * 100).toFixed(1);
+            const angle = (data.count / totalTasks * 360).toFixed(1);
+            
+            html += `
+                <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;">
+                    <div style="position: absolute; top: 50%; left: 50%; width: 150px; height: 150px; border-radius: 50%; 
+                          background: conic-gradient(${data.color} ${startAngle}deg ${parseFloat(startAngle) + parseFloat(angle)}deg, transparent ${parseFloat(startAngle) + parseFloat(angle)}deg); 
+                          transform: translate(-50%, -50%) rotate(-90deg);">
+                    </div>
+                </div>
+            `;
+            
+            startAngle += parseFloat(angle);
+        });
+        
+        // Центр
+        html += `
+                        <div style="position: absolute; top: 50%; left: 50%; width: 70px; height: 70px; background: white; border-radius: 50%; transform: translate(-50%, -50%);"></div>
+                        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center;">
+                            <div style="font-size: 24px; font-weight: bold;">${totalTasks}</div>
+                            <div style="font-size: 10px; color: #666;">заданий</div>
+                        </div>
+        `;
+    } else {
+        html += `
+            <div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #666;">
+                Нет данных по типам ошибок
+            </div>
+        `;
+    }
+    
+    html += `
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Легенда -->
+            <div style="background: #f8f9fa; padding: 15px; border-radius: 8px;">
+                <h5 style="margin-top: 0;">Типы ошибок</h5>
+                <div style="margin-top: 10px; max-height: 180px; overflow-y: auto;">
+    `;
+    
+    errorEntries.forEach(([errorKey, data]) => {
+        const percentage = (data.count / appData.tasks.length * 100).toFixed(1);
+        
+        html += `
+            <div style="display: flex; align-items: center; gap: 10px; padding: 8px; border-bottom: 1px solid #eee;">
+                <div style="width: 15px; height: 15px; background: ${data.color}; border-radius: 3px;"></div>
+                <div style="flex: 1; font-size: 13px;">
+                    <div style="font-weight: 500;">${data.name}</div>
+                    <div style="font-size: 11px; color: #666;">
+                        ${data.count} заданий (${percentage}%) | ${data.percentage}% выполнения
+                    </div>
+                </div>
+                <div style="font-size: 12px; font-weight: bold; color: ${parseFloat(data.percentage) >= 50 ? '#27ae60' : '#e74c3c'}">
+                    ${data.percentage}%
+                </div>
+            </div>
+        `;
+    });
+    
+    html += `
+                </div>
+            </div>
+        </div>
+        
+        <!-- Детальная таблица -->
+        <h5>📊 Эффективность по типам ошибок</h5>
+        <div style="max-height: 300px; overflow-y: auto; margin-top: 10px;">
+            <table style="width: 100%; font-size: 12px; border-collapse: collapse;">
+                <thead>
+                    <tr>
+                        <th style="padding: 10px; background: #f8f9fa;">Тип ошибки</th>
+                        <th style="padding: 10px; background: #f8f9fa; text-align: center;">Заданий</th>
+                        <th style="padding: 10px; background: #f8f9fa; text-align: center;">Учащихся</th>
+                        <th style="padding: 10px; background: #f8f9fa; text-align: center;">% выполнения</th>
+                        <th style="padding: 10px; background: #f8f9fa; text-align: center;">Ср. балл/уч</th>
+                        <th style="padding: 10px; background: #f8f9fa; text-align: center;">Статус</th>
+                        <th style="padding: 10px; background: #f8f9fa;">Задания</th>
+                    </tr>
+                </thead>
+                <tbody>
+    `;
+    
+    errorEntries.forEach(([errorKey, data]) => {
+        const percentage = parseFloat(data.percentage);
+        let status = '';
+        
+        if (percentage >= 70) {
+            status = '<span style="color: #27ae60;">✅ Хорошо</span>';
+        } else if (percentage >= 50) {
+            status = '<span style="color: #3498db;">⚠️ Средне</span>';
+        } else if (percentage >= 30) {
+            status = '<span style="color: #f39c12;">🔻 Проблемно</span>';
+        } else {
+            status = '<span style="color: #e74c3c;">🚨 Критично</span>';
+        }
+        
+        // Формируем список заданий
+        const taskNumbers = data.tasks.map(t => t.number).slice(0, 3);
+        const tasksText = taskNumbers.length > 0 ? 
+            `Задания: ${taskNumbers.join(', ')}${data.tasks.length > 3 ? '...' : ''}` : 
+            'Нет заданий';
+        
+        html += `
+            <tr>
+                <td style="padding: 8px;">
+                    <span style="display: inline-block; width: 12px; height: 12px; background: ${data.color}; border-radius: 2px; margin-right: 8px;"></span>
+                    ${data.name}
+                </td>
+                <td style="padding: 8px; text-align: center; font-weight: bold;">${data.count}</td>
+                <td style="padding: 8px; text-align: center;">${data.studentCount}</td>
+                <td style="padding: 8px; text-align: center; font-weight: bold; color: ${percentage >= 50 ? '#27ae60' : '#e74c3c'}">
+                    ${data.percentage}%
+                </td>
+                <td style="padding: 8px; text-align: center;">${data.avgPerStudent}</td>
+                <td style="padding: 8px; text-align: center;">${status}</td>
+                <td style="padding: 8px; font-size: 11px;">${tasksText}</td>
+            </tr>
+        `;
+    });
+    
+    html += `
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Рекомендации -->
+        <div style="margin-top: 20px; padding: 15px; background: ${errorEntries.length > 0 ? '#fff8e1' : '#e8f4fc'}; border-radius: 8px;">
+            <h5 style="margin-top: 0;">💡 Методические рекомендации</h5>
+            <ul style="margin: 10px 0 0 20px; font-size: 13px;">
+    `;
+    
+    if (errorEntries.length === 0) {
+        html += `
+                <li>Типы ошибок не указаны в заданиях</li>
+                <li>Рекомендуется заполнить поле "Тип ошибки" для каждого задания</li>
+                <li>Это позволит проводить более точный анализ затруднений учащихся</li>
+        `;
+    } else {
+        const worstError = errorEntries.sort((a, b) => a[1].percentage - b[1].percentage)[0];
+        const bestError = errorEntries.sort((a, b) => b[1].percentage - a[1].percentage)[0];
+        
+        html += `
+                <li>Наиболее проблемный тип: <strong>${worstError[1].name}</strong> (${worstError[1].percentage}%)</li>
+                <li>Лучше всего усвоен: <strong>${bestError[1].name}</strong> (${bestError[1].percentage}%)</li>
+                <li>Рекомендуется разработать дополнительные задания для отработки проблемных типов ошибок</li>
+                <li>Используйте задания с высоким процентом выполнения как примеры успешного обучения</li>
+        `;
+    }
+    
+    html += `
+            </ul>
+        </div>
+    `;
+    
+    return html;
+}
+
+function renderCorrelationsAnalysis() {
+    const analysis = window.currentAnalysis || {};
+    const correlations = analysis.correlations || [];
+    
+    let html = `
+        <h4 style="margin-top: 0;">🔗 Корреляционный анализ</h4>
+        <p style="color: #666; margin-bottom: 15px;">
+            Анализ взаимосвязей между заданиями. 
+            Положительная корреляция означает, что задания выполняются сходным образом.
+            Отрицательная корреляция указывает на обратную зависимость.
+        </p>
+        
+        <div style="display: grid; grid-template-columns: 1fr 300px; gap: 20px;">
+            <!-- Основная таблица -->
+            <div>
+                <div style="font-size: 11px; color: #666; margin-bottom: 10px;">
+                    Показаны только значимые корреляции (|r| > 0.5)
+                </div>
+                
+                <div style="max-height: 400px; overflow-y: auto;">
+                    <table style="width: 100%; font-size: 12px; border-collapse: collapse;">
+                        <thead>
+                            <tr>
+                                <th style="padding: 10px; background: #f8f9fa; text-align: center;">Задание 1</th>
+                                <th style="padding: 10px; background: #f8f9fa; text-align: center;">Задание 2</th>
+                                <th style="padding: 10px; background: #f8f9fa; text-align: center;">Коэффициент (r)</th>
+                                <th style="padding: 10px; background: #f8f9fa; text-align: center;">Сила связи</th>
+                                <th style="padding: 10px; background: #f8f9fa; text-align: center;">Тип</th>
+                                <th style="padding: 10px; background: #f8f9fa; text-align: center;">Интерпретация</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+    `;
+    
+    if (correlations.length === 0) {
+        html += `
+            <tr>
+                <td colspan="6" style="padding: 30px; text-align: center; color: #999;">
+                    <div style="font-size: 48px; margin-bottom: 10px;">📊</div>
+                    <div>Нет значимых корреляций между заданиями</div>
+                    <div style="font-size: 11px; margin-top: 5px;">
+                        (корреляции обнаружатся при |r| > 0.5)
+                    </div>
+                </td>
+            </tr>
+        `;
+    } else {
+        correlations.forEach((corr, index) => {
+            // Получаем описания заданий
+            const task1 = appData.tasks[corr.task1 - 1];
+            const task2 = appData.tasks[corr.task2 - 1];
+            
+            const task1Desc = task1?.description ? 
+                task1.description.substring(0, 30) + (task1.description.length > 30 ? '...' : '') : 
+                `Задание ${corr.task1}`;
+                
+            const task2Desc = task2?.description ? 
+                task2.description.substring(0, 30) + (task2.description.length > 30 ? '...' : '') : 
+                `Задание ${corr.task2}`;
+            
+            // Определяем цвет и иконку
+            let color, icon, interpretation;
+            const r = parseFloat(corr.correlation);
+            
+            if (r > 0.7) {
+                color = '#27ae60';
+                icon = '↗️';
+                interpretation = 'Сильная прямая связь';
+            } else if (r > 0.5) {
+                color = '#3498db';
+                icon = '↗️';
+                interpretation = 'Умеренная прямая связь';
+            } else if (r < -0.7) {
+                color = '#e74c3c';
+                icon = '↘️';
+                interpretation = 'Сильная обратная связь';
+            } else if (r < -0.5) {
+                color = '#f39c12';
+                icon = '↘️';
+                interpretation = 'Умеренная обратная связь';
+            }
+            
+            html += `
+                <tr style="${index % 2 === 0 ? 'background: #f8f9fa;' : ''}">
+                    <td style="padding: 8px; text-align: center;">
+                        <div style="font-weight: bold;">${corr.task1}</div>
+                        <div style="font-size: 10px; color: #666;">${task1Desc}</div>
+                    </td>
+                    <td style="padding: 8px; text-align: center;">
+                        <div style="font-weight: bold;">${corr.task2}</div>
+                        <div style="font-size: 10px; color: #666;">${task2Desc}</div>
+                    </td>
+                    <td style="padding: 8px; text-align: center;">
+                        <div style="font-weight: bold; color: ${color}; font-size: 14px;">
+                            ${icon} ${corr.correlation}
+                        </div>
+                    </td>
+                    <td style="padding: 8px; text-align: center;">
+                        <span style="display: inline-block; padding: 3px 8px; background: ${color}; color: white; border-radius: 10px; font-size: 11px;">
+                            ${corr.strength === 'strong' ? 'Сильная' : 
+                              corr.strength === 'moderate' ? 'Умеренная' : 'Слабая'}
+                        </span>
+                    </td>
+                    <td style="padding: 8px; text-align: center;">
+                        <span style="color: ${corr.type === 'positive' ? '#27ae60' : '#e74c3c'}">
+                            ${corr.type === 'positive' ? 'Прямая' : 'Обратная'}
+                        </span>
+                    </td>
+                    <td style="padding: 8px; font-size: 11px;">
+                        ${interpretation}
+                    </td>
+                </tr>
+            `;
+        });
+    }
+    
+    html += `
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <!-- Боковая панель с объяснениями -->
+            <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; height: fit-content;">
+                <h5 style="margin-top: 0;">📖 Объяснение корреляций</h5>
+                
+                <div style="margin-bottom: 15px;">
+                    <strong>Коэффициент корреляции Пирсона (r):</strong>
+                    <ul style="font-size: 11px; margin: 5px 0 0 15px; color: #666;">
+                        <li>+1.0: идеальная прямая связь</li>
+                        <li>+0.7 до +1.0: сильная прямая связь</li>
+                        <li>+0.5 до +0.7: умеренная прямая связь</li>
+                        <li>+0.3 до +0.5: слабая прямая связь</li>
+                        <li>0.0 до ±0.3: отсутствие связи</li>
+                        <li>-0.3 до -0.5: слабая обратная связь</li>
+                        <li>-0.5 до -0.7: умеренная обратная связь</li>
+                        <li>-0.7 до -1.0: сильная обратная связь</li>
+                        <li>-1.0: идеальная обратная связь</li>
+                    </ul>
+                </div>
+                
+                <div style="margin-bottom: 15px;">
+                    <strong>📈 Прямая корреляция (r > 0):</strong>
+                    <p style="font-size: 11px; margin: 5px 0; color: #666;">
+                        Учащиеся, хорошо выполнившие одно задание, 
+                        также хорошо выполняют другое. Может указывать на схожие 
+                        проверяемые умения или общую тему.
+                    </p>
+                </div>
+                
+                <div style="margin-bottom: 15px;">
+                    <strong>📉 Обратная корреляция (r < 0):</strong>
+                    <p style="font-size: 11px; margin: 5px 0; color: #666;">
+                        Учащиеся, хорошо выполнившие одно задание, 
+                        плохо выполняют другое. Может указывать на разные 
+                        типы мышления или компенсаторные стратегии.
+                    </p>
+                </div>
+                
+                <div>
+                    <strong>🎯 Практическое применение:</strong>
+                    <p style="font-size: 11px; margin: 5px 0; color: #666;">
+                        • Выявление заданий-дубликатов<br>
+                        • Определение общих проблемных зон<br>
+                        • Планирование дифференцированного подхода<br>
+                        • Оптимизация структуры работы
+                    </p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Матрица корреляций (если нужно) -->
+        ${correlations.length > 0 ? `
+            <div style="margin-top: 20px;">
+                <h5>📊 Матрица корреляций (фрагмент)</h5>
+                <div style="overflow-x: auto;">
+                    <div style="display: inline-block; padding: 10px; background: white; border-radius: 5px;">
+                        ${renderCorrelationMatrix(6)} <!-- Показываем 6x6 матрицу -->
+                    </div>
+                </div>
+            </div>
+        ` : ''}
+        
+        <!-- Кнопки действий -->
+        <div style="margin-top: 20px; display: flex; gap: 10px;">
+            <button class="btn btn-sm btn-outline" onclick="showDetailedCorrelationAnalysis()">
+                🔍 Детальный анализ
+            </button>
+            <button class="btn btn-sm btn-outline" onclick="exportCorrelationMatrix()">
+                📥 Экспорт матрицы
+            </button>
+        </div>
+    `;
+    
+    return html;
+}
+
+function renderCorrelationMatrix(size = 6) {
+    const tasksCount = Math.min(size, appData.tasks.length);
+    let html = '<table style="border-collapse: collapse; font-size: 10px;">';
+    
+    // Заголовок
+    html += '<tr><th style="padding: 5px; background: #f8f9fa; min-width: 30px;"></th>';
+    for (let i = 0; i < tasksCount; i++) {
+        html += `<th style="padding: 5px; background: #f8f9fa; text-align: center; min-width: 30px;">${i + 1}</th>`;
+    }
+    html += '</tr>';
+    
+    // Данные
+    for (let i = 0; i < tasksCount; i++) {
+        html += `<tr><td style="padding: 5px; background: #f8f9fa; font-weight: bold; text-align: center;">${i + 1}</td>`;
+        
+        for (let j = 0; j < tasksCount; j++) {
+            if (i === j) {
+                html += '<td style="padding: 5px; text-align: center; background: #f8f9fa;">1.0</td>';
+            } else {
+                // Находим корреляцию между заданиями i+1 и j+1
+                const correlation = findCorrelationValue(i + 1, j + 1);
+                const color = getCorrelationColor(correlation);
+                
+                html += `
+                    <td style="padding: 5px; text-align: center; background: ${color}; color: ${Math.abs(correlation) > 0.5 ? 'white' : '#333'};">
+                        ${correlation.toFixed(2)}
+                    </td>
+                `;
+            }
+        }
+        html += '</tr>';
+    }
+    
+    html += '</table>';
+    return html;
+}
+
+function findCorrelationValue(task1, task2) {
+    const analysis = window.currentAnalysis || {};
+    const correlations = analysis.correlations || [];
+    
+    const found = correlations.find(corr => 
+        (corr.task1 === task1 && corr.task2 === task2) ||
+        (corr.task1 === task2 && corr.task2 === task1)
+    );
+    
+    return found ? parseFloat(found.correlation) : 0;
+}
+
+function getCorrelationColor(correlation) {
+    const absCorr = Math.abs(correlation);
+    
+    if (absCorr > 0.7) return correlation > 0 ? '#27ae60' : '#e74c3c';
+    if (absCorr > 0.5) return correlation > 0 ? '#7bed9f' : '#ff6b81';
+    if (absCorr > 0.3) return correlation > 0 ? '#d1f2eb' : '#ffcccc';
+    return '#f8f9fa';
+}
+
+function exportAnalysisReport(analysis) {
+    console.log('📤 Экспорт отчета анализа...');
+    
+    const report = {
+        metadata: {
+            generated: new Date().toISOString(),
+            system: 'Анализ образовательных результатов',
+            version: '1.0',
+            subject: appData.test.subject,
+            class: appData.test.class,
+            theme: appData.test.theme,
+            workType: appData.test.workType,
+            date: appData.test.testDate
+        },
+        summary: analysis.summary,
+        tasksAnalysis: analysis.byTask,
+        studentsAnalysis: analysis.byStudent,
+        levelsAnalysis: analysis.byLevel,
+        errorsAnalysis: analysis.byErrorType,
+        correlations: analysis.correlations,
+        insights: analysis.insights,
+        recommendations: generateDetailedRecommendations(analysis)
+    };
+    
+    const dataStr = JSON.stringify(report, null, 2);
+    const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr);
+    
+    const fileName = `Анализ_${appData.test.subject || 'результатов'}_${appData.test.class || 'класс'}_${new Date().toLocaleDateString('ru-RU')}.json`;
+    
+    const link = document.createElement('a');
+    link.href = dataUri;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    showNotification(`✅ Отчет экспортирован (${(dataStr.length / 1024).toFixed(1)} КБ)`, 'success');
+}
+
+function generateDetailedRecommendations(analysis) {
+    const recommendations = [];
+    
+    // Рекомендации на основе статистики
+    if (analysis.summary.completionRate < 70) {
+        recommendations.push({
+            type: 'completion',
+            priority: 'high',
+            title: 'Низкий процент выполнения работы',
+            description: `Только ${analysis.summary.completionRate}% учащихся выполнили все задания`,
+            actions: [
+                'Проверить адекватность времени выполнения',
+                'Рассмотреть возможность продления сроков',
+                'Организовать дополнительные консультации'
+            ]
+        });
+    }
+    
+    // Рекомендации по заданиям
+    const criticalTasks = analysis.byTask.filter(task => task.zone === 'critical');
+    if (criticalTasks.length > 0) {
+        recommendations.push({
+            type: 'tasks',
+            priority: 'high',
+            title: 'Критические задания',
+            description: `${criticalTasks.length} заданий выполнены менее чем на 20%`,
+            actions: [
+                `Пересмотреть задания: ${criticalTasks.map(t => t.number).join(', ')}`,
+                'Повторно объяснить соответствующие темы',
+                'Разработать дополнительные тренировочные материалы'
+            ]
+        });
+    }
+    
+    // Рекомендации по уровням сложности
+    Object.entries(analysis.byLevel).forEach(([level, data]) => {
+        if (data.deviation < -10) {
+            recommendations.push({
+                type: 'levels',
+                priority: 'medium',
+                title: `Слабые результаты по ${data.levelName}`,
+                description: `Выполнение на ${data.percentage}% при ожидаемых ${data.expectedPercentage}%`,
+                actions: [
+                    `Уделить больше внимания заданиям уровня ${level}`,
+                    'Разработать дифференцированные задания',
+                    'Организовать групповую работу по данной теме'
+                ]
+            });
+        }
+    });
+    
+    // Рекомендации по типам ошибок
+    const weakErrorTypes = Object.entries(analysis.byErrorType)
+        .filter(([_, data]) => data.percentage < 50);
+    
+    if (weakErrorTypes.length > 0) {
+        const worst = weakErrorTypes.sort((a, b) => a[1].percentage - b[1].percentage)[0];
+        recommendations.push({
+            type: 'errors',
+            priority: 'medium',
+            title: 'Проблемный тип ошибок',
+            description: `Низкий процент выполнения по типу "${worst[1].name}"`,
+            actions: [
+                `Провести дополнительные занятия по теме "${worst[1].name}"`,
+                'Использовать специальные методики коррекции',
+                'Разработать индивидуальные задания'
+            ]
+        });
+    }
+    
+    // Положительные результаты
+    const excellentTasks = analysis.byTask.filter(task => task.zone === 'excellent');
+    if (excellentTasks.length > appData.tasks.length * 0.3) {
+        recommendations.push({
+            type: 'positive',
+            priority: 'low',
+            title: 'Хорошие результаты',
+            description: 'Группа хорошо усвоила основные темы',
+            actions: [
+                'Можно переходить к более сложным темам',
+                'Организовать проектную деятельность',
+                'Привлечь успешных учащихся к помощи отстающим'
+            ]
+        });
+    }
+    
+    return recommendations;
+}
+
+function printAnalysisReport(analysis) {
+    console.log('🖨️ Печать отчета анализа...');
+    
+    const printWindow = window.open('', '_blank');
+    const date = new Date().toLocaleDateString('ru-RU');
+    
+    let html = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Аналитический отчет</title>
+            <meta charset="UTF-8">
+            <style>
+                @page {
+                    size: A4;
+                    margin: 20mm;
+                }
+                
+                body {
+                    font-family: 'Arial', sans-serif;
+                    margin: 0;
+                    padding: 0;
+                    color: #333;
+                    font-size: 11pt;
+                    line-height: 1.5;
+                }
+                
+                .header {
+                    text-align: center;
+                    margin-bottom: 20px;
+                    padding-bottom: 15px;
+                    border-bottom: 2px solid #3498db;
+                }
+                
+                .header h1 {
+                    color: #2c3e50;
+                    margin: 0 0 10px 0;
+                    font-size: 18pt;
+                }
+                
+                .metadata {
+                    display: grid;
+                    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                    gap: 10px;
+                    margin-bottom: 25px;
+                    font-size: 10pt;
+                }
+                
+                .section {
+                    margin-bottom: 25px;
+                    page-break-inside: avoid;
+                }
+                
+                .section-title {
+                    background: #f8f9fa;
+                    padding: 8px 12px;
+                    border-left: 4px solid #3498db;
+                    margin: 0 0 15px 0;
+                    font-size: 14pt;
+                }
+                
+                .summary-cards {
+                    display: grid;
+                    grid-template-columns: repeat(4, 1fr);
+                    gap: 15px;
+                    margin-bottom: 20px;
+                }
+                
+                .card {
+                    text-align: center;
+                    padding: 15px;
+                    border-radius: 8px;
+                    border: 1px solid #e9ecef;
+                }
+                
+                .card-value {
+                    font-size: 20pt;
+                    font-weight: bold;
+                    margin: 10px 0;
+                }
+                
+                table {
+                    width: 100%;
+                    border-collapse: collapse;
+                    margin: 15px 0;
+                    font-size: 9pt;
+                }
+                
+                th {
+                    background: #f8f9fa;
+                    padding: 8px;
+                    text-align: left;
+                    border: 1px solid #dee2e6;
+                    font-weight: 600;
+                }
+                
+                td {
+                    padding: 8px;
+                    border: 1px solid #dee2e6;
+                }
+                
+                .insight {
+                    margin: 10px 0;
+                    padding: 10px;
+                    border-left: 4px solid;
+                    background: #f8f9fa;
+                }
+                
+                .insight-warning { border-color: #f39c12; }
+                .insight-danger { border-color: #e74c3c; }
+                .insight-success { border-color: #27ae60; }
+                .insight-info { border-color: #3498db; }
+                
+                .recommendation {
+                    margin: 15px 0;
+                    padding: 12px;
+                    background: #e8f4fc;
+                    border-radius: 5px;
+                }
+                
+                .footer {
+                    margin-top: 40px;
+                    padding-top: 20px;
+                    border-top: 1px solid #dee2e6;
+                    font-size: 9pt;
+                    color: #666;
+                    text-align: center;
+                }
+                
+                @media print {
+                    .no-print { display: none; }
+                    .page-break { page-break-before: always; }
+                }
+            </style>
+        </head>
+        <body>
+            <div class="header">
+                <h1>📊 Аналитический отчет по результатам работы</h1>
+                <div style="color: #666;">Сгенерировано: ${date}</div>
+            </div>
+            
+            <div class="metadata">
+                <div><strong>Предмет:</strong> ${appData.test.subject || 'Не указан'}</div>
+                <div><strong>Класс:</strong> ${appData.test.class || 'Не указан'}</div>
+                <div><strong>Тема:</strong> ${appData.test.theme || 'Не указана'}</div>
+                <div><strong>Тип работы:</strong> ${workTypes[appData.test.workType]?.name || appData.test.workType || 'Не указан'}</div>
+                <div><strong>Дата проведения:</strong> ${appData.test.testDate || 'Не указана'}</div>
+                <div><strong>Количество учащихся:</strong> ${analysis.summary.totalStudents}</div>
+                <div><strong>Количество заданий:</strong> ${analysis.summary.totalTasks}</div>
+                <div><strong>Макс. балл:</strong> ${analysis.summary.maxTotalScore}</div>
+            </div>
+            
+            <div class="section">
+                <h2 class="section-title">📈 Ключевые показатели</h2>
+                
+                <div class="summary-cards">
+                    <div class="card">
+                        <div>Средний %</div>
+                        <div class="card-value" style="color: #3498db;">${analysis.summary.avgPercentage}%</div>
+                        <div>выполнения</div>
+                    </div>
+                    
+                    <div class="card">
+                        <div>Средняя</div>
+                        <div class="card-value" style="color: #2ecc71;">${analysis.summary.avgGrade}</div>
+                        <div>оценка</div>
+                    </div>
+                    
+                    <div class="card">
+                        <div>Выполнили</div>
+                        <div class="card-value" style="color: #f39c12;">${analysis.summary.completionRate}%</div>
+                        <div>все задания</div>
+                    </div>
+                    
+                    <div class="card">
+                        <div>Разброс</div>
+                        <div class="card-value" style="color: #e74c3c;">${analysis.summary.stdDev}</div>
+                        <div>(σ)</div>
+                    </div>
+                </div>
+                
+                <div style="font-size: 10pt; color: #666;">
+                    <strong>Дополнительная статистика:</strong>
+                    Минимальный балл: ${analysis.summary.minScore} | 
+                    Максимальный балл: ${analysis.summary.maxScore} | 
+                    Размах: ${analysis.summary.scoreRange} | 
+                    Медиана: ${analysis.summary.medianScore}
+                </div>
+            </div>
+    `;
+    
+    // Ключевые выводы
+    if (analysis.insights && analysis.insights.length > 0) {
+        html += `
+            <div class="section">
+                <h2 class="section-title">💡 Ключевые выводы</h2>
+        `;
+        
+        analysis.insights.forEach(insight => {
+            const insightClass = insight.type === 'danger' ? 'insight-danger' :
+                               insight.type === 'warning' ? 'insight-warning' :
+                               insight.type === 'info' ? 'insight-info' : 'insight-success';
+            
+            html += `
+                <div class="insight ${insightClass}">
+                    <div style="font-weight: bold; margin-bottom: 5px;">${insight.title}</div>
+                    <div style="margin-bottom: 5px;">${insight.message}</div>
+                    <div style="font-size: 9pt; color: #666;">Рекомендация: ${insight.suggestion}</div>
+                </div>
+            `;
+        });
+        
+        html += `</div>`;
+    }
+    
+    // Анализ по заданиям (топ-10)
+    if (analysis.byTask && analysis.byTask.length > 0) {
+        html += `
+            <div class="section page-break">
+                <h2 class="section-title">📝 Анализ выполнения заданий (ТОП-10)</h2>
+                
+                <table>
+                    <thead>
+                        <tr>
+                            <th>№</th>
+                            <th>Описание</th>
+                            <th>Уровень</th>
+                            <th>% выполнения</th>
+                            <th>Сложность</th>
+                            <th>Зона</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+        `;
+        
+        analysis.byTask
+            .sort((a, b) => a.percentage - b.percentage)
+            .slice(0, 10)
+            .forEach(task => {
+                const zoneColor = task.zone === 'excellent' ? '#27ae60' :
+                                 task.zone === 'good' ? '#3498db' :
+                                 task.zone === 'average' ? '#f39c12' :
+                                 task.zone === 'weak' ? '#e67e22' : '#e74c3c';
+                
+                html += `
+                    <tr>
+                        <td>${task.number}</td>
+                        <td>${task.description.substring(0, 40)}${task.description.length > 40 ? '...' : ''}</td>
+                        <td>${task.level}</td>
+                        <td style="font-weight: bold; color: ${zoneColor};">${task.percentage}%</td>
+                        <td>${task.difficulty}</td>
+                        <td style="color: ${zoneColor}; font-weight: bold;">
+                            ${task.zone === 'excellent' ? 'Отлично' :
+                              task.zone === 'good' ? 'Хорошо' :
+                              task.zone === 'average' ? 'Средне' :
+                              task.zone === 'weak' ? 'Слабо' : 'Критично'}
+                        </td>
+                    </tr>
+                `;
+            });
+        
+        html += `
+                    </tbody>
+                </table>
+                
+                <div style="font-size: 9pt; color: #666; margin-top: 10px;">
+                    * Сложность: чем выше значение, тем сложнее задание (100 - % выполнения)
+                </div>
+            </div>
+        `;
+    }
+    
+    // Анализ по учащимся (топ-5)
+    if (analysis.byStudent && analysis.byStudent.length > 0) {
+        html += `
+            <div class="section">
+                <h2 class="section-title">👥 Рейтинг учащихся (ТОП-5)</h2>
+                
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Место</th>
+                            <th>Учащийся</th>
+                            <th>Баллы</th>
+                            <th>%</th>
+                            <th>Оценка</th>
+                            <th>Рейтинг</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+        `;
+        
+        analysis.byStudent
+            .slice(0, 5)
+            .forEach(student => {
+                html += `
+                    <tr>
+                        <td>${student.rank}</td>
+                        <td>${student.name}</td>
+                        <td>${student.totalScore}/${student.maxPossible}</td>
+                        <td>${student.percentage}%</td>
+                        <td>${student.grade}</td>
+                        <td>${student.percentile}%</td>
+                    </tr>
+                `;
+            });
+        
+        html += `
+                    </tbody>
+                </table>
+                
+                <div style="font-size: 9pt; color: #666; margin-top: 10px;">
+                    * Рейтинг: процент учащихся, которых данный ученик опережает
+                </div>
+            </div>
+        `;
+    }
+    
+    // Рекомендации
+    const recommendations = generateDetailedRecommendations(analysis);
+    if (recommendations.length > 0) {
+        html += `
+            <div class="section page-break">
+                <h2 class="section-title">🎯 Рекомендации для учителя</h2>
+        `;
+        
+        // Группируем по приоритету
+        const highPriority = recommendations.filter(r => r.priority === 'high');
+        const mediumPriority = recommendations.filter(r => r.priority === 'medium');
+        const lowPriority = recommendations.filter(r => r.priority === 'low');
+        
+        const renderPriority = (priority, title) => {
+            if (priority.length === 0) return '';
+            
+            return `
+                <div style="margin-bottom: 20px;">
+                    <h3 style="color: ${title === 'Высокий' ? '#e74c3c' : 
+                                     title === 'Средний' ? '#f39c12' : '#27ae60'};
+                           margin: 0 0 10px 0;">
+                        ${title} приоритет
+                    </h3>
+                    ${priority.map(rec => `
+                        <div class="recommendation">
+                            <div style="font-weight: bold; margin-bottom: 8px;">${rec.title}</div>
+                            <div style="margin-bottom: 8px;">${rec.description}</div>
+                            <div style="font-size: 9pt;">
+                                <strong>Действия:</strong>
+                                <ul style="margin: 5px 0 0 20px;">
+                                    ${rec.actions.map(action => `<li>${action}</li>`).join('')}
+                                </ul>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        };
+        
+        html += renderPriority(highPriority, 'Высокий');
+        html += renderPriority(mediumPriority, 'Средний');
+        html += renderPriority(lowPriority, 'Низкий');
+        
+        html += `</div>`;
+    }
+    
+    // Корреляции (если есть)
+    if (analysis.correlations && analysis.correlations.length > 0) {
+        html += `
+            <div class="section">
+                <h2 class="section-title">🔗 Значимые корреляции</h2>
+                
+                <div style="font-size: 9pt; color: #666; margin-bottom: 10px;">
+                    Корреляции с коэффициентом |r| > 0.5
+                </div>
+                
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Задание 1</th>
+                            <th>Задание 2</th>
+                            <th>Коэффициент (r)</th>
+                            <th>Сила связи</th>
+                            <th>Интерпретация</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+        `;
+        
+        analysis.correlations
+            .slice(0, 5)
+            .forEach(corr => {
+                const strength = corr.strength === 'strong' ? 'Сильная' :
+                               corr.strength === 'moderate' ? 'Умеренная' : 'Слабая';
+                
+                const interpretation = corr.type === 'positive' ? 
+                    'Прямая связь (задания выполняются сходно)' :
+                    'Обратная связь (обратная зависимость)';
+                
+                html += `
+                    <tr>
+                        <td>${corr.task1}</td>
+                        <td>${corr.task2}</td>
+                        <td style="font-weight: bold; color: ${corr.type === 'positive' ? '#27ae60' : '#e74c3c'}">
+                            ${corr.correlation}
+                        </td>
+                        <td>${strength}</td>
+                        <td>${interpretation}</td>
+                    </tr>
+                `;
+            });
+        
+        html += `
+                    </tbody>
+                </table>
+            </div>
+        `;
+    }
+    
+    // Подвал
+    html += `
+            <div class="footer">
+                <div>Отчет сгенерирован системой "Анализ образовательных результатов"</div>
+                <div>Дата генерации: ${new Date().toLocaleString('ru-RU')}</div>
+                <div style="margin-top: 10px;">
+                    <button class="no-print" onclick="window.print()" 
+                            style="padding: 8px 16px; background: #3498db; color: white; 
+                                   border: none; border-radius: 4px; cursor: pointer;">
+                        🖨️ Печать отчета
+                    </button>
+                </div>
+            </div>
+        </body>
+        </html>
+    `;
+    
+    printWindow.document.write(html);
+    printWindow.document.close();
+    
+    // Автоматически открываем печать через 500мс
+    setTimeout(() => {
+        printWindow.print();
+    }, 500);
+    
+    showNotification('🖨️ Отчет подготовлен для печати', 'info');
+}

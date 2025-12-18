@@ -1,0 +1,3 @@
+https://github.com/dimono39/dimono39.github.io/blob/master/templates/oge.json
+https://dimono39.github.io/templates/oge.json
+https://dimono39.github.io/qr.jpg
