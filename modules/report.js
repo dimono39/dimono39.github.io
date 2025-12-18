@@ -13,7 +13,12 @@ let isSpeaking = false;
 if (typeof window.appData === 'undefined') {
     console.warn('appData не определен, создаю пустой объект');
     window.appData = {
-        test: {},
+        test: {
+            subject: 'Не указан',
+            class: 'Не указан',
+            theme: 'Не указана',
+            criteria: {}
+        },
         tasks: [],
         students: [],
         results: [],
@@ -80,13 +85,15 @@ function generateAIAnalysis() {
             showNotification('AI-анализ завершен', 'success');
         } catch (error) {
             console.error('Ошибка AI-анализа:', error);
-            showNotification('Ошибка при анализе данных', 'error');
+            showNotification('Ошибка при анализе данных: ' + error.message, 'error');
+            
+            // Показать базовый анализ даже при ошибке
+            displaySimpleAnalysis();
         } finally {
             hideLoading();
         }
     }, 2000);
-}
-// Расчет статистики
+}// Расчет статистики
 function calculateStatistics() {
     const stats = {
         totalStudents: 0,
@@ -100,24 +107,24 @@ function calculateStatistics() {
     };
     
     // Проверяем данные
-    if (!appData.students || !Array.isArray(appData.students)) {
+    if (!window.appData || !window.appData.students || !Array.isArray(window.appData.students)) {
         console.warn('Нет данных об учащихся для расчета статистики');
         return stats;
     }
     
-    if (!appData.tasks || !Array.isArray(appData.tasks)) {
+    if (!window.appData.tasks || !Array.isArray(window.appData.tasks)) {
         console.warn('Нет данных о заданиях для расчета статистики');
         return stats;
     }
     
-    stats.totalStudents = appData.students.length;
-    stats.totalTasks = appData.tasks.length;
+    stats.totalStudents = window.appData.students.length;
+    stats.totalTasks = window.appData.tasks.length;
     
     // Расчет среднего балла
     let totalScore = 0;
     let studentCount = 0;
     
-    appData.students.forEach(student => {
+    window.appData.students.forEach(student => {
         if (!student || !student.id) return;
         
         const studentScore = calculateStudentTotal(student.id);
@@ -128,9 +135,19 @@ function calculateStatistics() {
     });
     
     stats.averageGrade = studentCount > 0 ? totalScore / studentCount : 0;
+    // Интегрируем критерии перед генерацией отчета
+    const integratedAppData = integrateCriteriaForReports(window.appData);
     
+    // Теперь можем безопасно использовать
+    const validation = integratedAppData.helpers.validateCriteria();
+    
+    if (!validation.isValid) {
+        showNotification('Проблемы с критериями оценивания', 'error');
+        return;
+    }
+        
     // Распределение оценок
-    const distribution = calculateGradeDistribution();
+    const distribution = calculateGradeDistributionWithCompatibleCriteria(integratedAppData);
     stats.excellentPercentage = distribution['5'] || 0;
     stats.goodPercentage = distribution['4'] || 0;
     stats.averagePercentage = distribution['3'] || 0;
@@ -147,7 +164,7 @@ function generateAIInsights() {
     const insights = [];
     
     try {
-        const stats = CalculateStatistics();
+        const stats = calculateStatistics();
         
         // Проверяем, есть ли данные для анализа
         if (stats.totalStudents === 0 || stats.totalTasks === 0) {
@@ -312,7 +329,17 @@ function generateBenchmarkReport() {
     // Безопасный расчет текущей статистики
     let currentStats;
     try {
-        currentStats = CalculateGradeDistribution();
+		// Интегрируем критерии перед генерацией отчета
+		const integratedAppData = integrateCriteriaForReports(window.appData);
+		
+		// Теперь можем безопасно использовать
+		const validation = integratedAppData.helpers.validateCriteria();
+		
+		if (!validation.isValid) {
+			showNotification('Проблемы с критериями оценивания', 'error');
+			return;
+		}		
+        currentStats = calculateGradeDistributionWithCompatibleCriteria(integratedAppData);
     } catch (error) {
         console.error('Ошибка расчета распределения оценок:', error);
         currentStats = { '5': 0, '4': 0, '3': 0, '2': 0 };
@@ -604,7 +631,19 @@ function generateDynamicCharts(reportData) {
     const charts = [];
     
     // 1. Распределение оценок
-    const gradeDistribution = CalculateGradeDistribution();
+    // Интегрируем критерии перед генерацией отчета
+    const integratedAppData = integrateCriteriaForReports(window.appData);
+    
+    // Теперь можем безопасно использовать
+    const validation = integratedAppData.helpers.validateCriteria();
+    
+    if (!validation.isValid) {
+        showNotification('Проблемы с критериями оценивания', 'error');
+        return;
+    }
+    
+    // Генерируем распределение оценок с совместимыми критериями
+    const gradeDistribution = calculateGradeDistributionWithCompatibleCriteria(integratedAppData);
     charts.push({
         type: 'pie',
         title: 'Распределение оценок',
@@ -652,6 +691,25 @@ function generateDynamicCharts(reportData) {
     }
     
     return charts;
+}
+
+function calculateGradeDistributionWithCompatibleCriteria(appData) {
+    if (!appData || !appData.students || !Array.isArray(appData.students)) {
+        return { '2': 0, '3': 0, '4': 0, '5': 0 };
+    }
+    
+    const distribution = { '2': 0, '3': 0, '4': 0, '5': 0 };
+    
+    appData.students.forEach(student => {
+        const totalScore = calculateStudentTotal(student.id);
+        const result = appData.helpers.calculateGrade(totalScore);
+        
+        if (result.grade && distribution[result.gradeString] !== undefined) {
+            distribution[result.gradeString]++;
+        }
+    });
+    
+    return distribution;
 }
 
 // Шифрование отчета
@@ -1137,7 +1195,30 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // ==================== ДОПОЛНИТЕЛЬНЫЕ ФУНКЦИИ ОТЧЕТОВ ====================
-
+function validateReportData() {
+    if (!window.appData) return false;
+    
+    const errors = [];
+    
+    if (!window.appData.test || !window.appData.test.subject) {
+        errors.push('Не указан предмет');
+    }
+    
+    if (!window.appData.students || !Array.isArray(window.appData.students) || window.appData.students.length === 0) {
+        errors.push('Нет данных об учащихся');
+    }
+    
+    if (!window.appData.tasks || !Array.isArray(window.appData.tasks) || window.appData.tasks.length === 0) {
+        errors.push('Нет данных о заданиях');
+    }
+    
+    if (errors.length > 0) {
+        showNotification(`Ошибки: ${errors.join(', ')}`, 'error');
+        return false;
+    }
+    
+    return true;
+}
 // Инициализация голосового синтеза
 function initVoiceSynthesis() {
     if (!('speechSynthesis' in window)) {
@@ -1461,14 +1542,11 @@ function calculateTaskSuccessRate(taskIndex) {
     
     return maxPossible > 0 ? Math.round((totalScore / maxPossible) * 100) : 0;
 }
-function safeExecute(fn, context = 'Неизвестный контекст', fallback = null) {
+function safeExecute(fn, fallback = null) {
     try {
         return fn();
     } catch (error) {
-        console.error(`Ошибка в ${context}:`, error);
-        if (window.ErrorHandler && typeof window.ErrorHandler.logError === 'function') {
-            window.ErrorHandler.logError(error, 'RUNTIME_ERROR', context);
-        }
+        console.error('Ошибка выполнения функции:', error);
         return fallback;
     }
 }
@@ -1636,7 +1714,18 @@ function collectReportSettings() {
 
 // Генерация распределения оценок для отчета
 function generateGradesDistribution(settings) {
-    const distribution = CalculateGradeDistribution();
+	// Интегрируем критерии перед генерацией отчета
+    const integratedAppData = integrateCriteriaForReports(window.appData);
+    
+    // Теперь можем безопасно использовать
+    const validation = integratedAppData.helpers.validateCriteria();
+    
+    if (!validation.isValid) {
+        showNotification('Проблемы с критериями оценивания', 'error');
+        return;
+    }
+    
+    const distribution = calculateGradeDistributionWithCompatibleCriteria(integratedAppData);
     
     return {
         labels: ['5', '4', '3', '2'],
@@ -1685,28 +1774,33 @@ function generateReportData(settings) {
     };
     
     // Генерируем разделы в зависимости от выбранных полей
-    if (settings.fields.includes('basic_info')) {
-        report.content.basicInfo = generateBasicInfo();
-    }
-    
-    if (settings.fields.includes('statistics')) {
-        report.content.statistics = generateStatistics(settings);
-    }
-    
-    if (settings.fields.includes('grades_distribution')) {
-        report.content.gradesDistribution = generateGradesDistribution(settings);
-    }
-    
-    if (settings.fields.includes('task_analysis')) {
-        report.content.taskAnalysis = generateTaskAnalysis(settings);
-    }
-    
-    if (settings.fields.includes('error_analysis')) {
-        report.content.errorAnalysis = generateErrorAnalysis(settings);
-    }
-    
-    if (settings.fields.includes('recommendations')) {
-        report.content.recommendations = generateRecommendations(settings);
+    try {
+        if (settings.fields.includes('basic_info')) {
+            report.content.basicInfo = generateBasicInfo();
+        }
+        
+        if (settings.fields.includes('statistics')) {
+            report.content.statistics = generateStatistics(settings);
+        }
+        
+        if (settings.fields.includes('grades_distribution')) {
+            report.content.gradesDistribution = generateGradesDistribution(settings);
+        }
+        
+        if (settings.fields.includes('task_analysis')) {
+            report.content.taskAnalysis = generateTaskAnalysis(settings);
+        }
+        
+        if (settings.fields.includes('error_analysis')) {
+            report.content.errorAnalysis = generateErrorAnalysis(settings);
+        }
+        
+        if (settings.fields.includes('recommendations')) {
+            report.content.recommendations = generateRecommendations(settings);
+        }
+    } catch (error) {
+        console.error('Ошибка генерации разделов отчета:', error);
+        showNotification('Ошибка генерации данных отчета', 'warning');
     }
     
     return report;
@@ -1765,6 +1859,1279 @@ function displayReportPreview1(reportData, mode) {
     
     previewDiv.innerHTML = html;
 }
+
+function generateRecommendationsHTML(recommendationsData) {
+    if (!recommendationsData || !recommendationsData.recommendations) {
+        return '<p>Нет данных для рекомендаций</p>';
+    }
+
+    let html = `
+        <div class="report-section">
+            <h3>💡 Рекомендации и план коррекционных мероприятий</h3>
+            
+            <!-- Общий вывод -->
+            <div style="background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%); 
+                        padding: 20px; border-radius: 10px; margin: 20px 0; border-left: 4px solid #2196f3;">
+                <h4 style="margin-top: 0; color: #1565c0;">🎯 Общий вывод</h4>
+                <p style="font-size: 16px; line-height: 1.6;">${recommendationsData.summary || generateSummary()}</p>
+            </div>
+    `;
+
+    // Рекомендации по приоритету
+    const priorities = {
+        high: { title: '🚨 Высокий приоритет', color: '#ffebee', border: '#f44336' },
+        medium: { title: '⚠️ Средний приоритет', color: '#fff3e0', border: '#ff9800' },
+        low: { title: '📋 Низкий приоритет', color: '#e8f5e9', border: '#4caf50' }
+    };
+
+    Object.entries(priorities).forEach(([priority, info]) => {
+        const priorityRecommendations = recommendationsData.recommendations.filter(rec => rec.priority === priority);
+        
+        if (priorityRecommendations.length > 0) {
+            html += `
+                <div style="margin: 25px 0;">
+                    <h4 style="color: ${info.border}; display: flex; align-items: center; gap: 10px;">
+                        <span style="background: ${info.border}; color: white; padding: 5px 15px; border-radius: 20px;">
+                            ${priorityRecommendations.length}
+                        </span>
+                        ${info.title}
+                    </h4>
+            `;
+
+            priorityRecommendations.forEach((rec, index) => {
+                html += `
+                    <div style="background: ${info.color}; padding: 15px; margin: 10px 0; 
+                                border-radius: 8px; border-left: 4px solid ${info.border};">
+                        <div style="display: flex; justify-content: space-between; align-items: start;">
+                            <h5 style="margin: 0; color: #333;">${rec.action}</h5>
+                            <span style="background: ${getPriorityBadgeColor(priority)}; color: white; 
+                                        padding: 3px 10px; border-radius: 12px; font-size: 12px; font-weight: bold;">
+                                ${rec.deadline || 'Не указано'}
+                            </span>
+                        </div>
+                        <p style="margin: 10px 0; color: #555;">${rec.description}</p>
+                        
+                        <!-- Детали реализации -->
+                        <div style="display: flex; gap: 15px; font-size: 14px; color: #666;">
+                            <span>👤 Ответственный: <strong>${rec.responsible || 'Классный руководитель'}</strong></span>
+                            <span>🎯 Цель: <strong>${rec.goal || 'Улучшение результатов'}</strong></span>
+                            <span>📊 Ожидаемый результат: <strong>${rec.expectedResult || 'Повышение успеваемости'}</strong></span>
+                        </div>
+                        
+                        <!-- Кнопки действий -->
+                        <div style="display: flex; gap: 10px; margin-top: 15px;">
+                            <button style="padding: 5px 15px; background: ${info.border}; color: white; 
+                                        border: none; border-radius: 4px; cursor: pointer; font-size: 12px;" 
+                                    onclick="markAsCompleted(${index}, '${priority}')">
+                                ✅ Выполнено
+                            </button>
+                            <button style="padding: 5px 15px; background: #f5f5f5; color: #666; 
+                                        border: 1px solid #ddd; border-radius: 4px; cursor: pointer; font-size: 12px;"
+                                    onclick="editRecommendation(${index}, '${priority}')">
+                                ✏️ Изменить
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+
+            html += `</div>`;
+        }
+    });
+
+    // План мероприятий по группам
+    html += generateActionPlanByGroups(recommendationsData);
+
+    // Методические рекомендации
+    html += generateMethodologicalRecommendations(recommendationsData);
+
+    // Работа с родителями
+    html += generateParentWorkRecommendations(recommendationsData);
+
+    // Мониторинг и оценка эффективности
+    html += generateMonitoringPlan(recommendationsData);
+
+    // Матрица ответственности
+    html += generateResponsibilityMatrix(recommendationsData);
+
+    // График выполнения
+    html += generateTimelineChart(recommendationsData);
+
+    html += `
+        </div>
+    `;
+
+    return html;
+}
+
+// Вспомогательные функции
+function getPriorityBadgeColor(priority) {
+    const colors = {
+        high: '#e74c3c',
+        medium: '#f39c12',
+        low: '#2ecc71'
+    };
+    return colors[priority] || '#95a5a6';
+}
+
+function generateSummary() {
+    const stats = calculateStatistics();
+    // Интегрируем критерии перед генерацией отчета
+    const integratedAppData = integrateCriteriaForReports(window.appData);
+    
+    // Теперь можем безопасно использовать
+    const validation = integratedAppData.helpers.validateCriteria();
+    
+    if (!validation.isValid) {
+        showNotification('Проблемы с критериями оценивания', 'error');
+        return;
+    }	
+    const distribution = calculateGradeDistributionWithCompatibleCriteria(integratedAppData);
+    
+    let summary = `На основе анализа результатов ${stats.totalStudents || 0} учащихся `;
+    
+    if (stats.averageGrade >= 4.0) {
+        summary += `выявлен высокий уровень усвоения материала (средний балл: ${stats.averageGrade.toFixed(1)}). `;
+        summary += `Рекомендуется поддержать достигнутый уровень и развивать творческие способности учащихся.`;
+    } else if (stats.averageGrade >= 3.0) {
+        summary += `наблюдается стабильный средний уровень подготовки (средний балл: ${stats.averageGrade.toFixed(1)}). `;
+        summary += `Требуется работа по устранению типичных ошибок и повышению мотивации.`;
+    } else {
+        summary += `обнаружены проблемы в усвоении материала (средний балл: ${stats.averageGrade.toFixed(1)}). `;
+        summary += `Необходима комплексная работа по ликвидации пробелов в знаниях.`;
+    }
+    
+    if (distribution['2'] > 20) {
+        summary += ` Особое внимание следует уделить ${distribution['2']}% учащихся, получивших неудовлетворительные оценки.`;
+    }
+    
+    if (distribution['5'] > 30) {
+        summary += ` Высокий процент отличников (${distribution['5']}%) позволяет организовать работу в парах "сильный-слабый".`;
+    }
+    
+    return summary;
+}
+
+function generateActionPlanByGroups(recommendationsData) {
+    const actionPlan = `
+        <div style="margin: 30px 0;">
+            <h4 style="color: #7b1fa2; border-bottom: 2px solid #7b1fa2; padding-bottom: 5px;">
+                👥 План мероприятий по группам учащихся
+            </h4>
+            
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-top: 15px;">
+                <!-- Для отличников -->
+                <div style="background: #e8f5e9; padding: 20px; border-radius: 10px; border: 2px solid #4caf50;">
+                    <h5 style="color: #2e7d32; margin-top: 0;">🥇 Для отличников (оценка 5)</h5>
+                    <ul style="margin: 10px 0; padding-left: 20px;">
+                        <li>Дополнительные творческие задания повышенной сложности</li>
+                        <li>Участие в олимпиадах и конкурсах</li>
+                        <li>Работа в качестве консультантов для отстающих</li>
+                        <li>Проектная деятельность</li>
+                    </ul>
+                </div>
+                
+                <!-- Для хорошистов -->
+                <div style="background: #e3f2fd; padding: 20px; border-radius: 10px; border: 2px solid #2196f3;">
+                    <h5 style="color: #1565c0; margin-top: 0;">🥈 Для хорошистов (оценка 4)</h5>
+                    <ul style="margin: 10px 0; padding-left: 20px;">
+                        <li>Тренировочные задания для перехода на уровень "отлично"</li>
+                        <li>Работа над устранением системных ошибок</li>
+                        <li>Групповая работа над сложными темами</li>
+                        <li>Развитие навыков самопроверки</li>
+                    </ul>
+                </div>
+                
+                <!-- Для троечников -->
+                <div style="background: #fff3e0; padding: 20px; border-radius: 10px; border: 2px solid #ff9800;">
+                    <h5 style="color: #ef6c00; margin-top: 0;">🥉 Для троечников (оценка 3)</h5>
+                    <ul style="margin: 10px 0; padding-left: 20px;">
+                        <li>Индивидуальные консультации по проблемным темам</li>
+                        <li>Повторное объяснение сложного материала</li>
+                        <li>Тренировочные задания базового уровня</li>
+                        <li>Мотивационные беседы</li>
+                    </ul>
+                </div>
+                
+                <!-- Для отстающих -->
+                <div style="background: #ffebee; padding: 20px; border-radius: 10px; border: 2px solid #f44336;">
+                    <h5 style="color: #c62828; margin-top: 0;">📝 Для отстающих (оценка 2)</h5>
+                    <ul style="margin: 10px 0; padding-left: 20px;">
+                        <li>Индивидуальная программа ликвидации пробелов</li>
+                        <li>Работа с родителями</li>
+                        <li>Упрощенные задания с пошаговыми инструкциями</li>
+                        <li>Положительное подкрепление</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    return actionPlan;
+}
+
+function generateMethodologicalRecommendations(recommendationsData) {
+    // Интегрируем критерии перед генерацией отчета
+    const integratedAppData = integrateCriteriaForReports(window.appData);
+    
+    // Теперь можем безопасно использовать
+    const validation = integratedAppData.helpers.validateCriteria();
+    
+    if (!validation.isValid) {
+        showNotification('Проблемы с критериями оценивания', 'error');
+        return;
+    }	
+    const distribution = calculateGradeDistributionWithCompatibleCriteria(integratedAppData);
+    
+    let recommendations = `
+        <div style="margin: 30px 0; padding: 20px; background: #f5f5f5; border-radius: 10px;">
+            <h4 style="color: #5d4037; border-bottom: 2px solid #5d4037; padding-bottom: 5px;">
+                📚 Методические рекомендации
+            </h4>
+            
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px; margin-top: 15px;">
+    `;
+    
+    // Рекомендации по типам ошибок
+    if (appData.errors && appData.errors.length > 0) {
+        recommendations += `
+            <div style="background: white; padding: 15px; border-radius: 8px; border: 1px solid #e0e0e0;">
+                <h6 style="margin: 0 0 10px 0; color: #d32f2f;">🔄 Коррекция типичных ошибок</h6>
+                <p style="margin: 0; font-size: 14px;">Разработать упражнения для отработки наиболее частых ошибок</p>
+            </div>
+        `;
+    }
+    
+    // Рекомендации по дифференциации
+    if (distribution['5'] > 0 && distribution['2'] > 0) {
+        const gap = distribution['5'] - distribution['2'];
+        if (Math.abs(gap) > 30) {
+            recommendations += `
+                <div style="background: white; padding: 15px; border-radius: 8px; border: 1px solid #e0e0e0;">
+                    <h6 style="margin: 0 0 10px 0; color: #7b1fa2;">🎯 Дифференцированный подход</h6>
+                    <p style="margin: 0; font-size: 14px;">Использовать задания разного уровня сложности для разных групп учащихся</p>
+                </div>
+            `;
+        }
+    }
+    
+    // Рекомендации по формам работы
+    recommendations += `
+        <div style="background: white; padding: 15px; border-radius: 8px; border: 1px solid #e0e0e0;">
+            <h6 style="margin: 0 0 10px 0; color: #0288d1;">🤝 Групповая работа</h6>
+            <p style="margin: 0; font-size: 14px;">Организовать работу в парах и малых группах для взаимного обучения</p>
+        </div>
+        
+        <div style="background: white; padding: 15px; border-radius: 8px; border: 1px solid #e0e0e0;">
+            <h6 style="margin: 0 0 10px 0; color: #388e3c;">📊 Формирующее оценивание</h6>
+            <p style="margin: 0; font-size: 14px;">Внедрить систему промежуточного контроля для своевременной коррекции</p>
+        </div>
+        
+        <div style="background: white; padding: 15px; border-radius: 8px; border: 1px solid #e0e0e0;">
+            <h6 style="margin: 0 0 10px 0; color: #f57c00;">💻 Использование ИКТ</h6>
+            <p style="margin: 0; font-size: 14px;">Применять цифровые ресурсы для повышения мотивации и наглядности</p>
+        </div>
+    `;
+    
+    recommendations += `
+            </div>
+        </div>
+    `;
+    
+    return recommendations;
+}
+
+function generateParentWorkRecommendations(recommendationsData) {
+    const weakPercentage = calculateStatistics()?.weakPercentage || 0;
+    
+    let recommendations = `
+        <div style="margin: 30px 0; padding: 20px; background: linear-gradient(135deg, #fce4ec 0%, #f8bbd9 100%); 
+                    border-radius: 10px; border: 2px solid #e91e63;">
+            <h4 style="color: #c2185b; border-bottom: 2px solid #c2185b; padding-bottom: 5px;">
+                👪 Работа с родителями
+            </h4>
+    `;
+    
+    if (weakPercentage > 15) {
+        recommendations += `
+            <div style="background: white; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #e91e63;">
+                <h5 style="margin: 0 0 10px 0; color: #c2185b;">📞 Индивидуальные беседы</h5>
+                <p style="margin: 0;">Провести индивидуальные встречи с родителями ${weakPercentage}% отстающих учащихся для обсуждения мер поддержки</p>
+                <div style="display: flex; gap: 20px; margin-top: 10px; font-size: 14px;">
+                    <span>📅 Срок: <strong>2 недели</strong></span>
+                    <span>👤 Ответственный: <strong>Классный руководитель</strong></span>
+                </div>
+            </div>
+        `;
+    }
+    
+    recommendations += `
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-top: 15px;">
+                <div style="background: white; padding: 15px; border-radius: 8px; text-align: center;">
+                    <div style="font-size: 24px; color: #e91e63;">📋</div>
+                    <div style="font-weight: bold; margin: 10px 0;">Информационные письма</div>
+                    <div style="font-size: 14px; color: #666;">Отправка индивидуальных отчетов родителям</div>
+                </div>
+                
+                <div style="background: white; padding: 15px; border-radius: 8px; text-align: center;">
+                    <div style="font-size: 24px; color: #e91e63;">👥</div>
+                    <div style="font-weight: bold; margin: 10px 0;">Родительское собрание</div>
+                    <div style="font-size: 14px; color: #666;">Обсуждение результатов и плана работы</div>
+                </div>
+                
+                <div style="background: white; padding: 15px; border-radius: 8px; text-align: center;">
+                    <div style="font-size: 24px; color: #e91e63;">📱</div>
+                    <div style="font-weight: bold; margin: 10px 0;">Онлайн-консультации</div>
+                    <div style="font-size: 14px; color: #666;">Удобный формат для работающих родителей</div>
+                </div>
+                
+                <div style="background: white; padding: 15px; border-radius: 8px; text-align: center;">
+                    <div style="font-size: 24px; color: #e91e63;">💡</div>
+                    <div style="font-weight: bold; margin: 10px 0;">Советы родителям</div>
+                    <div style="font-size: 14px; color: #666;">Методические рекомендации для помощи дома</div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    return recommendations;
+}
+
+function generateMonitoringPlan(recommendationsData) {
+    return `
+        <div style="margin: 30px 0;">
+            <h4 style="color: #00695c; border-bottom: 2px solid #00695c; padding-bottom: 5px;">
+                📈 План мониторинга и оценки эффективности
+            </h4>
+            
+            <table style="width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 14px;">
+                <thead>
+                    <tr style="background: #00695c; color: white;">
+                        <th style="padding: 12px; text-align: left;">Мероприятие</th>
+                        <th style="padding: 12px; text-align: center;">Показатель</th>
+                        <th style="padding: 12px; text-align: center;">Целевое значение</th>
+                        <th style="padding: 12px; text-align: center;">Срок проверки</th>
+                        <th style="padding: 12px; text-align: center;">Метод оценки</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr style="border-bottom: 1px solid #e0e0e0;">
+                        <td style="padding: 10px;">Устранение пробелов в знаниях</td>
+                        <td style="padding: 10px; text-align: center;">% отстающих учащихся</td>
+                        <td style="padding: 10px; text-align: center; color: #2ecc71; font-weight: bold;">-15%</td>
+                        <td style="padding: 10px; text-align: center;">Через 1 месяц</td>
+                        <td style="padding: 10px; text-align: center;">Контрольная работа</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid #e0e0e0;">
+                        <td style="padding: 10px;">Повышение мотивации</td>
+                        <td style="padding: 10px; text-align: center;">% активно работающих</td>
+                        <td style="padding: 10px; text-align: center; color: #2ecc71; font-weight: bold;">+20%</td>
+                        <td style="padding: 10px; text-align: center;">Еженедельно</td>
+                        <td style="padding: 10px; text-align: center;">Наблюдение, опрос</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid #e0e0e0;">
+                        <td style="padding: 10px;">Развитие сильных учащихся</td>
+                        <td style="padding: 10px; text-align: center;">% отличников</td>
+                        <td style="padding: 10px; text-align: center; color: #2ecc71; font-weight: bold;">+10%</td>
+                        <td style="padding: 10px; text-align: center;">Через 2 недели</td>
+                        <td style="padding: 10px; text-align: center;">Творческие задания</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 10px;">Родительская вовлеченность</td>
+                        <td style="padding: 10px; text-align: center;">% родителей на собрании</td>
+                        <td style="padding: 10px; text-align: center; color: #2ecc71; font-weight: bold;">85%</td>
+                        <td style="padding: 10px; text-align: center;">Через 3 недели</td>
+                        <td style="padding: 10px; text-align: center;">Список присутствующих</td>
+                    </tr>
+                </tbody>
+            </table>
+            
+            <div style="background: #e0f2f1; padding: 15px; border-radius: 8px; margin-top: 20px;">
+                <h5 style="margin: 0 0 10px 0; color: #00695c;">📊 Критерии успешности:</h5>
+                <ul style="margin: 0; padding-left: 20px;">
+                    <li>Снижение процента неуспевающих на 15% и более</li>
+                    <li>Повышение среднего балла на 0.5 балла</li>
+                    <li>Увеличение доли активно работающих учащихся</li>
+                    <li>Положительная динамика по всем группам учащихся</li>
+                </ul>
+            </div>
+        </div>
+    `;
+}
+
+function generateResponsibilityMatrix(recommendationsData) {
+    return `
+        <div style="margin: 30px 0; padding: 20px; background: #f5f5f5; border-radius: 10px;">
+            <h4 style="color: #5d4037; border-bottom: 2px solid #5d4037; padding-bottom: 5px;">
+                👥 Матрица ответственности
+            </h4>
+            
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-top: 20px;">
+                <div style="background: white; padding: 20px; border-radius: 8px; border: 2px solid #1976d2;">
+                    <h5 style="color: #1976d2; margin-top: 0; display: flex; align-items: center; gap: 10px;">
+                        <span style="background: #1976d2; color: white; width: 30px; height: 30px; 
+                                    border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                            👩‍🏫
+                        </span>
+                        Учитель-предметник
+                    </h5>
+                    <ul style="margin: 15px 0; padding-left: 20px; font-size: 14px;">
+                        <li>Разработка коррекционных материалов</li>
+                        <li>Проведение дополнительных занятий</li>
+                        <li>Анализ типичных ошибок</li>
+                        <li>Дифференциация заданий</li>
+                    </ul>
+                </div>
+                
+                <div style="background: white; padding: 20px; border-radius: 8px; border: 2px solid #388e3c;">
+                    <h5 style="color: #388e3c; margin-top: 0; display: flex; align-items: center; gap: 10px;">
+                        <span style="background: #388e3c; color: white; width: 30px; height: 30px; 
+                                    border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                            🧑‍🏫
+                        </span>
+                        Классный руководитель
+                    </h5>
+                    <ul style="margin: 15px 0; padding-left: 20px; font-size: 14px;">
+                        <li>Работа с родителями</li>
+                        <li>Мониторинг посещаемости</li>
+                        <li>Мотивационная работа</li>
+                        <li>Координация действий</li>
+                    </ul>
+                </div>
+                
+                <div style="background: white; padding: 20px; border-radius: 8px; border: 2px solid #f57c00;">
+                    <h5 style="color: #f57c00; margin-top: 0; display: flex; align-items: center; gap: 10px;">
+                        <span style="background: #f57c00; color: white; width: 30px; height: 30px; 
+                                    border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                            🧑‍🎓
+                        </span>
+                        Учащиеся
+                    </h5>
+                    <ul style="margin: 15px 0; padding-left: 20px; font-size: 14px;">
+                        <li>Выполнение коррекционных заданий</li>
+                        <li>Работа над ошибками</li>
+                        <li>Взаимопомощь в группах</li>
+                        <li>Самоконтроль и рефлексия</li>
+                    </ul>
+                </div>
+                
+                <div style="background: white; padding: 20px; border-radius: 8px; border: 2px solid #7b1fa2;">
+                    <h5 style="color: #7b1fa2; margin-top: 0; display: flex; align-items: center; gap: 10px;">
+                        <span style="background: #7b1fa2; color: white; width: 30px; height: 30px; 
+                                    border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                            👪
+                        </span>
+                        Родители
+                    </h5>
+                    <ul style="margin: 15px 0; padding-left: 20px; font-size: 14px;">
+                        <li>Контроль выполнения домашних заданий</li>
+                        <li>Создание условий для занятий</li>
+                        <li>Поддержка и мотивация</li>
+                        <li>Взаимодействие с учителями</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function generateTimelineChart(recommendationsData) {
+    // Создаем временную шкалу выполнения мероприятий
+    const timelineData = [
+        { week: 1, task: 'Анализ результатов', progress: 100 },
+        { week: 2, task: 'Индивидуальные консультации', progress: 75 },
+        { week: 3, task: 'Групповые занятия', progress: 50 },
+        { week: 4, task: 'Работа с родителями', progress: 25 },
+        { week: 5, task: 'Промежуточный контроль', progress: 0 },
+        { week: 6, task: 'Коррекция плана', progress: 0 },
+        { week: 7, task: 'Итоговая оценка', progress: 0 }
+    ];
+    
+    let timelineHTML = `
+        <div style="margin: 30px 0;">
+            <h4 style="color: #0288d1; border-bottom: 2px solid #0288d1; padding-bottom: 5px;">
+                📅 График выполнения мероприятий
+            </h4>
+            
+            <div style="position: relative; margin: 20px 0; padding-left: 40px;">
+                <!-- Вертикальная линия -->
+                <div style="position: absolute; left: 20px; top: 0; bottom: 0; width: 4px; background: #0288d1;"></div>
+    `;
+    
+    timelineData.forEach((item, index) => {
+        const isCompleted = item.progress === 100;
+        const isInProgress = item.progress > 0 && item.progress < 100;
+        
+        timelineHTML += `
+            <div style="position: relative; margin-bottom: 40px;">
+                <!-- Точка на временной линии -->
+                <div style="position: absolute; left: -40px; top: 0; width: 40px; height: 40px; 
+                            background: ${isCompleted ? '#4caf50' : isInProgress ? '#ff9800' : '#9e9e9e'}; 
+                            border-radius: 50%; display: flex; align-items: center; justify-content: center;
+                            color: white; font-weight: bold; border: 4px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.2);">
+                    ${isCompleted ? '✓' : index + 1}
+                </div>
+                
+                <div style="background: white; padding: 15px; border-radius: 8px; border: 1px solid #e0e0e0; 
+                            box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <h5 style="margin: 0; color: #333;">Неделя ${item.week}: ${item.task}</h5>
+                        <span style="background: ${isCompleted ? '#4caf50' : isInProgress ? '#ff9800' : '#9e9e9e'}; 
+                                   color: white; padding: 3px 10px; border-radius: 12px; font-size: 12px; font-weight: bold;">
+                            ${isCompleted ? 'Завершено' : isInProgress ? 'В процессе' : 'Запланировано'}
+                        </span>
+                    </div>
+                    
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <div style="flex: 1; height: 10px; background: #f5f5f5; border-radius: 5px; overflow: hidden;">
+                            <div style="width: ${item.progress}%; height: 100%; 
+                                        background: ${isCompleted ? '#4caf50' : isInProgress ? '#ff9800' : '#9e9e9e'}; 
+                                        transition: width 0.5s ease;"></div>
+                        </div>
+                        <span style="font-weight: bold; color: #333;">${item.progress}%</span>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+    
+    timelineHTML += `
+            </div>
+            
+            <div style="display: flex; justify-content: center; gap: 20px; margin-top: 30px;">
+                <button style="padding: 10px 25px; background: #0288d1; color: white; border: none; 
+                            border-radius: 5px; cursor: pointer; font-weight: bold; display: flex; 
+                            align-items: center; gap: 8px;"
+                        onclick="printRecommendations()">
+                    🖨️ Распечатать план
+                </button>
+                <button style="padding: 10px 25px; background: #4caf50; color: white; border: none; 
+                            border-radius: 5px; cursor: pointer; font-weight: bold; display: flex; 
+                            align-items: center; gap: 8px;"
+                        onclick="shareRecommendations()">
+                    📤 Поделиться
+                </button>
+                <button style="padding: 10px 25px; background: #ff9800; color: white; border: none; 
+                            border-radius: 5px; cursor: pointer; font-weight: bold; display: flex; 
+                            align-items: center; gap: 8px;"
+                        onclick="exportRecommendations()">
+                    💾 Экспорт
+                </button>
+            </div>
+        </div>
+    `;
+    
+    return timelineHTML;
+}
+
+// Обработчики для кнопок в рекомендациях
+function markAsCompleted(index, priority) {
+    if (!recommendationsData || !recommendationsData.recommendations) return;
+    
+    const recIndex = recommendationsData.recommendations
+        .findIndex((rec, i) => rec.priority === priority && 
+                   recommendationsData.recommendations
+                       .filter(r => r.priority === priority)
+                       .slice(0, index + 1).length - 1 === i);
+    
+    if (recIndex !== -1) {
+        recommendationsData.recommendations[recIndex].completed = true;
+        recommendationsData.recommendations[recIndex].completedDate = new Date().toLocaleDateString();
+        
+        // Обновляем отображение
+        const recommendationsHTML = generateRecommendationsHTML(recommendationsData);
+        const previewContent = document.getElementById('reportPreviewContent');
+        if (previewContent) {
+            previewContent.innerHTML = recommendationsHTML;
+        }
+        
+        showNotification('Рекомендация отмечена как выполненная', 'success');
+    }
+}
+
+function editRecommendation(index, priority) {
+    const rec = recommendationsData.recommendations
+        .filter(r => r.priority === priority)[index];
+    
+    if (!rec) return;
+    
+    const newAction = prompt('Измените действие:', rec.action);
+    if (newAction) rec.action = newAction;
+    
+    const newDeadline = prompt('Измените срок:', rec.deadline);
+    if (newDeadline) rec.deadline = newDeadline;
+    
+    // Обновляем отображение
+    const recommendationsHTML = generateRecommendationsHTML(recommendationsData);
+    const previewContent = document.getElementById('reportPreviewContent');
+    if (previewContent) {
+        previewContent.innerHTML = recommendationsHTML;
+    }
+    
+    showNotification('Рекомендация изменена', 'success');
+}
+
+function printRecommendations() {
+    const printContent = document.querySelector('.report-section');
+    if (!printContent) return;
+    
+    const printWindow = window.open('', '_blank');
+    printWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Рекомендации и план мероприятий</title>
+            <style>
+                @media print {
+                    @page { margin: 20mm; }
+                    body { font-family: Arial, sans-serif; font-size: 12pt; }
+                    .no-print { display: none !important; }
+                }
+                .section { margin-bottom: 20mm; }
+                h1, h2, h3, h4, h5 { color: #333; }
+                table { width: 100%; border-collapse: collapse; }
+                th, td { border: 1px solid #000; padding: 5px; }
+            </style>
+        </head>
+        <body>
+            ${printContent.innerHTML}
+        </body>
+        </html>
+    `);
+    printWindow.document.close();
+    printWindow.focus();
+    printWindow.print();
+}
+
+function shareRecommendations() {
+    if (navigator.share) {
+        navigator.share({
+            title: 'Рекомендации по результатам работы',
+            text: 'План коррекционных мероприятий для учащихся',
+            url: window.location.href
+        });
+    } else {
+        const text = 'Рекомендации и план мероприятий\n\n' + 
+                    generateTextSummary(recommendationsData);
+        navigator.clipboard.writeText(text)
+            .then(() => showNotification('Рекомендации скопированы в буфер', 'success'))
+            .catch(err => console.error('Ошибка копирования:', err));
+    }
+}
+
+function exportRecommendations() {
+    const data = {
+        recommendations: recommendationsData?.recommendations || [],
+        generated: new Date().toISOString(),
+        class: appData.test.class,
+        subject: appData.test.subject
+    };
+    
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `recommendations_${appData.test.class}_${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    
+    showNotification('Рекомендации экспортированы в JSON', 'success');
+}
+
+function generateTextSummary(data) {
+    let summary = 'РЕКОМЕНДАЦИИ И ПЛАН МЕРОПРИЯТИЙ\n';
+    summary += '================================\n\n';
+    
+    data.recommendations?.forEach(rec => {
+        summary += `[${rec.priority.toUpperCase()}] ${rec.action}\n`;
+        summary += `Описание: ${rec.description}\n`;
+        summary += `Срок: ${rec.deadline || 'Не указан'}\n\n`;
+    });
+    
+    return summary;
+}
+
+// Функция для генерации данных рекомендаций
+function generateRecommendations(settings) {
+    // Интегрируем критерии перед генерацией отчета
+    const integratedAppData = integrateCriteriaForReports(window.appData);
+    
+    // Теперь можем безопасно использовать
+    const validation = integratedAppData.helpers.validateCriteria();
+    
+    if (!validation.isValid) {
+        showNotification('Проблемы с критериями оценивания', 'error');
+        return;
+    }
+    
+    // Генерируем распределение оценок с совместимыми критериями	
+    const distribution = calculateGradeDistributionWithCompatibleCriteria(integratedAppData);
+    const stats = calculateStatistics();
+    const taskAnalysis = analyzeTasks();
+    
+    const recommendations = [];
+    
+    // Рекомендации на основе распределения оценок
+    if (distribution['2'] > 15) {
+        recommendations.push({
+            priority: 'high',
+            action: 'Индивидуальная работа с отстающими',
+            description: `${distribution['2']}% учащихся получили неудовлетворительные оценки`,
+            deadline: 'Срочно',
+            responsible: 'Учитель-предметник',
+            goal: 'Снижение процента неуспевающих',
+            expectedResult: 'Улучшение результатов минимум на 20%'
+        });
+    }
+    
+    if (stats.averageGrade < 3.0) {
+        recommendations.push({
+            priority: 'high',
+            action: 'Повторение базовых тем',
+            description: `Средний балл класса (${stats.averageGrade.toFixed(1)}) ниже удовлетворительного`,
+            deadline: '1 неделя',
+            responsible: 'Учитель-предметник',
+            goal: 'Повышение среднего балла',
+            expectedResult: 'Средний балл не менее 3.0'
+        });
+    }
+    
+    // Рекомендации на основе анализа заданий
+    const weakTasks = taskAnalysis.filter(t => t.successRate < 60);
+    if (weakTasks.length > 0) {
+        recommendations.push({
+            priority: 'medium',
+            action: 'Проработка сложных заданий',
+            description: `${weakTasks.length} заданий выполнено менее чем на 60%`,
+            deadline: '2 недели',
+            responsible: 'Учитель-предметник',
+            goal: 'Улучшение выполнения заданий',
+            expectedResult: 'Успешность заданий не менее 70%'
+        });
+    }
+    
+    // Методические рекомендации
+    recommendations.push({
+        priority: 'low',
+        action: 'Внедрение дифференцированного подхода',
+        description: 'Разработка заданий разного уровня сложности',
+        deadline: '3 недели',
+        responsible: 'Учитель-предметник',
+        goal: 'Адаптация обучения под разные уровни',
+        expectedResult: 'Повышение мотивации всех групп учащихся'
+    });
+    
+    // Рекомендации по работе с родителями
+    if (distribution['2'] > 10) {
+        recommendations.push({
+            priority: 'medium',
+            action: 'Встреча с родителями отстающих',
+            description: 'Обсуждение мер поддержки для учащихся с низкими результатами',
+            deadline: '1 неделя',
+            responsible: 'Классный руководитель',
+            goal: 'Привлечение родителей к учебному процессу',
+            expectedResult: 'Повышение вовлеченности родителей'
+        });
+    }
+    
+    return {
+        recommendations: recommendations,
+        summary: generateSummary(),
+        generated: new Date().toISOString(),
+        totalRecommendations: recommendations.length
+    };
+}
+
+function generateGradesDistributionHTML(distributionData) {
+    if (!distributionData) {
+        return '<p>Нет данных о распределении оценок</p>';
+    }
+
+    const maxPercentage = Math.max(...Object.values(distributionData).map(v => parseInt(v) || 0));
+    
+    let html = `
+        <div class="report-section">
+            <h3>📊 Распределение оценок</h3>
+            
+            <div style="margin: 20px 0;">
+                <table class="report-table" style="width: 100%;">
+                    <thead>
+                        <tr>
+                            <th style="width: 20%; text-align: center;">Оценка</th>
+                            <th style="width: 10%; text-align: center;">%</th>
+                            <th style="width: 70%;">Визуализация</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+    `;
+
+    // Сортируем оценки от 5 до 2
+    const sortedGrades = Object.entries(distributionData)
+        .sort(([gradeA], [gradeB]) => parseInt(gradeB) - parseInt(gradeA));
+
+    sortedGrades.forEach(([grade, percentage]) => {
+        const gradeNum = parseInt(grade);
+        const gradeName = getGradeName(gradeNum);
+        const gradeColor = getGradeColor(grade);
+        const barWidth = (percentage / maxPercentage) * 100;
+        
+        html += `
+            <tr>
+                <td style="text-align: center; font-weight: bold; color: ${gradeColor};">
+                    <span style="display: inline-block; width: 24px; height: 24px; line-height: 24px; 
+                                 background: ${gradeColor}; color: white; border-radius: 50%; margin-right: 8px;">
+                        ${grade}
+                    </span>
+                    ${gradeName}
+                </td>
+                <td style="text-align: center; font-weight: bold;">
+                    ${percentage}%
+                </td>
+                <td>
+                    <div style="background: #f0f0f0; height: 24px; border-radius: 12px; overflow: hidden; position: relative;">
+                        <div style="width: ${barWidth}%; height: 100%; background: ${gradeColor}; 
+                                    transition: width 0.5s ease;"></div>
+                        <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; 
+                                    display: flex; align-items: center; padding-left: 10px; color: #333; 
+                                    font-size: 12px; font-weight: bold;">
+                            ${percentage}% учащихся
+                        </div>
+                    </div>
+                </td>
+            </tr>
+        `;
+    });
+
+    // Добавляем общую статистику
+    const totalStudents = appData.students?.length || 0;
+    const averageGrade = calculateStatistics()?.averageGrade?.toFixed(1) || '0.0';
+    const successRate = calculateStatistics()?.successRate || 0;
+
+    html += `
+                    </tbody>
+                </table>
+            </div>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-top: 20px;">
+                <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; text-align: center;">
+                    <div style="font-size: 24px; font-weight: bold; color: #2c3e50;">${totalStudents}</div>
+                    <div style="color: #7f8c8d; font-size: 14px;">Всего учащихся</div>
+                </div>
+                
+                <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; text-align: center;">
+                    <div style="font-size: 24px; font-weight: bold; color: #2c3e50;">${averageGrade}</div>
+                    <div style="color: #7f8c8d; font-size: 14px;">Средний балл</div>
+                </div>
+                
+                <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; text-align: center;">
+                    <div style="font-size: 24px; font-weight: bold; color: #2c3e50;">${successRate}%</div>
+                    <div style="color: #7f8c8d; font-size: 14px;">Успеваемость (3+)</div>
+                </div>
+            </div>
+    `;
+
+    // Добавляем гистограмму для визуализации
+    if (window.Chart && sortedGrades.length > 0) {
+        html += `
+            <div style="margin-top: 30px;">
+                <h4>Гистограмма распределения оценок</h4>
+                <div style="position: relative; height: 300px;">
+                    <canvas id="gradeDistributionChart"></canvas>
+                </div>
+            </div>
+        `;
+    }
+
+    // Добавляем анализ распределения
+    html += generateDistributionAnalysis(distributionData);
+
+    html += `
+        </div>
+    `;
+
+    // Инициализируем график после добавления в DOM
+    setTimeout(() => {
+        if (window.Chart && document.getElementById('gradeDistributionChart')) {
+            createGradeDistributionChart(distributionData);
+        }
+    }, 100);
+
+    return html;
+}
+
+// Вспомогательные функции
+function getGradeName(grade) {
+    const names = {
+        5: 'Отлично',
+        4: 'Хорошо',
+        3: 'Удовлетворительно',
+        2: 'Неудовлетворительно'
+    };
+    return names[grade] || `Оценка ${grade}`;
+}
+
+function createGradeDistributionChart(distributionData) {
+    const ctx = document.getElementById('gradeDistributionChart');
+    if (!ctx) return;
+
+    // Уничтожаем старый график если есть
+    if (ctx.chartInstance) {
+        ctx.chartInstance.destroy();
+    }
+
+    const sortedGrades = Object.entries(distributionData)
+        .sort(([gradeA], [gradeB]) => parseInt(gradeA) - parseInt(gradeB));
+
+    const labels = sortedGrades.map(([grade]) => `Оценка ${grade}`);
+    const data = sortedGrades.map(([grade, percentage]) => percentage);
+    const colors = sortedGrades.map(([grade]) => getGradeColor(grade));
+    const hoverColors = sortedGrades.map(([grade]) => lightenColor(getGradeColor(grade), 20));
+
+    ctx.chartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Процент учащихся',
+                data: data,
+                backgroundColor: colors,
+                borderColor: colors.map(color => darkenColor(color, 10)),
+                borderWidth: 2,
+                hoverBackgroundColor: hoverColors,
+                borderRadius: 8,
+                borderSkipped: false
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return `${context.dataset.label}: ${context.parsed.y}%`;
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 100,
+                    ticks: {
+                        callback: function(value) {
+                            return value + '%';
+                        }
+                    },
+                    grid: {
+                        color: 'rgba(0,0,0,0.05)'
+                    }
+                },
+                x: {
+                    grid: {
+                        display: false
+                    }
+                }
+            },
+            animation: {
+                duration: 1000,
+                easing: 'easeOutQuart'
+            }
+        }
+    });
+}
+
+function generateDistributionAnalysis(distributionData) {
+    let analysis = '<div style="margin-top: 25px; padding: 20px; background: #f8f9fa; border-radius: 10px;">';
+    analysis += '<h4>📈 Анализ распределения</h4>';
+    
+    const excellent = distributionData['5'] || 0;
+    const good = distributionData['4'] || 0;
+    const average = distributionData['3'] || 0;
+    const weak = distributionData['2'] || 0;
+    
+    // Анализируем распределение
+    if (excellent >= 30) {
+        analysis += '<p>✅ <strong>Высокий процент отличников:</strong> Более 30% учащихся получили высший балл. Это может указывать на хорошее усвоение материала или относительно простые задания.</p>';
+    }
+    
+    if (weak >= 25) {
+        analysis += '<p>⚠️ <strong>Тревожный показатель:</strong> Более 25% учащихся получили неудовлетворительные оценки. Требуется дополнительная работа с отстающими.</p>';
+    }
+    
+    if (average >= 40 && good >= 30) {
+        analysis += '<p>📊 <strong>Нормальное распределение:</strong> Большинство учащихся показали средние и хорошие результаты. Это типичная картина для большинства классов.</p>';
+    }
+    
+    // Рекомендации
+    analysis += '<h5 style="margin-top: 15px;">💡 Рекомендации:</h5><ul style="margin: 10px 0; padding-left: 20px;">';
+    
+    if (weak > 15) {
+        analysis += '<li>Провести индивидуальные консультации для отстающих учащихся</li>';
+        analysis += '<li>Рассмотреть возможность пересдачи для улучшения оценок</li>';
+    }
+    
+    if (excellent < 10 && good < 30) {
+        analysis += '<li>Увеличить количество творческих заданий для мотивации сильных учащихся</li>';
+    }
+    
+    if (Math.abs(excellent - weak) > 50) {
+        analysis += '<li>Разделить класс на группы по уровню подготовки для дифференцированного подхода</li>';
+    }
+    
+    analysis += '<li>Провести работу над ошибками для наиболее проблемных заданий</li>';
+    analysis += '</ul>';
+    
+    // Статистический анализ
+    const total = excellent + good + average + weak;
+    if (total > 0) {
+        const giniCoefficient = calculateGiniCoefficient([excellent, good, average, weak]);
+        analysis += `<p style="margin-top: 15px; font-size: 14px; color: #666;">Коэффициент неравенства (Джини): <strong>${giniCoefficient.toFixed(3)}</strong> ${giniCoefficient > 0.3 ? '(высокое неравенство)' : '(равномерное распределение)'}</p>`;
+    }
+    
+    analysis += '</div>';
+    
+    return analysis;
+}
+
+// Дополнительные вспомогательные функции
+function lightenColor(color, percent) {
+    const num = parseInt(color.replace("#", ""), 16);
+    const amt = Math.round(2.55 * percent);
+    const R = (num >> 16) + amt;
+    const G = (num >> 8 & 0x00FF) + amt;
+    const B = (num & 0x0000FF) + amt;
+    
+    return "#" + (
+        0x1000000 +
+        (R < 255 ? R < 1 ? 0 : R : 255) * 0x10000 +
+        (G < 255 ? G < 1 ? 0 : G : 255) * 0x100 +
+        (B < 255 ? B < 1 ? 0 : B : 255)
+    ).toString(16).slice(1);
+}
+
+function darkenColor(color, percent) {
+    const num = parseInt(color.replace("#", ""), 16);
+    const amt = Math.round(2.55 * percent);
+    const R = (num >> 16) - amt;
+    const G = (num >> 8 & 0x00FF) - amt;
+    const B = (num & 0x0000FF) - amt;
+    
+    return "#" + (
+        0x1000000 +
+        (R < 255 ? R < 1 ? 0 : R : 255) * 0x10000 +
+        (G < 255 ? G < 1 ? 0 : G : 255) * 0x100 +
+        (B < 255 ? B < 1 ? 0 : B : 255)
+    ).toString(16).slice(1);
+}
+
+function calculateGiniCoefficient(values) {
+    // Расчет коэффициента Джини для оценки неравенства распределения
+    const sorted = values.slice().sort((a, b) => a - b);
+    const n = sorted.length;
+    const sum = sorted.reduce((a, b) => a + b, 0);
+    
+    if (sum === 0) return 0;
+    
+    let cumulative = 0;
+    let gini = 0;
+    
+    for (let i = 0; i < n; i++) {
+        cumulative += sorted[i];
+        gini += (i + 1) * sorted[i];
+    }
+    
+    return (2 * gini) / (n * sum) - (n + 1) / n;
+}
+
+// Функция для генерации распределения оценок в данных отчета
+function generateGradesDistributionn(settings) {
+    // Интегрируем критерии перед генерацией отчета
+    const integratedAppData = integrateCriteriaForReports(window.appData);
+    
+    // Теперь можем безопасно использовать
+    const validation = integratedAppData.helpers.validateCriteria();
+    
+    if (!validation.isValid) {
+        showNotification('Проблемы с критериями оценивания', 'error');
+        return;
+    }
+    
+    // Генерируем распределение оценок с совместимыми критериями	
+    const distribution = calculateGradeDistributionWithCompatibleCriteria(integratedAppData);
+    const stats = calculateStatistics();
+    
+    return {
+        distribution: distribution,
+        statistics: {
+            totalStudents: stats.totalStudents,
+            averageGrade: stats.averageGrade,
+            successRate: stats.successRate,
+            medianGrade: calculateMedianGrade(),
+            modeGrade: calculateModeGrade(),
+            standardDeviation: calculateStandardDeviation()
+        },
+        analysis: analyzeGradeDistribution(distribution),
+        recommendations: generateDistributionRecommendations(distribution)
+    };
+}
+
+function calculateMedianGrade() {
+    if (!appData.students || appData.students.length === 0) return 0;
+    
+    const grades = appData.students
+        .map(student => {
+            const totalScore = calculateStudentTotal(student.id);
+            return calculateGrade(totalScore);
+        })
+        .filter(grade => grade !== null)
+        .sort((a, b) => a - b);
+    
+    if (grades.length === 0) return 0;
+    
+    const middle = Math.floor(grades.length / 2);
+    
+    if (grades.length % 2 === 0) {
+        return (grades[middle - 1] + grades[middle]) / 2;
+    } else {
+        return grades[middle];
+    }
+}
+
+function calculateModeGrade() {
+    if (!appData.students || appData.students.length === 0) return 0;
+    
+    const gradeCounts = {};
+    
+    appData.students.forEach(student => {
+        const totalScore = calculateStudentTotal(student.id);
+        const grade = calculateGrade(totalScore);
+        
+        if (grade !== null) {
+            gradeCounts[grade] = (gradeCounts[grade] || 0) + 1;
+        }
+    });
+    
+    let mode = 0;
+    let maxCount = 0;
+    
+    Object.entries(gradeCounts).forEach(([grade, count]) => {
+        if (count > maxCount) {
+            maxCount = count;
+            mode = parseInt(grade);
+        }
+    });
+    
+    return mode;
+}
+
+function calculateStandardDeviation() {
+    if (!appData.students || appData.students.length === 0) return 0;
+    
+    const grades = appData.students
+        .map(student => {
+            const totalScore = calculateStudentTotal(student.id);
+            return calculateGrade(totalScore);
+        })
+        .filter(grade => grade !== null);
+    
+    if (grades.length === 0) return 0;
+    
+    const mean = grades.reduce((sum, grade) => sum + grade, 0) / grades.length;
+    const squaredDiffs = grades.map(grade => Math.pow(grade - mean, 2));
+    const variance = squaredDiffs.reduce((sum, diff) => sum + diff, 0) / grades.length;
+    
+    return Math.sqrt(variance).toFixed(2);
+}
+
+function analyzeGradeDistribution(distribution) {
+    const analysis = {
+        type: '',
+        description: '',
+        strengths: [],
+        weaknesses: []
+    };
+    
+    const excellent = distribution['5'] || 0;
+    const good = distribution['4'] || 0;
+    const average = distribution['3'] || 0;
+    const weak = distribution['2'] || 0;
+    
+    // Определяем тип распределения
+    if (excellent >= 40) {
+        analysis.type = 'Отличные результаты';
+        analysis.description = 'Большинство учащихся показали высокие результаты';
+        analysis.strengths.push('Высокая мотивация учащихся', 'Хорошее усвоение материала');
+    } else if (good >= 40) {
+        analysis.type = 'Хорошие результаты';
+        analysis.description = 'Стабильные хорошие результаты по классу';
+        analysis.strengths.push('Стабильная успеваемость', 'Хорошая подготовка');
+    } else if (average >= 50) {
+        analysis.type = 'Средние результаты';
+        analysis.description = 'Преобладают удовлетворительные результаты';
+        analysis.strengths.push('Базовая подготовка присутствует');
+        analysis.weaknesses.push('Необходимо повышать уровень');
+    } else if (weak >= 30) {
+        analysis.type = 'Требуется вмешательство';
+        analysis.description = 'Значительная часть класса испытывает трудности';
+        analysis.weaknesses.push('Низкая успеваемость', 'Требуется дополнительная работа');
+    } else {
+        analysis.type = 'Смешанные результаты';
+        analysis.description = 'Распределение оценок неравномерно';
+    }
+    
+    return analysis;
+}
+
+function generateDistributionRecommendations(distribution) {
+    const recommendations = [];
+    const excellent = distribution['5'] || 0;
+    const good = distribution['4'] || 0;
+    const average = distribution['3'] || 0;
+    const weak = distribution['2'] || 0;
+    
+    if (weak > 20) {
+        recommendations.push({
+            priority: 'high',
+            action: 'Индивидуальная работа с отстающими',
+            description: `Более ${weak}% учащихся получили неудовлетворительные оценки`,
+            deadline: 'Срочно'
+        });
+    }
+    
+    if (excellent < 15 && good < 30) {
+        recommendations.push({
+            priority: 'medium',
+            action: 'Мотивация сильных учащихся',
+            description: 'Недостаточно высоких результатов',
+            deadline: '2 недели'
+        });
+    }
+    
+    if (Math.abs(excellent - weak) > 40) {
+        recommendations.push({
+            priority: 'medium',
+            action: 'Дифференцированный подход',
+            description: 'Большой разрыв между сильными и слабыми учащимися',
+            deadline: '1 неделя'
+        });
+    }
+    
+    // Общие рекомендации
+    recommendations.push({
+        priority: 'low',
+        action: 'Анализ типичных ошибок',
+        description: 'Выявить общие проблемы в выполнении заданий',
+        deadline: '3 дня'
+    });
+    
+    return recommendations;
+}
+
 
 // Генерация HTML для базовой информации
 function generateBasicInfoHTML(basicInfo) {
@@ -2162,11 +3529,28 @@ function updateReportTemplate() {
 function generateReportPreview() {
     console.log('Генерация предпросмотра отчета...');
     
+    // Проверка данных перед генерацией
+    if (!window.appData || !window.appData.students || window.appData.students.length === 0) {
+        showNotification('Нет данных учащихся для генерации отчета', 'error');
+        return;
+    }
+    
+    if (!window.appData.tasks || window.appData.tasks.length === 0) {
+        showNotification('Нет данных заданий для генерации отчета', 'error');
+        return;
+    }
+    
     // Собираем настройки
     const settings = collectReportSettings();
     
-    // Генерируем данные отчета
-    reportData = generateReportData(settings);
+    // Генерируем данные отчета с обработкой ошибок
+    try {
+        reportData = generateReportData(settings);
+    } catch (error) {
+        console.error('Ошибка генерации данных отчета:', error);
+        showNotification('Ошибка генерации отчета: ' + error.message, 'error');
+        return;
+    }
     
     // Отображаем предпросмотр
     displayReportPreview(reportData, currentPreviewMode);
@@ -2178,22 +3562,19 @@ function generateReportPreview() {
 }
 
 function calculateStudentTotal(studentId) {
-    if (!studentId) return null;
+    if (!studentId || !window.appData || !window.appData.results) return 0;
     
     let total = 0;
-    const studentResults = appData.results[studentId];
+    const studentResults = window.appData.results[studentId];
     
     if (!studentResults) return 0;
     
-    // Если результаты хранятся как объект {taskId: score}
-    if (typeof studentResults === 'object') {
-        Object.values(studentResults).forEach(score => {
+    if (Array.isArray(studentResults)) {
+        studentResults.forEach(score => {
             total += parseFloat(score) || 0;
         });
-    } 
-    // Если результаты хранятся как массив
-    else if (Array.isArray(studentResults)) {
-        studentResults.forEach(score => {
+    } else if (typeof studentResults === 'object') {
+        Object.values(studentResults).forEach(score => {
             total += parseFloat(score) || 0;
         });
     }
@@ -2201,34 +3582,42 @@ function calculateStudentTotal(studentId) {
     return total;
 }
 
+
 function calculateGrade(totalScore) {
-    if (typeof totalScore !== 'number') return null;
+    if (typeof totalScore !== 'number' || isNaN(totalScore)) return null;
     
-    const criteria = appData.test.criteria;
-    if (!criteria) return null;
+    if (!window.appData || !window.appData.test || !window.appData.test.criteria) {
+        // Простая логика по умолчанию
+        const maxScore = calculateMaxScores();
+        const percentage = (totalScore / maxScore) * 100;
+        
+        if (percentage >= 85) return '5';
+        if (percentage >= 70) return '4';
+        if (percentage >= 50) return '3';
+        return '2';
+    }
     
-    const maxScore = calculateMaxScore();
+    // Использовать критерии из appData
+    const criteria = window.appData.test.criteria;
+    const maxScore = calculateMaxScores();
     const percentage = (totalScore / maxScore) * 100;
     
-    // Ищем подходящую оценку
     for (const [grade, range] of Object.entries(criteria).sort((a, b) => b[0] - a[0])) {
-        const gradeNum = parseInt(grade);
-        if (percentage >= (range.min / maxScore * 100) && 
-            percentage <= (range.max / maxScore * 100)) {
-            return gradeNum;
+        if (percentage >= range.min && percentage <= range.max) {
+            return grade;
         }
     }
     
-    return 2; // По умолчанию "2"
+    return '2';
 }
 
-function calculateMaxScore() {
-    if (!appData.tasks || !Array.isArray(appData.tasks)) {
+function calculateMaxScores() {
+    if (!window.appData || !window.appData.tasks || !Array.isArray(window.appData.tasks)) {
         return 100; // Значение по умолчанию
     }
     
     try {
-        return appData.tasks.reduce((sum, task) => {
+        return window.appData.tasks.reduce((sum, task) => {
             const score = parseInt(task.maxScore) || 1;
             return sum + score;
         }, 0);
@@ -2240,20 +3629,20 @@ function calculateMaxScore() {
 
 
 // Безопасные версии функций
-function safe1CalculateGradeDistribution() {
+function safe1calculateGradeDistributionn() {
     try {
-        return calculateGradeDistribution();
+        return calculateGradeDistributionn();
     } catch (error) {
-        console.error('Ошибка в CalculateGradeDistribution:', error);
+        console.error('Ошибка в calculateGradeDistributionn:', error);
         return { '2': 0, '3': 0, '4': 0, '5': 0 };
     }
 }
 
-function safe1CalculateStatistics() {
+function safe1calculateStatistics() {
     try {
         return calculateStatistics();
     } catch (error) {
-        console.error('Ошибка в CalculateStatistics:', error);
+        console.error('Ошибка в calculateStatistics:', error);
         return {
             totalStudents: 0,
             totalTasks: 0,
@@ -2268,7 +3657,7 @@ function safe1CalculateStatistics() {
 }
 
 // Расчет распределения оценок
-function calculateGradeDistribution() {
+function calculateGradeDistributionn() {
     // Проверяем наличие данных
     if (!window.appData || !window.appData.students || !Array.isArray(window.appData.students)) {
         console.warn('Нет данных об учащихся для расчета распределения оценок');
@@ -2292,7 +3681,7 @@ function calculateGradeDistribution() {
             }
         });
     } catch (error) {
-        console.error('Ошибка в calculateGradeDistribution:', error);
+        console.error('Ошибка в calculateGradeDistributionn:', error);
     }
     
     // Конвертируем в проценты
@@ -2435,9 +3824,19 @@ function detectAnomalies() {
     if (stats.averageGrade < 2.0) {
         anomalies.push('Аномально низкий средний балл. Проверьте сложность заданий.');
     }
+    // Интегрируем критерии перед генерацией отчета
+    const integratedAppData = integrateCriteriaForReports(window.appData);
     
+    // Теперь можем безопасно использовать
+    const validation = integratedAppData.helpers.validateCriteria();
+    
+    if (!validation.isValid) {
+        showNotification('Проблемы с критериями оценивания', 'error');
+        return;
+    }
+        
     // Проверка распределения оценок
-    const distribution = CalculateGradeDistribution();
+    const distribution = calculateGradeDistributionWithCompatibleCriteria(integratedAppData);
     if (distribution['5'] > 80) {
         anomalies.push('Более 80% отличников - возможно, задания слишком простые');
     }
@@ -3074,7 +4473,7 @@ function generateAIRecommendations() {
 
 // Генерация статистики для отчета
 function generateStatistics(settings) {
-    const stats = CalculateStatistics();
+    const stats = calculateStatistics();
     
     return {
         totalStudents: stats.totalStudents,
@@ -3116,3 +4515,713 @@ function generateRecommendations(settings) {
 }
 
 
+// Функция проверки и валидации критериев в appData
+function validateAppDataCriteria(appData) {
+    const results = {
+        isValid: false,
+        errors: [],
+        warnings: [],
+        fixedData: null,
+        criteriaSummary: null
+    };
+    
+    // Проверка существования appData
+    if (!appData) {
+        results.errors.push('appData не определен');
+        return results;
+    }
+    
+    // Проверка существования test объекта
+    if (!appData.test) {
+        results.errors.push('appData.test не определен');
+        return results;
+    }
+    
+    // Проверка критериев
+    if (!appData.test.criteria) {
+        results.errors.push('Критерии оценивания не определены в appData.test.criteria');
+        return results;
+    }
+    
+    const criteria = appData.test.criteria;
+    
+    // Нормализация ключей: все ключи преобразуем в строки для консистентности
+    const normalizedCriteria = {};
+    Object.keys(criteria).forEach(key => {
+        const normalizedKey = String(key);
+        normalizedCriteria[normalizedKey] = { ...criteria[key] };
+    });
+    
+    // Проверка наличия всех необходимых оценок
+    const requiredGrades = ['5', '4', '3', '2'];
+    const missingGrades = requiredGrades.filter(grade => !normalizedCriteria[grade]);
+    
+    if (missingGrades.length > 0) {
+        results.errors.push(`Отсутствуют критерии для оценок: ${missingGrades.join(', ')}`);
+        return results;
+    }
+    
+    // Проверка структуры критериев для каждой оценки
+    const gradeErrors = [];
+    requiredGrades.forEach(grade => {
+        const gradeCriteria = normalizedCriteria[grade];
+        
+        if (!gradeCriteria) {
+            gradeErrors.push(`Критерий для оценки ${grade} отсутствует`);
+            return;
+        }
+        
+        // Нормализация значений min/max в числа
+        const minValue = parseFloat(gradeCriteria.min);
+        const maxValue = parseFloat(gradeCriteria.max);
+        
+        if (isNaN(minValue)) {
+            gradeErrors.push(`Критерий для оценки ${grade}: min должно быть числом (получено: ${gradeCriteria.min})`);
+        }
+        
+        if (isNaN(maxValue)) {
+            gradeErrors.push(`Критерий для оценки ${grade}: max должно быть числом (получено: ${gradeCriteria.max})`);
+        }
+        
+        if (!isNaN(minValue) && !isNaN(maxValue) && minValue > maxValue) {
+            gradeErrors.push(`Критерий для оценки ${grade}: min (${minValue}) > max (${maxValue})`);
+        }
+        
+        // Сохраняем нормализованные значения
+        normalizedCriteria[grade].min = minValue;
+        normalizedCriteria[grade].max = maxValue;
+    });
+    
+    if (gradeErrors.length > 0) {
+        results.errors.push(...gradeErrors);
+        return results;
+    }
+    
+    // Проверка непрерывности интервалов
+    const grades = ['5', '4', '3', '2'];
+    const continuityErrors = [];
+    
+    for (let i = 0; i < grades.length - 1; i++) {
+        const currentGrade = grades[i];
+        const nextGrade = grades[i + 1];
+        
+        const currentMax = normalizedCriteria[currentGrade].max;
+        const nextMin = normalizedCriteria[nextGrade].min;
+        
+        if (Math.abs(currentMax + 1 - nextMin) > 0.01) {
+            continuityErrors.push(
+                `Разрыв между ${currentGrade} (max=${currentMax}) и ${nextGrade} (min=${nextMin}): должно быть ${currentMax + 1}`
+            );
+        }
+    }
+    
+    if (continuityErrors.length > 0) {
+        results.warnings.push(...continuityErrors);
+    }
+    
+    // Проверка перекрытия интервалов
+    for (let i = 0; i < grades.length; i++) {
+        for (let j = i + 1; j < grades.length; j++) {
+            const gradeA = grades[i];
+            const gradeB = grades[j];
+            
+            const aMin = normalizedCriteria[gradeA].min;
+            const aMax = normalizedCriteria[gradeA].max;
+            const bMin = normalizedCriteria[gradeB].min;
+            const bMax = normalizedCriteria[gradeB].max;
+            
+            // Проверяем, что интервалы не перекрываются
+            if (!(bMin > aMax || bMax < aMin)) {
+                results.warnings.push(
+                    `Перекрытие интервалов: ${gradeA} [${aMin}-${aMax}] и ${gradeB} [${bMin}-${bMax}]`
+                );
+            }
+        }
+    }
+    
+    // Проверка, что минимальная оценка 2 начинается с 0
+    if (normalizedCriteria['2'].min !== 0) {
+        results.warnings.push(`Минимальный балл для оценки 2 должен быть 0 (сейчас: ${normalizedCriteria['2'].min})`);
+    }
+    
+    // Проверка systemType
+    if (!appData.test.criteriaType) {
+        results.warnings.push('criteriaType не указан, используется значение по умолчанию: points');
+        appData.test.criteriaType = 'points';
+    }
+    
+    // Проверка criteriaSystem
+    if (!appData.test.criteriaSystem) {
+        results.warnings.push('criteriaSystem не указан, используется значение по умолчанию: standard');
+        appData.test.criteriaSystem = 'standard';
+    }
+    
+    // Проверка criteriaScale
+    if (!appData.test.criteriaScale) {
+        results.warnings.push('criteriaScale не указан, используется значение по умолчанию: 2-5');
+        appData.test.criteriaScale = '2-5';
+    }
+    
+    // Проверка criteriaCount
+    if (!appData.test.criteriaCount) {
+        appData.test.criteriaCount = Object.keys(normalizedCriteria).length;
+    }
+    
+    // Создание исправленной версии при необходимости
+    if (results.warnings.length > 0 && results.errors.length === 0) {
+        results.fixedData = JSON.parse(JSON.stringify(appData));
+        results.fixedData.test.criteria = normalizedCriteria;
+        
+        // Автоматическое исправление непрерывности
+        if (continuityErrors.length > 0) {
+            // Начинаем с оценки 2 как 0
+            results.fixedData.test.criteria['2'].min = 0;
+            results.fixedData.test.criteria['2'].max = normalizedCriteria['3'].min - 1;
+            
+            // Обновляем остальные оценки
+            const fixedGrades = ['3', '4', '5'];
+            fixedGrades.forEach((grade, index) => {
+                const prevGrade = index === 0 ? '2' : fixedGrades[index - 1];
+                if (results.fixedData.test.criteria[prevGrade] && results.fixedData.test.criteria[grade]) {
+                    results.fixedData.test.criteria[grade].min = results.fixedData.test.criteria[prevGrade].max + 1;
+                }
+            });
+            
+            results.warnings.push('Непрерывность критериев была автоматически исправлена');
+        }
+        
+        // Исправляем, если оценка 2 не начинается с 0
+        if (normalizedCriteria['2'].min !== 0) {
+            results.fixedData.test.criteria['2'].min = 0;
+            results.warnings.push('Минимальный балл для оценки 2 установлен на 0');
+        }
+    }
+    
+    // Создание сводки критериев
+    results.criteriaSummary = {
+        systemType: appData.test.criteriaType || 'points',
+        criteriaSystem: appData.test.criteriaSystem || 'standard',
+        criteriaScale: appData.test.criteriaScale || '2-5',
+        criteriaCount: appData.test.criteriaCount || Object.keys(normalizedCriteria).length,
+        maxScore: normalizedCriteria['5'].max,
+        ranges: {},
+        normalizedCriteria: normalizedCriteria
+    };
+    
+    requiredGrades.forEach(grade => {
+        results.criteriaSummary.ranges[grade] = {
+            min: normalizedCriteria[grade].min,
+            max: normalizedCriteria[grade].max,
+            range: normalizedCriteria[grade].max - normalizedCriteria[grade].min + 1,
+            percentage: Math.round((normalizedCriteria[grade].max / normalizedCriteria['5'].max) * 100) + '%'
+        };
+    });
+    
+    // Проверка валютности
+    results.isValid = results.errors.length === 0;
+    
+    return results;
+}
+
+// Функция для применения исправлений к критериям
+function fixAppDataCriteria(appData) {
+    const validation = validateAppDataCriteria(appData);
+    
+    if (!validation.isValid) {
+        console.error('Невозможно исправить критерии, есть ошибки:', validation.errors);
+        return false;
+    }
+    
+    if (validation.fixedData) {
+        // Копируем исправленные критерии обратно в appData
+        Object.keys(validation.fixedData.test.criteria).forEach(grade => {
+            appData.test.criteria[grade] = { ...validation.fixedData.test.criteria[grade] };
+        });
+        
+        // Обновляем метаданные
+        appData.test.criteriaType = validation.fixedData.test.criteriaType || 'points';
+        appData.test.criteriaSystem = validation.fixedData.test.criteriaSystem || 'standard';
+        appData.test.criteriaScale = validation.fixedData.test.criteriaScale || '2-5';
+        appData.test.criteriaCount = Object.keys(appData.test.criteria).length;
+        
+        return true;
+    }
+    
+    return false;
+}
+
+// Функция для создания критериев по умолчанию
+function createDefaultCriteria(maxScore = 100) {
+    return {
+        '5': { min: Math.round(maxScore * 0.85), max: maxScore },
+        '4': { min: Math.round(maxScore * 0.70), max: Math.round(maxScore * 0.84) },
+        '3': { min: Math.round(maxScore * 0.50), max: Math.round(maxScore * 0.69) },
+        '2': { min: 0, max: Math.round(maxScore * 0.49) }
+    };
+}
+
+// Функция для применения критериев к баллу
+function applyCriteriaToScore(score, appData, debug = false) {
+    if (!appData || !appData.test || !appData.test.criteria) {
+        console.warn('Критерии не определены, используем стандартные');
+        const defaultCriteria = createDefaultCriteria(100);
+        return applyCriteriaToScore(score, { test: { criteria: defaultCriteria } }, debug);
+    }
+    
+    const criteria = appData.test.criteria;
+    const numericScore = parseFloat(score);
+    
+    if (debug) {
+        console.log('applyCriteriaToScore:', {
+            score: score,
+            numericScore: numericScore,
+            criteria: criteria,
+            criteriaKeys: Object.keys(criteria)
+        });
+    }
+    
+    if (isNaN(numericScore)) {
+        return {
+            grade: null,
+            criteria: null,
+            score: score,
+            isInRange: false,
+            error: 'Score is not a number'
+        };
+    }
+    
+    // Нормализация ключей критериев для поиска
+    const criteriaKeys = Object.keys(criteria);
+    const normalizedCriteria = {};
+    
+    criteriaKeys.forEach(key => {
+        const normalizedKey = String(key);
+        normalizedCriteria[normalizedKey] = {
+            min: parseFloat(criteria[key].min),
+            max: parseFloat(criteria[key].max)
+        };
+    });
+    
+    if (debug) {
+        console.log('Normalized criteria:', normalizedCriteria);
+    }
+    
+    // Ищем подходящую оценку (проверяем все возможные представления)
+    const possibleGrades = ['5', '4', '3', '2', 5, 4, 3, 2];
+    
+    for (const grade of possibleGrades) {
+        const gradeStr = String(grade);
+        const gradeCriteria = normalizedCriteria[gradeStr];
+        
+        if (debug) {
+            console.log(`Checking grade ${grade} (as ${gradeStr}):`, gradeCriteria);
+        }
+        
+        if (gradeCriteria && 
+            !isNaN(gradeCriteria.min) && 
+            !isNaN(gradeCriteria.max) &&
+            numericScore >= gradeCriteria.min && 
+            numericScore <= gradeCriteria.max) {
+            
+            if (debug) {
+                console.log(`Found matching grade ${grade}: ${gradeCriteria.min}-${gradeCriteria.max}`);
+            }
+            
+            return {
+                grade: parseInt(grade),
+                criteria: gradeCriteria,
+                score: numericScore,
+                isInRange: true,
+                gradeString: gradeStr
+            };
+        }
+    }
+    
+    // Если не нашли, определяем ближайшую оценку
+    if (debug) {
+        console.log('No exact match found, finding closest grade');
+    }
+    
+    let closestGrade = null;
+    let minDistance = Infinity;
+    let closestCriteria = null;
+    
+    possibleGrades.forEach(grade => {
+        const gradeStr = String(grade);
+        const gradeCriteria = normalizedCriteria[gradeStr];
+        
+        if (gradeCriteria && !isNaN(gradeCriteria.min) && !isNaN(gradeCriteria.max)) {
+            // Рассчитываем расстояние до центра диапазона
+            const center = (gradeCriteria.min + gradeCriteria.max) / 2;
+            const distance = Math.abs(numericScore - center);
+            
+            if (distance < minDistance) {
+                minDistance = distance;
+                closestGrade = grade;
+                closestCriteria = gradeCriteria;
+            }
+        }
+    });
+    
+    const result = {
+        grade: closestGrade ? parseInt(closestGrade) : null,
+        criteria: closestCriteria,
+        score: numericScore,
+        isInRange: false,
+        distanceToRange: minDistance,
+        gradeString: closestGrade ? String(closestGrade) : null
+    };
+    
+    if (debug) {
+        console.log('Closest grade result:', result);
+    }
+    
+    return result;
+}
+
+
+// Функция для совместимости с функциями из второго модуля
+function syncCriteriaWithOtherModule(appData, otherModuleFunctions) {
+    if (!appData || !appData.test || !appData.test.criteria) {
+        return false;
+    }
+    
+    // Получаем текущие критерии
+    const criteria = appData.test.criteria;
+    const normalized = {};
+    
+    // Нормализуем все ключи к строкам для консистентности
+    Object.keys(criteria).forEach(key => {
+        const normalizedKey = String(key);
+        normalized[normalizedKey] = {
+            min: parseFloat(criteria[key].min),
+            max: parseFloat(criteria[key].max)
+        };
+    });
+    
+    // Проверяем, есть ли конфликты между системами
+    const validation = validateAppDataCriteria(appData);
+    
+    if (!validation.isValid) {
+        console.error('Критерии не валидны, требуется исправление:', validation.errors);
+        
+        // Пытаемся исправить
+        if (validation.fixedData) {
+            // Копируем исправленные критерии
+            appData.test.criteria = validation.fixedData.test.criteria;
+            console.log('Критерии исправлены автоматически');
+        }
+    }
+    
+    // Обновляем интерфейс если есть соответствующие функции
+    if (otherModuleFunctions && otherModuleFunctions.updateCriteriaVisualization) {
+        try {
+            otherModuleFunctions.updateCriteriaVisualization();
+        } catch (error) {
+            console.error('Ошибка обновления визуализации:', error);
+        }
+    }
+    
+    // Обновляем слайдер если есть
+    if (otherModuleFunctions && otherModuleFunctions.updateCriteriaSlider) {
+        try {
+            otherModuleFunctions.updateCriteriaSlider();
+        } catch (error) {
+            console.error('Ошибка обновления слайдера:', error);
+        }
+    }
+    
+    return true;
+}
+
+// Функция для получения критериев в формате, совместимом с обоими модулями
+function getCompatibleCriteria(appData) {
+    if (!appData || !appData.test || !appData.test.criteria) {
+        return null;
+    }
+    
+    const criteria = appData.test.criteria;
+    const compatible = {};
+    
+    // Создаем объект с обоими типами ключей (строки и числа)
+    Object.keys(criteria).forEach(key => {
+        const strKey = String(key);
+        const numKey = parseInt(key);
+        
+        if (!isNaN(numKey)) {
+            // Для числовых ключей
+            compatible[numKey] = {
+                min: parseFloat(criteria[key].min),
+                max: parseFloat(criteria[key].max)
+            };
+        }
+        
+        // Для строковых ключей
+        compatible[strKey] = {
+            min: parseFloat(criteria[key].min),
+            max: parseFloat(criteria[key].max)
+        };
+    });
+    
+    return compatible;
+}
+
+// Универсальная функция расчета оценки
+function calculateUniversalGrade(score, appData) {
+    const result = applyCriteriaToScore(score, appData);
+    
+    // Возвращаем в формате, совместимом с обоими модулями
+    return {
+        grade: result.grade,
+        gradeString: String(result.grade),
+        isInRange: result.isInRange,
+        min: result.criteria ? result.criteria.min : null,
+        max: result.criteria ? result.criteria.max : null,
+        score: result.score
+    };
+}
+
+// Функция для конвертации критериев между форматами
+function convertCriteriaFormat(criteria, targetFormat = 'string') {
+    const converted = {};
+    
+    Object.keys(criteria).forEach(key => {
+        const value = criteria[key];
+        
+        if (targetFormat === 'string') {
+            // Конвертируем в строковые ключи
+            converted[String(key)] = {
+                min: parseFloat(value.min),
+                max: parseFloat(value.max)
+            };
+        } else if (targetFormat === 'number') {
+            // Конвертируем в числовые ключи
+            const numKey = parseInt(key);
+            if (!isNaN(numKey)) {
+                converted[numKey] = {
+                    min: parseFloat(value.min),
+                    max: parseFloat(value.max)
+                };
+            }
+        } else if (targetFormat === 'both') {
+            // Сохраняем оба формата
+            const strKey = String(key);
+            const numKey = parseInt(key);
+            
+            converted[strKey] = {
+                min: parseFloat(value.min),
+                max: parseFloat(value.max)
+            };
+            
+            if (!isNaN(numKey)) {
+                converted[numKey] = {
+                    min: parseFloat(value.min),
+                    max: parseFloat(value.max)
+                };
+            }
+        }
+    });
+    
+    return converted;
+}
+// Интеграционная функция для отчетов
+function integrateCriteriaForReports(appData) {
+    // Проверяем и валидируем критерии
+    const validation = validateAppDataCriteria(appData);
+    
+    if (!validation.isValid) {
+        console.error('Критерии не валидны для отчетов:', validation.errors);
+        
+        // Пытаемся исправить
+        if (validation.fixedData) {
+            appData.test.criteria = validation.fixedData.test.criteria;
+            console.log('Критерии исправлены для отчетов');
+        } else {
+            // Создаем критерии по умолчанию
+            appData.test.criteria = createDefaultCriteria(calculateMaxScore());
+            console.log('Созданы критерии по умолчанию для отчетов');
+        }
+    }
+    
+    // Обеспечиваем совместимость форматов
+    appData.test.criteria = convertCriteriaFormat(appData.test.criteria, 'both');
+    
+    // Добавляем helper функции в appData для удобства
+    if (!appData.helpers) appData.helpers = {};
+    
+    appData.helpers.calculateGrade = (score) => calculateUniversalGrade(score, appData);
+    appData.helpers.getCriteria = () => getCompatibleCriteria(appData);
+    appData.helpers.validateCriteria = () => validateAppDataCriteria(appData);
+    
+    return appData;
+}
+// Дебаг функция для проверки работы
+function debugCriteriaCalculation(score, appData) {
+    console.log('=== DEBUG CRITERIA CALCULATION ===');
+    console.log('Input score:', score);
+    console.log('appData.test.criteria:', appData?.test?.criteria);
+    
+    // Проверяем разные форматы
+    const resultString = applyCriteriaToScore(score, appData, true);
+    console.log('Result with debug:', resultString);
+    
+    // Проверяем с конвертированными критериями
+    if (appData?.test?.criteria) {
+        const converted = convertCriteriaFormat(appData.test.criteria, 'both');
+        console.log('Converted criteria (both formats):', converted);
+        
+        // Проверяем поиск во всех форматах
+        ['5', 5, '4', 4, '3', 3, '2', 2].forEach(grade => {
+            const gradeKey = String(grade);
+            const criteria = converted[gradeKey];
+            if (criteria) {
+                console.log(`Grade ${grade} criteria:`, criteria);
+            }
+        });
+    }
+    
+    console.log('=== END DEBUG ===');
+    
+    return resultString;
+}
+
+
+// Функция для отображения результатов проверки
+function displayCriteriaValidation(validation) {
+    const html = `
+        <div style="max-width: 800px; padding: 20px;">
+            <h3>${validation.isValid ? '✅' : '❌'} Проверка критериев оценивания</h3>
+            
+            ${validation.errors.length > 0 ? `
+                <div style="background: #ffebee; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                    <h4 style="color: #c62828; margin-top: 0;">Ошибки:</h4>
+                    <ul style="margin: 0; padding-left: 20px;">
+                        ${validation.errors.map(error => `<li>${error}</li>`).join('')}
+                    </ul>
+                </div>
+            ` : ''}
+            
+            ${validation.warnings.length > 0 ? `
+                <div style="background: #fff3e0; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                    <h4 style="color: #ef6c00; margin-top: 0;">Предупреждения:</h4>
+                    <ul style="margin: 0; padding-left: 20px;">
+                        ${validation.warnings.map(warning => `<li>${warning}</li>`).join('')}
+                    </ul>
+                </div>
+            ` : ''}
+            
+            ${validation.criteriaSummary ? `
+                <div style="background: #e8f5e9; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                    <h4 style="color: #2e7d32; margin-top: 0;">Сводка критериев:</h4>
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <thead>
+                            <tr style="background: #c8e6c9;">
+                                <th style="padding: 8px; border: 1px solid #a5d6a7;">Параметр</th>
+                                <th style="padding: 8px; border: 1px solid #a5d6a7;">Значение</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td style="padding: 8px; border: 1px solid #a5d6a7;">Тип системы</td>
+                                <td style="padding: 8px; border: 1px solid #a5d6a7;">${validation.criteriaSummary.systemType}</td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 8px; border: 1px solid #a5d6a7;">Система оценивания</td>
+                                <td style="padding: 8px; border: 1px solid #a5d6a7;">${validation.criteriaSummary.criteriaSystem}</td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 8px; border: 1px solid #a5d6a7;">Шкала оценок</td>
+                                <td style="padding: 8px; border: 1px solid #a5d6a7;">${validation.criteriaSummary.criteriaScale}</td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 8px; border: 1px solid #a5d6a7;">Количество оценок</td>
+                                <td style="padding: 8px; border: 1px solid #a5d6a7;">${validation.criteriaSummary.criteriaCount}</td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 8px; border: 1px solid #a5d6a7;">Максимальный балл</td>
+                                <td style="padding: 8px; border: 1px solid #a5d6a7;">${validation.criteriaSummary.maxScore}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    
+                    <h5 style="margin-top: 15px;">Диапазоны оценок:</h5>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px;">
+                        ${Object.entries(validation.criteriaSummary.ranges).map(([grade, data]) => `
+                            <div style="background: white; padding: 10px; border-radius: 6px; border: 2px solid ${getGradeColor(grade)};">
+                                <div style="text-align: center; font-size: 24px; font-weight: bold; color: ${getGradeColor(grade)};">
+                                    ${grade}
+                                </div>
+                                <div style="text-align: center; font-size: 14px;">
+                                    ${data.min} - ${data.max} баллов
+                                </div>
+                                <div style="text-align: center; font-size: 12px; color: #666;">
+                                    (${data.range} баллов, ${data.percentage})
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            ` : ''}
+            
+            ${validation.fixedData ? `
+                <div style="background: #e3f2fd; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                    <h4 style="color: #1565c0; margin-top: 0;">Исправления:</h4>
+                    <p>Критерии были автоматически исправлены. Хотите применить исправления?</p>
+                    <button class="btn btn-primary" onclick="applyCriteriaFix()">Применить исправления</button>
+                </div>
+            ` : ''}
+            
+            <div style="margin-top: 20px;">
+                <button class="btn" onclick="hideModal()">Закрыть</button>
+            </div>
+        </div>
+    `;
+    
+    showModal('Проверка критериев оценивания', html);
+}
+
+// Вспомогательная функция для получения цвета оценки
+function getGradeColor(grade) {
+    const colors = {
+        '2': '#e74c3c',
+        '3': '#f39c12',
+        '4': '#3498db',
+        '5': '#2ecc71'
+    };
+    return colors[grade] || '#95a5a6';
+}
+
+// Функция для применения исправлений
+function applyCriteriaFix() {
+    if (window.appData && fixAppDataCriteria(window.appData)) {
+        showNotification('Критерии успешно исправлены', 'success');
+        hideModal();
+        // Обновить интерфейс если нужно
+        if (typeof updateCriteriaDisplay === 'function') {
+            updateCriteriaDisplay();
+        }
+    } else {
+        showNotification('Не удалось применить исправления', 'error');
+    }
+}
+
+// Функция для проверки перед генерацией отчета
+function checkCriteriaBeforeReport() {
+    const validation = validateAppDataCriteria(window.appData);
+    
+    if (!validation.isValid) {
+        showNotification('Ошибка в критериях оценивания: ' + validation.errors[0], 'error');
+        displayCriteriaValidation(validation);
+        return false;
+    }
+    
+    if (validation.warnings.length > 0) {
+        console.warn('Предупреждения в критериях:', validation.warnings);
+        // Можно показать предупреждение, но продолжить
+        if (validation.warnings.length > 3) {
+            showNotification('Обнаружены проблемы в критериях оценивания', 'warning');
+        }
+    }
+    
+    return true;
+}

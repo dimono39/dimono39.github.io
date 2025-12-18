@@ -13212,7 +13212,7 @@
 					</tr>
 				`;
 			});
-			
+			<!--
 			// Строка итогов
 			html += `
 					<tr style="background: #f8f9fa; font-weight: bold;">
@@ -13242,7 +13242,7 @@
 				totalAverageSum += calculateTaskAverage(taskIndex);
 				taskCount++;
 			});
-
+			
 			const overallAverage = taskCount > 0 ? (totalAverageSum / taskCount).toFixed(1) : 0;
 
 			html += `
@@ -13261,7 +13261,7 @@
 			`;
 			
 			container.innerHTML = html;
-			
+			-->
 			// ДЕБАГ: проверяем созданные элементы
 			setTimeout(() => {
 				console.log('Создано input элементов:', document.querySelectorAll('.score-input').length);
@@ -13286,7 +13286,7 @@
 				showNotification('Сначала добавьте учащихся', 'warning');
 				return;
 			}
-			
+			// надо дебажить
 			const hasResults = appData.students.some(student => {
 				const studentResults = appData.results[student.id];
 				return studentResults && Object.keys(studentResults).length > 0;
@@ -14424,7 +14424,83 @@
 			// Сохраняем данные
 			saveData();
 		}
-
+		function renderSummaryRow() {
+			// Находим tbody
+			const tbody = document.querySelector('.results-table tbody');
+			if (!tbody) return;
+			
+			// Удаляем старую строку итогов, если она есть
+			const oldSummaryRow = tbody.querySelector('.summary-row');
+			if (oldSummaryRow) {
+				oldSummaryRow.remove();
+			}
+			
+			// Рассчитываем средние
+			const taskAverages = recalculateTaskAverages();
+			const overallAverage = taskAverages.length > 0 ? 
+				(taskAverages.reduce((a, b) => a + b, 0) / taskAverages.length).toFixed(1) : 0;
+			
+			// Создаем новую строку итогов
+			const summaryRow = document.createElement('tr');
+			summaryRow.className = 'summary-row';
+			summaryRow.style.background = '#f8f9fa';
+			summaryRow.style.fontWeight = 'bold';
+			
+			// Первая ячейка
+			const firstCell = document.createElement('td');
+			firstCell.style.position = 'sticky';
+			firstCell.style.left = '0';
+			firstCell.style.background = '#f8f9fa';
+			firstCell.style.zIndex = '5';
+			firstCell.style.borderRight = '2px solid #ddd';
+			firstCell.style.padding = '10px';
+			firstCell.innerHTML = '📊 ИТОГО (среднее):';
+			summaryRow.appendChild(firstCell);
+			
+			// Ячейки для средних по заданиям
+			taskAverages.forEach((average, index) => {
+				const task = appData.tasks[index];
+				const maxScore = task?.maxScore || 1;
+				const percentage = maxScore > 0 ? Math.round((average / maxScore) * 100) : 0;
+				
+				const cell = document.createElement('td');
+				cell.style.textAlign = 'center';
+				cell.style.background = getPercentageColor(percentage);
+				cell.style.color = 'white';
+				cell.style.fontWeight = 'bold';
+				cell.style.padding = '10px';
+				cell.innerHTML = `
+					${average.toFixed(1)}<br>
+					<small style="font-size: 9px; opacity: 0.9;">${percentage}%</small>
+				`;
+				summaryRow.appendChild(cell);
+			});
+			
+			// Ячейка общего среднего
+			const overallCell = document.createElement('td');
+			overallCell.style.textAlign = 'center';
+			overallCell.style.background = '#3498db';
+			overallCell.style.color = 'white';
+			overallCell.style.fontWeight = 'bold';
+			overallCell.style.padding = '10px';
+			overallCell.textContent = overallAverage;
+			summaryRow.appendChild(overallCell);
+			
+			// Последние две пустые ячейки (или с кнопкой анализа)
+			const lastCell = document.createElement('td');
+			lastCell.colSpan = 2;
+			lastCell.style.textAlign = 'center';
+			lastCell.style.padding = '10px';
+			lastCell.innerHTML = `
+				<button class="btn btn-sm btn-primary" onclick="analyzeResults()" style="padding: 8px 16px;">
+					📈 Анализировать
+				</button>
+			`;
+			summaryRow.appendChild(lastCell);
+			
+			// Добавляем строку в таблицу
+			tbody.appendChild(summaryRow);
+		}
 		function calculateStudentTotals(studentId) {
 			const results = appData.results[studentId] || {};
 			let totalScore = 0;
