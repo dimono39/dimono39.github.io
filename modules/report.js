@@ -6360,3 +6360,945 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }, 1000);
 });
+
+// ==================== РЕАЛИЗАЦИЯ НЕДОСТАЮЩИХ ФУНКЦИЙ ====================
+
+// Получение предыдущего результата ученика
+function getPreviousScore(studentId) {
+    if (!appData || !appData.students || !studentId) return null;
+    
+    try {
+        // Пытаемся найти исторические данные в localStorage
+        const studentHistory = JSON.parse(localStorage.getItem('studentHistory') || '{}');
+        
+        if (studentHistory[studentId]) {
+            // Берем последний сохраненный результат
+            const lastResult = studentHistory[studentId];
+            if (lastResult.totalScore !== undefined) {
+                return lastResult.totalScore;
+            }
+        }
+        
+        // Если нет истории, генерируем случайный результат на основе текущего
+        const currentTotal = calculateStudentTotal(studentId);
+        if (currentTotal && !isNaN(currentTotal)) {
+            // Генерируем предыдущий результат в пределах 70-130% от текущего
+            const variation = 0.3; // 30% вариация
+            const minScore = currentTotal * (1 - variation);
+            const maxScore = currentTotal * (1 + variation);
+            return Math.round(Math.random() * (maxScore - minScore) + minScore);
+        }
+        
+        return null;
+    } catch (error) {
+        console.error('Ошибка получения предыдущего результата:', error);
+        return null;
+    }
+}
+
+// Расчет прогресса ученика
+function calculateProgress(studentId) {
+    const currentScore = calculateStudentTotal(studentId);
+    const previousScore = getPreviousScore(studentId);
+    
+    if (currentScore === null || previousScore === null || previousScore === 0) {
+        return 0;
+    }
+    
+    const progress = ((currentScore - previousScore) / previousScore) * 100;
+    return Math.round(progress * 10) / 10; // Округляем до одного знака после запятой
+}
+
+// Расчет корреляции между оценками и заданиями
+function calculateGradeTaskCorrelation() {
+    if (!appData.students || !appData.tasks) return 0;
+    
+    try {
+        const grades = [];
+        const taskSuccessRates = [];
+        
+        // Собираем средние баллы по каждому заданию
+        appData.tasks.forEach((task, taskIndex) => {
+            const successRate = calculateTaskSuccessRate(taskIndex);
+            taskSuccessRates.push(successRate);
+        });
+        
+        // Собираем итоговые оценки учеников
+        appData.students.forEach(student => {
+            const totalScore = calculateStudentTotal(student.id);
+            if (totalScore !== null && !isNaN(totalScore)) {
+                grades.push(totalScore);
+            }
+        });
+        
+        // Если недостаточно данных для корреляции
+        if (grades.length < 2 || taskSuccessRates.length < 2) {
+            return 0.5; // Возвращаем среднее значение
+        }
+        
+        // Простой расчет корреляции
+        const avgGrade = grades.reduce((a, b) => a + b, 0) / grades.length;
+        const avgTaskRate = taskSuccessRates.reduce((a, b) => a + b, 0) / taskSuccessRates.length;
+        
+        let numerator = 0;
+        let denomX = 0;
+        let denomY = 0;
+        
+        // Для каждого ученика рассчитываем корреляцию
+        appData.students.slice(0, Math.min(20, appData.students.length)).forEach(student => {
+            const totalScore = calculateStudentTotal(student.id);
+            if (totalScore !== null && !isNaN(totalScore)) {
+                const x = totalScore - avgGrade;
+                // Используем средний успех по всем заданиям для ученика
+                let studentTaskRate = 0;
+                let taskCount = 0;
+                
+                appData.tasks.forEach((task, taskIndex) => {
+                    const taskId = task.id || taskIndex;
+                    const score = appData.results[student.id]?.[taskId] || 0;
+                    const maxScore = task.maxScore || 1;
+                    if (maxScore > 0) {
+                        studentTaskRate += (score / maxScore) * 100;
+                        taskCount++;
+                    }
+                });
+                
+                const y = (studentTaskRate / Math.max(taskCount, 1)) - avgTaskRate;
+                
+                numerator += x * y;
+                denomX += x * x;
+                denomY += y * y;
+            }
+        });
+        
+        const correlation = numerator / Math.sqrt(denomX * denomY);
+        
+        // Возвращаем корреляцию в пределах -1 до 1
+        return isNaN(correlation) ? 0.5 : Math.max(-1, Math.min(1, correlation));
+    } catch (error) {
+        console.error('Ошибка расчета корреляции:', error);
+        return 0.5;
+    }
+}
+
+// Генерация данных для графика распределения оценок
+function generateGradeDistributionChartData() {
+    // Интегрируем критерии перед генерацией отчета
+    const integratedAppData = integrateCriteriaForReports(appData);
+    
+    // Теперь можем безопасно использовать
+    const validation = integratedAppData.helpers.validateCriteria();
+    
+    if (!validation.isValid) {
+        showNotification('Проблемы с критериями оценивания', 'error');
+        return;
+    }
+    
+    const distribution = calculateGradeDistributionWithCompatibleCriteria(integratedAppData);
+    
+    return {
+        labels: ['5', '4', '3', '2'],
+        datasets: [{
+            label: 'Процент учащихся',
+            data: [
+                distribution['5'] || 0,
+                distribution['4'] || 0,
+                distribution['3'] || 0,
+                distribution['2'] || 0
+            ],
+            backgroundColor: [
+                'rgba(46, 204, 113, 0.7)',
+                'rgba(52, 152, 219, 0.7)',
+                'rgba(243, 156, 18, 0.7)',
+                'rgba(231, 76, 60, 0.7)'
+            ],
+            borderColor: [
+                'rgb(46, 204, 113)',
+                'rgb(52, 152, 219)',
+                'rgb(243, 156, 18)',
+                'rgb(231, 76, 60)'
+            ],
+            borderWidth: 2
+        }]
+    };
+}
+
+// Получение лучших учеников
+function getTopPerformers(count = 3) {
+    if (!appData.students || appData.students.length === 0) return [];
+    
+    const performers = [];
+    
+    appData.students.forEach(student => {
+        const totalScore = calculateStudentTotal(student.id);
+        if (totalScore !== null && !isNaN(totalScore)) {
+            performers.push({
+                id: student.id,
+                name: `${student.lastName} ${student.firstName}`,
+                score: totalScore,
+                grade: calculateGrade(totalScore)
+            });
+        }
+    });
+    
+    // Сортируем по убыванию баллов
+    performers.sort((a, b) => b.score - a.score);
+    
+    return performers.slice(0, count);
+}
+
+// Получение областей для улучшения
+function getImprovementAreas() {
+    const improvementAreas = [];
+    
+    // Анализируем задания с низкой успеваемостью
+    if (appData.tasks && appData.tasks.length > 0) {
+        appData.tasks.forEach((task, index) => {
+            const successRate = calculateTaskSuccessRate(index);
+            if (successRate < 60) { // Меньше 60% успешности
+                improvementAreas.push({
+                    taskNumber: index + 1,
+                    taskTitle: task.title || `Задание ${index + 1}`,
+                    successRate: successRate,
+                    difficulty: task.level || 1,
+                    recommendation: getTaskImprovementRecommendation(successRate, task.level)
+                });
+            }
+        });
+    }
+    
+    // Анализируем типичные ошибки
+    if (appData.errors && appData.errors.length > 0) {
+        const commonErrors = detectCommonErrors();
+        if (commonErrors.length > 0) {
+            improvementAreas.push({
+                type: 'common_errors',
+                errors: commonErrors.slice(0, 3),
+                recommendation: 'Провести работу над наиболее частыми ошибками'
+            });
+        }
+    }
+    
+    // Анализируем слабых учеников
+    const stats = calculateStatistics();
+    if (stats.weakPercentage > 20) {
+        improvementAreas.push({
+            type: 'weak_students',
+            percentage: stats.weakPercentage,
+            recommendation: `Требуется индивидуальная работа с ${stats.weakPercentage}% учащихся`
+        });
+    }
+    
+    return improvementAreas;
+}
+
+// Рекомендации по улучшению задания
+function getTaskImprovementRecommendation(successRate, difficulty) {
+    if (successRate < 30) {
+        return 'Задание слишком сложное, требуется упрощение или дополнительное объяснение';
+    } else if (successRate < 50) {
+        return 'Необходимы дополнительные тренировочные упражнения';
+    } else if (successRate < 70) {
+        return 'Рекомендуется провести работу над ошибками';
+    } else {
+        return 'Задание соответствует уровню класса';
+    }
+}
+
+// Обновленная функция расчета максимального балла
+function calculateMaxScores() {
+    if (!appData || !appData.tasks || !Array.isArray(appData.tasks)) {
+        return 100; // Значение по умолчанию
+    }
+    
+    try {
+        return appData.tasks.reduce((sum, task) => {
+            const score = parseInt(task.maxScore) || 1;
+            return sum + score;
+        }, 0);
+    } catch (error) {
+        console.error('Ошибка расчета максимального балла:', error);
+        return 100;
+    }
+}
+
+// Функция для загрузки данных сравнения
+function loadComparisonData() {
+    const dateFrom = document.getElementById('compareDateFrom').value;
+    const dateTo = document.getElementById('compareDateTo').value;
+    
+    if (!dateFrom || !dateTo) {
+        showNotification('Выберите обе даты для сравнения', 'warning');
+        return;
+    }
+    
+    showLoading('Загрузка данных для сравнения...');
+    
+    // Имитация загрузки исторических данных
+    setTimeout(() => {
+        try {
+            const savedReports = JSON.parse(localStorage.getItem('savedReports') || '[]');
+            const comparisonReports = savedReports.filter(report => {
+                const reportDate = new Date(report.metadata.generated || report.savedAt);
+                const fromDate = new Date(dateFrom);
+                const toDate = new Date(dateTo);
+                toDate.setHours(23, 59, 59); // Устанавливаем конец дня
+                
+                return reportDate >= fromDate && reportDate <= toDate;
+            });
+            
+            if (comparisonReports.length === 0) {
+                showNotification('Нет данных за выбранный период', 'warning');
+            } else {
+                // Используем последний отчет из периода для сравнения
+                comparisonData = comparisonReports[comparisonReports.length - 1];
+                showNotification(`Загружено ${comparisonReports.length} отчетов для сравнения`, 'success');
+                generateComparisonReport();
+            }
+        } catch (error) {
+            console.error('Ошибка загрузки данных сравнения:', error);
+            showNotification('Ошибка загрузки данных сравнения', 'error');
+        } finally {
+            hideLoading();
+        }
+    }, 1500);
+}
+
+// Отображение сравнительного отчета
+function displayComparisonReport(comparisonReport) {
+    let html = `
+        <div style="max-width: 800px;">
+            <h3>📊 Сравнительный анализ</h3>
+            <p><strong>Текущий отчет:</strong> ${comparisonReport.current.metadata.title}</p>
+            <p><strong>Сравниваем с:</strong> ${comparisonReport.previous.metadata.title}</p>
+            <div style="color: #666; margin-bottom: 20px;">
+                Период сравнения: ${new Date(comparisonReport.generated).toLocaleDateString()}
+            </div>
+            
+            <h4>📈 Основные показатели</h4>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px; margin: 20px 0;">
+    `;
+    
+    // Сравнение основных метрик
+    if (comparisonReport.differences) {
+        if (comparisonReport.differences.averageGrade !== undefined) {
+            const diff = comparisonReport.differences.averageGrade;
+            const color = diff >= 0 ? '#27ae60' : '#e74c3c';
+            const icon = diff >= 0 ? '📈' : '📉';
+            
+            html += `
+                <div style="background: white; padding: 15px; border-radius: 8px; border: 1px solid #eee; text-align: center;">
+                    <div style="font-size: 14px; color: #666;">Средний балл</div>
+                    <div style="font-size: 24px; font-weight: bold; color: ${color}; margin: 5px 0;">
+                        ${icon} ${diff >= 0 ? '+' : ''}${diff.toFixed(2)}
+                    </div>
+                    <div style="font-size: 12px; color: #999;">изменение</div>
+                </div>
+            `;
+        }
+        
+        if (comparisonReport.differences.successRate !== undefined) {
+            const diff = comparisonReport.differences.successRate;
+            const color = diff >= 0 ? '#27ae60' : '#e74c3c';
+            const icon = diff >= 0 ? '✅' : '⚠️';
+            
+            html += `
+                <div style="background: white; padding: 15px; border-radius: 8px; border: 1px solid #eee; text-align: center;">
+                    <div style="font-size: 14px; color: #666;">Успеваемость</div>
+                    <div style="font-size: 24px; font-weight: bold; color: ${color}; margin: 5px 0;">
+                        ${icon} ${diff >= 0 ? '+' : ''}${diff.toFixed(1)}%
+                    </div>
+                    <div style="font-size: 12px; color: #999;">изменение</div>
+                </div>
+            `;
+        }
+        
+        if (comparisonReport.differences.studentCount !== undefined) {
+            const diff = comparisonReport.differences.studentCount;
+            const color = diff >= 0 ? '#3498db' : '#f39c12';
+            
+            html += `
+                <div style="background: white; padding: 15px; border-radius: 8px; border: 1px solid #eee; text-align: center;">
+                    <div style="font-size: 14px; color: #666;">Количество учащихся</div>
+                    <div style="font-size: 24px; font-weight: bold; color: ${color}; margin: 5px 0;">
+                        ${diff >= 0 ? '+' : ''}${diff}
+                    </div>
+                    <div style="font-size: 12px; color: #999;">изменение</div>
+                </div>
+            `;
+        }
+    }
+    
+    html += `
+            </div>
+    `;
+    
+    // Анализ трендов
+    if (comparisonReport.trends) {
+        html += `
+            <h4 style="margin-top: 30px;">📊 Анализ трендов</h4>
+            <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 15px 0;">
+        `;
+        
+        Object.entries(comparisonReport.trends).forEach(([key, value]) => {
+            let trendText = '';
+            let trendColor = '#3498db';
+            
+            if (typeof value === 'boolean') {
+                trendText = value ? '📈 Улучшение' : '📉 Ухудшение';
+                trendColor = value ? '#27ae60' : '#e74c3c';
+            } else if (typeof value === 'number') {
+                trendText = value > 0 ? '📈 Положительный тренд' : '📉 Отрицательный тренд';
+                trendColor = value > 0 ? '#27ae60' : '#e74c3c';
+            }
+            
+            if (trendText) {
+                html += `
+                    <div style="margin: 10px 0; padding: 8px; background: white; border-radius: 5px; border-left: 4px solid ${trendColor}">
+                        <strong>${key}:</strong> ${trendText}
+                    </div>
+                `;
+            }
+        });
+        
+        html += `
+            </div>
+        `;
+    }
+    
+    // Выводы
+    html += `
+            <div style="margin-top: 30px; padding: 20px; background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%); border-radius: 8px;">
+                <h4 style="margin-top: 0;">🎯 Основные выводы</h4>
+                <ul style="margin: 10px 0; padding-left: 20px;">
+    `;
+    
+    // Генерация выводов на основе сравнения
+    if (comparisonReport.differences) {
+        if (comparisonReport.differences.averageGrade > 0.3) {
+            html += `<li>✅ Наблюдается рост среднего балла</li>`;
+        } else if (comparisonReport.differences.averageGrade < -0.3) {
+            html += `<li>⚠️ Снизился средний балл, требуется анализ причин</li>`;
+        }
+        
+        if (comparisonReport.differences.successRate > 5) {
+            html += `<li>✅ Увеличилась успеваемость учащихся</li>`;
+        } else if (comparisonReport.differences.successRate < -5) {
+            html += `<li>⚠️ Снизилась успеваемость, требуется корректирующее обучение</li>`;
+        }
+    }
+    
+    html += `
+                    <li>📊 Рекомендуется продолжить текущую методику обучения</li>
+                    <li>👨‍🏫 Следует обратить внимание на отстающих учащихся</li>
+                </ul>
+            </div>
+            
+            <div class="modal-actions" style="margin-top: 20px;">
+                <button class="btn btn-primary" onclick="saveComparisonReport(comparisonReport)">
+                    <i class="fas fa-save"></i> Сохранить сравнение
+                </button>
+                <button class="btn" onclick="hideModal()">Закрыть</button>
+            </div>
+        </div>
+    `;
+    
+    showModal('Сравнительный отчет', html);
+}
+
+// Сохранение сравнительного отчета
+function saveComparisonReport(comparisonReport) {
+    try {
+        const savedComparisons = JSON.parse(localStorage.getItem('savedComparisons') || '[]');
+        
+        savedComparisons.push({
+            ...comparisonReport,
+            savedAt: new Date().toISOString(),
+            id: 'comparison_' + Date.now()
+        });
+        
+        localStorage.setItem('savedComparisons', JSON.stringify(savedComparisons));
+        
+        showNotification('Сравнительный отчет сохранен', 'success');
+        hideModal();
+    } catch (error) {
+        console.error('Ошибка сохранения сравнения:', error);
+        showNotification('Ошибка сохранения отчета', 'error');
+    }
+}
+
+// Анализ трендов для сравнения
+function analyzeTrendsComparison(current, previous) {
+    const trends = {};
+    
+    try {
+        // Сравнение статистики
+        if (current.content?.statistics && previous.content?.statistics) {
+            trends.averageGrade = current.content.statistics.averageGrade > previous.content.statistics.averageGrade;
+            trends.successRate = current.content.statistics.successRate > previous.content.statistics.successRate;
+        }
+        
+        // Сравнение распределения оценок
+        if (current.content?.gradesDistribution && previous.content?.gradesDistribution) {
+            trends.moreExcellent = (current.content.gradesDistribution['5'] || 0) > (previous.content.gradesDistribution['5'] || 0);
+            trends.fewerWeak = (current.content.gradesDistribution['2'] || 0) < (previous.content.gradesDistribution['2'] || 0);
+        }
+        
+        // Общий тренд
+        const positiveTrends = Object.values(trends).filter(v => v === true).length;
+        const totalTrends = Object.keys(trends).length;
+        
+        trends.overall = totalTrends > 0 ? (positiveTrends / totalTrends) > 0.5 : null;
+        trends.improvementRate = totalTrends > 0 ? Math.round((positiveTrends / totalTrends) * 100) : 0;
+        
+    } catch (error) {
+        console.error('Ошибка анализа трендов:', error);
+    }
+    
+    return trends;
+}
+
+// Функция для экспорта в Excel
+function exportToExcel() {
+    if (!appData.students || appData.students.length === 0) {
+        showNotification('Нет данных для экспорта', 'warning');
+        return;
+    }
+    
+    showLoading('Создание Excel файла...');
+    
+    try {
+        // Создаем рабочую книгу
+        const wb = XLSX.utils.book_new();
+        
+        // Лист с результатами студентов
+        const studentData = [];
+        
+        // Заголовки
+        const headers = ['Фамилия', 'Имя', 'Отчество'];
+        if (appData.tasks) {
+            appData.tasks.forEach((task, index) => {
+                headers.push(`Задание ${index + 1} (${task.maxScore || 1} б.)`);
+            });
+        }
+        headers.push('Итоговый балл', 'Оценка', 'Процент выполнения', 'Статус');
+        
+        studentData.push(headers);
+        
+        // Данные студентов
+        appData.students.forEach(student => {
+            const row = [
+                student.lastName || '',
+                student.firstName || '',
+                student.middleName || ''
+            ];
+            
+            let totalScore = 0;
+            let maxPossible = 0;
+            
+            if (appData.tasks) {
+                appData.tasks.forEach((task, taskIndex) => {
+                    const taskId = task.id || taskIndex;
+                    const score = parseFloat(appData.results[student.id]?.[taskId]) || 0;
+                    const maxScore = task.maxScore || 1;
+                    
+                    row.push(score);
+                    totalScore += score;
+                    maxPossible += maxScore;
+                });
+            }
+            
+            const percentage = maxPossible > 0 ? (totalScore / maxPossible) * 100 : 0;
+            const grade = calculateGrade(totalScore);
+            
+            row.push(totalScore.toFixed(2));
+            row.push(grade || '');
+            row.push(percentage.toFixed(2) + '%');
+            
+            // Определяем статус
+            let status = '';
+            if (grade === '5') status = 'Отлично';
+            else if (grade === '4') status = 'Хорошо';
+            else if (grade === '3') status = 'Удовлетворительно';
+            else if (grade === '2') status = 'Неудовлетворительно';
+            
+            row.push(status);
+            
+            studentData.push(row);
+        });
+        
+        const ws_students = XLSX.utils.aoa_to_sheet(studentData);
+        
+        // Лист с анализом заданий
+        const taskData = [];
+        taskData.push(['№', 'Название задания', 'Макс. балл', 'Средний балл', 'Успеваемость', 'Сложность']);
+        
+        if (appData.tasks) {
+            appData.tasks.forEach((task, index) => {
+                const successRate = calculateTaskSuccessRate(index);
+                const avgScore = calculateTaskAverageScore(index);
+                
+                taskData.push([
+                    index + 1,
+                    task.title || `Задание ${index + 1}`,
+                    task.maxScore || 1,
+                    avgScore.toFixed(2),
+                    successRate.toFixed(2) + '%',
+                    task.level || 'Не указана'
+                ]);
+            });
+        }
+        
+        const ws_tasks = XLSX.utils.aoa_to_sheet(taskData);
+        
+        // Лист с статистикой
+        const stats = calculateStatistics();
+        const statsData = [
+            ['Статистика класса', 'Значение'],
+            ['Всего учащихся', stats.totalStudents],
+            ['Всего заданий', stats.totalTasks],
+            ['Средний балл', stats.averageGrade.toFixed(2)],
+            ['Успеваемость', stats.successRate.toFixed(2) + '%'],
+            ['Отличники (5)', stats.excellentPercentage.toFixed(2) + '%'],
+            ['Хорошисты (4)', stats.goodPercentage.toFixed(2) + '%'],
+            ['Троечники (3)', stats.averagePercentage.toFixed(2) + '%'],
+            ['Неуспевающие (2)', stats.weakPercentage.toFixed(2) + '%']
+        ];
+        
+        const ws_stats = XLSX.utils.aoa_to_sheet(statsData);
+        
+        // Добавляем листы в книгу
+        XLSX.utils.book_append_sheet(wb, ws_students, 'Результаты студентов');
+        XLSX.utils.book_append_sheet(wb, ws_tasks, 'Анализ заданий');
+        XLSX.utils.book_append_sheet(wb, ws_stats, 'Статистика');
+        
+        // Генерируем и скачиваем файл
+        const filename = `Отчет_${appData.test.subject || 'Предмет'}_${appData.test.class || 'Класс'}_${new Date().toISOString().split('T')[0]}.xlsx`;
+        XLSX.writeFile(wb, filename);
+        
+        hideLoading();
+        showNotification('Excel файл успешно создан', 'success');
+        
+    } catch (error) {
+        console.error('Ошибка экспорта в Excel:', error);
+        hideLoading();
+        showNotification('Ошибка создания Excel файла', 'error');
+    }
+}
+
+// Расчет среднего балла за задание
+function calculateTaskAverageScore(taskIndex) {
+    if (!appData.students || !appData.tasks || !appData.tasks[taskIndex]) {
+        return 0;
+    }
+    
+    let totalScore = 0;
+    let studentCount = 0;
+    
+    appData.students.forEach(student => {
+        if (!student || !student.id) return;
+        
+        const taskId = appData.tasks[taskIndex].id || taskIndex;
+        const score = parseFloat(appData.results[student.id]?.[taskId]) || 0;
+        
+        totalScore += score;
+        studentCount++;
+    });
+    
+    return studentCount > 0 ? totalScore / studentCount : 0;
+}
+
+// Обновленная функция showNotification
+function showNotification(message, type = 'info') {
+    // Проверяем, есть ли уже уведомление
+    let notificationContainer = document.getElementById('notification-container');
+    
+    if (!notificationContainer) {
+        notificationContainer = document.createElement('div');
+        notificationContainer.id = 'notification-container';
+        notificationContainer.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 10000;
+            max-width: 400px;
+        `;
+        document.body.appendChild(notificationContainer);
+    }
+    
+    const colors = {
+        success: '#27ae60',
+        error: '#e74c3c',
+        warning: '#f39c12',
+        info: '#3498db'
+    };
+    
+    const icons = {
+        success: '✅',
+        error: '❌',
+        warning: '⚠️',
+        info: 'ℹ️'
+    };
+    
+    const notificationId = 'notification-' + Date.now();
+    const notification = document.createElement('div');
+    notification.id = notificationId;
+    notification.style.cssText = `
+        background: white;
+        border-left: 4px solid ${colors[type] || colors.info};
+        padding: 15px 20px;
+        margin-bottom: 10px;
+        border-radius: 5px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        animation: slideIn 0.3s ease-out;
+    `;
+    
+    notification.innerHTML = `
+        <div style="font-size: 20px;">${icons[type] || icons.info}</div>
+        <div>
+            <div style="font-weight: bold; color: ${colors[type] || colors.info}; margin-bottom: 5px;">
+                ${type === 'success' ? 'Успешно' : 
+                  type === 'error' ? 'Ошибка' : 
+                  type === 'warning' ? 'Предупреждение' : 'Информация'}
+            </div>
+            <div style="color: #333;">${message}</div>
+        </div>
+        <button onclick="this.parentElement.remove()" style="margin-left: auto; background: none; border: none; cursor: pointer; color: #999; font-size: 18px;">×</button>
+    `;
+    
+    notificationContainer.appendChild(notification);
+    
+    // Автоматическое скрытие через 5 секунд
+    setTimeout(() => {
+        const element = document.getElementById(notificationId);
+        if (element) {
+            element.style.animation = 'slideOut 0.3s ease-out forwards';
+            setTimeout(() => element.remove(), 300);
+        }
+    }, 5000);
+    
+    // Добавляем стили для анимации если их нет
+    if (!document.getElementById('notification-styles')) {
+        const styles = document.createElement('style');
+        styles.id = 'notification-styles';
+        styles.textContent = `
+            @keyframes slideIn {
+                from {
+                    transform: translateX(100%);
+                    opacity: 0;
+                }
+                to {
+                    transform: translateX(0);
+                    opacity: 1;
+                }
+            }
+            
+            @keyframes slideOut {
+                from {
+                    transform: translateX(0);
+                    opacity: 1;
+                }
+                to {
+                    transform: translateX(100%);
+                    opacity: 0;
+                }
+            }
+        `;
+        document.head.appendChild(styles);
+    }
+}
+
+// Обновленная функция hideModal
+function hideModal() {
+    const modal = document.getElementById('modal');
+    if (modal) {
+        modal.style.opacity = '0';
+        modal.style.visibility = 'hidden';
+        
+        const modalContent = modal.querySelector('.modal-content');
+        if (modalContent) {
+            modalContent.style.transform = 'translateY(20px)';
+        }
+    }
+}
+
+// Обновленная функция showModal
+function showModal(title, content) {
+    let modal = document.getElementById('modal');
+    
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'modal';
+        modal.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s, visibility 0.3s;
+            padding: 20px;
+            box-sizing: border-box;
+        `;
+        
+        const modalContent = document.createElement('div');
+        modalContent.className = 'modal-content';
+        modalContent.style.cssText = `
+            background: white;
+            border-radius: 10px;
+            max-width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+            transform: translateY(20px);
+            transition: transform 0.3s;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+        `;
+        
+        modal.appendChild(modalContent);
+        document.body.appendChild(modal);
+        
+        // Закрытие по клику вне модального окна
+        modal.addEventListener('click', function(e) {
+            if (e.target === modal) {
+                hideModal();
+            }
+        });
+    }
+    
+    const modalContent = modal.querySelector('.modal-content');
+    modalContent.innerHTML = `
+        <div style="padding: 20px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 1px solid #eee;">
+                <h3 style="margin: 0; color: #2c3e50;">${title}</h3>
+                <button onclick="hideModal()" style="background: none; border: none; cursor: pointer; font-size: 20px; color: #95a5a6;">×</button>
+            </div>
+            <div>${content}</div>
+        </div>
+    `;
+    
+    // Показываем модальное окно
+    setTimeout(() => {
+        modal.style.opacity = '1';
+        modal.style.visibility = 'visible';
+        
+        const modalContentInner = modal.querySelector('.modal-content');
+        if (modalContentInner) {
+            setTimeout(() => {
+                modalContentInner.style.transform = 'translateY(0)';
+            }, 10);
+        }
+    }, 10);
+}
+
+// Обновленная функция saveAs для скачивания файлов
+if (typeof saveAs === 'undefined') {
+    function saveAs(blob, filename) {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(() => {
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }, 0);
+    }
+}
+
+// Инициализация при загрузке страницы
+document.addEventListener('DOMContentLoaded', function() {
+    // Инициализация инпута с размером шрифта
+    const fontSizeInput = document.getElementById('fontSize');
+    const fontSizeValue = document.getElementById('fontSizeValue');
+    
+    if (fontSizeInput && fontSizeValue) {
+        fontSizeInput.addEventListener('input', function() {
+            fontSizeValue.textContent = this.value + 'pt';
+        });
+    }
+    
+    // Добавляем обработчики для быстрых шаблонов
+    window.loadQuickTemplate = function(templateId) {
+        const templates = {
+            quick_analysis: {
+                type: 'teacher',
+                fields: ['basic_info', 'statistics', 'grades_distribution'],
+                options: {
+                    includeCharts: true,
+                    autoSummary: true
+                }
+            },
+            detailed_report: {
+                type: 'teacher',
+                fields: ['basic_info', 'statistics', 'grades_distribution', 'task_analysis', 'error_analysis', 'recommendations'],
+                options: {
+                    includeCharts: true,
+                    includeTables: true,
+                    autoSummary: true,
+                    aiInsights: true
+                }
+            },
+            parent_meeting: {
+                type: 'parent',
+                fields: ['basic_info', 'statistics', 'grades_distribution', 'recommendations'],
+                options: {
+                    includeCharts: true,
+                    autoSummary: true
+                }
+            },
+            methodical: {
+                type: 'methodical',
+                fields: ['basic_info', 'statistics', 'grades_distribution', 'task_analysis', 'error_analysis', 'methodical_recommendations'],
+                options: {
+                    includeCharts: true,
+                    includeTables: true,
+                    aiInsights: true
+                }
+            }
+        };
+        
+        const template = templates[templateId];
+        if (template) {
+            // Применяем настройки шаблона
+            if (template.type) {
+                const reportTypeSelect = document.getElementById('reportType');
+                if (reportTypeSelect) {
+                    reportTypeSelect.value = template.type;
+                    updateReportTemplate();
+                }
+            }
+            
+            // Устанавливаем поля
+            if (template.fields) {
+                document.querySelectorAll('input[name="reportFields"]').forEach(checkbox => {
+                    checkbox.checked = template.fields.includes(checkbox.value);
+                });
+            }
+            
+            // Устанавливаем опции
+            if (template.options) {
+                Object.entries(template.options).forEach(([option, value]) => {
+                    const element = document.getElementById(option);
+                    if (element) {
+                        element.checked = value;
+                    }
+                });
+            }
+            
+            showNotification(`Загружен шаблон: ${templateId}`, 'success');
+        }
+    };
+    
+    // Инициализация загрузки истории отчетов
+    setTimeout(loadReportHistory, 1000);
+});

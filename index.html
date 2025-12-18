@@ -2363,7 +2363,175 @@
 				min-width: 120px;
 			}
 		}
-		
+		/* Стили для отчета */
+		.report-section {
+			margin-bottom: 30px;
+			padding: 20px;
+			background: white;
+			border-radius: 8px;
+			border: 1px solid #e9ecef;
+		}
+
+		.report-table {
+			width: 100%;
+			border-collapse: collapse;
+			margin: 15px 0;
+		}
+
+		.report-table th {
+			background: #f8f9fa;
+			padding: 12px;
+			text-align: left;
+			border-bottom: 2px solid #dee2e6;
+			font-weight: 600;
+			color: #495057;
+		}
+
+		.report-table td {
+			padding: 10px 12px;
+			border-bottom: 1px solid #e9ecef;
+		}
+
+		.report-table tr:hover {
+			background: #f8f9fa;
+		}
+
+		/* Стили для шаблонов */
+		.template-card {
+			background: white;
+			border: 1px solid #e9ecef;
+			border-radius: 10px;
+			padding: 20px;
+			cursor: pointer;
+			transition: transform 0.2s, box-shadow 0.2s;
+			display: flex;
+			align-items: center;
+			gap: 15px;
+		}
+
+		.template-card:hover {
+			transform: translateY(-2px);
+			box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+		}
+
+		.template-icon {
+			font-size: 32px;
+			min-width: 50px;
+			text-align: center;
+		}
+
+		.template-info h4 {
+			margin: 0 0 5px 0;
+			color: #2c3e50;
+		}
+
+		.template-meta {
+			display: flex;
+			gap: 10px;
+			margin-top: 10px;
+			font-size: 12px;
+			color: #7f8c8d;
+		}
+
+		.template-meta span {
+			background: #f8f9fa;
+			padding: 3px 8px;
+			border-radius: 12px;
+		}
+
+		/* Стили для фильтров оценок */
+		.grade-filter-option {
+			display: flex;
+			align-items: center;
+			gap: 8px;
+			padding: 8px 12px;
+			background: #f8f9fa;
+			border-radius: 20px;
+			cursor: pointer;
+			transition: background 0.2s;
+		}
+
+		.grade-filter-option:hover {
+			background: #e9ecef;
+		}
+
+		.grade-badge {
+			width: 24px;
+			height: 24px;
+			border-radius: 50%;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			color: white;
+			font-weight: bold;
+			font-size: 12px;
+		}
+
+		.grade-label {
+			font-size: 13px;
+			color: #495057;
+		}
+
+		/* Стили для выбора формата */
+		.format-option {
+			text-align: center;
+			padding: 15px 10px;
+			border: 2px solid #e9ecef;
+			border-radius: 8px;
+			cursor: pointer;
+			transition: all 0.2s;
+		}
+
+		.format-option:hover {
+			border-color: #3498db;
+			background: #f8f9fa;
+		}
+
+		.format-option input[type="radio"]:checked + .format-icon {
+			color: #3498db;
+		}
+
+		.format-option input[type="radio"]:checked ~ .format-name {
+			color: #3498db;
+			font-weight: bold;
+		}
+
+		.format-icon {
+			font-size: 24px;
+			margin-bottom: 5px;
+		}
+
+		.format-name {
+			font-size: 14px;
+			font-weight: 500;
+			color: #495057;
+		}
+
+		/* Анимации */
+		@keyframes fadeIn {
+			from { opacity: 0; transform: translateY(10px); }
+			to { opacity: 1; transform: translateY(0); }
+		}
+
+		.report-preview-content {
+			animation: fadeIn 0.3s ease-out;
+		}
+
+		/* Адаптивность */
+		@media (max-width: 768px) {
+			.report-builder-container {
+				grid-template-columns: 1fr !important;
+			}
+			
+			.export-buttons {
+				flex-direction: column;
+			}
+			
+			.export-buttons button {
+				width: 100%;
+				margin-bottom: 5px;
+			}
+		}		
     </style>
 </head>
 <body>
@@ -13279,884 +13447,7 @@
 		
 		
 		
-		window.currentAnalysis = null;
-		function analyzeResults() {
-			console.log('📈 Анализ результатов...');
-			
-			// Проверяем наличие данных
-			if (!appData.tasks || appData.tasks.length === 0) {
-				showNotification('Сначала добавьте задания', 'warning');
-				return;
-			}
-			
-			if (!appData.students || appData.students.length === 0) {
-				showNotification('Сначала добавьте учащихся', 'warning');
-				return;
-			}
-			// надо дебажить
-			const hasResults = appData.results.some(resultArray => {
-			  return Array.isArray(resultArray) && resultArray.length > 0;
-			});
-			
-			if (!hasResults) {
-				showNotification('Сначала введите результаты', 'warning');
-				return;
-			}
-			
-			// Собираем статистику
-			const analysis = {
-				summary: {},
-				byTask: [],
-				byStudent: [],
-				byLevel: {},
-				byErrorType: {},
-				correlations: [],
-				insights: []
-			};
-			
-			// 1. Общая статистика
-			analysis.summary = calculateSummaryStatistics();
-			
-			// 2. Анализ по заданиям
-			analysis.byTask = analyzeTasksPerformance();
-			
-			// 3. Анализ по учащимся
-			analysis.byStudent = analyzeStudentsPerformance();
-			
-			// 4. Анализ по уровням сложности
-			analysis.byLevel = analyzeByComplexityLevels();
-			
-			// 5. Анализ по типам ошибок
-			analysis.byErrorType = analyzeByErrorTypes();
-			
-			// 6. Корреляции
-			analysis.correlations = findCorrelations();
-			
-			// 7. Инсайты и рекомендации
-			analysis.insights = generateInsights(analysis);
-			// Сохраняем анализ
-			window.currentAnalysis = analysis;
-			// Показываем результаты анализа
-			showAnalysisResults(analysis);
-		}
-
-		function calculateSummaryStatistics() {
-			console.log('📊 Расчет общей статистики...');
-			
-			const totalStudents = appData.students.length;
-			const totalTasks = appData.tasks.length;
-			const maxTotalScore = calculateMaxScore();
-			
-			let completedStudents = 0;
-			let totalScoreAll = 0;
-			const scores = [];
-			const grades = [];
-			
-			// Собираем данные по каждому учащемуся
-			appData.students.forEach(student => {
-				const studentId = student.id;
-				const results = appData.results[studentId] || {};
-				
-				let studentScore = 0;
-				let completedTasks = 0;
-				
-				appData.tasks.forEach(task => {
-					const taskId = task.id || task.number;
-					const score = parseFloat(results[taskId]) || 0;
-					studentScore += score;
-					
-					if (results[taskId] !== undefined) {
-						completedTasks++;
-					}
-				});
-				
-				if (completedTasks > 0) {
-					completedStudents++;
-					totalScoreAll += studentScore;
-					scores.push(studentScore);
-					
-					const grade = calculateGrade(studentScore);
-					grades.push(grade);
-				}
-			});
-			
-			// Рассчитываем статистики
-			const avgScore = scores.length > 0 ? totalScoreAll / scores.length : 0;
-			const avgPercentage = maxTotalScore > 0 ? (avgScore / maxTotalScore * 100) : 0;
-			
-			// Средняя оценка
-			const avgGrade = grades.length > 0 ? 
-				grades.reduce((a, b) => a + b, 0) / grades.length : 0;
-			
-			// Медиана
-			const sortedScores = [...scores].sort((a, b) => a - b);
-			const medianScore = sortedScores.length > 0 ?
-				sortedScores[Math.floor(sortedScores.length / 2)] : 0;
-			
-			// Стандартное отклонение
-			const variance = scores.length > 0 ?
-				scores.reduce((sum, score) => sum + Math.pow(score - avgScore, 2), 0) / scores.length : 0;
-			const stdDev = Math.sqrt(variance);
-			
-			// Процент выполнения
-			const completionRate = totalStudents > 0 ? (completedStudents / totalStudents * 100) : 0;
-			
-			return {
-				totalStudents,
-				totalTasks,
-				maxTotalScore,
-				completedStudents,
-				completionRate: completionRate.toFixed(1),
-				avgScore: avgScore.toFixed(2),
-				avgPercentage: avgPercentage.toFixed(1),
-				avgGrade: avgGrade.toFixed(2),
-				medianScore: medianScore.toFixed(2),
-				stdDev: stdDev.toFixed(2),
-				minScore: scores.length > 0 ? Math.min(...scores).toFixed(2) : 0,
-				maxScore: scores.length > 0 ? Math.max(...scores).toFixed(2) : 0,
-				scoreRange: scores.length > 0 ? (Math.max(...scores) - Math.min(...scores)).toFixed(2) : 0
-			};
-		}
-
-		function analyzeTasksPerformance() {
-			console.log('📝 Анализ выполнения заданий...');
-			
-			const taskAnalysis = [];
-			
-			appData.tasks.forEach((task, taskIndex) => {
-				const taskId = task.id || taskIndex;
-				const maxScore = task.maxScore || 1;
-				const level = task.level || 1;
-				
-				let totalScore = 0;
-				let completedBy = 0;
-				const scores = [];
-				
-				appData.students.forEach(student => {
-					const studentId = student.id;
-					const results = appData.results[studentId] || {};
-					const score = parseFloat(results[taskId]) || 0;
-					
-					if (results[taskId] !== undefined) {
-						totalScore += score;
-						completedBy++;
-						scores.push(score);
-					}
-				});
-				
-				const avgScore = completedBy > 0 ? totalScore / completedBy : 0;
-				const percentage = maxScore > 0 ? (avgScore / maxScore * 100) : 0;
-				
-				// Определяем зону решаемости
-				let zone = 'unknown';
-				if (percentage >= 80) zone = 'excellent';
-				else if (percentage >= 60) zone = 'good';
-				else if (percentage >= 40) zone = 'average';
-				else if (percentage >= 20) zone = 'weak';
-				else zone = 'critical';
-				
-				// Стандартное отклонение
-				const variance = scores.length > 0 ?
-					scores.reduce((sum, score) => sum + Math.pow(score - avgScore, 2), 0) / scores.length : 0;
-				const stdDev = Math.sqrt(variance);
-				
-				taskAnalysis.push({
-					number: taskIndex + 1,
-					taskId,
-					description: task.description || `Задание ${taskIndex + 1}`,
-					level,
-					maxScore,
-					completedBy,
-					completionRate: (completedBy / appData.students.length * 100).toFixed(1),
-					avgScore: avgScore.toFixed(2),
-					percentage: percentage.toFixed(1),
-					zone,
-					stdDev: stdDev.toFixed(2),
-					discrimination: calculateDiscrimination(scores),
-					difficulty: (100 - percentage).toFixed(1) // Чем выше - тем сложнее
-				});
-			});
-			
-			return taskAnalysis;
-		}
-
-		function calculateDiscrimination(scores) {
-			if (scores.length < 2) return 0;
-			
-			// Разделяем на верхнюю и нижнюю группы (27% лучших и 27% худших)
-			const sorted = [...scores].sort((a, b) => a - b);
-			const n = Math.floor(scores.length * 0.27);
-			
-			if (n < 1) return 0;
-			
-			const highGroup = sorted.slice(-n);
-			const lowGroup = sorted.slice(0, n);
-			
-			const highAvg = highGroup.reduce((a, b) => a + b, 0) / highGroup.length;
-			const lowAvg = lowGroup.reduce((a, b) => a + b, 0) / lowGroup.length;
-			
-			// Дискриминация - разница между средними верхней и нижней групп
-			return (highAvg - lowAvg).toFixed(2);
-		}
-
-		function analyzeStudentsPerformance() {
-			console.log('👥 Анализ успеваемости учащихся...');
-			
-			const studentAnalysis = [];
-			
-			appData.students.forEach((student, studentIndex) => {
-				const studentId = student.id;
-				const results = appData.results[studentId] || {};
-				
-				let totalScore = 0;
-				let completedTasks = 0;
-				const taskScores = [];
-				const levelScores = {};
-				
-				appData.tasks.forEach(task => {
-					const taskId = task.id || task.number;
-					const score = parseFloat(results[taskId]) || 0;
-					const level = task.level || 1;
-					
-					if (results[taskId] !== undefined) {
-						totalScore += score;
-						completedTasks++;
-						taskScores.push({
-							score,
-							maxScore: task.maxScore || 1,
-							percentage: task.maxScore > 0 ? (score / task.maxScore * 100) : 0,
-							level
-						});
-						
-						// Группируем по уровням
-						if (!levelScores[level]) {
-							levelScores[level] = { total: 0, count: 0 };
-						}
-						levelScores[level].total += score;
-						levelScores[level].count++;
-					}
-				});
-				
-				const maxPossible = calculateMaxScore();
-				const percentage = maxPossible > 0 ? (totalScore / maxPossible * 100) : 0;
-				const grade = calculateGrade(totalScore);
-				
-				// Анализ по уровням сложности
-				const levelAnalysis = {};
-				Object.entries(levelScores).forEach(([level, data]) => {
-					const avg = data.count > 0 ? data.total / data.count : 0;
-					levelAnalysis[level] = {
-						avgScore: avg.toFixed(2),
-						completionRate: (data.count / appData.tasks.filter(t => t.level == level).length * 100).toFixed(1)
-					};
-				});
-				
-				// Определяем сильные и слабые стороны
-				const strengths = [];
-				const weaknesses = [];
-				
-				taskScores.forEach((taskScore, index) => {
-					if (taskScore.percentage >= 80) {
-						strengths.push(index + 1);
-					} else if (taskScore.percentage <= 40) {
-						weaknesses.push(index + 1);
-					}
-				});
-				
-				// Стабильность результатов
-				const stability = calculateStability(taskScores.map(t => t.percentage));
-				
-				studentAnalysis.push({
-					id: studentId,
-					index: studentIndex,
-					name: `${student.lastName} ${student.firstName}`,
-					totalScore: totalScore.toFixed(2),
-					maxPossible,
-					percentage: percentage.toFixed(1),
-					grade,
-					completedTasks,
-					completionRate: (completedTasks / appData.tasks.length * 100).toFixed(1),
-					levelAnalysis,
-					strengths: strengths.slice(0, 3),
-					weaknesses: weaknesses.slice(0, 3),
-					stability: stability.toFixed(2),
-					rank: 0 // Заполнится позже
-				});
-			});
-			
-			// Сортируем по баллам и присваиваем ранги
-			studentAnalysis.sort((a, b) => b.totalScore - a.totalScore);
-			studentAnalysis.forEach((student, index) => {
-				student.rank = index + 1;
-				student.percentile = ((1 - index / studentAnalysis.length) * 100).toFixed(1);
-			});
-			
-			return studentAnalysis;
-		}
-
-		function calculateStability(percentages) {
-			if (percentages.length < 2) return 100;
-			
-			// Рассчитываем коэффициент вариации (ниже = стабильнее)
-			const mean = percentages.reduce((a, b) => a + b, 0) / percentages.length;
-			const variance = percentages.reduce((sum, p) => sum + Math.pow(p - mean, 2), 0) / percentages.length;
-			const stdDev = Math.sqrt(variance);
-			const cv = (stdDev / mean) * 100;
-			
-			// Преобразуем в стабильность (0-100)
-			return Math.max(0, 100 - cv);
-		}
-
-		function analyzeByComplexityLevels() {
-			console.log('🎯 Анализ по уровням сложности...');
-			
-			const levelAnalysis = {};
-			
-			// Инициализируем объекты для каждого уровня
-			for (let level = 1; level <= 4; level++) {
-				levelAnalysis[level] = {
-					count: 0,
-					totalMaxScore: 0,
-					totalActualScore: 0,
-					studentsCompleted: 0,
-					tasks: []
-				};
-			}
-			
-			// Собираем данные по каждому уровню
-			appData.tasks.forEach((task, taskIndex) => {
-				const level = task.level || 1;
-				const taskId = task.id || taskIndex;
-				const maxScore = task.maxScore || 1;
-				
-				let taskTotalScore = 0;
-				let studentsCompleted = 0;
-				
-				appData.students.forEach(student => {
-					const studentId = student.id;
-					const results = appData.results[studentId] || {};
-					const score = parseFloat(results[taskId]) || 0;
-					
-					if (results[taskId] !== undefined) {
-						taskTotalScore += score;
-						studentsCompleted++;
-					}
-				});
-				
-				levelAnalysis[level].count++;
-				levelAnalysis[level].totalMaxScore += maxScore;
-				levelAnalysis[level].totalActualScore += taskTotalScore;
-				levelAnalysis[level].studentsCompleted += studentsCompleted;
-				
-				levelAnalysis[level].tasks.push({
-					number: taskIndex + 1,
-					avgScore: studentsCompleted > 0 ? taskTotalScore / studentsCompleted : 0,
-					completionRate: (studentsCompleted / appData.students.length * 100).toFixed(1)
-				});
-			});
-			
-			// Рассчитываем итоговые показатели
-			const result = {};
-			
-			Object.entries(levelAnalysis).forEach(([level, data]) => {
-				if (data.count === 0) return;
-				
-				const avgPercentage = data.totalMaxScore > 0 ? 
-					(data.totalActualScore / data.totalMaxScore / appData.students.length * 100) : 0;
-				
-				const avgCompletion = data.studentsCompleted > 0 ?
-					(data.studentsCompleted / (data.count * appData.students.length) * 100) : 0;
-				
-				// Сравнение с ожидаемыми значениями
-				const expectedPercentage = getExpectedLevelPercentage(parseInt(level));
-				const deviation = avgPercentage - expectedPercentage;
-				
-				result[level] = {
-					levelName: complexityLevels[level]?.name || `Уровень ${level}`,
-					taskCount: data.count,
-					avgPercentage: avgPercentage.toFixed(1),
-					avgCompletion: avgCompletion.toFixed(1),
-					expectedPercentage,
-					deviation: deviation.toFixed(1),
-					performance: deviation >= 10 ? 'excellent' : 
-							   deviation >= 0 ? 'good' : 
-							   deviation >= -10 ? 'average' : 'weak',
-					color: complexityLevels[level]?.color || '#95a5a6'
-				};
-			});
-			
-			return result;
-		}
-
-		function getExpectedLevelPercentage(level) {
-			// Ожидаемый процент выполнения по уровням
-			const expectations = {
-				1: 85, // Базовые задания
-				2: 70, // Применение
-				3: 50, // Анализ
-				4: 30  // Творчество
-			};
-			
-			return expectations[level] || 50;
-		}
-
-		function analyzeByErrorTypes() {
-			console.log('🔍 Анализ по типам ошибок...');
-			
-			const errorAnalysis = {};
-			
-			// Инициализируем для каждого типа ошибок
-			Object.keys(errorTypes).forEach(errorKey => {
-				errorAnalysis[errorKey] = {
-					count: 0,
-					totalScore: 0,
-					maxPossible: 0,
-					tasks: [],
-					students: new Set()
-				};
-			});
-			
-			// Собираем данные
-			appData.tasks.forEach((task, taskIndex) => {
-				const taskId = task.id || taskIndex;
-				const errorType = task.errorType;
-				
-				if (!errorType || !errorAnalysis[errorType]) return;
-				
-				let taskTotalScore = 0;
-				let taskMaxScore = 0;
-				
-				appData.students.forEach(student => {
-					const studentId = student.id;
-					const results = appData.results[studentId] || {};
-					const score = parseFloat(results[taskId]) || 0;
-					
-					if (results[taskId] !== undefined) {
-						taskTotalScore += score;
-						taskMaxScore += task.maxScore || 1;
-						errorAnalysis[errorType].students.add(studentId);
-					}
-				});
-				
-				errorAnalysis[errorType].count++;
-				errorAnalysis[errorType].totalScore += taskTotalScore;
-				errorAnalysis[errorType].maxPossible += taskMaxScore;
-				
-				const percentage = taskMaxScore > 0 ? (taskTotalScore / taskMaxScore * 100) : 0;
-				errorAnalysis[errorType].tasks.push({
-					number: taskIndex + 1,
-					percentage: percentage.toFixed(1)
-				});
-			});
-			
-			// Фильтруем только те типы ошибок, которые встречаются
-			const filteredAnalysis = {};
-			
-			Object.entries(errorAnalysis).forEach(([errorKey, data]) => {
-				if (data.count === 0) return;
-				
-				const errorType = errorTypes[errorKey];
-				const percentage = data.maxPossible > 0 ? 
-					(data.totalScore / data.maxPossible * 100) : 0;
-				const studentCount = data.students.size;
-				
-				filteredAnalysis[errorKey] = {
-					name: errorType?.name || errorKey,
-					color: errorType?.color || '#95a5a6',
-					count: data.count,
-					studentCount,
-					percentage: percentage.toFixed(1),
-					avgPerStudent: studentCount > 0 ? (data.totalScore / studentCount).toFixed(2) : 0,
-					tasks: data.tasks
-				};
-			});
-			
-			return filteredAnalysis;
-		}
-
-		function findCorrelations() {
-			console.log('🔗 Поиск корреляций...');
-			
-			const correlations = [];
-			
-			if (appData.tasks.length < 2) return correlations;
-			
-			// Матрица корреляций между заданиями
-			const taskScores = [];
-			
-			// Собираем баллы по заданиям
-			appData.tasks.forEach((task, taskIndex) => {
-				const taskId = task.id || taskIndex;
-				const scores = [];
-				
-				appData.students.forEach(student => {
-					const studentId = student.id;
-					const results = appData.results[studentId] || {};
-					scores.push(parseFloat(results[taskId]) || 0);
-				});
-				
-				taskScores.push(scores);
-			});
-			
-			// Рассчитываем корреляции между всеми парами заданий
-			for (let i = 0; i < taskScores.length; i++) {
-				for (let j = i + 1; j < taskScores.length; j++) {
-					const correlation = calculateCorrelation(taskScores[i], taskScores[j]);
-					
-					if (Math.abs(correlation) > 0.5) {
-						correlations.push({
-							task1: i + 1,
-							task2: j + 1,
-							correlation: correlation.toFixed(3),
-							strength: Math.abs(correlation) > 0.7 ? 'strong' : 
-									 Math.abs(correlation) > 0.5 ? 'moderate' : 'weak',
-							type: correlation > 0 ? 'positive' : 'negative'
-						});
-					}
-				}
-			}
-			
-			// Сортируем по силе корреляции
-			correlations.sort((a, b) => Math.abs(b.correlation) - Math.abs(a.correlation));
-			
-			return correlations.slice(0, 10); // Только топ-10
-		}
-
-		function calculateCorrelation(x, y) {
-			const n = x.length;
-			if (n !== y.length || n < 2) return 0;
-			
-			const sumX = x.reduce((a, b) => a + b, 0);
-			const sumY = y.reduce((a, b) => a + b, 0);
-			const sumXY = x.reduce((sum, xi, i) => sum + xi * y[i], 0);
-			const sumX2 = x.reduce((sum, xi) => sum + xi * xi, 0);
-			const sumY2 = y.reduce((sum, yi) => sum + yi * yi, 0);
-			
-			const numerator = n * sumXY - sumX * sumY;
-			const denominator = Math.sqrt((n * sumX2 - sumX * sumX) * (n * sumY2 - sumY * sumY));
-			
-			return denominator !== 0 ? numerator / denominator : 0;
-		}
-
-		function generateInsights(analysis) {
-			console.log('💡 Генерация инсайтов...');
-			
-			const insights = [];
-			
-			// 1. Инсайты на основе общей статистики
-			const summary = analysis.summary;
-			
-			if (summary.completionRate < 50) {
-				insights.push({
-					type: 'warning',
-					title: 'Низкий процент выполнения',
-					message: `Только ${summary.completionRate}% учащихся выполнили все задания`,
-					suggestion: 'Рассмотрите возможность продления срока или дополнительных консультаций'
-				});
-			}
-			
-			if (summary.stdDev > summary.avgScore * 0.5) {
-				insights.push({
-					type: 'info',
-					title: 'Большой разброс результатов',
-					message: `Стандартное отклонение (${summary.stdDev}) составляет более 50% от среднего балла`,
-					suggestion: 'Уровень сложности заданий может быть неадекватным для данной группы'
-				});
-			}
-			
-			// 2. Инсайты на основе анализа заданий
-			const criticalTasks = analysis.byTask.filter(task => task.zone === 'critical');
-			if (criticalTasks.length > 0) {
-				insights.push({
-					type: 'danger',
-					title: 'Критические задания',
-					message: `${criticalTasks.length} заданий выполнены менее чем на 20%`,
-					suggestion: `Задания: ${criticalTasks.map(t => t.number).join(', ')}. Требуется повторное объяснение.`
-				});
-			}
-			
-			// 3. Инсайты на основе уровней сложности
-			Object.entries(analysis.byLevel).forEach(([level, data]) => {
-				if (data.deviation < -15) {
-					insights.push({
-						type: 'warning',
-						title: `Слабые результаты по ${data.levelName}`,
-						message: `Выполнение на ${data.percentage}% (ожидалось ${data.expectedPercentage}%)`,
-						suggestion: `Необходимо уделить больше внимания заданиям уровня ${level}`
-					});
-				}
-			});
-			
-			// 4. Инсайты на основе типов ошибок
-			const weakErrorTypes = Object.entries(analysis.byErrorType)
-				.filter(([_, data]) => data.percentage < 50);
-			
-			if (weakErrorTypes.length > 0) {
-				const worst = weakErrorTypes.sort((a, b) => a[1].percentage - b[1].percentage)[0];
-				insights.push({
-					type: 'info',
-					title: 'Проблемный тип ошибок',
-					message: `Наименьший процент выполнения по типу "${worst[1].name}" (${worst[1].percentage}%)`,
-					suggestion: 'Проведите дополнительные занятия по этой теме'
-				});
-			}
-			
-			// 5. Инсайты на основе корреляций
-			if (analysis.correlations.length > 0) {
-				const strongest = analysis.correlations[0];
-				if (Math.abs(strongest.correlation) > 0.8) {
-					insights.push({
-						type: 'success',
-						title: 'Сильная взаимосвязь заданий',
-						message: `Задания ${strongest.task1} и ${strongest.task2} сильно коррелируют (${strongest.correlation})`,
-						suggestion: 'Возможно, задания проверяют схожие умения или имеют общую тематику'
-					});
-				}
-			}
-			
-			// 6. Положительные инсайты
-			const excellentTasks = analysis.byTask.filter(task => task.zone === 'excellent');
-			if (excellentTasks.length > appData.tasks.length * 0.3) {
-				insights.push({
-					type: 'success',
-					title: 'Хорошее усвоение материала',
-					message: `Более 30% заданий выполнены на отлично (>80%)`,
-					suggestion: 'Группа хорошо усвоила основные темы'
-				});
-			}
-			
-			return insights;
-		}
-
-		function showAnalysisResults(analysis) {
-			console.log('📊 Показ результатов анализа:', analysis);
-			
-			let html = `
-				<div style="max-width: 1200px;">
-					<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-						<h3 style="margin: 0;">📈 Комплексный анализ результатов</h3>
-						<div>
-							<button class="btn btn-sm btn-outline" onclick="exportAnalysisReport(${JSON.stringify(analysis).replace(/"/g, '&quot;')})">
-								📥 Экспорт отчета
-							</button>
-							<button class="btn btn-sm btn-outline" onclick="printAnalysisReport(${JSON.stringify(analysis).replace(/"/g, '&quot;')})">
-								🖨️ Печать
-							</button>
-						</div>
-					</div>
-					
-					<!-- Ключевые показатели -->
-					<div style="background: #f8f9fa; padding: 20px; border-radius: 10px; margin-bottom: 20px;">
-						<h4 style="margin-top: 0;">📊 Ключевые показатели</h4>
-						<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px;">
-							<div style="text-align: center; padding: 15px; background: white; border-radius: 8px;">
-								<div style="font-size: 24px; font-weight: bold; color: #3498db;">
-									${analysis.summary.avgPercentage}%
-								</div>
-								<div style="font-size: 12px; color: #666;">Средний % выполнения</div>
-							</div>
-							
-							<div style="text-align: center; padding: 15px; background: white; border-radius: 8px;">
-								<div style="font-size: 24px; font-weight: bold; color: #2ecc71;">
-									${analysis.summary.avgGrade}
-								</div>
-								<div style="font-size: 12px; color: #666;">Средняя оценка</div>
-							</div>
-							
-							<div style="text-align: center; padding: 15px; background: white; border-radius: 8px;">
-								<div style="font-size: 24px; font-weight: bold; color: #f39c12;">
-									${analysis.summary.completionRate}%
-								</div>
-								<div style="font-size: 12px; color: #666;">Выполнили все задания</div>
-							</div>
-							
-							<div style="text-align: center; padding: 15px; background: white; border-radius: 8px;">
-								<div style="font-size: 24px; font-weight: bold; color: #e74c3c;">
-									${analysis.summary.stdDev}
-								</div>
-								<div style="font-size: 12px; color: #666;">Разброс (σ)</div>
-							</div>
-						</div>
-					</div>
-					
-					<!-- Инсайты и рекомендации -->
-					<div style="margin-bottom: 20px;">
-						<h4>💡 Ключевые выводы</h4>
-						<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 15px;">
-			`;
-			
-			// Показываем инсайты
-			analysis.insights.forEach((insight, index) => {
-				const bgColor = insight.type === 'danger' ? '#f8d7da' :
-							   insight.type === 'warning' ? '#fff3cd' :
-							   insight.type === 'info' ? '#d1ecf1' : '#d4edda';
-				
-				const borderColor = insight.type === 'danger' ? '#f5c6cb' :
-								  insight.type === 'warning' ? '#ffeaa7' :
-								  insight.type === 'info' ? '#bee5eb' : '#c3e6cb';
-				
-				html += `
-					<div style="background: ${bgColor}; border-left: 4px solid ${borderColor}; padding: 15px; border-radius: 8px;">
-						<div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
-							<span style="font-size: 20px;">
-								${insight.type === 'danger' ? '⚠️' : 
-								  insight.type === 'warning' ? '⚡' : 
-								  insight.type === 'info' ? 'ℹ️' : '✅'}
-							</span>
-							<strong>${insight.title}</strong>
-						</div>
-						<div style="margin-bottom: 10px; font-size: 14px;">${insight.message}</div>
-						<div style="font-size: 12px; color: #666; font-style: italic;">${insight.suggestion}</div>
-					</div>
-				`;
-			});
-			
-			html += `
-						</div>
-					</div>
-					
-					<!-- Табы для детального анализа -->
-					<div style="margin-bottom: 20px;">
-						<div class="tabs" style="background: #f8f9fa; border-radius: 8px; padding: 5px; display: flex; gap: 5px;">
-							<button class="tab-btn" onclick="showAnalysisTab('tasks', this)" style="flex: 1;">📝 По заданиям</button>
-							<button class="tab-btn" onclick="showAnalysisTab('students', this)" style="flex: 1;">👥 По учащимся</button>
-							<button class="tab-btn" onclick="showAnalysisTab('levels', this)" style="flex: 1;">🎯 По уровням</button>
-							<button class="tab-btn" onclick="showAnalysisTab('errors', this)" style="flex: 1;">🔍 По ошибкам</button>
-							<button class="tab-btn" onclick="showAnalysisTab('correlations', this)" style="flex: 1;">🔗 Корреляции</button>
-						</div>
-						
-						<div id="analysisTabContent" style="background: white; padding: 20px; border-radius: 0 0 8px 8px; border: 1px solid #eee; border-top: none;">
-							<!-- Контент будет заполняться динамически -->
-						</div>
-					</div>
-				</div>
-			`;
-			
-			showModal('Анализ результатов', html);
-			
-			// Показываем первую вкладку
-			setTimeout(() => {
-				showAnalysisTab('tasks', document.querySelector('.tab-btn'));
-			}, 100);
-		}
-
-		function showAnalysisTab(tabName, button) {
-			// Сбрасываем активность всех кнопок
-			document.querySelectorAll('.tab-btn').forEach(btn => {
-				btn.classList.remove('active');
-			});
-			
-			// Активируем текущую кнопку
-			button.classList.add('active');
-			
-			const contentDiv = document.getElementById('analysisTabContent');
-			if (!contentDiv) return;
-			
-			let html = '';
-			
-			switch(tabName) {
-				case 'tasks':
-					html = renderTasksAnalysis();
-					break;
-				case 'students':
-					html = renderStudentsAnalysis();
-					break;
-				case 'levels':
-					html = renderLevelsAnalysis();
-					break;
-				case 'errors':
-					html = renderErrorsAnalysis();
-					break;
-				case 'correlations':
-					html = renderCorrelationsAnalysis();
-					break;
-			}
-			
-			contentDiv.innerHTML = html;
-		}
-
-		function renderTasksAnalysis() {
-			const analysis = window.currentAnalysis || {};
-			const tasks = analysis.byTask || [];
-			
-			let html = `
-				<h4 style="margin-top: 0;">📝 Анализ выполнения заданий</h4>
-				<p style="color: #666; margin-bottom: 15px;">${tasks.length} заданий, отсортированных по сложности</p>
-				
-				<div style="max-height: 400px; overflow-y: auto;">
-					<table style="width: 100%; font-size: 12px; border-collapse: collapse;">
-						<thead>
-							<tr>
-								<th style="padding: 10px; background: #f8f9fa; text-align: center;">№</th>
-								<th style="padding: 10px; background: #f8f9fa;">Задание</th>
-								<th style="padding: 10px; background: #f8f9fa; text-align: center;">Уровень</th>
-								<th style="padding: 10px; background: #f8f9fa; text-align: center;">% выполнения</th>
-								<th style="padding: 10px; background: #f8f9fa; text-align: center;">Зона</th>
-								<th style="padding: 10px; background: #f8f9fa; text-align: center;">Сложность</th>
-								<th style="padding: 10px; background: #f8f9fa; text-align: center;">Действия</th>
-							</tr>
-						</thead>
-						<tbody>
-			`;
-			
-			tasks.sort((a, b) => a.percentage - b.percentage).forEach(task => {
-				const zoneColor = task.zone === 'excellent' ? '#27ae60' :
-								 task.zone === 'good' ? '#3498db' :
-								 task.zone === 'average' ? '#f39c12' :
-								 task.zone === 'weak' ? '#e67e22' : '#e74c3c';
-				
-				const zoneName = task.zone === 'excellent' ? 'Отлично' :
-								task.zone === 'good' ? 'Хорошо' :
-								task.zone === 'average' ? 'Средне' :
-								task.zone === 'weak' ? 'Слабо' : 'Критично';
-				
-				html += `
-					<tr>
-						<td style="padding: 8px; text-align: center; font-weight: bold;">${task.number}</td>
-						<td style="padding: 8px;">${task.description.substring(0, 50)}${task.description.length > 50 ? '...' : ''}</td>
-						<td style="padding: 8px; text-align: center;">
-							<span style="display: inline-block; padding: 3px 8px; background: ${complexityLevels[task.level]?.color || '#95a5a6'}; color: white; border-radius: 10px;">
-								${task.level}
-							</span>
-						</td>
-						<td style="padding: 8px; text-align: center;">
-							<div style="font-weight: bold;">${task.percentage}%</div>
-							<div style="font-size: 10px; color: #666;">(${task.avgScore}/${task.maxScore})</div>
-						</td>
-						<td style="padding: 8px; text-align: center;">
-							<span style="color: ${zoneColor}; font-weight: bold;">${zoneName}</span>
-						</td>
-						<td style="padding: 8px; text-align: center;">
-							<div>${task.difficulty}</div>
-							<div style="font-size: 10px; color: #666;">(чем выше - тем сложнее)</div>
-						</td>
-						<td style="padding: 8px; text-align: center;">
-							<button class="btn-icon small" onclick="showTaskDetails(${task.number - 1})" title="Детали">
-								🔍
-							</button>
-						</td>
-					</tr>
-				`;
-			});
-			
-			html += `
-						</tbody>
-					</table>
-				</div>
-				
-				<div style="margin-top: 15px; padding: 10px; background: #f8f9fa; border-radius: 5px; font-size: 12px;">
-					<strong>Легенда зон:</strong>
-					<span style="color: #27ae60; margin-left: 10px;">✅ Отлично (>80%)</span>
-					<span style="color: #3498db; margin-left: 10px;">👍 Хорошо (60-80%)</span>
-					<span style="color: #f39c12; margin-left: 10px;">⚠️ Средне (40-60%)</span>
-					<span style="color: #e67e22; margin-left: 10px;">🔻 Слабо (20-40%)</span>
-					<span style="color: #e74c3c; margin-left: 10px;">🚨 Критично (<20%)</span>
-				</div>
-			`;
-			
-			return html;
-		}
-
+		
 
 
 		function addErrorToStudentPrompt(studentId) {
