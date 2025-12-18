@@ -4828,31 +4828,7 @@
 					}, 300);
 				}
 			};
-			// Инициализация templateManager если он не существует
-			if (typeof window.templateManager === 'undefined') {
-				window.templateManager = {
-					templates: {},
-					getTemplates: function() {
-						return this.templates;
-					},
-					addTemplate: function(name, template) {
-						this.templates[name] = template;
-					},
-					getTemplate: function(name) {
-						return this.templates[name];
-					}
-				};
-				
-				// Загрузка шаблонов из localStorage если есть
-				try {
-					const savedTemplates = localStorage.getItem('reportTemplates');
-					if (savedTemplates) {
-						window.templateManager.templates = JSON.parse(savedTemplates);
-					}
-				} catch (e) {
-					console.warn('Не удалось загрузить шаблоны из localStorage:', e);
-				}
-			}
+			
 		});		
 		
 		function handleResultsNavigation(e) {

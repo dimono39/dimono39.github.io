@@ -292,7 +292,7 @@ function generateBenchmarkReport() {
 
 // ========== ДОБАВИТЬ ЭТУ ФУНКЦИЮ ==========
 // Функция отображения отчета бенчмаркинга (добавить в конец файла перед последней скобкой)
-function displayBenchmarkReport(comparison) {
+function displayBenchmarkReportas(comparison) {
     let html = `
         <div style="max-width: 800px;">
             <h3>🏆 Сравнение с бенчмарками</h3>
@@ -3084,7 +3084,7 @@ function generateRecommendations(settings) {
     };
 }
 
-/ Безопасные версии функций
+// Безопасные версии функций
 function safeCalculateGradeDistribution() {
     try {
         return calculateGradeDistribution();
