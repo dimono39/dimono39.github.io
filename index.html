@@ -39,6 +39,12 @@
 	<!-- Для сравнения дат -->
 	<script src="https://cdn.jsdelivr.net/npm/luxon@3.3.0/build/global/luxon.min.js"></script>  
 	
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/html-docx-js/0.3.1/html-docx.js"></script>
+	
     <style>
 		/* Стили для новой вкладки настройки */
 		.setup-steps {
@@ -3933,6 +3939,7 @@
 	<script src="modules/aigenerator.js"></script>
     <script src="script.js"></script>
 	<script src="modules/report.js"></script>
+	<script src="modules/studreport.js"></script>
     <script>
   
 		window.ErrorHandler = null;
@@ -13287,9 +13294,8 @@
 				return;
 			}
 			// надо дебажить
-			const hasResults = appData.students.some(student => {
-				const studentResults = appData.results[student.id];
-				return studentResults && Object.keys(studentResults).length > 0;
+			const hasResults = appData.results.some(resultArray => {
+			  return Array.isArray(resultArray) && resultArray.length > 0;
 			});
 			
 			if (!hasResults) {

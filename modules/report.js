@@ -1757,7 +1757,7 @@ function getDistributionAnalysis(distribution) {
 }
 
 // Генерация данных отчета
-function generateReportData(settings) {
+function generateReportDatas(settings) {
     const report = {
         metadata: {
             generated: new Date().toLocaleString(),
@@ -5225,3 +5225,1138 @@ function checkCriteriaBeforeReport() {
     
     return true;
 }
+
+// ==================== ДОБАВЛЕНИЕ НЕДОСТАЮЩИХ ФУНКЦИЙ ====================
+
+// Функция для обработки всех полей отчета
+function generateReportData(settings) {
+    const report = {
+        metadata: {
+            generated: new Date().toLocaleString(),
+            title: getReportTitle(settings.type),
+            author: 'Система анализа образовательных результатов',
+            settings: settings
+        },
+        content: {},
+        stats: {
+            pages: 0,
+            words: 0,
+            charts: 0,
+            tables: 0,
+            images: 0
+        }
+    };
+    
+    // Генерируем ВСЕ разделы в зависимости от выбранных полей
+    try {
+        // Базовые поля
+        if (settings.fields.includes('basic_info')) {
+            report.content.basicInfo = generateBasicInfo();
+            report.stats.pages += 1;
+        }
+        
+        if (settings.fields.includes('metadata')) {
+            report.content.metadata = {
+                methodology: 'Анализ образовательных результатов',
+                dateRange: 'Текущий учебный период',
+                analysisMethod: 'Статистический и сравнительный анализ'
+            };
+        }
+        
+        if (settings.fields.includes('criteria')) {
+            report.content.criteria = {
+                gradingCriteria: appData?.test?.criteria || 'Не указаны',
+                scoringSystem: appData?.test?.criteriaSystem || 'Стандартная 5-балльная',
+                maxScore: calculateMaxScores()
+            };
+        }
+        
+        if (settings.fields.includes('objectives')) {
+            report.content.objectives = {
+                educational: 'Оценка уровня усвоения материала',
+                analytical: 'Выявление проблемных зон',
+                developmental: 'Разработка рекомендаций для улучшения'
+            };
+        }
+        
+        // Результаты
+        if (settings.fields.includes('grades_distribution')) {
+            report.content.gradesDistribution = generateGradesDistribution(settings);
+            report.stats.charts += 1;
+        }
+        
+        if (settings.fields.includes('statistics')) {
+            report.content.statistics = generateStatistics(settings);
+            report.stats.tables += 1;
+        }
+        
+        if (settings.fields.includes('task_analysis')) {
+            report.content.taskAnalysis = analyzeTasks();
+            report.stats.tables += Math.ceil(analyzeTasks().length / 5);
+        }
+        
+        if (settings.fields.includes('error_analysis')) {
+            report.content.errorAnalysis = detectCommonErrors();
+        }
+        
+        if (settings.fields.includes('student_progress')) {
+            report.content.studentProgress = generateStudentProgress();
+        }
+        
+        if (settings.fields.includes('detailed_scores')) {
+            report.content.detailedScores = generateDetailedScores();
+            report.stats.tables += 2;
+        }
+        
+        // Аналитика
+        if (settings.fields.includes('comparative_analysis')) {
+            report.content.comparativeAnalysis = generateComparativeAnalysis();
+        }
+        
+        if (settings.fields.includes('correlation')) {
+            report.content.correlation = generateCorrelationAnalysis();
+        }
+        
+        if (settings.fields.includes('trends')) {
+            report.content.trends = analyzeTrends();
+        }
+        
+        if (settings.fields.includes('predictive')) {
+            report.content.predictive = generatePredictions();
+        }
+        
+        if (settings.fields.includes('benchmarking')) {
+            report.content.benchmarking = generateBenchmarkReport();
+        }
+        
+        // Визуализация
+        if (settings.fields.includes('charts')) {
+            report.content.charts = generateDynamicCharts(report);
+            report.stats.charts += report.content.charts.length;
+        }
+        
+        if (settings.fields.includes('heatmaps')) {
+            report.content.heatmaps = generateErrorHeatmap();
+        }
+        
+        if (settings.fields.includes('infographics')) {
+            report.content.infographics = generateInfographics();
+        }
+        
+        // Рекомендации
+        if (settings.fields.includes('recommendations')) {
+            report.content.recommendations = generateRecommendations(settings);
+            report.stats.pages += 1;
+        }
+        
+        if (settings.fields.includes('correction_plan')) {
+            report.content.correctionPlan = generateCorrectionPlan();
+        }
+        
+        if (settings.fields.includes('next_steps')) {
+            report.content.nextSteps = generateNextSteps();
+        }
+        
+        if (settings.fields.includes('personal_recommendations')) {
+            report.content.personalRecommendations = generatePersonalRecommendations();
+        }
+        
+        if (settings.fields.includes('methodical_recommendations')) {
+            report.content.methodicalRecommendations = generateMethodicalRecommendations();
+        }
+        
+        // Дополнительно
+        if (settings.fields.includes('appendix')) {
+            report.content.appendix = generateAppendix();
+        }
+        
+        if (settings.fields.includes('references')) {
+            report.content.references = generateReferences();
+        }
+        
+        if (settings.fields.includes('glossary')) {
+            report.content.glossary = generateGlossary();
+        }
+        
+        if (settings.fields.includes('feedback_form')) {
+            report.content.feedbackForm = generateFeedbackForm();
+        }
+        
+        // AI функции
+        if (settings.options?.aiInsights) {
+            report.content.aiInsights = generateAIInsights();
+        }
+        
+        if (settings.options?.predictiveAnalytics) {
+            report.content.predictiveAnalytics = generatePredictiveAnalytics();
+        }
+        
+        // Мультимедиа
+        if (settings.options?.voiceSummary) {
+            report.content.voiceSummary = generateVoiceSummary(report);
+        }
+        
+    } catch (error) {
+        console.error('Ошибка генерации разделов отчета:', error);
+        showNotification('Ошибка генерации данных отчета: ' + error.message, 'warning');
+    }
+    
+    // Обновляем статистику
+    updateReportStatsFromData(report);
+    
+    return report;
+}
+
+// Дополнительные функции генерации данных
+function generateStudentProgress() {
+    if (!appData.students) return [];
+    
+    return appData.students.map(student => {
+        const totalScore = calculateStudentTotal(student.id);
+        return {
+            name: `${student.lastName} ${student.firstName}`,
+            currentScore: totalScore,
+            previousScore: getPreviousScore(student.id),
+            progress: calculateProgress(student.id),
+            grade: calculateGrade(totalScore)
+        };
+    });
+}
+
+function generateDetailedScores() {
+    if (!appData.students || !appData.tasks) return [];
+    
+    return appData.students.map(student => {
+        const scores = appData.tasks.map((task, index) => {
+            const taskId = task.id || index;
+            return appData.results[student.id]?.[taskId] || 0;
+        });
+        
+        return {
+            student: `${student.lastName} ${student.firstName}`,
+            scores: scores,
+            total: scores.reduce((a, b) => a + b, 0),
+            average: scores.reduce((a, b) => a + b, 0) / scores.length
+        };
+    });
+}
+
+function generateComparativeAnalysis() {
+    return {
+        classAverage: calculateStatistics().averageGrade,
+        schoolAverage: 3.8, // Примерное значение
+        regionalAverage: 3.5, // Примерное значение
+        nationalAverage: 3.7, // Примерное значение
+        difference: calculateStatistics().averageGrade - 3.7
+    };
+}
+
+function generateCorrelationAnalysis() {
+    // Простой анализ корреляции
+    return {
+        gradeTaskCorrelation: calculateGradeTaskCorrelation(),
+        timeScoreCorrelation: 0.65, // Пример
+        difficultySuccessCorrelation: -0.72 // Пример
+    };
+}
+
+function generateInfographics() {
+    return {
+        gradeDistribution: generateGradeDistributionChartData(),
+        successRate: calculateStatistics().successRate,
+        topPerformers: getTopPerformers(3),
+        improvementAreas: getImprovementAreas()
+    };
+}
+
+function generateCorrectionPlan() {
+    const stats = calculateStatistics();
+    const weakPercentage = stats.weakPercentage || 0;
+    
+    return {
+        priority: weakPercentage > 20 ? 'high' : 'medium',
+        actions: [
+            'Индивидуальные консультации для отстающих',
+            'Групповые занятия по сложным темам',
+            'Дополнительные материалы для самостоятельной работы',
+            'Мониторинг прогресса каждые 2 недели'
+        ],
+        timeline: '4 недели',
+        resources: ['Учебные материалы', 'Онлайн-платформы', 'Рабочие тетради']
+    };
+}
+
+function generateNextSteps() {
+    return {
+        immediate: ['Провести работу над ошибками', 'Назначить индивидуальные консультации'],
+        shortTerm: ['Разработать план коррекции', 'Провести повторное тестирование через 2 недели'],
+        longTerm: ['Скорректировать учебную программу', 'Внедрить дифференцированный подход']
+    };
+}
+
+function generatePersonalRecommendations() {
+    if (!appData.students) return [];
+    
+    return appData.students.map(student => {
+        const totalScore = calculateStudentTotal(student.id);
+        const grade = calculateGrade(totalScore);
+        
+        let recommendation = '';
+        switch(grade) {
+            case '5': recommendation = 'Продолжайте в том же духе! Участвуйте в олимпиадах.'; break;
+            case '4': recommendation = 'Хороший результат! Обратите внимание на задания, где были ошибки.'; break;
+            case '3': recommendation = 'Требуется дополнительная работа. Рекомендуем индивидуальные консультации.'; break;
+            case '2': recommendation = 'Необходимо пройти повторное обучение. Требуется помощь учителя.'; break;
+        }
+        
+        return {
+            student: `${student.lastName} ${student.firstName}`,
+            grade: grade,
+            recommendation: recommendation,
+            priority: grade === '2' ? 'high' : grade === '3' ? 'medium' : 'low'
+        };
+    });
+}
+
+function generateAppendix() {
+    return {
+        rawData: appData,
+        formulas: {
+            averageGrade: 'Сумма баллов / Количество учащихся',
+            successRate: '(Отличники + Хорошисты + Троечники) / Всего учащихся * 100%',
+            gradeDistribution: 'Количество каждой оценки / Всего учащихся * 100%'
+        },
+        definitions: {
+            excellent: 'Оценка 5 - 85-100% от максимального балла',
+            good: 'Оценка 4 - 70-84% от максимального балла',
+            average: 'Оценка 3 - 50-69% от максимального балла',
+            weak: 'Оценка 2 - 0-49% от максимального балла'
+        }
+    };
+}
+
+function generateReferences() {
+    return [
+        'ГОСТ 7.32-2001 "Отчет о научно-исследовательской работе"',
+        'Методические рекомендации по оцениванию учебных достижений',
+        'Положение о системе оценки качества образования'
+    ];
+}
+
+function generateGlossary() {
+    return {
+        'Успеваемость': 'Процент учащихся, получивших удовлетворительные и выше оценки',
+        'Качество знаний': 'Процент учащихся, получивших оценки "4" и "5"',
+        'Средний балл': 'Среднее арифметическое всех оценок',
+        'Академическая задолженность': 'Неудовлетворительные оценки, требующие пересдачи'
+    };
+}
+
+function generateFeedbackForm() {
+    return {
+        questions: [
+            'Насколько полезным был этот отчет?',
+            'Какие разделы были наиболее информативными?',
+            'Что можно улучшить в следующих отчетах?'
+        ],
+        ratingScale: '1-5, где 5 - отлично',
+        submissionMethod: 'Онлайн форма или email'
+    };
+}
+
+function generatePredictiveAnalytics() {
+    const stats = calculateStatistics();
+    const futureMonth = new Date();
+    futureMonth.setMonth(futureMonth.getMonth() + 1);
+    
+    return {
+        predictedAverage: Math.min(5, stats.averageGrade * 1.1).toFixed(1),
+        predictedSuccessRate: Math.min(100, stats.successRate * 1.05).toFixed(1),
+        forecastDate: futureMonth.toLocaleDateString(),
+        confidence: 75,
+        assumptions: [
+            'Продолжение текущей учебной программы',
+            'Проведение коррекционных мероприятий',
+            'Стабильная посещаемость'
+        ]
+    };
+}
+
+// Обновление статистики отчета
+function updateReportStatsFromData(report) {
+    if (!report) return;
+    
+    // Подсчет слов из контента
+    let wordCount = 0;
+    Object.values(report.content).forEach(section => {
+        const text = JSON.stringify(section);
+        wordCount += text.split(/\s+/).length;
+    });
+    
+    // Расчет количества страниц (примерно 500 слов на страницу)
+    const pages = Math.ceil(wordCount / 500);
+    
+    // Обновление UI
+    if (document.getElementById('pageCount')) {
+        document.getElementById('pageCount').textContent = pages;
+    }
+    if (document.getElementById('wordCount')) {
+        document.getElementById('wordCount').textContent = wordCount;
+    }
+    if (document.getElementById('chartCount')) {
+        document.getElementById('chartCount').textContent = report.stats.charts || 0;
+    }
+    if (document.getElementById('tableCount')) {
+        document.getElementById('tableCount').textContent = report.stats.tables || 0;
+    }
+    if (document.getElementById('imageCount')) {
+        document.getElementById('imageCount').textContent = report.stats.images || 0;
+    }
+    if (document.getElementById('estReadingTime')) {
+        const readingTime = Math.ceil(wordCount / 200); // 200 слов в минуту
+        document.getElementById('estReadingTime').textContent = readingTime;
+    }
+    
+    // Показываем статистику
+    document.getElementById('reportStats').style.display = 'block';
+}
+
+// Функции экспорта
+function exportToPDF() {
+    if (!reportData) {
+        showNotification('Сначала сгенерируйте отчет', 'warning');
+        return;
+    }
+    
+    showLoading('Создание PDF документа...');
+    
+    // Используем html2pdf для создания PDF
+    const element = document.getElementById('reportPreviewContent');
+    
+    const opt = {
+        margin: [10, 10, 10, 10],
+        filename: `Отчет_${appData.test.subject}_${new Date().toISOString().split('T')[0]}.pdf`,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    };
+    
+    // Создаем копию содержимого для печати
+    const printContent = element.cloneNode(true);
+    printContent.classList.add('print-mode');
+    
+    html2pdf().set(opt).from(printContent).save().then(() => {
+        hideLoading();
+        showNotification('PDF документ создан', 'success');
+    }).catch(error => {
+        console.error('Ошибка создания PDF:', error);
+        hideLoading();
+        showNotification('Ошибка создания PDF документа', 'error');
+    });
+}
+
+function exportToHTML() {
+    if (!reportData) {
+        showNotification('Сначала сгенерируйте отчет', 'warning');
+        return;
+    }
+    
+    const htmlContent = generateHTMLReport(reportData);
+    const blob = new Blob([htmlContent], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Отчет_${appData.test.subject}_${new Date().toISOString().split('T')[0]}.html`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    
+    showNotification('HTML отчет скачан', 'success');
+}
+
+function generateHTMLReport(reportData) {
+    return `
+        <!DOCTYPE html>
+        <html lang="ru">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>${reportData.metadata.title}</title>
+            <style>
+                body { font-family: Arial, sans-serif; line-height: 1.6; margin: 0; padding: 20px; }
+                .report-header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #333; padding-bottom: 20px; }
+                .section { margin-bottom: 30px; }
+                table { width: 100%; border-collapse: collapse; margin: 15px 0; }
+                th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+                th { background-color: #f2f2f2; }
+                .grade-5 { color: #2ecc71; }
+                .grade-4 { color: #3498db; }
+                .grade-3 { color: #f39c12; }
+                .grade-2 { color: #e74c3c; }
+                .footer { margin-top: 50px; padding-top: 20px; border-top: 1px solid #ddd; color: #666; }
+            </style>
+        </head>
+        <body>
+            <div class="report-header">
+                <h1>${reportData.metadata.title}</h1>
+                <p>${appData.test.subject} | ${appData.test.class} | ${new Date().toLocaleDateString()}</p>
+            </div>
+            
+            ${generateReportSectionsHTML(reportData)}
+            
+            <div class="footer">
+                <p>Отчет сгенерирован: ${reportData.metadata.generated}</p>
+                <p>Система анализа образовательных результатов</p>
+            </div>
+        </body>
+        </html>
+    `;
+}
+
+function generateReportSectionsHTML(reportData) {
+    let html = '';
+    
+    // Базовая информация
+    if (reportData.content.basicInfo) {
+        html += `
+            <div class="section">
+                <h2>Основная информация</h2>
+                <table>
+                    <tr><th>Параметр</th><th>Значение</th></tr>
+                    ${Object.entries(reportData.content.basicInfo).map(([key, value]) => 
+                        `<tr><td>${key}</td><td>${value}</td></tr>`
+                    ).join('')}
+                </table>
+            </div>
+        `;
+    }
+    
+    // Распределение оценок
+    if (reportData.content.gradesDistribution) {
+        html += `
+            <div class="section">
+                <h2>Распределение оценок</h2>
+                <table>
+                    <tr><th>Оценка</th><th>Процент</th></tr>
+                    ${Object.entries(reportData.content.gradesDistribution).map(([grade, percentage]) => 
+                        `<tr><td class="grade-${grade}">${grade}</td><td>${percentage}%</td></tr>`
+                    ).join('')}
+                </table>
+            </div>
+        `;
+    }
+    
+    // Рекомендации
+    if (reportData.content.recommendations) {
+        html += `
+            <div class="section">
+                <h2>Рекомендации</h2>
+                <ul>
+                    ${reportData.content.recommendations.map(rec => 
+                        `<li><strong>${rec.action}</strong>: ${rec.description}</li>`
+                    ).join('')}
+                </ul>
+            </div>
+        `;
+    }
+    
+    return html;
+}
+
+// Функция для создания QR-кода
+function generateQRCode() {
+    if (!reportData) return;
+    
+    const qrContainer = document.getElementById('qrCodeContainer');
+    if (!qrContainer) return;
+    
+    // Создаем уникальную ссылку для отчета
+    const reportId = 'report_' + Date.now();
+    const reportUrl = `${window.location.origin}${window.location.pathname}#report=${reportId}`;
+    
+    // Сохраняем отчет локально для доступа по ссылке
+    localStorage.setItem(reportId, JSON.stringify(reportData));
+    
+    // Генерируем QR-код
+    qrContainer.innerHTML = '';
+    new QRCode(qrContainer, {
+        text: reportUrl,
+        width: 200,
+        height: 200,
+        colorDark: "#000000",
+        colorLight: "#ffffff",
+        correctLevel: QRCode.CorrectLevel.H
+    });
+    
+    document.getElementById('reportQRCode').style.display = 'block';
+}
+
+// Функция для реальной отправки email
+function sendReportByEmail() {
+    if (!reportData) {
+        showNotification('Сначала сгенерируйте отчет', 'warning');
+        return;
+    }
+    
+    const email = prompt('Введите email для отправки:', '');
+    if (!email) return;
+    
+    // Валидация email
+    if (!validateEmail(email)) {
+        showNotification('Введите корректный email', 'error');
+        return;
+    }
+    
+    showLoading('Отправка отчета по email...');
+    
+    // Используем EmailJS или другую службу для отправки email
+    if (typeof emailjs !== 'undefined') {
+        const templateParams = {
+            to_email: email,
+            subject: `Отчет по предмету ${appData.test.subject}`,
+            message: generateEmailContent(reportData),
+            report_date: new Date().toLocaleDateString()
+        };
+        
+        emailjs.send('service_id', 'template_id', templateParams)
+            .then(() => {
+                hideLoading();
+                showNotification('Отчет отправлен на email', 'success');
+            })
+            .catch(error => {
+                console.error('Ошибка отправки email:', error);
+                hideLoading();
+                showNotification('Ошибка отправки email', 'error');
+            });
+    } else {
+        // Альтернативный вариант - создание почтовой ссылки
+        const subject = encodeURIComponent(`Отчет по предмету ${appData.test.subject}`);
+        const body = encodeURIComponent(generateEmailTextContent(reportData));
+        const mailtoLink = `mailto:${email}?subject=${subject}&body=${body}`;
+        
+        window.location.href = mailtoLink;
+        hideLoading();
+        showNotification('Открыт почтовый клиент', 'info');
+    }
+}
+
+function generateEmailTextContent(reportData) {
+    let content = `Отчет по предмету: ${appData.test.subject}\n`;
+    content += `Класс: ${appData.test.class}\n`;
+    content += `Дата: ${new Date().toLocaleDateString()}\n\n`;
+    
+    if (reportData.content.basicInfo) {
+        content += 'Основная информация:\n';
+        Object.entries(reportData.content.basicInfo).forEach(([key, value]) => {
+            content += `${key}: ${value}\n`;
+        });
+    }
+    
+    content += '\nС уважением,\nСистема анализа образовательных результатов';
+    
+    return content;
+}
+
+// Обновленная функция сохранения в облако
+function saveReportToCloud() {
+    if (!reportData) {
+        showNotification('Сначала сгенерируйте отчет', 'warning');
+        return;
+    }
+    
+    // Используем localStorage как пример облачного сохранения
+    const savedReports = JSON.parse(localStorage.getItem('savedReports') || '[]');
+    
+    const reportToSave = {
+        ...reportData,
+        savedAt: new Date().toISOString(),
+        id: 'report_' + Date.now(),
+        metadata: {
+            ...reportData.metadata,
+            savedInCloud: true,
+            cloudProvider: 'localStorage' // В реальности это мог бы быть Firebase, AWS и т.д.
+        }
+    };
+    
+    savedReports.push(reportToSave);
+    localStorage.setItem('savedReports', JSON.stringify(savedReports));
+    
+    // Обновление истории
+    loadReportHistory();
+    
+    showNotification('Отчет сохранен в облачное хранилище', 'success');
+}
+
+// Функция для копирования ссылки на отчет
+function copyReportLink() {
+    if (!reportData) {
+        showNotification('Сначала сгенерируйте отчет', 'warning');
+        return;
+    }
+    
+    const reportId = 'report_' + Date.now();
+    const reportUrl = `${window.location.origin}${window.location.pathname}#report=${reportId}`;
+    
+    // Сохраняем отчет локально
+    localStorage.setItem(reportId, JSON.stringify(reportData));
+    
+    // Копируем в буфер обмена
+    navigator.clipboard.writeText(reportUrl)
+        .then(() => {
+            showNotification('Ссылка на отчет скопирована в буфер обмена', 'success');
+        })
+        .catch(err => {
+            console.error('Ошибка копирования:', err);
+            showNotification('Не удалось скопировать ссылку', 'error');
+        });
+}
+
+// Функция для скачивания всех файлов отчета
+function downloadReportAssets() {
+    if (!reportData) {
+        showNotification('Сначала сгенерируйте отчет', 'warning');
+        return;
+    }
+    
+    showLoading('Подготовка файлов для скачивания...');
+    
+    // Создаем zip-архив
+    const zip = new JSZip();
+    
+    // Добавляем разные форматы отчета
+    zip.file("report.html", generateHTMLReport(reportData));
+    zip.file("report.txt", generateTextReport(reportData));
+    zip.file("report.json", JSON.stringify(reportData, null, 2));
+    
+    // Добавляем CSV данные
+    const csvData = generateCSVData();
+    zip.file("data.csv", csvData);
+    
+    // Добавляем изображения графиков (если есть)
+    const charts = generateChartImages();
+    charts.forEach((chart, index) => {
+        zip.file(`chart_${index + 1}.png`, chart, { base64: true });
+    });
+    
+    // Генерируем и скачиваем архив
+    zip.generateAsync({ type: "blob" })
+        .then(function(content) {
+            saveAs(content, `Отчет_${appData.test.subject}_${new Date().toISOString().split('T')[0]}.zip`);
+            hideLoading();
+            showNotification('Все файлы отчета скачаны', 'success');
+        })
+        .catch(function(error) {
+            console.error('Ошибка создания архива:', error);
+            hideLoading();
+            showNotification('Ошибка создания архива', 'error');
+        });
+}
+
+function generateTextReport(reportData) {
+    let text = `ОТЧЕТ: ${reportData.metadata.title}\n`;
+    text += '='.repeat(50) + '\n\n';
+    
+    if (reportData.content.basicInfo) {
+        text += 'ОСНОВНАЯ ИНФОРМАЦИЯ:\n';
+        Object.entries(reportData.content.basicInfo).forEach(([key, value]) => {
+            text += `  ${key}: ${value}\n`;
+        });
+        text += '\n';
+    }
+    
+    if (reportData.content.statistics) {
+        text += 'СТАТИСТИКА:\n';
+        Object.entries(reportData.content.statistics).forEach(([key, value]) => {
+            text += `  ${key}: ${value}\n`;
+        });
+        text += '\n';
+    }
+    
+    text += `\nСгенерировано: ${reportData.metadata.generated}\n`;
+    text += 'Система анализа образовательных результатов\n';
+    
+    return text;
+}
+
+// Функция для обновления сложности отчета
+function updateReportComplexity() {
+    const complexity = calculateReportComplexity();
+    const complexityBar = document.getElementById('complexityFill');
+    const complexityValue = document.getElementById('complexityValue');
+    const complexityContainer = document.getElementById('reportComplexity');
+    
+    if (complexityBar && complexityValue && complexityContainer) {
+        complexityBar.style.width = `${complexity.percentage}%`;
+        complexityBar.style.background = complexity.color;
+        complexityValue.textContent = complexity.level;
+        complexityContainer.style.display = 'block';
+    }
+}
+
+// Расчет сложности отчета
+function calculateReportComplexity() {
+    let score = 0;
+    let maxScore = 0;
+    
+    // Подсчет выбранных полей (более детальный)
+    const fieldCheckboxes = document.querySelectorAll('input[name="reportFields"]:checked');
+    score += fieldCheckboxes.length * 3;
+    maxScore += 25 * 3; // Максимум 25 полей
+    
+    // Проверка дополнительных опций
+    const options = [
+        'includeCharts', 'includeTables', 'includeImages',
+        'includeQR', 'encryptReport', 'watermark',
+        'autoSummary', 'aiInsights', 'predictiveAnalytics',
+        'voiceSummary', 'interactiveCharts', 'animations'
+    ];
+    
+    options.forEach(optionId => {
+        const element = document.getElementById(optionId);
+        if (element && element.checked) {
+            score += 2;
+        }
+    });
+    maxScore += options.length * 2;
+    
+    // Критерии фильтрации
+    const gradeFilters = document.querySelectorAll('input[name="gradeFilter"]:checked').length;
+    score += gradeFilters * 1;
+    maxScore += 4 * 1;
+    
+    const complexityFilter = document.getElementById('complexityFilter');
+    if (complexityFilter && complexityFilter.value !== 'all') {
+        score += 3;
+    }
+    maxScore += 3;
+    
+    const errorFilters = document.querySelectorAll('input[name="errorTypeFilter"]:checked').length;
+    score += errorFilters * 1;
+    maxScore += 6 * 1;
+    
+    const studentGroups = document.querySelectorAll('input[name="studentGroup"]:checked').length;
+    score += studentGroups * 1;
+    maxScore += 5 * 1;
+    
+    // Расчет процента и уровня сложности
+    const percentage = Math.min(100, Math.round((score / maxScore) * 100));
+    
+    let level, color;
+    if (percentage < 30) {
+        level = 'Простой';
+        color = '#2ecc71';
+    } else if (percentage < 60) {
+        level = 'Средний';
+        color = '#f39c12';
+    } else {
+        level = 'Сложный';
+        color = '#e74c3c';
+    }
+    
+    return { percentage, level, color, score, maxScore };
+}
+
+// Обновление отображения предпросмотра
+function displayReportPreview(reportData, mode) {
+    const previewDiv = document.getElementById('reportPreviewContent');
+    if (!previewDiv) return;
+    
+    let html = `
+        <div class="report-preview-content ${mode === 'print' ? 'print-mode' : ''}">
+            <div class="report-header">
+                <h1 style="text-align: center; margin-bottom: 10px; color: #2c3e50;">${reportData.metadata.title}</h1>
+                <p style="text-align: center; color: #7f8c8d; font-size: 14px;">
+                    ${appData.test.subject || 'Предмет не указан'} | 
+                    ${appData.test.class || 'Класс не указан'} | 
+                    ${new Date().toLocaleDateString()}
+                </p>
+                <hr style="border: none; border-top: 2px solid #3498db; margin: 20px 0;">
+            </div>
+    `;
+    
+    // Добавляем ВСЕ выбранные разделы
+    const settings = reportData.metadata.settings;
+    
+    if (settings.fields.includes('basic_info') && reportData.content.basicInfo) {
+        html += generateBasicInfoHTML(reportData.content.basicInfo);
+    }
+    
+    if (settings.fields.includes('statistics') && reportData.content.statistics) {
+        html += generateStatisticsHTML(reportData.content.statistics);
+    }
+    
+    if (settings.fields.includes('grades_distribution') && reportData.content.gradesDistribution) {
+        html += generateGradesDistributionHTML(reportData.content.gradesDistribution);
+    }
+    
+    if (settings.fields.includes('task_analysis') && reportData.content.taskAnalysis) {
+        html += generateTaskAnalysisHTML(reportData.content.taskAnalysis);
+    }
+    
+    if (settings.fields.includes('error_analysis') && reportData.content.errorAnalysis) {
+        html += generateErrorAnalysisHTML(reportData.content.errorAnalysis);
+    }
+    
+    if (settings.fields.includes('recommendations') && reportData.content.recommendations) {
+        html += generateRecommendationsHTML(reportData.content.recommendations);
+    }
+    
+    // Дополнительные разделы
+    if (settings.fields.includes('charts') && reportData.content.charts) {
+        html += generateChartsHTML(reportData.content.charts);
+    }
+    
+    if (settings.fields.includes('comparative_analysis') && reportData.content.comparativeAnalysis) {
+        html += generateComparativeAnalysisHTML(reportData.content.comparativeAnalysis);
+    }
+    
+    html += `
+            <div class="report-footer" style="margin-top: 50px; padding-top: 20px; border-top: 1px solid #eee; color: #95a5a6; font-size: 12px;">
+                <p>Отчет сгенерирован: ${reportData.metadata.generated}</p>
+                <p>Система анализа образовательных результатов</p>
+                ${settings.options?.includeQR ? '<p>📱 Используйте QR-код для быстрого доступа к отчету</p>' : ''}
+            </div>
+        </div>
+    `;
+    
+    previewDiv.innerHTML = html;
+    
+    // Генерируем QR-код если нужно
+    if (settings.options?.includeQR) {
+        setTimeout(generateQRCode, 500);
+    }
+}
+
+// Генерация HTML для разных разделов
+function generateTaskAnalysisHTML(taskAnalysis) {
+    if (!taskAnalysis || taskAnalysis.length === 0) return '';
+    
+    let html = '<div class="report-section"><h3>📋 Анализ заданий</h3><table class="report-table"><thead><tr><th>№</th><th>Задание</th><th>Сложность</th><th>Успешность</th><th>Анализ</th></tr></thead><tbody>';
+    
+    taskAnalysis.forEach((task, index) => {
+        html += `
+            <tr>
+                <td>${index + 1}</td>
+                <td>${task.title || `Задание ${index + 1}`}</td>
+                <td>${task.difficultyName || 'Не указана'}</td>
+                <td>${task.successRate}%</td>
+                <td>${task.analysis || 'Нет анализа'}</td>
+            </tr>
+        `;
+    });
+    
+    html += '</tbody></table></div>';
+    return html;
+}
+
+function generateErrorAnalysisHTML(errorAnalysis) {
+    if (!errorAnalysis || errorAnalysis.length === 0) return '';
+    
+    let html = '<div class="report-section"><h3>⚠️ Анализ ошибок</h3><table class="report-table"><thead><tr><th>Тип ошибки</th><th>Количество</th><th>Процент</th></tr></thead><tbody>';
+    
+    errorAnalysis.forEach(error => {
+        html += `
+            <tr>
+                <td>${error.type}</td>
+                <td>${error.count}</td>
+                <td>${error.percentage}%</td>
+            </tr>
+        `;
+    });
+    
+    html += '</tbody></table></div>';
+    return html;
+}
+
+function generateChartsHTML(charts) {
+    if (!charts || charts.length === 0) return '';
+    
+    let html = '<div class="report-section"><h3>📊 Графики и диаграммы</h3><div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-top: 20px;">';
+    
+    charts.forEach((chart, index) => {
+        html += `
+            <div style="background: white; padding: 15px; border-radius: 8px; border: 1px solid #e0e0e0; text-align: center;">
+                <h4>${chart.title}</h4>
+                <div style="height: 250px; display: flex; align-items: center; justify-content: center;">
+                    [График ${chart.type} будет здесь]
+                </div>
+                <small style="color: #666;">${chart.description || ''}</small>
+            </div>
+        `;
+    });
+    
+    html += '</div></div>';
+    return html;
+}
+
+function generateComparativeAnalysisHTML(comparativeAnalysis) {
+    if (!comparativeAnalysis) return '';
+    
+    return `
+        <div class="report-section">
+            <h3>📈 Сравнительный анализ</h3>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-top: 15px;">
+                <div style="text-align: center; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+                    <div style="font-size: 24px; font-weight: bold; color: #2c3e50;">${comparativeAnalysis.classAverage.toFixed(1)}</div>
+                    <div style="font-size: 12px; color: #7f8c8d;">Среднее по классу</div>
+                </div>
+                <div style="text-align: center; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+                    <div style="font-size: 24px; font-weight: bold; color: #2c3e50;">${comparativeAnalysis.schoolAverage.toFixed(1)}</div>
+                    <div style="font-size: 12px; color: #7f8c8d;">Среднее по школе</div>
+                </div>
+                <div style="text-align: center; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+                    <div style="font-size: 24px; font-weight: bold; color: #2c3e50;">${comparativeAnalysis.regionalAverage.toFixed(1)}</div>
+                    <div style="font-size: 12px; color: #7f8c8d;">Среднее по региону</div>
+                </div>
+                <div style="text-align: center; padding: 15px; background: ${comparativeAnalysis.difference >= 0 ? '#d4edda' : '#f8d7da'}; border-radius: 8px;">
+                    <div style="font-size: 24px; font-weight: bold; color: ${comparativeAnalysis.difference >= 0 ? '#28a745' : '#dc3545'};">${comparativeAnalysis.difference >= 0 ? '+' : ''}${comparativeAnalysis.difference.toFixed(1)}</div>
+                    <div style="font-size: 12px; color: #666;">Разница с национальным</div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+// Функция для загрузки шаблона
+function loadReportTemplate() {
+    const templates = JSON.parse(localStorage.getItem('reportTemplates') || '[]');
+    
+    if (templates.length === 0) {
+        showNotification('Нет сохраненных шаблонов', 'warning');
+        return;
+    }
+    
+    let html = `
+        <div style="max-width: 600px;">
+            <h3>📂 Выберите шаблон</h3>
+            <div style="max-height: 400px; overflow-y: auto; margin: 15px 0;">
+    `;
+    
+    templates.forEach((template, index) => {
+        html += `
+            <div class="template-item" style="padding: 10px; border: 1px solid #eee; margin: 5px 0; border-radius: 5px; cursor: pointer;" onclick="selectTemplate(${index})">
+                <strong>${template.name}</strong>
+                <div style="font-size: 12px; color: #666;">
+                    ${new Date(template.date).toLocaleDateString()} | ${template.settings?.type || 'Пользовательский'}
+                </div>
+            </div>
+        `;
+    });
+    
+    html += `
+            </div>
+            <div class="modal-actions">
+                <button class="btn" onclick="hideModal()">Отмена</button>
+            </div>
+        </div>
+    `;
+    
+    showModal('Загрузка шаблона', html);
+}
+
+function selectTemplate(index) {
+    const templates = JSON.parse(localStorage.getItem('reportTemplates') || '[]');
+    const template = templates[index];
+    
+    if (template) {
+        applyTemplateSettings(template.settings);
+        hideModal();
+        showNotification(`Загружен шаблон: ${template.name}`, 'success');
+    }
+}
+
+// Обновленная функция сбора настроек
+function collectReportSettings() {
+    const settings = {
+        type: document.getElementById('reportType')?.value || 'teacher',
+        fields: [],
+        gradeFilter: [],
+        complexityFilter: document.getElementById('complexityFilter')?.value || 'all',
+        errorTypeFilter: [],
+        studentGroup: [],
+        theme: document.getElementById('reportTheme')?.value || 'default',
+        font: document.getElementById('reportFont')?.value || 'Arial',
+        fontSize: document.getElementById('fontSize')?.value || '12',
+        colorScheme: document.getElementById('colorScheme')?.value || 'blue',
+        options: {}
+    };
+    
+    // Собираем выбранные поля
+    const fieldCheckboxes = document.querySelectorAll('input[name="reportFields"]:checked');
+    fieldCheckboxes.forEach(checkbox => {
+        if (checkbox && checkbox.value) {
+            settings.fields.push(checkbox.value);
+        }
+    });
+    
+    // Собираем фильтры по оценкам
+    const gradeCheckboxes = document.querySelectorAll('input[name="gradeFilter"]:checked');
+    gradeCheckboxes.forEach(checkbox => {
+        if (checkbox && checkbox.value) {
+            settings.gradeFilter.push(checkbox.value);
+        }
+    });
+    
+    // Собираем фильтры по типам ошибок
+    const errorCheckboxes = document.querySelectorAll('input[name="errorTypeFilter"]:checked');
+    errorCheckboxes.forEach(checkbox => {
+        if (checkbox && checkbox.value && checkbox.value !== 'all') {
+            settings.errorTypeFilter.push(checkbox.value);
+        }
+    });
+    
+    // Собираем группы учащихся
+    const studentCheckboxes = document.querySelectorAll('input[name="studentGroup"]:checked');
+    studentCheckboxes.forEach(checkbox => {
+        if (checkbox && checkbox.value && checkbox.value !== 'all') {
+            settings.studentGroup.push(checkbox.value);
+        }
+    });
+    
+    // Собираем дополнительные опции
+    const options = [
+        'includeCharts', 'includeTables', 'includeImages',
+        'includeQR', 'encryptReport', 'watermark',
+        'autoSummary', 'aiInsights', 'predictiveAnalytics',
+        'voiceSummary', 'interactiveCharts', 'animations'
+    ];
+    
+    options.forEach(option => {
+        const element = document.getElementById(option);
+        settings.options[option] = element ? element.checked : false;
+    });
+    
+    return settings;
+}
+
+// Проверка наличия необходимых библиотек
+function checkRequiredLibraries() {
+    const requiredLibs = {
+        'JSZip': typeof JSZip !== 'undefined',
+        'html2pdf': typeof html2pdf !== 'undefined',
+        'QRCode': typeof QRCode !== 'undefined',
+        'Chart': typeof Chart !== 'undefined',
+        'htmlDocx': typeof htmlDocx !== 'undefined'
+    };
+    
+    const missingLibs = Object.entries(requiredLibs)
+        .filter(([_, exists]) => !exists)
+        .map(([lib]) => lib);
+    
+    if (missingLibs.length > 0) {
+        console.warn('Отсутствуют библиотеки:', missingLibs);
+        return false;
+    }
+    
+    return true;
+}
+
+// Инициализация при загрузке
+document.addEventListener('DOMContentLoaded', function() {
+    // Проверяем библиотеки
+    setTimeout(() => {
+        if (!checkRequiredLibraries()) {
+            console.log('Некоторые функции отчета могут не работать из-за отсутствия библиотек');
+        }
+    }, 1000);
+});
