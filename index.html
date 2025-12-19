@@ -8236,25 +8236,25 @@
 		}
 
 		// Автозапуск тура для новых пользователей
-		document.addEventListener('DOMContentLoaded', function() {
-			const tourCompleted = localStorage.getItem('tourCompleted');
-			const firstVisit = !localStorage.getItem('firstVisitTime');
+		<!-- document.addEventListener('DOMContentLoaded', function() { -->
+			<!-- const tourCompleted = localStorage.getItem('tourCompleted'); -->
+			<!-- const firstVisit = !localStorage.getItem('firstVisitTime'); -->
 			
-			if (firstVisit) {
-				localStorage.setItem('firstVisitTime', new Date().toISOString());
-			}
+			<!-- if (firstVisit) { -->
+				<!-- localStorage.setItem('firstVisitTime', new Date().toISOString()); -->
+			<!-- } -->
 			
-			// Показываем тур если пользователь новый или прошло много времени
-			if (!tourCompleted || (firstVisit && !tourCompleted)) {
-				setTimeout(() => {
-					if (confirm('Хотите пройти краткое обучение по работе с системой?')) {
-						startTour();
-					} else {
-						localStorage.setItem('tourCompleted', 'true');
-					}
-				}, 1000);
-			}
-		});		
+			<!-- // Показываем тур если пользователь новый или прошло много времени -->
+			<!-- if (!tourCompleted || (firstVisit && !tourCompleted)) { -->
+				<!-- setTimeout(() => { -->
+					<!-- if (confirm('Хотите пройти краткое обучение по работе с системой?')) { -->
+						<!-- startTour(); -->
+					<!-- } else { -->
+						<!-- localStorage.setItem('tourCompleted', 'true'); -->
+					<!-- } -->
+				<!-- }, 1000); -->
+			<!-- } -->
+		<!-- });		 -->
 		
 		// ==================== ШАБЛОНЫ ОТЧЕТОВ ====================
 
@@ -9419,19 +9419,19 @@
 		}
 
 		// Проверяем при загрузке, нужно ли показывать туториал
-		function checkFirstVisit() {
-		  const tutorialCompleted = localStorage.getItem('tutorialCompleted');
-		  if (!tutorialCompleted || tutorialCompleted === 'false') {
-			// Показываем с задержкой, чтобы страница успела загрузиться
-			setTimeout(() => {
-			  if (confirm('Хотите пройти краткий тур по системе? Это займет 2-3 минуты.')) {
-				showTutorial();
-			  } else {
-				localStorage.setItem('tutorialCompleted', 'true');
-			  }
-			}, 1000);
-		  }
-		}
+		<!-- function checkFirstVisit() { -->
+		  <!-- const tutorialCompleted = localStorage.getItem('tutorialCompleted'); -->
+		  <!-- if (!tutorialCompleted || tutorialCompleted === 'false') { -->
+			<!-- // Показываем с задержкой, чтобы страница успела загрузиться -->
+			<!-- setTimeout(() => { -->
+			  <!-- if (confirm('Хотите пройти краткий тур по системе? Это займет 2-3 минуты.')) { -->
+				<!-- showTutorial(); -->
+			  <!-- } else { -->
+				<!-- localStorage.setItem('tutorialCompleted', 'true'); -->
+			  <!-- } -->
+			<!-- }, 1000); -->
+		  <!-- } -->
+		<!-- } -->
 
 		// Быстрая справка по разделам
 		function showContextHelp(section) {
@@ -22497,16 +22497,16 @@
 				}, 500);
 				
 				// Проверяем и показываем тур если нужно
-				const tourCompleted = localStorage.getItem('tourCompleted');
-				if (!tourCompleted) {
-					setTimeout(() => {
-						if (confirm('Добро пожаловать! Хотите пройти краткий тур по возможностям системы?')) {
-							if (typeof startTour === 'function') {
-								try { startTour(); } catch(e) { console.error(e); }
-							}
-						}
-					}, 2000);
-				}
+				<!-- const tourCompleted = localStorage.getItem('tourCompleted'); -->
+				<!-- if (!tourCompleted) { -->
+					<!-- setTimeout(() => { -->
+						<!-- if (confirm('Добро пожаловать! Хотите пройти краткий тур по возможностям системы?')) { -->
+							<!-- if (typeof startTour === 'function') { -->
+								<!-- try { startTour(); } catch(e) { console.error(e); } -->
+							<!-- } -->
+						<!-- } -->
+					<!-- }, 2000); -->
+				<!-- } -->
 				
 				// Загружаем настройки автосохранения
 				const savedAutoSave = localStorage.getItem('autoSaveEnabled');
