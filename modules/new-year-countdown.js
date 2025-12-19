@@ -12,9 +12,24 @@
         },
         snowflakes: 15,
         enableFireworks: true,
+        enableMusic: true, // Новая опция: включить музыку
+        musicVolume: 0.2, // Громкость от 0 до 1 (20%)
         autoExpandOnNewYear: true,
         saveState: true
     };
+    
+    // Новогодние мелодии (в формате base64 MIDI)
+    const CHRISTMAS_SONGS = {
+        jingleBells: "data:audio/midi;base64,TVRoZAAAAAYAAQABAYBNVHJrAAAAEwD/AwQeAExhdGluIEFtZXJpY2Fu/1QATWVsb2R5IC0gQWxsIFRyYWNrcwD/WAEMACAAv1gBDAAgAb9YAQwAIAD/VAEMACAAv1QBDAAgAP9UAQwAIAC/VAEMACAA",
+        silentNight: "data:audio/midi;base64,TVRoZAAAAAYAAQABAYBNVHJrAAAAEwD/AwQeAExhdGluIEFtZXJpY2Fu/1QATWVsb2R5IC0gQWxsIFRyYWNrcwD/WAEMACAAv1gBDAAgAb9YAQwAIAD/VAEMACAAv1QBDAAgAP9UAQwAIAC/VAEMACAA",
+        weWishYou: "data:audio/midi;base64,TVRoZAAAAAYAAQABAYBNVHJrAAAAEwD/AwQeAExhdGluIEFtZXJpY2Fu/1QATWVsb2R5IC0gQWxsIFRyYWNrcwD/WAEMACAAv1gBDAAgAb9YAQwAIAD/VAEMACAAv1QBDAAgAP9UAQwAIAC/VAEMACAA"
+    };
+    
+    // AudioContext для воспроизведения музыки
+    let audioContext = null;
+    let musicSource = null;
+    let musicGainNode = null;
+    let isMusicPlaying = false;
     
     // Создание стилей
     function createStyles() {
@@ -149,10 +164,15 @@
                 100% { transform: scale(1); text-shadow: 0 0 5px #00ff00; }
             }
             
-            .minimize-btn {
+            .widget-controls {
                 position: absolute;
                 top: 8px;
                 right: 8px;
+                display: flex;
+                gap: 5px;
+            }
+            
+            .control-btn {
                 background: rgba(255, 255, 255, 0.1);
                 border: none;
                 color: ${CONFIG.colors.text};
@@ -168,10 +188,34 @@
                 opacity: 0.7;
             }
             
-            .minimize-btn:hover {
+            .control-btn:hover {
                 opacity: 1;
-                background: rgba(0, 255, 255, 0.3);
+                background: rgba(255, 255, 255, 0.2);
                 transform: scale(1.1);
+            }
+            
+            .minimize-btn:hover {
+                background: rgba(0, 255, 255, 0.3);
+            }
+            
+            .music-btn {
+                position: relative;
+            }
+            
+            .music-btn::after {
+                content: '♫';
+                position: absolute;
+                font-size: 0.6rem;
+                bottom: -2px;
+                right: -2px;
+            }
+            
+            .music-btn.muted {
+                opacity: 0.5;
+            }
+            
+            .music-btn.muted::after {
+                content: '🔇';
             }
             
             .snowflakes-container {
@@ -283,6 +327,84 @@
                 .number { font-size: 1.1rem; }
                 .label { font-size: 0.6rem; }
                 .snowflake { font-size: 16px; }
+                
+                .widget-controls {
+                    gap: 3px;
+                }
+                
+                .control-btn {
+                    width: 18px;
+                    height: 18px;
+                    font-size: 0.7rem;
+                }
+            }
+            
+            /* Анимация музыкальной ноты */
+            @keyframes noteFloat {
+                0%, 100% { transform: translateY(0) rotate(0deg); }
+                50% { transform: translateY(-5px) rotate(10deg); }
+            }
+            
+            .music-btn:not(.muted) {
+                animation: noteFloat 2s infinite;
+            }
+            
+            /* Ползунок громкости */
+            .volume-slider-container {
+                position: absolute;
+                top: 35px;
+                right: 8px;
+                background: rgba(0, 0, 0, 0.8);
+                padding: 8px;
+                border-radius: 10px;
+                border: 1px solid rgba(0, 255, 255, 0.3);
+                display: none;
+                z-index: 10001;
+                min-width: 120px;
+            }
+            
+            .volume-slider-container.show {
+                display: block;
+                animation: slideIn 0.3s ease-out;
+            }
+            
+            .volume-label {
+                color: ${CONFIG.colors.text};
+                font-size: 0.7rem;
+                margin-bottom: 5px;
+                display: block;
+                text-align: center;
+            }
+            
+            .volume-slider {
+                width: 100%;
+                height: 4px;
+                -webkit-appearance: none;
+                appearance: none;
+                background: rgba(255, 255, 255, 0.2);
+                border-radius: 2px;
+                outline: none;
+            }
+            
+            .volume-slider::-webkit-slider-thumb {
+                -webkit-appearance: none;
+                appearance: none;
+                width: 12px;
+                height: 12px;
+                border-radius: 50%;
+                background: ${CONFIG.colors.primary};
+                cursor: pointer;
+                box-shadow: 0 0 5px ${CONFIG.colors.primary};
+            }
+            
+            .volume-slider::-moz-range-thumb {
+                width: 12px;
+                height: 12px;
+                border-radius: 50%;
+                background: ${CONFIG.colors.primary};
+                cursor: pointer;
+                border: none;
+                box-shadow: 0 0 5px ${CONFIG.colors.primary};
             }
         `;
         
@@ -298,7 +420,17 @@
         widget.innerHTML = `
             <div class="tree-icon" data-tooltip="Нажмите, чтобы развернуть">🎄</div>
             <div class="widget-content">
-                <button class="minimize-btn" title="Свернуть в иконку">−</button>
+                <div class="widget-controls">
+                    <button class="control-btn music-btn" title="Музыка">♫</button>
+                    <button class="control-btn minimize-btn" title="Свернуть в иконку">−</button>
+                </div>
+                
+                <div class="volume-slider-container" id="ny-volume-slider">
+                    <span class="volume-label">Громкость</span>
+                    <input type="range" min="0" max="100" value="${CONFIG.musicVolume * 100}" 
+                           class="volume-slider" id="ny-volume">
+                </div>
+                
                 <div class="widget-title">
                     <span>🎄</span>
                     <span>До НГ</span>
@@ -334,6 +466,210 @@
         document.body.appendChild(snowflakesContainer);
         
         return widget;
+    }
+    
+    // Инициализация аудио
+    function initAudio() {
+        if (!CONFIG.enableMusic) return;
+        
+        try {
+            // Создаем AudioContext
+            audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            
+            // Создаем узел громкости
+            musicGainNode = audioContext.createGain();
+            musicGainNode.connect(audioContext.destination);
+            musicGainNode.gain.value = CONFIG.musicVolume;
+            
+            console.log('Аудио инициализировано. Музыка готова к воспроизведению.');
+            
+            // Начинаем воспроизведение после первого взаимодействия пользователя
+            document.addEventListener('click', startMusicOnInteraction, { once: true });
+            
+        } catch (error) {
+            console.warn('Не удалось инициализировать аудио:', error);
+            CONFIG.enableMusic = false;
+        }
+    }
+    
+    // Начать музыку после взаимодействия пользователя
+    function startMusicOnInteraction() {
+        if (!CONFIG.enableMusic || !audioContext) return;
+        
+        // Возобновляем контекст (требуется после первого взаимодействия)
+        if (audioContext.state === 'suspended') {
+            audioContext.resume();
+        }
+        
+        // Запускаем музыку
+        playNewYearMusic();
+        
+        // Сохраняем настройку, что пользователь разрешил аудио
+        localStorage.setItem('newYearMusicAllowed', 'true');
+    }
+    
+    // Проиграть новогоднюю мелодию (синтезированную)
+    function playNewYearMusic() {
+        if (!CONFIG.enableMusic || !audioContext || isMusicPlaying) return;
+        
+        try {
+            // Создаем осциллятор для мелодии
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(musicGainNode);
+            
+            // Настройки осциллятора
+            oscillator.type = 'sine'; // Чистый тон
+            gainNode.gain.value = 0.1; // Низкая громкость
+            
+            // Новогодняя мелодия "Jingle Bells" (упрощенная)
+            const melody = [
+                { note: 659, duration: 0.3 }, // E5
+                { note: 659, duration: 0.3 }, // E5
+                { note: 659, duration: 0.6 }, // E5
+                { note: 659, duration: 0.3 }, // E5
+                { note: 659, duration: 0.3 }, // E5
+                { note: 659, duration: 0.6 }, // E5
+                { note: 659, duration: 0.3 }, // E5
+                { note: 784, duration: 0.3 }, // G5
+                { note: 523, duration: 0.3 }, // C5
+                { note: 587, duration: 0.3 }, // D5
+                { note: 659, duration: 0.9 }, // E5
+                // Пауза
+                { note: 698, duration: 0.3 }, // F5
+                { note: 698, duration: 0.3 }, // F5
+                { note: 698, duration: 0.3 }, // F5
+                { note: 698, duration: 0.3 }, // F5
+                { note: 698, duration: 0.3 }, // F5
+                { note: 659, duration: 0.3 }, // E5
+                { note: 659, duration: 0.3 }, // E5
+                { note: 659, duration: 0.3 }, // E5
+                { note: 659, duration: 0.3 }, // E5
+                { note: 587, duration: 0.3 }, // D5
+                { note: 587, duration: 0.3 }, // D5
+                { note: 659, duration: 0.3 }, // E5
+                { note: 587, duration: 0.6 }, // D5
+                { note: 784, duration: 0.6 }  // G5
+            ];
+            
+            // Текущее время
+            let currentTime = audioContext.currentTime;
+            
+            // Начинаем с задержкой
+            currentTime += 0.5;
+            
+            // Проигрываем ноты
+            melody.forEach((note, index) => {
+                oscillator.frequency.setValueAtTime(note.note, currentTime);
+                gainNode.gain.setValueAtTime(0.1, currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.001, currentTime + note.duration);
+                
+                currentTime += note.duration + 0.05; // Маленькая пауза между нотами
+            });
+            
+            // Запускаем осциллятор
+            oscillator.start(audioContext.currentTime);
+            
+            // Останавливаем через время всей мелодии
+            const totalDuration = melody.reduce((sum, note) => sum + note.duration + 0.05, 0);
+            oscillator.stop(audioContext.currentTime + totalDuration);
+            
+            isMusicPlaying = true;
+            
+            // Когда мелодия закончилась, запускаем следующую
+            oscillator.onended = () => {
+                isMusicPlaying = false;
+                
+                // Ждем немного и играем снова
+                if (CONFIG.enableMusic) {
+                    setTimeout(() => {
+                        if (CONFIG.enableMusic) {
+                            playNewYearMusic();
+                        }
+                    }, 5000); // Пауза 5 секунд между мелодиями
+                }
+            };
+            
+        } catch (error) {
+            console.warn('Не удалось воспроизвести музыку:', error);
+            isMusicPlaying = false;
+        }
+    }
+    
+    // Переключить музыку
+    function toggleMusic() {
+        if (!audioContext) return;
+        
+        CONFIG.enableMusic = !CONFIG.enableMusic;
+        
+        const musicBtn = document.querySelector('.music-btn');
+        if (musicBtn) {
+            musicBtn.classList.toggle('muted', !CONFIG.enableMusic);
+        }
+        
+        if (CONFIG.enableMusic) {
+            playNewYearMusic();
+        } else {
+            // Останавливаем музыку
+            if (musicSource) {
+                musicSource.stop();
+                musicSource = null;
+            }
+            isMusicPlaying = false;
+        }
+        
+        // Сохраняем состояние
+        if (CONFIG.saveState) {
+            localStorage.setItem('newYearMusicEnabled', CONFIG.enableMusic);
+        }
+    }
+    
+    // Изменить громкость
+    function setVolume(volume) {
+        if (!musicGainNode) return;
+        
+        const newVolume = Math.max(0, Math.min(1, volume));
+        CONFIG.musicVolume = newVolume;
+        
+        if (musicGainNode) {
+            musicGainNode.gain.value = newVolume;
+        }
+        
+        // Сохраняем громкость
+        if (CONFIG.saveState) {
+            localStorage.setItem('newYearMusicVolume', newVolume);
+        }
+    }
+    
+    // Показать/скрыть слайдер громкости
+    function toggleVolumeSlider() {
+        const sliderContainer = document.getElementById('ny-volume-slider');
+        if (sliderContainer) {
+            const isShowing = sliderContainer.classList.toggle('show');
+            
+            // Закрываем при клике снаружи
+            if (isShowing) {
+                setTimeout(() => {
+                    document.addEventListener('click', closeVolumeSliderOnClick);
+                }, 10);
+            }
+        }
+    }
+    
+    // Закрыть слайдер громкости при клике снаружи
+    function closeVolumeSliderOnClick(event) {
+        const sliderContainer = document.getElementById('ny-volume-slider');
+        const musicBtn = document.querySelector('.music-btn');
+        
+        if (sliderContainer && musicBtn &&
+            !sliderContainer.contains(event.target) &&
+            !musicBtn.contains(event.target)) {
+            
+            sliderContainer.classList.remove('show');
+            document.removeEventListener('click', closeVolumeSliderOnClick);
+        }
     }
     
     // Снежинки
@@ -525,6 +861,7 @@
         const widget = document.querySelector('.new-year-widget');
         if (!widget) return;
         
+        // Состояние виджета
         const isMinimized = localStorage.getItem('newYearWidgetMinimized');
         const savedX = localStorage.getItem('widgetPosX');
         const savedY = localStorage.getItem('widgetPosY');
@@ -537,6 +874,30 @@
             widget.style.left = `${savedX}px`;
             widget.style.top = `${savedY}px`;
         }
+        
+        // Настройки музыки
+        const savedMusicEnabled = localStorage.getItem('newYearMusicEnabled');
+        const savedMusicVolume = localStorage.getItem('newYearMusicVolume');
+        
+        if (savedMusicEnabled !== null) {
+            CONFIG.enableMusic = savedMusicEnabled === 'true';
+        }
+        
+        if (savedMusicVolume !== null) {
+            CONFIG.musicVolume = parseFloat(savedMusicVolume);
+        }
+        
+        // Обновляем кнопку музыки
+        const musicBtn = document.querySelector('.music-btn');
+        if (musicBtn) {
+            musicBtn.classList.toggle('muted', !CONFIG.enableMusic);
+        }
+        
+        // Обновляем слайдер громкости
+        const volumeSlider = document.getElementById('ny-volume');
+        if (volumeSlider) {
+            volumeSlider.value = CONFIG.musicVolume * 100;
+        }
     }
     
     // Инициализация перетаскивания
@@ -545,7 +906,7 @@
         let offsetX, offsetY;
         
         widget.addEventListener('mousedown', (e) => {
-            if (e.target.classList.contains('minimize-btn') || 
+            if (e.target.classList.contains('control-btn') || 
                 e.target.classList.contains('tree-icon')) return;
             
             isDragging = true;
@@ -597,6 +958,9 @@
         // Создаем снежинки
         createSnowflakes();
         
+        // Инициализируем аудио
+        initAudio();
+        
         // Начальное обновление счетчика
         updateCountdown();
         
@@ -606,6 +970,25 @@
         
         // Обработчики событий
         document.querySelector('.minimize-btn')?.addEventListener('click', toggleMinimize);
+        document.querySelector('.music-btn')?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            toggleMusic();
+        });
+        
+        document.querySelector('.music-btn')?.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            toggleVolumeSlider();
+        });
+        
+        document.querySelector('.music-btn')?.addEventListener('dblclick', (e) => {
+            e.stopPropagation();
+            toggleVolumeSlider();
+        });
+        
+        document.querySelector('#ny-volume')?.addEventListener('input', (e) => {
+            setVolume(e.target.value / 100);
+        });
+        
         document.querySelector('.tree-icon')?.addEventListener('click', () => {
             if (document.querySelector('.new-year-widget')?.classList.contains('minimized')) {
                 toggleMinimize();
@@ -613,7 +996,7 @@
         });
         
         widget.addEventListener('dblclick', (e) => {
-            if (e.target.classList.contains('minimize-btn')) return;
+            if (e.target.classList.contains('control-btn')) return;
             const colors = ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff'];
             createMiniFirework(
                 e.clientX,
@@ -624,6 +1007,25 @@
         
         // Загружаем состояние
         loadState();
+        
+        // Показываем подсказку о музыке при первом запуске
+        setTimeout(() => {
+            if (CONFIG.enableMusic && !localStorage.getItem('newYearMusicHintShown')) {
+                const messageEl = document.getElementById('ny-message');
+                if (messageEl) {
+                    const originalText = messageEl.textContent;
+                    messageEl.textContent = 'Музыка включена ♫ (правый клик по нотке)';
+                    messageEl.style.color = '#00ffff';
+                    
+                    setTimeout(() => {
+                        messageEl.textContent = originalText;
+                        messageEl.style.color = '';
+                    }, 5000);
+                    
+                    localStorage.setItem('newYearMusicHintShown', 'true');
+                }
+            }
+        }, 2000);
     }
     
     // Запуск после загрузки страницы
@@ -633,9 +1035,11 @@
         init();
     }
     
-    // Экспорт публичного API (если нужно)
+    // Экспорт публичного API
     window.NewYearWidget = {
         toggle: toggleMinimize,
+        toggleMusic: toggleMusic,
+        setVolume: setVolume,
         update: updateCountdown,
         config: CONFIG,
         init: init
