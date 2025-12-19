@@ -1,12 +1,6 @@
 window.currentAnalysis = null;
 function analyzeResults() {
 	console.log('📈 Анализ результатов...');
-    console.log('Данные:', {
-        tasksCount: appData.tasks.length,
-        studentsCount: appData.students.length,
-        resultsCount: appData.results.length,
-        errorsCount: appData.errors.length
-    });	
 	// Проверяем наличие данных
 	if (!appData.tasks || appData.tasks.length === 0) {
 		showNotification('Сначала добавьте задания', 'warning');
