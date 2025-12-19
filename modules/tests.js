@@ -403,7 +403,7 @@ function addTestButton() {
 
 // Инициализируем при загрузке
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', addTestButton);
+  //document.addEventListener('DOMContentLoaded', addTestButton);
 } else {
   addTestButton();
 }

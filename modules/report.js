@@ -8,7 +8,7 @@ let comparisonData = null;
 let aiAnalysis = null;
 let speechSynthesis = window.speechSynthesis;
 let isSpeaking = false;
-
+/*
 // Глобальная проверка appData - ИСПРАВЛЕННАЯ ВЕРСИЯ
 if (typeof appData === 'undefined') {
     console.warn('appData не определен, создаю пустой объект');
@@ -36,7 +36,7 @@ if (typeof appData === 'undefined') {
     if (!appData.students) appData.students = [];
     if (!appData.results) appData.results = [];
     if (!appData.errors) appData.errors = [];
-}
+}*/
 
 // Инициализация при показе вкладки
 function initReportTab() {
@@ -1083,7 +1083,7 @@ function saveReportToCloud() {
 }
 
 // Копирование всех файлов отчета
-function downloadReportAssets() {
+function downloadReportAssets1() {
     if (!reportData) {
         showNotification('Сначала сгенерируйте отчет', 'warning');
         return;
@@ -1398,7 +1398,44 @@ document.addEventListener('DOMContentLoaded', function() {
             setTimeout(initReportTab, 100);
         }
     };
+	// Добавляем кнопку для текстового экспорта
+    setTimeout(addTextExportButton, 1000);
+    
+    // Добавляем обработчик для кнопки "Все файлы"
+    const downloadBtn = document.querySelector('[onclick*="downloadReportAssets"]');
+    if (downloadBtn) {
+        downloadBtn.title = 'Скачать все файлы отчета (UTF-8)';
+    }
 });
+
+// Функция для исправления кодировки в уже существующих данных
+function fixExistingDataEncoding() {
+    try {
+        // Исправляем данные в appData
+        if (appData && appData.students) {
+            appData.students.forEach(student => {
+                if (student.lastName) student.lastName = decodeUnicode(student.lastName);
+                if (student.firstName) student.firstName = decodeUnicode(student.firstName);
+                if (student.middleName) student.middleName = decodeUnicode(student.middleName);
+            });
+        }
+        
+        if (appData && appData.test) {
+            if (appData.test.subject) appData.test.subject = decodeUnicode(appData.test.subject);
+            if (appData.test.class) appData.test.class = decodeUnicode(appData.test.class);
+            if (appData.test.theme) appData.test.theme = decodeUnicode(appData.test.theme);
+        }
+        
+        console.log('Кодировка данных исправлена на UTF-8');
+        return true;
+    } catch (error) {
+        console.error('Ошибка исправления кодировки:', error);
+        return false;
+    }
+}
+
+// Автоматически исправляем кодировку при загрузке
+setTimeout(fixExistingDataEncoding, 500);
 
 // ==================== ДОПОЛНИТЕЛЬНЫЕ ФУНКЦИИ ОТЧЕТОВ ====================
 function validateReportData() {
@@ -3551,52 +3588,146 @@ function exportToWord() {
         return;
     }
     
-    console.log('Экспорт в Word...');
+    console.log('Экспорт в Word с кодировкой UTF-8...');
     
-    // Создаем HTML для Word
+    // Создаем HTML для Word с явным указанием кодировки UTF-8
     const htmlContent = generateWordHTML(reportData);
     
-    // Используем библиотеку html-docx-js
-    const converted = htmlDocx.asBlob(htmlContent);
+    // Используем библиотеку html-docx-js с настройками UTF-8
+    const converted = htmlDocx.asBlob(htmlContent, {
+        orientation: "portrait",
+        margins: { top: 1000, right: 1000, bottom: 1000, left: 1000 }
+    });
     
     // Скачиваем файл
     const url = URL.createObjectURL(converted);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `Отчет_${appData.test.subject}_${appData.test.class}_${new Date().toISOString().split('T')[0]}.docx`;
+    a.download = `Отчет_${appData.test.subject || 'предмет'}_${new Date().toISOString().split('T')[0]}.docx`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     
-    showNotification('Отчет экспортирован в Word', 'success');
+    showNotification('Отчет экспортирован в Word (UTF-8)', 'success');
 }
+
 // Генерация HTML для Word
 function generateWordHTML(reportData) {
-    return `
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <meta charset="UTF-8">
-            <style>
-                body { font-family: 'Times New Roman', serif; line-height: 1.5; }
-                h1 { text-align: center; }
-                .section { margin-bottom: 20pt; }
-                table { border-collapse: collapse; width: 100%; margin: 10pt 0; }
-                th, td { border: 1pt solid black; padding: 5pt; }
-                th { background: #f2f2f2; }
-                .footer { margin-top: 40pt; font-size: 10pt; color: #666; }
-            </style>
-        </head>
-        <body>
-            <h1>${reportData.metadata.title}</h1>
-            ${generateWordSections(reportData)}
-            <div class="footer">
-                <p>Отчет сгенерирован: ${new Date().toLocaleString()}</p>
-                <p>Система анализа образовательных результатов</p>
-            </div>
-        </body>
-        </html>
-    `;
+    const content = generateWordSections(reportData);
+    
+    return `<!DOCTYPE html>
+<html xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office" 
+      xmlns:w="urn:schemas-microsoft-com:office:word" xmlns:m="http://schemas.microsoft.com/office/2004/12/omml" 
+      xmlns="http://www.w3.org/TR/REC-html40">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <!--[if gte mso 9]>
+    <xml>
+        <w:WordDocument>
+            <w:View>Print</w:View>
+            <w:Zoom>100</w:Zoom>
+            <w:DoNotOptimizeForBrowser/>
+        </w:WordDocument>
+    </xml>
+    <![endif]-->
+    <style>
+        @page {
+            margin: 2cm;
+        }
+        body {
+            font-family: 'Times New Roman', serif;
+            font-size: 12pt;
+            line-height: 1.5;
+            direction: ltr;
+            text-align: left;
+        }
+        h1, h2, h3, h4, h5, h6 {
+            page-break-after: avoid;
+        }
+        h1 {
+            font-size: 16pt;
+            text-align: center;
+            margin-top: 30pt;
+            margin-bottom: 20pt;
+        }
+        h2 {
+            font-size: 14pt;
+            margin-top: 25pt;
+            margin-bottom: 15pt;
+            border-bottom: 1pt solid #000;
+        }
+        h3 {
+            font-size: 13pt;
+            margin-top: 20pt;
+            margin-bottom: 10pt;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 15pt 0;
+            page-break-inside: avoid;
+        }
+        th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+            text-align: left;
+        }
+        th, td {
+            border: 1pt solid #000;
+            padding: 8pt;
+            font-size: 11pt;
+        }
+        p {
+            margin: 10pt 0;
+            text-align: justify;
+        }
+        ul, ol {
+            margin: 10pt 0;
+            padding-left: 25pt;
+        }
+        li {
+            margin: 5pt 0;
+        }
+        .page-break {
+            page-break-before: always;
+        }
+        .footer {
+            margin-top: 40pt;
+            padding-top: 10pt;
+            border-top: 1pt solid #000;
+            font-size: 10pt;
+            color: #666;
+        }
+        .grade-5 { color: #2e7d32; font-weight: bold; }
+        .grade-4 { color: #1976d2; font-weight: bold; }
+        .grade-3 { color: #f57c00; font-weight: bold; }
+        .grade-2 { color: #c62828; font-weight: bold; }
+        .highlight {
+            background-color: #fff9c4;
+            padding: 2pt 4pt;
+        }
+    </style>
+</head>
+<body>
+    <div style="text-align: center;">
+        <h1>${escapeHtml(reportData.metadata.title)}</h1>
+        <p style="font-size: 14pt; color: #666;">
+            ${escapeHtml(appData.test.subject || 'Предмет не указан')} | 
+            ${escapeHtml(appData.test.class || 'Класс не указан')} | 
+            ${escapeHtml(new Date().toLocaleDateString('ru-RU'))}
+        </p>
+        <hr style="border: none; border-top: 2pt solid #3498db; margin: 20pt 0;">
+    </div>
+    
+    ${content}
+    
+    <div class="footer">
+        <p>Отчет сгенерирован: ${escapeHtml(new Date().toLocaleString('ru-RU'))}</p>
+        <p>Система анализа образовательных результатов (UTF-8)</p>
+    </div>
+</body>
+</html>`;
 }
 
 // Шаблоны отчетов
@@ -3684,10 +3815,10 @@ function generateAndExportReport() {
                 exportToWord();
                 break;
             case 'pdf':
-                exportToPDF();
+                exportToPDFs();
                 break;
             case 'html':
-                exportToHTML();
+                exportToHTMLs();
                 break;
         }
     }, 1000);
@@ -3701,13 +3832,121 @@ function printReport() {
     }
     
     const printWindow = window.open('', '_blank');
-    printWindow.document.write(generatePrintHTML(reportData));
-    printWindow.document.close();
-    printWindow.focus();
     
+    const printContent = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+            <title>${escapeHtml(reportData.metadata.title)}</title>
+            <style>
+                @media print {
+                    @page {
+                        size: A4;
+                        margin: 20mm;
+                    }
+                    body {
+                        font-family: 'Arial', 'Helvetica', sans-serif;
+                        font-size: 12pt;
+                        line-height: 1.5;
+                    }
+                    .no-print {
+                        display: none !important;
+                    }
+                    .page-break {
+                        page-break-before: always;
+                    }
+                    table {
+                        page-break-inside: avoid;
+                    }
+                }
+                @media screen {
+                    body {
+                        font-family: 'Arial', sans-serif;
+                        padding: 20px;
+                        background: #f5f5f5;
+                    }
+                    .print-container {
+                        max-width: 210mm;
+                        margin: 0 auto;
+                        background: white;
+                        padding: 25mm;
+                        box-shadow: 0 0 20px rgba(0,0,0,0.1);
+                    }
+                }
+                h1, h2, h3 {
+                    page-break-after: avoid;
+                }
+                h1 {
+                    text-align: center;
+                    margin-bottom: 20px;
+                }
+                table {
+                    width: 100%;
+                    border-collapse: collapse;
+                    margin: 15px 0;
+                }
+                th, td {
+                    border: 1px solid #000;
+                    padding: 8px;
+                }
+                th {
+                    background: #f2f2f2;
+                }
+                .footer {
+                    margin-top: 40px;
+                    padding-top: 10px;
+                    border-top: 1px solid #ccc;
+                    font-size: 10px;
+                    color: #666;
+                    text-align: center;
+                }
+            </style>
+        </head>
+        <body>
+            <div class="print-container">
+                ${document.getElementById('reportPreviewContent').innerHTML}
+                <div class="footer">
+                    <p>Отчет сгенерирован: ${escapeHtml(reportData.metadata.generated)}</p>
+                    <p>Кодировка: UTF-8 | Система анализа образовательных результатов</p>
+                </div>
+            </div>
+            <div class="no-print" style="text-align: center; margin: 20px;">
+                <button onclick="window.print(); return false;" 
+                        style="padding: 10px 20px; background: #3498db; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px;">
+                    🖨️ Печатать
+                </button>
+                <button onclick="window.close(); return false;" 
+                        style="padding: 10px 20px; background: #95a5a6; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; margin-left: 10px;">
+                    ✕ Закрыть
+                </button>
+            </div>
+        </body>
+        </html>
+    `;
+    
+    printWindow.document.write(printContent);
+    printWindow.document.close();
+    
+    // Даем время на загрузку шрифтов и изображений
     setTimeout(() => {
-        printWindow.print();
+        printWindow.focus();
     }, 500);
+}
+
+// Добавляем кнопку для текстового экспорта
+function addTextExportButton() {
+    const exportButtons = document.querySelector('.export-buttons');
+    if (exportButtons && !document.getElementById('textExportBtn')) {
+        const textBtn = document.createElement('button');
+        textBtn.id = 'textExportBtn';
+        textBtn.className = 'btn btn-outline';
+        textBtn.innerHTML = '<i class="fas fa-file-alt"></i> Text';
+        textBtn.title = 'Экспорт в текстовый файл (UTF-8)';
+        textBtn.onclick = exportToText;
+        exportButtons.appendChild(textBtn);
+    }
 }
 
 // Генерация HTML для печати
@@ -3740,21 +3979,134 @@ function generatePrintHTML(reportData) {
 function generateWordSections(reportData) {
     let html = '';
     
+    // Базовые поля
     if (reportData.content.basicInfo) {
         html += `
-            <div class="section">
-                <h2>1. Основная информация</h2>
-                <table>
-                    <tr><td>Предмет:</td><td>${reportData.content.basicInfo.subject}</td></tr>
-                    <tr><td>Класс:</td><td>${reportData.content.basicInfo.className}</td></tr>
-                    <tr><td>Тема:</td><td>${reportData.content.basicInfo.theme}</td></tr>
-                    <tr><td>Дата:</td><td>${reportData.content.basicInfo.date}</td></tr>
-                </table>
-            </div>
+            <div class="page-break"></div>
+            <h2>1. Основная информация</h2>
+            <table>
+                <tr><th>Параметр</th><th>Значение</th></tr>
+                ${Object.entries(reportData.content.basicInfo).map(([key, value]) => 
+                    `<tr><td><strong>${escapeHtml(key)}:</strong></td><td>${escapeHtml(String(value))}</td></tr>`
+                ).join('')}
+            </table>
         `;
     }
     
-    // Добавьте другие разделы по аналогии
+    // Распределение оценок
+    if (reportData.content.gradesDistribution) {
+        html += `
+            <div class="page-break"></div>
+            <h2>2. Распределение оценок</h2>
+            <table>
+                <tr><th>Оценка</th><th>Процент учащихся</th><th>Анализ</th></tr>
+        `;
+        
+        const distribution = reportData.content.gradesDistribution;
+        Object.entries(distribution).forEach(([grade, percentage]) => {
+            let analysis = '';
+            if (grade === '5' && percentage >= 30) analysis = 'Высокий процент отличников';
+            else if (grade === '4' && percentage >= 40) analysis = 'Хорошая успеваемость';
+            else if (grade === '3' && percentage >= 30) analysis = 'Преобладание удовлетворительных результатов';
+            else if (grade === '2' && percentage >= 20) analysis = 'Требуется дополнительная работа';
+            
+            html += `
+                <tr>
+                    <td class="grade-${grade}">${grade}</td>
+                    <td>${percentage}%</td>
+                    <td>${escapeHtml(analysis)}</td>
+                </tr>
+            `;
+        });
+        
+        html += `</table>`;
+    }
+    
+    // Статистика
+    if (reportData.content.statistics) {
+        html += `
+            <div class="page-break"></div>
+            <h2>3. Статистические показатели</h2>
+            <table>
+                <tr><th>Показатель</th><th>Значение</th></tr>
+        `;
+        
+        Object.entries(reportData.content.statistics).forEach(([key, value]) => {
+            html += `
+                <tr>
+                    <td><strong>${escapeHtml(key)}:</strong></td>
+                    <td>${escapeHtml(String(value))}</td>
+                </tr>
+            `;
+        });
+        
+        html += `</table>`;
+    }
+    
+    // Рекомендации
+    if (reportData.content.recommendations) {
+        html += `
+            <div class="page-break"></div>
+            <h2>4. Рекомендации</h2>
+        `;
+        
+        if (Array.isArray(reportData.content.recommendations)) {
+            html += '<ol>';
+            reportData.content.recommendations.forEach(rec => {
+                html += `
+                    <li>
+                        <strong>${escapeHtml(rec.action || rec.title)}:</strong> 
+                        ${escapeHtml(rec.description || '')}
+                    </li>
+                `;
+            });
+            html += '</ol>';
+        } else if (typeof reportData.content.recommendations === 'object') {
+            Object.entries(reportData.content.recommendations).forEach(([key, value]) => {
+                html += `<h3>${escapeHtml(key)}</h3><p>${escapeHtml(String(value))}</p>`;
+            });
+        }
+    }
+    
+    // Детальные баллы
+    if (reportData.content.detailedScores && Array.isArray(reportData.content.detailedScores)) {
+        html += `
+            <div class="page-break"></div>
+            <h2>5. Детальные результаты учащихся</h2>
+            <table>
+                <tr>
+                    <th>№</th>
+                    <th>Учащийся</th>
+                    <th>Итоговый балл</th>
+                    <th>Оценка</th>
+                    <th>Процент выполнения</th>
+                </tr>
+        `;
+        
+        reportData.content.detailedScores.slice(0, 20).forEach((student, index) => {
+            html += `
+                <tr>
+                    <td>${index + 1}</td>
+                    <td>${escapeHtml(student.student)}</td>
+                    <td>${student.total?.toFixed(2) || '0.00'}</td>
+                    <td>${student.grade || ''}</td>
+                    <td>${student.average ? student.average.toFixed(2) + '%' : '0.00%'}</td>
+                </tr>
+            `;
+        });
+        
+        if (reportData.content.detailedScores.length > 20) {
+            html += `
+                <tr>
+                    <td colspan="5" style="text-align: center; font-style: italic;">
+                        ... и еще ${reportData.content.detailedScores.length - 20} учащихся
+                    </td>
+                </tr>
+            `;
+        }
+        
+        html += `</table>`;
+    }
     
     return html;
 }
@@ -6143,96 +6495,362 @@ function updateReportStatsFromData(report) {
 }
 
 // Функции экспорта
-function exportToPDF() {
+function exportToPDFs() {
     if (!reportData) {
         showNotification('Сначала сгенерируйте отчет', 'warning');
         return;
     }
     
-    showLoading('Создание PDF документа...');
+    showLoading('Создание PDF документа с UTF-8 кодировкой...');
     
-    // Используем html2pdf для создания PDF
     const element = document.getElementById('reportPreviewContent');
+    const originalContent = element.innerHTML;
+    
+    // Создаем временный элемент с UTF-8 метатегами
+    const tempDiv = document.createElement('div');
+    tempDiv.style.cssText = 'position: absolute; left: -9999px; top: 0;';
+    
+    const pdfContent = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+            <style>
+                @page {
+                    margin: 20mm;
+                    @bottom-center {
+                        content: "Страница " counter(page) " из " counter(pages);
+                        font-size: 10pt;
+                        color: #666;
+                    }
+                }
+                body {
+                    font-family: 'DejaVu Sans', 'Arial Unicode MS', 'Arial', sans-serif;
+                    font-size: 11pt;
+                    line-height: 1.5;
+                    color: #000;
+                }
+                h1 {
+                    font-size: 18pt;
+                    text-align: center;
+                    margin-bottom: 10pt;
+                }
+                h2 {
+                    font-size: 14pt;
+                    margin-top: 25pt;
+                    margin-bottom: 10pt;
+                    border-bottom: 1pt solid #ccc;
+                }
+                table {
+                    width: 100%;
+                    border-collapse: collapse;
+                    margin: 15pt 0;
+                    font-size: 10pt;
+                }
+                th {
+                    background: #f2f2f2;
+                    font-weight: bold;
+                    text-align: left;
+                }
+                th, td {
+                    border: 1pt solid #ccc;
+                    padding: 6pt;
+                }
+                .header {
+                    text-align: center;
+                    margin-bottom: 30pt;
+                }
+                .footer {
+                    margin-top: 40pt;
+                    padding-top: 10pt;
+                    border-top: 1pt solid #ccc;
+                    font-size: 9pt;
+                    color: #666;
+                    text-align: center;
+                }
+                .grade-5 { color: #27ae60; font-weight: bold; }
+                .grade-4 { color: #2980b9; font-weight: bold; }
+                .grade-3 { color: #f39c12; font-weight: bold; }
+                .grade-2 { color: #e74c3c; font-weight: bold; }
+            </style>
+        </head>
+        <body>
+            <div class="header">
+                <h1>${escapeHtml(reportData.metadata.title)}</h1>
+                <div style="color: #666;">
+                    ${escapeHtml(appData.test.subject || 'Предмет')} | 
+                    ${escapeHtml(appData.test.class || 'Класс')} | 
+                    ${escapeHtml(new Date().toLocaleDateString('ru-RU'))}
+                </div>
+            </div>
+            
+            ${originalContent}
+            
+            <div class="footer">
+                <p>Отчет сгенерирован: ${escapeHtml(reportData.metadata.generated)}</p>
+                <p>Кодировка: UTF-8 | Система анализа образовательных результатов</p>
+            </div>
+        </body>
+        </html>
+    `;
+    
+    tempDiv.innerHTML = pdfContent;
+    document.body.appendChild(tempDiv);
     
     const opt = {
-        margin: [10, 10, 10, 10],
+        margin: [20, 20, 20, 20],
         filename: `Отчет_${appData.test.subject}_${new Date().toISOString().split('T')[0]}.pdf`,
-        image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2, useCORS: true },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        image: { 
+            type: 'jpeg', 
+            quality: 0.98 
+        },
+        html2canvas: { 
+            scale: 2,
+            useCORS: true,
+            letterRendering: true,
+            allowTaint: true,
+            logging: false
+        },
+        jsPDF: { 
+            unit: 'mm', 
+            format: 'a4', 
+            orientation: 'portrait',
+            compress: true
+        },
+        pagebreak: {
+            mode: ['avoid-all', 'css', 'legacy']
+        }
     };
     
-    // Создаем копию содержимого для печати
-    const printContent = element.cloneNode(true);
-    printContent.classList.add('print-mode');
-    
-    html2pdf().set(opt).from(printContent).save().then(() => {
-        hideLoading();
-        showNotification('PDF документ создан', 'success');
-    }).catch(error => {
-        console.error('Ошибка создания PDF:', error);
-        hideLoading();
-        showNotification('Ошибка создания PDF документа', 'error');
-    });
+    html2pdf()
+        .set(opt)
+        .from(tempDiv)
+        .save()
+        .then(() => {
+            document.body.removeChild(tempDiv);
+            hideLoading();
+            showNotification('PDF документ создан (UTF-8)', 'success');
+        })
+        .catch(error => {
+            console.error('Ошибка создания PDF:', error);
+            document.body.removeChild(tempDiv);
+            hideLoading();
+            showNotification('Ошибка создания PDF документа', 'error');
+        });
 }
 
-function exportToHTML() {
+
+function exportToHTMLs() {
     if (!reportData) {
         showNotification('Сначала сгенерируйте отчет', 'warning');
         return;
     }
     
     const htmlContent = generateHTMLReport(reportData);
-    const blob = new Blob([htmlContent], { type: 'text/html' });
+    
+    // Создаем BLOB с указанием типа и кодировки
+    const blob = new Blob(['\uFEFF' + htmlContent], { 
+        type: 'text/html; charset=utf-8' 
+    });
+    
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `Отчет_${appData.test.subject}_${new Date().toISOString().split('T')[0]}.html`;
+    a.download = `Отчет_${appData.test.subject || 'предмет'}_${new Date().toISOString().split('T')[0]}.html`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     
-    showNotification('HTML отчет скачан', 'success');
+    showNotification('HTML отчет скачан (UTF-8)', 'success');
 }
 
 function generateHTMLReport(reportData) {
-    return `
-        <!DOCTYPE html>
-        <html lang="ru">
-        <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>${reportData.metadata.title}</title>
-            <style>
-                body { font-family: Arial, sans-serif; line-height: 1.6; margin: 0; padding: 20px; }
-                .report-header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #333; padding-bottom: 20px; }
-                .section { margin-bottom: 30px; }
-                table { width: 100%; border-collapse: collapse; margin: 15px 0; }
-                th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-                th { background-color: #f2f2f2; }
-                .grade-5 { color: #2ecc71; }
-                .grade-4 { color: #3498db; }
-                .grade-3 { color: #f39c12; }
-                .grade-2 { color: #e74c3c; }
-                .footer { margin-top: 50px; padding-top: 20px; border-top: 1px solid #ddd; color: #666; }
-            </style>
-        </head>
-        <body>
-            <div class="report-header">
-                <h1>${reportData.metadata.title}</h1>
-                <p>${appData.test.subject} | ${appData.test.class} | ${new Date().toLocaleDateString()}</p>
+    return `<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${escapeHtml(reportData.metadata.title)}</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Arial', sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: #f5f5f5;
+            padding: 20px;
+        }
+        .container {
+            max-width: 210mm; /* A4 width */
+            min-height: 297mm; /* A4 height */
+            margin: 0 auto;
+            background: white;
+            padding: 25mm;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 20px;
+        }
+        h1 {
+            font-size: 28px;
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+        .subtitle {
+            color: #7f8c8d;
+            font-size: 16px;
+            margin-bottom: 5px;
+        }
+        .section {
+            margin-bottom: 30px;
+            page-break-inside: avoid;
+        }
+        h2 {
+            font-size: 20px;
+            color: #2c3e50;
+            margin-bottom: 15px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #ecf0f1;
+        }
+        h3 {
+            font-size: 16px;
+            color: #34495e;
+            margin: 20px 0 10px 0;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+            font-size: 14px;
+        }
+        th {
+            background: #3498db;
+            color: white;
+            text-align: left;
+            padding: 12px 15px;
+            font-weight: 600;
+        }
+        td {
+            padding: 10px 15px;
+            border: 1px solid #ddd;
+        }
+        tr:nth-child(even) {
+            background: #f9f9f9;
+        }
+        tr:hover {
+            background: #f1f1f1;
+        }
+        .grade-5 { color: #27ae60; font-weight: bold; }
+        .grade-4 { color: #2980b9; font-weight: bold; }
+        .grade-3 { color: #f39c12; font-weight: bold; }
+        .grade-2 { color: #e74c3c; font-weight: bold; }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .stat-card {
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .stat-value {
+            font-size: 32px;
+            font-weight: bold;
+            color: #3498db;
+            margin-bottom: 5px;
+        }
+        .stat-label {
+            font-size: 14px;
+            color: #7f8c8d;
+        }
+        .recommendation {
+            background: #e8f4fc;
+            border-left: 4px solid #3498db;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .recommendation strong {
+            color: #2c3e50;
+        }
+        .footer {
+            margin-top: 50px;
+            padding-top: 20px;
+            border-top: 1px solid #ddd;
+            color: #7f8c8d;
+            font-size: 12px;
+            text-align: center;
+        }
+        @media print {
+            body {
+                background: white;
+                padding: 0;
+            }
+            .container {
+                box-shadow: none;
+                padding: 0;
+                margin: 0;
+                width: 100%;
+            }
+            .no-print {
+                display: none !important;
+            }
+            h1, h2, h3 {
+                page-break-after: avoid;
+            }
+            table {
+                page-break-inside: avoid;
+            }
+            .page-break {
+                page-break-before: always;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>${escapeHtml(reportData.metadata.title)}</h1>
+            <div class="subtitle">
+                ${escapeHtml(appData.test.subject || 'Предмет не указан')} | 
+                ${escapeHtml(appData.test.class || 'Класс не указан')}
             </div>
-            
-            ${generateReportSectionsHTML(reportData)}
-            
-            <div class="footer">
-                <p>Отчет сгенерирован: ${reportData.metadata.generated}</p>
-                <p>Система анализа образовательных результатов</p>
+            <div class="subtitle">
+                Дата: ${escapeHtml(new Date().toLocaleDateString('ru-RU'))}
             </div>
-        </body>
-        </html>
-    `;
+        </div>
+        
+        ${generateReportSectionsHTML(reportData)}
+        
+        <div class="footer">
+            <p>Отчет сгенерирован: ${escapeHtml(reportData.metadata.generated)}</p>
+            <p>Кодировка: UTF-8 | Система анализа образовательных результатов</p>
+        </div>
+    </div>
+    
+    <div class="no-print" style="text-align: center; margin-top: 20px;">
+        <button onclick="window.print()" style="padding: 10px 20px; background: #3498db; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px;">
+            🖨️ Распечатать отчет
+        </button>
+    </div>
+</body>
+</html>`;
 }
+
 
 function generateReportSectionsHTML(reportData) {
     let html = '';
@@ -6433,7 +7051,7 @@ function copyReportLink() {
 }
 
 // Функция для скачивания всех файлов отчета
-function downloadReportAssets() {
+function downloadReportAssets2() {
     if (!reportData) {
         showNotification('Сначала сгенерируйте отчет', 'warning');
         return;
@@ -6472,6 +7090,57 @@ function downloadReportAssets() {
             showNotification('Ошибка создания архива', 'error');
         });
 }
+
+function downloadReportAssets() {
+    if (!reportData) {
+        showNotification('Сначала сгенерируйте отчет', 'warning');
+        return;
+    }
+    
+    showLoading('Подготовка файлов для скачивания (UTF-8)...');
+    
+    // Создаем zip-архив
+    const zip = new JSZip();
+    
+    // Добавляем разные форматы отчета с UTF-8
+    zip.file("report.html", '\uFEFF' + generateHTMLReport(reportData));
+    zip.file("report.txt", '\uFEFF' + generateTextReport(reportData));
+    zip.file("report.json", JSON.stringify(reportData, null, 2));
+    
+    // Добавляем CSV данные с UTF-8 BOM
+    const csvData = '\uFEFF' + generateCSVData();
+    zip.file("data.csv", csvData);
+    
+    // Добавляем инструкцию по кодировке
+    const encodingInfo = `Файлы сохранены в кодировке UTF-8
+Для правильного отображения русских символов:
+1. Microsoft Word/Excel: Откройте файл, выберите "Файл" → "Параметры" → "Дополнительно" → "Общие" → "Подтверждать преобразование формата файла при открытии" → Выберите "Кодированный текст" → "Юникод (UTF-8)"
+2. Блокнот Windows: Сохранить как → Кодировка: UTF-8
+3. Браузеры: Автоматически определяют UTF-8
+`;
+    zip.file("README_UTF8.txt", '\uFEFF' + encodingInfo);
+    
+    // Генерируем и скачиваем архив
+    zip.generateAsync({ 
+        type: "blob",
+        compression: "DEFLATE",
+        compressionOptions: {
+            level: 9
+        }
+    })
+    .then(function(content) {
+        saveAs(content, `Отчет_${appData.test.subject || 'предмет'}_${new Date().toISOString().split('T')[0]}_UTF8.zip`);
+        hideLoading();
+        showNotification('Все файлы отчета скачаны (UTF-8)', 'success');
+    })
+    .catch(function(error) {
+        console.error('Ошибка создания архива:', error);
+        hideLoading();
+        showNotification('Ошибка создания архива', 'error');
+    });
+}
+
+
 
 function generateTextReport(reportData) {
     let text = `ОТЧЕТ: ${reportData.metadata.title}\n`;
@@ -7386,16 +8055,27 @@ function exportToExcels() {
         return;
     }
     
-    showLoading('Создание Excel файла...');
+    showLoading('Создание Excel файла с UTF-8...');
     
     try {
         // Создаем рабочую книгу
         const wb = XLSX.utils.book_new();
         
+        // Устанавливаем свойства документа с UTF-8
+        wb.Props = {
+            Title: `Отчет по предмету ${appData.test.subject || 'Предмет'}`,
+            Subject: 'Анализ образовательных результатов',
+            Author: 'Система анализа',
+            CreatedDate: new Date(),
+            Keywords: 'образование, отчет, анализ, оценки',
+            Category: 'Отчет',
+            Description: 'Отчет с результатами учащихся'
+        };
+        
         // Лист с результатами студентов
         const studentData = [];
         
-        // Заголовки
+        // Заголовки с UTF-8 символами
         const headers = ['Фамилия', 'Имя', 'Отчество'];
         if (appData.tasks) {
             appData.tasks.forEach((task, index) => {
@@ -7404,14 +8084,14 @@ function exportToExcels() {
         }
         headers.push('Итоговый балл', 'Оценка', 'Процент выполнения', 'Статус');
         
-        studentData.push(headers);
+        studentData.push(headers.map(h => decodeUnicode(h)));
         
         // Данные студентов
         appData.students.forEach(student => {
             const row = [
-                student.lastName || '',
-                student.firstName || '',
-                student.middleName || ''
+                decodeUnicode(student.lastName || ''),
+                decodeUnicode(student.firstName || ''),
+                decodeUnicode(student.middleName || '')
             ];
             
             let totalScore = 0;
@@ -7443,16 +8123,20 @@ function exportToExcels() {
             else if (grade === '3') status = 'Удовлетворительно';
             else if (grade === '2') status = 'Неудовлетворительно';
             
-            row.push(status);
+            row.push(decodeUnicode(status));
             
             studentData.push(row);
         });
         
         const ws_students = XLSX.utils.aoa_to_sheet(studentData);
         
+        // Настраиваем ширину колонок
+        const colWidths = headers.map((_, i) => ({ wch: 15 }));
+        ws_students['!cols'] = colWidths;
+        
         // Лист с анализом заданий
         const taskData = [];
-        taskData.push(['№', 'Название задания', 'Макс. балл', 'Средний балл', 'Успеваемость', 'Сложность']);
+        taskData.push(['№', 'Название задания', 'Макс. балл', 'Средний балл', 'Успеваемость', 'Сложность'].map(h => decodeUnicode(h)));
         
         if (appData.tasks) {
             appData.tasks.forEach((task, index) => {
@@ -7461,44 +8145,71 @@ function exportToExcels() {
                 
                 taskData.push([
                     index + 1,
-                    task.title || `Задание ${index + 1}`,
+                    decodeUnicode(task.title || `Задание ${index + 1}`),
                     task.maxScore || 1,
                     avgScore.toFixed(2),
                     successRate.toFixed(2) + '%',
-                    task.level || 'Не указана'
+                    decodeUnicode(task.level || 'Не указана')
                 ]);
             });
         }
         
         const ws_tasks = XLSX.utils.aoa_to_sheet(taskData);
+        ws_tasks['!cols'] = [{wch: 5}, {wch: 30}, {wch: 10}, {wch: 12}, {wch: 12}, {wch: 15}];
         
         // Лист с статистикой
         const stats = calculateStatistics();
         const statsData = [
-            ['Статистика класса', 'Значение'],
-            ['Всего учащихся', stats.totalStudents],
-            ['Всего заданий', stats.totalTasks],
-            ['Средний балл', stats.averageGrade.toFixed(2)],
-            ['Успеваемость', stats.successRate.toFixed(2) + '%'],
-            ['Отличники (5)', stats.excellentPercentage.toFixed(2) + '%'],
-            ['Хорошисты (4)', stats.goodPercentage.toFixed(2) + '%'],
-            ['Троечники (3)', stats.averagePercentage.toFixed(2) + '%'],
-            ['Неуспевающие (2)', stats.weakPercentage.toFixed(2) + '%']
+            ['Статистика класса', 'Значение'].map(h => decodeUnicode(h)),
+            [decodeUnicode('Всего учащихся'), stats.totalStudents],
+            [decodeUnicode('Всего заданий'), stats.totalTasks],
+            [decodeUnicode('Средний балл'), stats.averageGrade.toFixed(2)],
+            [decodeUnicode('Успеваемость'), stats.successRate.toFixed(2) + '%'],
+            [decodeUnicode('Отличники (5)'), stats.excellentPercentage.toFixed(2) + '%'],
+            [decodeUnicode('Хорошисты (4)'), stats.goodPercentage.toFixed(2) + '%'],
+            [decodeUnicode('Троечники (3)'), stats.averagePercentage.toFixed(2) + '%'],
+            [decodeUnicode('Неуспевающие (2)'), stats.weakPercentage.toFixed(2) + '%']
         ];
         
         const ws_stats = XLSX.utils.aoa_to_sheet(statsData);
+        ws_stats['!cols'] = [{wch: 25}, {wch: 15}];
         
         // Добавляем листы в книгу
-        XLSX.utils.book_append_sheet(wb, ws_students, 'Результаты студентов');
-        XLSX.utils.book_append_sheet(wb, ws_tasks, 'Анализ заданий');
-        XLSX.utils.book_append_sheet(wb, ws_stats, 'Статистика');
+        XLSX.utils.book_append_sheet(wb, ws_students, decodeUnicode('Результаты'));
+        XLSX.utils.book_append_sheet(wb, ws_tasks, decodeUnicode('Задания'));
+        XLSX.utils.book_append_sheet(wb, ws_stats, decodeUnicode('Статистика'));
         
-        // Генерируем и скачиваем файл
-        const filename = `Отчет_${appData.test.subject || 'Предмет'}_${appData.test.class || 'Класс'}_${new Date().toISOString().split('T')[0]}.xlsx`;
-        XLSX.writeFile(wb, filename);
+        // Генерируем файл с BOM для UTF-8
+        const filename = `Отчет_${appData.test.subject || 'Предмет'}_${new Date().toISOString().split('T')[0]}.xlsx`;
+        
+        // Создаем массив байт с UTF-8 BOM
+        const wbout = XLSX.write(wb, { 
+            bookType: 'xlsx', 
+            type: 'array',
+            bookSST: true 
+        });
+        
+        // Добавляем BOM для Excel
+        const bom = new Uint8Array([0xEF, 0xBB, 0xBF]);
+        const data = new Uint8Array(bom.length + wbout.length);
+        data.set(bom, 0);
+        data.set(wbout, bom.length);
+        
+        // Создаем Blob и скачиваем
+        const blob = new Blob([data], { 
+            type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=UTF-8' 
+        });
+        
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
         
         hideLoading();
-        showNotification('Excel файл успешно создан', 'success');
+        showNotification('Excel файл создан (UTF-8)', 'success');
         
     } catch (error) {
         console.error('Ошибка экспорта в Excel:', error);
@@ -7506,6 +8217,85 @@ function exportToExcels() {
         showNotification('Ошибка создания Excel файла', 'error');
     }
 }
+
+// Функция для экранирования HTML
+function escapeHtml(text) {
+    if (!text) return '';
+    
+    const map = {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#039;'
+    };
+    
+    return String(text).replace(/[&<>"']/g, function(m) { 
+        return map[m]; 
+    });
+}
+
+// Функция для декодирования Unicode в читаемый текст
+function decodeUnicode(text) {
+    if (!text) return '';
+    
+    // Если строка содержит Unicode escape-последовательности
+    if (typeof text === 'string' && text.includes('\\u')) {
+        try {
+            return text.replace(/\\u[\dA-F]{4}/gi, function(match) {
+                return String.fromCharCode(parseInt(match.replace(/\\u/g, ''), 16));
+            });
+        } catch (e) {
+            return text;
+        }
+    }
+    
+    return text;
+}
+
+// Функция для кодирования в UTF-8
+function encodeToUTF8(text) {
+    if (!text) return '';
+    
+    try {
+        // Создаем TextEncoder для преобразования в UTF-8
+        const encoder = new TextEncoder();
+        const encoded = encoder.encode(text);
+        
+        // Преобразуем массив байт обратно в строку для проверки
+        return new TextDecoder('utf-8').decode(encoded);
+    } catch (error) {
+        console.warn('Ошибка кодирования UTF-8:', error);
+        return text;
+    }
+}
+
+// Обновленная функция для экспорта в текстовом формате с UTF-8
+function exportToText() {
+    if (!reportData) {
+        showNotification('Сначала сгенерируйте отчет', 'warning');
+        return;
+    }
+    
+    const textContent = generateTextReport(reportData);
+    
+    // Добавляем BOM (Byte Order Mark) для UTF-8
+    const bom = '\uFEFF';
+    const blob = new Blob([bom + textContent], { 
+        type: 'text/plain; charset=utf-8' 
+    });
+    
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Отчет_${appData.test.subject || 'предмет'}_${new Date().toISOString().split('T')[0]}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    
+    showNotification('Текстовый отчет скачан (UTF-8)', 'success');
+}
+
 
 // Расчет среднего балла за задание
 function calculateTaskAverageScore(taskIndex) {

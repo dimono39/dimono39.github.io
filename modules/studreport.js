@@ -60,44 +60,44 @@ function analyzeResults() {
 }
 
 function calculateSummaryStatistics() {
-	console.log('📊 Расчет общей статистики...');
-	
-	const totalStudents = appData.students.length;
-	const totalTasks = appData.tasks.length;
-	const maxTotalScore = calculateMaxScore();
-	
-	let completedStudents = 0;
-	let totalScoreAll = 0;
-	const scores = [];
-	const grades = [];
-	
-	// Собираем данные по каждому учащемуся
-	appData.students.forEach(student => {
-		const studentId = student.id;
-		const results = appData.results[studentId] || {};
-		
-		let studentScore = 0;
-		let completedTasks = 0;
-		
-		appData.tasks.forEach(task => {
-			const taskId = task.id || task.number;
-			const score = parseFloat(results[taskId]) || 0;
-			studentScore += score;
-			
-			if (results[taskId] !== undefined) {
-				completedTasks++;
-			}
-		});
-		
-		if (completedTasks > 0) {
-			completedStudents++;
-			totalScoreAll += studentScore;
-			scores.push(studentScore);
-			
-			const grade = calculateGrade(studentScore);
-			grades.push(grade);
-		}
-	});
+    console.log('📊 Расчет общей статистики...');
+    
+    const totalStudents = appData.students.length;
+    const totalTasks = appData.tasks.length;
+    const maxTotalScore = calculateMaxScore();
+    
+    let completedStudents = 0;
+    let totalScoreAll = 0;
+    const scores = [];
+    const grades = [];
+    
+    // Собираем данные по каждому учащемуся
+    appData.students.forEach((student, studentIndex) => {
+        const results = appData.results[studentIndex] || [];
+        
+        let studentScore = 0;
+        let completedTasks = 0;
+        
+        // Проверяем, есть ли вообще результаты для этого студента
+        if (results.length === 0) return;
+        
+        // Суммируем баллы по всем заданиям
+        results.forEach((score, taskIndex) => {
+            studentScore += parseFloat(score) || 0;
+            if (score !== undefined) {
+                completedTasks++;
+            }
+        });
+        
+        if (completedTasks > 0) {
+            completedStudents++;
+            totalScoreAll += studentScore;
+            scores.push(studentScore);
+            
+            const grade = calculateGrade(studentScore);
+            grades.push(grade);
+        }
+    });
 	
 	// Рассчитываем статистики
 	const avgScore = scores.length > 0 ? totalScoreAll / scores.length : 0;
@@ -219,98 +219,112 @@ function calculateDiscrimination(scores) {
 }
 
 function analyzeStudentsPerformance() {
-	console.log('👥 Анализ успеваемости учащихся...');
-	
-	const studentAnalysis = [];
-	
-	appData.students.forEach((student, studentIndex) => {
-		const studentId = student.id;
-		const results = appData.results[studentId] || {};
-		
-		let totalScore = 0;
-		let completedTasks = 0;
-		const taskScores = [];
-		const levelScores = {};
-		
-		appData.tasks.forEach(task => {
-			const taskId = task.id || task.number;
-			const score = parseFloat(results[taskId]) || 0;
-			const level = task.level || 1;
-			
-			if (results[taskId] !== undefined) {
-				totalScore += score;
-				completedTasks++;
-				taskScores.push({
-					score,
-					maxScore: task.maxScore || 1,
-					percentage: task.maxScore > 0 ? (score / task.maxScore * 100) : 0,
-					level
-				});
-				
-				// Группируем по уровням
-				if (!levelScores[level]) {
-					levelScores[level] = { total: 0, count: 0 };
-				}
-				levelScores[level].total += score;
-				levelScores[level].count++;
-			}
-		});
-		
-		const maxPossible = calculateMaxScore();
-		const percentage = maxPossible > 0 ? (totalScore / maxPossible * 100) : 0;
-		const grade = calculateGrade(totalScore);
-		
-		// Анализ по уровням сложности
-		const levelAnalysis = {};
-		Object.entries(levelScores).forEach(([level, data]) => {
-			const avg = data.count > 0 ? data.total / data.count : 0;
-			levelAnalysis[level] = {
-				avgScore: avg.toFixed(2),
-				completionRate: (data.count / appData.tasks.filter(t => t.level == level).length * 100).toFixed(1)
-			};
-		});
-		
-		// Определяем сильные и слабые стороны
-		const strengths = [];
-		const weaknesses = [];
-		
-		taskScores.forEach((taskScore, index) => {
-			if (taskScore.percentage >= 80) {
-				strengths.push(index + 1);
-			} else if (taskScore.percentage <= 40) {
-				weaknesses.push(index + 1);
-			}
-		});
-		
-		// Стабильность результатов
-		const stability = calculateStability(taskScores.map(t => t.percentage));
-		
-		studentAnalysis.push({
-			id: studentId,
-			index: studentIndex,
-			name: `${student.lastName} ${student.firstName}`,
-			totalScore: totalScore.toFixed(2),
-			maxPossible,
-			percentage: percentage.toFixed(1),
-			grade,
-			completedTasks,
-			completionRate: (completedTasks / appData.tasks.length * 100).toFixed(1),
-			levelAnalysis,
-			strengths: strengths.slice(0, 3),
-			weaknesses: weaknesses.slice(0, 3),
-			stability: stability.toFixed(2),
-			rank: 0 // Заполнится позже
-		});
-	});
-	
-	// Сортируем по баллам и присваиваем ранги
-	studentAnalysis.sort((a, b) => b.totalScore - a.totalScore);
-	studentAnalysis.forEach((student, index) => {
-		student.rank = index + 1;
-		student.percentile = ((1 - index / studentAnalysis.length) * 100).toFixed(1);
-	});
-	
-	return studentAnalysis;
+    console.log('👥 Анализ успеваемости учащихся...');
+    
+    const studentAnalysis = [];
+    
+    appData.students.forEach((student, studentIndex) => {
+        const results = appData.results[studentIndex] || [];
+        
+        // Если нет результатов для этого студента, пропускаем
+        if (results.length === 0) return;
+        
+        let totalScore = 0;
+        let completedTasks = 0;
+        const taskScores = [];
+        const levelScores = {};
+        
+        // Считаем баллы по заданиям
+        results.forEach((score, taskIndex) => {
+            const task = appData.tasks[taskIndex];
+            if (!task) return;
+            
+            const maxScore = task.maxScore || 1;
+            const level = task.level || 1;
+            
+            if (score !== undefined) {
+                totalScore += parseFloat(score) || 0;
+                completedTasks++;
+                
+                const percentage = maxScore > 0 ? (score / maxScore * 100) : 0;
+                taskScores.push({
+                    score,
+                    maxScore,
+                    percentage,
+                    level
+                });
+                
+                // Группируем по уровням
+                if (!levelScores[level]) {
+                    levelScores[level] = { total: 0, count: 0 };
+                }
+                levelScores[level].total += score;
+                levelScores[level].count++;
+            }
+        });
+        
+        const maxPossible = calculateMaxScore();
+        const percentage = maxPossible > 0 ? (totalScore / maxPossible * 100) : 0;
+        const grade = calculateGrade(totalScore);
+        
+        // Анализ по уровням сложности
+        const levelAnalysis = {};
+        Object.entries(levelScores).forEach(([level, data]) => {
+            const avg = data.count > 0 ? data.total / data.count : 0;
+            levelAnalysis[level] = {
+                avgScore: avg.toFixed(2),
+                completionRate: (data.count / appData.tasks.filter(t => t.level == level).length * 100).toFixed(1)
+            };
+        });
+        
+        // Определяем сильные и слабые стороны
+        const strengths = [];
+        const weaknesses = [];
+        
+        taskScores.forEach((taskScore, index) => {
+            if (taskScore.percentage >= 80) {
+                strengths.push(index + 1);
+            } else if (taskScore.percentage <= 40) {
+                weaknesses.push(index + 1);
+            }
+        });
+        
+        // Стабильность результатов
+        const stability = calculateStability(taskScores.map(t => t.percentage));
+        
+        // Извлекаем имя и фамилию из строки
+        const nameParts = student.split(' ');
+        const lastName = nameParts[0] || '';
+        const firstName = nameParts[1] || '';
+        
+        studentAnalysis.push({
+            id: studentIndex, // Используем индекс как ID
+            index: studentIndex,
+            name: student,
+            lastName,
+            firstName,
+            totalScore: totalScore.toFixed(2),
+            maxPossible,
+            percentage: percentage.toFixed(1),
+            grade,
+            completedTasks,
+            completionRate: (completedTasks / appData.tasks.length * 100).toFixed(1),
+            levelAnalysis,
+            strengths: strengths.slice(0, 3),
+            weaknesses: weaknesses.slice(0, 3),
+            stability: stability.toFixed(2),
+            rank: 0 // Заполнится позже
+        });
+    });
+    
+    // Сортируем по баллам и присваиваем ранги
+    studentAnalysis.sort((a, b) => b.totalScore - a.totalScore);
+    studentAnalysis.forEach((student, index) => {
+        student.rank = index + 1;
+        student.percentile = ((1 - index / studentAnalysis.length) * 100).toFixed(1);
+    });
+    
+    return studentAnalysis;
 }
 
 function calculateStability(percentages) {

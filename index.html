@@ -44,7 +44,8 @@
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/html-docx-js/0.3.1/html-docx.js"></script>
-	
+	<style src="analysis-styles.css"></style>
+	<script src="modules/new-year-countdown.js"></script>
     <style>
 		/* Стили для новой вкладки настройки */
 		.setup-steps {
@@ -2532,6 +2533,59 @@
 				margin-bottom: 5px;
 			}
 		}		
+		/* Стили для правильного отображения UTF-8 символов */
+		@font-face {
+			font-family: 'DejaVu Sans';
+			src: url('https://cdnjs.cloudflare.com/ajax/libs/dejavu-fonts/2.37/ttf/DejaVuSans.ttf') format('truetype');
+			font-weight: normal;
+			font-style: normal;
+		}
+
+		@font-face {
+			font-family: 'DejaVu Sans';
+			src: url('https://cdnjs.cloudflare.com/ajax/libs/dejavu-fonts/2.37/ttf/DejaVuSans-Bold.ttf') format('truetype');
+			font-weight: bold;
+			font-style: normal;
+		}
+
+		body {
+			font-family: 'DejaVu Sans', 'Arial Unicode MS', 'Arial', sans-serif;
+		}
+
+		/* Для PDF и печати */
+		@media print {
+			body {
+				font-family: 'DejaVu Sans', 'Arial Unicode MS', 'Arial', sans-serif !important;
+			}
+		}
+
+		/* Для сообщений об ошибках кодировки */
+		.encoding-warning {
+			background: #fff3cd;
+			border: 1px solid #ffeaa7;
+			border-radius: 5px;
+			padding: 10px;
+			margin: 10px 0;
+			font-size: 14px;
+		}
+
+		.encoding-warning strong {
+			color: #e74c3c;
+		}
+
+		.encoding-fix-btn {
+			background: #3498db;
+			color: white;
+			border: none;
+			padding: 5px 10px;
+			border-radius: 3px;
+			cursor: pointer;
+			margin-left: 10px;
+		}
+
+		.encoding-fix-btn:hover {
+			background: #2980b9;
+		}		
     </style>
 </head>
 <body>
@@ -3866,13 +3920,13 @@
 						<button class="btn btn-success" onclick="exportToWord()" title="Экспорт в Microsoft Word">
 							<i class="fas fa-file-word"></i> Word
 						</button>
-						<button class="btn btn-danger" onclick="exportToPDF()" title="Экспорт в PDF">
+						<button class="btn btn-danger" onclick="exportToPDFs()" title="Экспорт в PDF">
 							<i class="fas fa-file-pdf"></i> PDF
 						</button>
 						<button class="btn btn-primary" onclick="exportToGoogleDocs()" title="Создать в Google Docs">
 							<i class="fab fa-google-drive"></i> Google Docs
 						</button>
-						<button class="btn btn-info" onclick="exportToHTML()" title="Экспорт в HTML">
+						<button class="btn btn-info" onclick="exportToHTMLs()" title="Экспорт в HTML">
 							<i class="fas fa-code"></i> HTML
 						</button>
 						<button class="btn btn-warning" onclick="exportToPresentation()" title="Создать презентацию">
@@ -7886,7 +7940,7 @@
 			localStorage.setItem('debugMode', debugMode.toString());
 		}
 
-		function addDebugPanel1() {
+		function addDebugPanel() {
 			const panel = document.createElement('div');
 			panel.id = 'debugPanel';
 			panel.style.cssText = `
@@ -13387,7 +13441,9 @@
 					</tr>
 				`;
 			});
+			
 			<!--
+			/*
 			// Строка итогов
 			html += `
 					<tr style="background: #f8f9fa; font-weight: bold;">
@@ -13429,14 +13485,19 @@
 							📈 Анализировать
 						</button>
 					</td>
+			`;
+			
+			*/-->
+			html += `
 				</tr>
 				</tbody>
 				</table>
 				</div>
 			`;
 			
+			
 			container.innerHTML = html;
-			-->
+			
 			// ДЕБАГ: проверяем созданные элементы
 			setTimeout(() => {
 				console.log('Создано input элементов:', document.querySelectorAll('.score-input').length);
@@ -13717,7 +13778,7 @@
 			
 			// Обновляем строку итогов
 			renderSummaryRow();
-			
+			console.log(`Обновление итоговой строки`);
 			// Сохраняем данные
 			saveData();
 		}
