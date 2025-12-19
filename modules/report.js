@@ -9,21 +9,33 @@ let aiAnalysis = null;
 let speechSynthesis = window.speechSynthesis;
 let isSpeaking = false;
 
-// Глобальная проверка appData
+// Глобальная проверка appData - ИСПРАВЛЕННАЯ ВЕРСИЯ
 if (typeof appData === 'undefined') {
     console.warn('appData не определен, создаю пустой объект');
-    appData = {
+    var appData = {
         test: {
             subject: 'Не указан',
             class: 'Не указан',
             theme: 'Не указана',
-            criteria: {}
+            criteria: {
+                '5': { min: 16, max: 23 },
+                '4': { min: 12, max: 15 },
+                '3': { min: 7, max: 11 },
+                '2': { min: 0, max: 6 }
+            }
         },
         tasks: [],
         students: [],
         results: [],
         errors: []
     };
+} else {
+    // Если appData существует, убедимся, что есть обязательные поля
+    if (!appData.test) appData.test = { subject: 'Не указан', class: 'Не указан' };
+    if (!appData.tasks) appData.tasks = [];
+    if (!appData.students) appData.students = [];
+    if (!appData.results) appData.results = [];
+    if (!appData.errors) appData.errors = [];
 }
 
 // Инициализация при показе вкладки
@@ -631,67 +643,261 @@ function generateDynamicCharts(reportData) {
     const charts = [];
     
     // 1. Распределение оценок
-    // Интегрируем критерии перед генерацией отчета
-    const integratedAppData = integrateCriteriaForReports(appData);
-    
-    // Теперь можем безопасно использовать
-    const validation = integratedAppData.helpers.validateCriteria();
-    
-    if (!validation.isValid) {
-        showNotification('Проблемы с критериями оценивания', 'error');
-        return;
-    }
-    
-    // Генерируем распределение оценок с совместимыми критериями
-    const gradeDistribution = calculateGradeDistributionWithCompatibleCriteria(integratedAppData);
-    charts.push({
-        type: 'pie',
-        title: 'Распределение оценок',
-        data: {
-            labels: ['5', '4', '3', '2'],
-            datasets: [{
-                data: [
-                    gradeDistribution['5'] || 0,
-                    gradeDistribution['4'] || 0,
-                    gradeDistribution['3'] || 0,
-                    gradeDistribution['2'] || 0
-                ],
-                backgroundColor: ['#2ecc71', '#3498db', '#f39c12', '#e74c3c']
-            }]
+    try {
+        // Интегрируем критерии перед генерацией отчета
+        const integratedAppData = integrateCriteriaForReports(window.appData || appData);
+        
+        // Теперь можем безопасно использовать
+        const validation = integratedAppData.helpers.validateCriteria();
+        
+        if (!validation.isValid) {
+            console.warn('Проблемы с критериями оценивания, создаем график с нулевыми данными');
+            charts.push({
+                type: 'pie',
+                title: 'Распределение оценок',
+                data: {
+                    labels: ['5', '4', '3', '2'],
+                    datasets: [{
+                        data: [0, 0, 0, 0],
+                        backgroundColor: ['#2ecc71', '#3498db', '#f39c12', '#e74c3c']
+                    }]
+                }
+            });
+        } else {
+            // Генерируем распределение оценок с совместимыми критериями
+            const gradeDistribution = calculateGradeDistributionWithCompatibleCriteria(integratedAppData);
+            charts.push({
+                type: 'pie',
+                title: 'Распределение оценок',
+                data: {
+                    labels: ['5', '4', '3', '2'],
+                    datasets: [{
+                        data: [
+                            gradeDistribution['5'] || 0,
+                            gradeDistribution['4'] || 0,
+                            gradeDistribution['3'] || 0,
+                            gradeDistribution['2'] || 0
+                        ],
+                        backgroundColor: ['#2ecc71', '#3498db', '#f39c12', '#e74c3c']
+                    }]
+                }
+            });
         }
-    });
-    
-    // 2. Динамика по заданиям
-    const taskSuccess = calculateTaskSuccessRate();
-    charts.push({
-        type: 'bar',
-        title: 'Решаемость заданий',
-        data: {
-            labels: taskSuccess.map((_, i) => `Задание ${i + 1}`),
-            datasets: [{
-                label: 'Успешность, %',
-                data: taskSuccess.map(t => t.rate),
-                backgroundColor: taskSuccess.map(t => 
-                    t.rate >= 80 ? '#2ecc71' :
-                    t.rate >= 60 ? '#3498db' :
-                    t.rate >= 40 ? '#f39c12' : '#e74c3c'
-                )
-            }]
-        }
-    });
-    
-    // 3. Тепловая карта ошибок
-    if (appData.errors && appData.errors.length > 0) {
-        const errorHeatmap = generateErrorHeatmap();
+    } catch (error) {
+        console.error('Ошибка при создании графика распределения оценок:', error);
         charts.push({
-            type: 'heatmap',
-            title: 'Распределение ошибок',
-            data: errorHeatmap
+            type: 'pie',
+            title: 'Распределение оценок (ошибка)',
+            data: {
+                labels: ['Ошибка'],
+                datasets: [{
+                    data: [100],
+                    backgroundColor: ['#95a5a6']
+                }]
+            }
         });
     }
     
+    // 2. Динамика по заданиям - ИСПРАВЛЕННЫЙ БЛОК
+    try {
+        // Используем универсальную функцию для получения данных
+        const taskSuccessData = getTaskSuccessData();
+        
+        // Проверяем, что данные есть и являются массивом
+        if (Array.isArray(taskSuccessData) && taskSuccessData.length > 0) {
+            // Преобразуем данные для графика
+            const chartLabels = taskSuccessData.map(item => {
+                // Безопасное создание подписей
+                if (item && item.title) return item.title;
+                if (item && item.number) return `Задание ${item.number}`;
+                return 'Задание';
+            });
+            
+            const chartData = taskSuccessData.map(item => {
+                // Безопасное извлечение процента успешности
+                if (item && typeof item.rate === 'number') return item.rate;
+                if (item && typeof item.successRate === 'number') return item.successRate;
+                return 0;
+            });
+            
+            const chartColors = chartData.map(rate => {
+                // Цветовая схема в зависимости от процента
+                return rate >= 80 ? '#2ecc71' :  // зеленый
+                       rate >= 60 ? '#3498db' :  // синий
+                       rate >= 40 ? '#f39c12' :  // оранжевый
+                       '#e74c3c';                // красный
+            });
+            
+            charts.push({
+                type: 'bar',
+                title: 'Решаемость заданий',
+                data: {
+                    labels: chartLabels,
+                    datasets: [{
+                        label: 'Успешность, %',
+                        data: chartData,
+                        backgroundColor: chartColors,
+                        borderColor: chartColors.map(color => darkenColor(color, 10)),
+                        borderWidth: 1,
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            title: {
+                                display: true,
+                                text: 'Процент успешности'
+                            }
+                        }
+                    }
+                }
+            });
+        } else {
+            console.warn('Нет данных о решаемости заданий для графика');
+            // Создаем пустой график вместо ошибки
+            charts.push({
+                type: 'bar',
+                title: 'Решаемость заданий (данных нет)',
+                data: {
+                    labels: ['Нет данных'],
+                    datasets: [{
+                        label: 'Успешность, %',
+                        data: [0],
+                        backgroundColor: ['#95a5a6']
+                    }]
+                }
+            });
+        }
+    } catch (error) {
+        console.error('Ошибка при создании графика решаемости заданий:', error);
+        charts.push({
+            type: 'bar',
+            title: 'Решаемость заданий (ошибка)',
+            data: {
+                labels: ['Ошибка'],
+                datasets: [{
+                    label: 'Ошибка',
+                    data: [0],
+                    backgroundColor: ['#95a5a6']
+                }]
+            }
+        });
+    }
+    
+    // 3. Тепловая карта ошибок (опционально)
+    try {
+        if (appData.errors && Array.isArray(appData.errors) && appData.errors.length > 0) {
+            const errorHeatmap = generateErrorHeatmap();
+            if (errorHeatmap && errorHeatmap.data) {
+                charts.push({
+                    type: 'heatmap',
+                    title: 'Распределение ошибок',
+                    data: errorHeatmap.data,
+                    options: errorHeatmap.options || {}
+                });
+            }
+        }
+    } catch (error) {
+        console.error('Ошибка при создании тепловой карты ошибок:', error);
+        // Не добавляем график при ошибке - это не критично
+    }
+    
+    // 4. Дополнительный график: сложность заданий (опционально)
+    try {
+        const taskAnalysis = analyzeTasks();
+        if (Array.isArray(taskAnalysis) && taskAnalysis.length > 0) {
+            // Группируем по сложности
+            const difficultyGroups = {};
+            taskAnalysis.forEach(task => {
+                if (task && task.difficulty) {
+                    const diff = task.difficultyName || `Уровень ${task.difficulty}`;
+                    difficultyGroups[diff] = (difficultyGroups[diff] || 0) + 1;
+                }
+            });
+            
+            if (Object.keys(difficultyGroups).length > 0) {
+                charts.push({
+                    type: 'doughnut',
+                    title: 'Распределение по сложности',
+                    data: {
+                        labels: Object.keys(difficultyGroups),
+                        datasets: [{
+                            data: Object.values(difficultyGroups),
+                            backgroundColor: ['#2ecc71', '#3498db', '#f39c12', '#e74c3c', '#9b59b6']
+                        }]
+                    }
+                });
+            }
+        }
+    } catch (error) {
+        console.error('Ошибка при создании графика сложности заданий:', error);
+        // Не критично, пропускаем
+    }
+    
+    // Логируем результат для отладки
+    console.log(`Сгенерировано графиков: ${charts.length}`);
+    
     return charts;
 }
+
+// Вспомогательная функция для затемнения цвета (если нет в коде)
+function darkenColor(color, percent) {
+    if (!color || !color.startsWith('#')) return color;
+    
+    const num = parseInt(color.replace("#", ""), 16);
+    const amt = Math.round(2.55 * percent);
+    
+    const R = Math.max(0, (num >> 16) - amt);
+    const G = Math.max(0, (num >> 8 & 0x00FF) - amt);
+    const B = Math.max(0, (num & 0x0000FF) - amt);
+    
+    return "#" + (
+        0x1000000 +
+        (R < 255 ? R < 1 ? 0 : R : 255) * 0x10000 +
+        (G < 255 ? G < 1 ? 0 : G : 255) * 0x100 +
+        (B < 255 ? B < 1 ? 0 : B : 255)
+    ).toString(16).slice(1);
+}
+
+// Универсальная функция для получения данных о решаемости заданий
+function getTaskSuccessData() {
+    try {
+        // Используем безопасную версию calculateTaskSuccessRate
+        if (typeof calculateTaskSuccessRate === 'function') {
+            // Вызываем без параметра для получения массива
+            const taskSuccess = calculateTaskSuccessRate();
+            
+            // Проверяем результат
+            if (Array.isArray(taskSuccess)) {
+                return taskSuccess;
+            }
+        }
+        
+        // Альтернативный способ: через analyzeTasks
+        const analyzedTasks = analyzeTasks();
+        if (Array.isArray(analyzedTasks)) {
+            return analyzedTasks.map(task => ({
+                number: task.number || 0,
+                title: task.title || '',
+                rate: task.successRate || 0,
+                successRate: task.successRate || 0,
+                difficulty: task.difficulty || 1
+            }));
+        }
+        
+        // Если ничего не работает, возвращаем пустой массив
+        console.warn('Не удалось получить данные о решаемости заданий');
+        return [];
+        
+    } catch (error) {
+        console.error('Ошибка в getTaskSuccessData:', error);
+        return [];
+    }
+}
+
 
 function calculateGradeDistributionWithCompatibleCriteria(appData) {
     if (!appData || !appData.students || !Array.isArray(appData.students)) {
@@ -1517,31 +1723,106 @@ function analyzeTasks() {
 }
 
 // Расчет процента успешности задания
-function calculateTaskSuccessRate(taskIndex) {
-    if (!appData.tasks || !appData.tasks[taskIndex]) {
-        return 0;
-    }
-    
-    if (!appData.students || !Array.isArray(appData.students)) {
-        return 0;
-    }
-    
-    let totalScore = 0;
-    let maxPossible = 0;
-    
-    appData.students.forEach(student => {
-        if (!student || !student.id) return;
+function calculateTaskSuccessRate(taskIndex = null) {
+    try {
+        // Проверяем базовые данные
+        if (!appData || !appData.tasks || !Array.isArray(appData.tasks)) {
+            console.warn('calculateTaskSuccessRate: нет данных о заданиях');
+            return taskIndex === null ? [] : 0;
+        }
         
-        const taskId = appData.tasks[taskIndex]?.id || taskIndex;
-        const score = appData.results[student.id]?.[taskId] || 0;
-        const maxScore = appData.tasks[taskIndex]?.maxScore || 1;
+        // ВЕРСИЯ 1: Если передан индекс - возвращаем успешность одного задания
+        if (taskIndex !== null && typeof taskIndex === 'number') {
+            // Проверка существования задания по индексу
+            if (taskIndex < 0 || taskIndex >= appData.tasks.length) {
+                console.warn(`calculateTaskSuccessRate: неверный индекс задания ${taskIndex}`);
+                return 0;
+            }
+            
+            const task = appData.tasks[taskIndex];
+            if (!task) return 0;
+            
+            // Исправленная проверка данных студентов
+            if (!appData.students || !Array.isArray(appData.students) || appData.students.length === 0) {
+                return 0;
+            }
+            
+            let totalScore = 0;
+            let maxPossible = 0;
+            let processedStudents = 0;
+            
+            for (let i = 0; i < appData.students.length; i++) {
+                const student = appData.students[i];
+                if (!student || student.id === undefined) continue;
+                
+                // Получаем ID студента (может быть число или строка)
+                const studentId = student.id !== undefined ? student.id : i;
+                
+                // Получаем результаты студента
+                let studentResults = null;
+                if (appData.results && Array.isArray(appData.results)) {
+                    // Если results - массив
+                    if (appData.results[i] && Array.isArray(appData.results[i])) {
+                        studentResults = appData.results[i];
+                    }
+                } else if (appData.results && typeof appData.results === 'object') {
+                    // Если results - объект с ключами ID
+                    studentResults = appData.results[studentId];
+                }
+                
+                if (!studentResults) continue;
+                
+                // Получаем балл за задание
+                let score = 0;
+                if (Array.isArray(studentResults)) {
+                    // Если результаты в массиве по индексам
+                    score = parseFloat(studentResults[taskIndex]) || 0;
+                } else if (typeof studentResults === 'object') {
+                    // Если результаты в объекте
+                    const taskId = task.id || taskIndex;
+                    score = parseFloat(studentResults[taskId]) || 0;
+                }
+                
+                const maxScore = typeof task.maxScore === 'number' ? task.maxScore : 1;
+                
+                totalScore += score;
+                maxPossible += maxScore;
+                processedStudents++;
+            }
+            
+            // Логируем для отладки
+            if (processedStudents === 0) {
+                return 0; // Возвращаем 0 вместо ошибки
+            }
+            
+            return maxPossible > 0 ? Math.round((totalScore / maxPossible) * 100) : 0;
+        }
         
-        totalScore += parseFloat(score) || 0;
-        maxPossible += maxScore;
-    });
-    
-    return maxPossible > 0 ? Math.round((totalScore / maxPossible) * 100) : 0;
+        // ВЕРСИЯ 2: Если индекс НЕ передан - возвращаем массив успешности всех заданий
+        const results = [];
+        for (let i = 0; i < appData.tasks.length; i++) {
+            const task = appData.tasks[i];
+            const successRate = calculateTaskSuccessRate(i); // Рекурсивный вызов
+            results.push({
+                number: i + 1,
+                taskId: task.id || i,
+                title: task.title || `Задание ${i + 1}`,
+                rate: successRate,
+                successRate: successRate,
+                maxScore: task.maxScore || 1,
+                difficulty: task.level || 1
+            });
+        }
+        
+        return results;
+        
+    } catch (error) {
+        console.error('Критическая ошибка в calculateTaskSuccessRate:', error);
+        // Возвращаем безопасное значение в зависимости от режима
+        return taskIndex === null ? [] : 0;
+    }
 }
+
 function safeExecute(fn, fallback = null) {
     try {
         return fn();
@@ -1859,13 +2140,39 @@ function displayReportPreview1(reportData, mode) {
     
     previewDiv.innerHTML = html;
 }
-
 function generateRecommendationsHTML(recommendationsData) {
-    if (!recommendationsData || !recommendationsData.recommendations) {
+    if (!recommendationsData) {
         return '<p>Нет данных для рекомендаций</p>';
     }
 
+    // Безопасное извлечение рекомендаций
+    let recommendations = [];
+    if (Array.isArray(recommendationsData.recommendations)) {
+        recommendations = recommendationsData.recommendations;
+    } else if (recommendationsData.recommendations && typeof recommendationsData.recommendations === 'object') {
+        // Если это объект, преобразуем в массив
+        recommendations = Object.values(recommendationsData.recommendations);
+    } else if (Array.isArray(recommendationsData)) {
+        // Если передан сам массив
+        recommendations = recommendationsData;
+    }
+    
     let html = `
+        <div class="report-section">
+            <h3>💡 Рекомендации и план коррекционных мероприятий</h3>
+            
+            <!-- Общий вывод -->
+            <div style="background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%); 
+                        padding: 20px; border-radius: 10px; margin: 20px 0; border-left: 4px solid #2196f3;">
+                <h4 style="margin-top: 0; color: #1565c0;">🎯 Общий вывод</h4>
+                <p style="font-size: 16px; line-height: 1.6;">${recommendationsData.summary || generateSummary()}</p>
+            </div>
+    `;
+
+    if (recommendations.length === 0) {
+        html += '<p>Нет конкретных рекомендаций для отображения.</p>';
+    } else {
+   let html = `
         <div class="report-section">
             <h3>💡 Рекомендации и план коррекционных мероприятий</h3>
             
@@ -1960,9 +2267,11 @@ function generateRecommendationsHTML(recommendationsData) {
     html += `
         </div>
     `;
-
+    }
+    
     return html;
 }
+
 
 // Вспомогательные функции
 function getPriorityBadgeColor(priority) {
@@ -3562,21 +3871,38 @@ function generateReportPreview() {
 }
 
 function calculateStudentTotal(studentId) {
-    if (!studentId || !appData || !appData.results) return 0;
+    if (studentId === undefined || studentId === null || !appData || !appData.results) return 0;
     
     let total = 0;
-    const studentResults = appData.results[studentId];
     
-    if (!studentResults) return 0;
-    
-    if (Array.isArray(studentResults)) {
-        studentResults.forEach(score => {
-            total += parseFloat(score) || 0;
-        });
-    } else if (typeof studentResults === 'object') {
-        Object.values(studentResults).forEach(score => {
-            total += parseFloat(score) || 0;
-        });
+    try {
+        // Получаем результаты студента
+        let studentResults = null;
+        
+        if (Array.isArray(appData.results)) {
+            // Если results - массив массивов
+            if (typeof studentId === 'number' && appData.results[studentId]) {
+                studentResults = appData.results[studentId];
+            }
+        } else if (typeof appData.results === 'object') {
+            // Если results - объект с ключами
+            studentResults = appData.results[studentId];
+        }
+        
+        if (!studentResults) return 0;
+        
+        // Суммируем баллы
+        if (Array.isArray(studentResults)) {
+            studentResults.forEach(score => {
+                total += parseFloat(score) || 0;
+            });
+        } else if (typeof studentResults === 'object') {
+            Object.values(studentResults).forEach(score => {
+                total += parseFloat(score) || 0;
+            });
+        }
+    } catch (error) {
+        console.error('Ошибка расчета итога студента:', error);
     }
     
     return total;
@@ -5026,25 +5352,40 @@ function convertCriteriaFormat(criteria, targetFormat = 'string') {
 }
 // Интеграционная функция для отчетов
 function integrateCriteriaForReports(appData) {
+    if (!appData) {
+        console.warn('appData не определен для интеграции критериев');
+        return {
+            test: { criteria: createDefaultCriteria(23) },
+            tasks: [],
+            students: [],
+            results: [],
+            helpers: {
+                calculateGrade: (score) => ({ grade: 3, gradeString: '3' }),
+                getCriteria: () => createDefaultCriteria(23),
+                validateCriteria: () => ({ isValid: true, errors: [] })
+            }
+        };
+    }
+    
     // Проверяем и валидируем критерии
     const validation = validateAppDataCriteria(appData);
     
     if (!validation.isValid) {
-        console.error('Критерии не валидны для отчетов:', validation.errors);
+        console.warn('Критерии не валидны для отчетов:', validation.errors);
         
-        // Пытаемся исправить
-        if (validation.fixedData) {
-            appData.test.criteria = validation.fixedData.test.criteria;
-            console.log('Критерии исправлены для отчетов');
-        } else {
-            // Создаем критерии по умолчанию
-            appData.test.criteria = createDefaultCriteria(calculateMaxScore());
+        // Создаем или исправляем критерии
+        if (!appData.test) appData.test = {};
+        if (!appData.test.criteria) {
+            const maxScore = calculateMaxScores();
+            appData.test.criteria = createDefaultCriteria(maxScore);
             console.log('Созданы критерии по умолчанию для отчетов');
         }
     }
     
     // Обеспечиваем совместимость форматов
-    appData.test.criteria = convertCriteriaFormat(appData.test.criteria, 'both');
+    if (appData.test && appData.test.criteria) {
+        appData.test.criteria = convertCriteriaFormat(appData.test.criteria, 'both');
+    }
     
     // Добавляем helper функции в appData для удобства
     if (!appData.helpers) appData.helpers = {};
@@ -5227,9 +5568,189 @@ function checkCriteriaBeforeReport() {
 }
 
 // ==================== ДОБАВЛЕНИЕ НЕДОСТАЮЩИХ ФУНКЦИЙ ====================
-
-// Функция для обработки всех полей отчета
 function generateReportData(settings) {
+    const report = {
+        metadata: {
+            generated: new Date().toLocaleString(),
+            title: getReportTitle(settings.type),
+            author: 'Система анализа образовательных результатов',
+            settings: settings
+        },
+        content: {},
+        stats: {
+            pages: 0,
+            words: 0,
+            charts: 0,
+            tables: 0,
+            images: 0
+        }
+    };
+    
+    try {
+        // Базовые поля
+        if (settings.fields.includes('basic_info')) {
+            report.content.basicInfo = generateBasicInfo();
+            report.stats.pages += 1;
+        }
+        
+        if (settings.fields.includes('metadata')) {
+            report.content.metadata = {
+                methodology: 'Анализ образовательных результатов',
+                dateRange: 'Текущий учебный период',
+                analysisMethod: 'Статистический и сравнительный анализ'
+            };
+        }
+        
+        if (settings.fields.includes('criteria')) {
+            report.content.criteria = {
+                gradingCriteria: appData?.test?.criteria || 'Не указаны',
+                scoringSystem: appData?.test?.criteriaSystem || 'Стандартная 5-балльная',
+                maxScore: calculateMaxScores()
+            };
+        }
+        
+        if (settings.fields.includes('objectives')) {
+            report.content.objectives = {
+                educational: 'Оценка уровня усвоения материала',
+                analytical: 'Выявление проблемных зон',
+                developmental: 'Разработка рекомендаций для улучшения'
+            };
+        }
+        
+        // Результаты
+        if (settings.fields.includes('grades_distribution')) {
+            report.content.gradesDistribution = generateGradesDistribution(settings);
+            report.stats.charts += 1;
+        }
+        
+        if (settings.fields.includes('statistics')) {
+            report.content.statistics = generateStatistics(settings);
+            report.stats.tables += 1;
+        }
+        
+        if (settings.fields.includes('task_analysis')) {
+            report.content.taskAnalysis = analyzeTasks();
+            report.stats.tables += Math.ceil(analyzeTasks().length / 5);
+        }
+        
+        if (settings.fields.includes('error_analysis')) {
+            report.content.errorAnalysis = detectCommonErrors();
+        }
+        
+        if (settings.fields.includes('student_progress')) {
+            report.content.studentProgress = generateStudentProgress();
+        }
+        
+        if (settings.fields.includes('detailed_scores')) {
+            report.content.detailedScores = generateDetailedScores();
+            report.stats.tables += 2;
+        }
+        
+        // Аналитика
+        if (settings.fields.includes('comparative_analysis')) {
+            report.content.comparativeAnalysis = generateComparativeAnalysis();
+        }
+        
+        if (settings.fields.includes('correlation')) {
+            report.content.correlation = generateCorrelationAnalysis();
+        }
+        
+        if (settings.fields.includes('trends')) {
+            report.content.trends = analyzeTrends();
+        }
+        
+        if (settings.fields.includes('predictive')) {
+            report.content.predictive = generatePredictions();
+        }
+        
+        if (settings.fields.includes('benchmarking')) {
+            report.content.benchmarking = generateBenchmarkReport();
+        }
+        
+        // Визуализация
+        if (settings.fields.includes('charts')) {
+            report.content.charts = generateDynamicCharts(report);
+            report.stats.charts += report.content.charts.length;
+        }
+        
+        if (settings.fields.includes('heatmaps')) {
+            report.content.heatmaps = generateErrorHeatmap();
+        }
+        
+        if (settings.fields.includes('infographics')) {
+            report.content.infographics = generateInfographics();
+        }
+        
+        // Рекомендации
+        if (settings.fields.includes('recommendations')) {
+            report.content.recommendations = generateRecommendations(settings);
+            report.stats.pages += 1;
+        }
+        
+        if (settings.fields.includes('correction_plan')) {
+            report.content.correctionPlan = generateCorrectionPlan();
+        }
+        
+        if (settings.fields.includes('next_steps')) {
+            report.content.nextSteps = generateNextSteps();
+        }
+        
+        if (settings.fields.includes('personal_recommendations')) {
+            report.content.personalRecommendations = generatePersonalRecommendations();
+        }
+        
+        if (settings.fields.includes('methodical_recommendations')) {
+            report.content.methodicalRecommendations = generateMethodicalRecommendations();
+        }
+        
+        // Дополнительно
+        if (settings.fields.includes('appendix')) {
+            report.content.appendix = generateAppendix();
+        }
+        
+        if (settings.fields.includes('references')) {
+            report.content.references = generateReferences();
+        }
+        
+        if (settings.fields.includes('glossary')) {
+            report.content.glossary = generateGlossary();
+        }
+        
+        if (settings.fields.includes('feedback_form')) {
+            report.content.feedbackForm = generateFeedbackForm();
+        }
+        
+        // AI функции
+        if (settings.options?.aiInsights) {
+            report.content.aiInsights = generateAIInsights();
+        }
+        
+        if (settings.options?.predictiveAnalytics) {
+            report.content.predictiveAnalytics = generatePredictiveAnalytics();
+        }
+        
+        // Мультимедиа
+        if (settings.options?.voiceSummary) {
+            report.content.voiceSummary = generateVoiceSummary(report);
+        }
+        
+        if (settings.fields.includes('recommendations')) {
+            const recData = generateRecommendations(settings);
+            if (recData && typeof recData === 'object') {
+                report.content.recommendations = recData;
+                report.stats.pages += 1;
+            }
+        }
+        
+    } catch (error) {
+        console.error('Ошибка генерации разделов отчета:', error);
+        showNotification('Ошибка генерации данных отчета: ' + error.message, 'warning');
+    }
+    
+    return report;
+}
+// Функция для обработки всех полей отчета
+function generateReportDatsa(settings) {
     const report = {
         metadata: {
             generated: new Date().toLocaleString(),
@@ -7302,3 +7823,474 @@ document.addEventListener('DOMContentLoaded', function() {
     // Инициализация загрузки истории отчетов
     setTimeout(loadReportHistory, 1000);
 });
+
+// Генерация методических рекомендаций для отчета
+function generateMethodicalRecommendations(appData, aiInsights = null) {
+    try {
+        // Проверяем наличие данных
+        if (!appData || !appData.test || !appData.tasks || !appData.students) {
+            return {
+                summary: "Недостаточно данных для формирования методических рекомендаций",
+                recommendations: [],
+                sections: []
+            };
+        }
+        
+        const stats = calculateStatistics();
+        const taskAnalysis = analyzeTasks();
+        const errorAnalysis = detectCommonErrors();
+        const gradeDistribution = calculateGradeDistributionn();
+        
+        const recommendations = {
+            summary: "",
+            priorityLevel: "medium",
+            recommendations: [],
+            teachingStrategies: [],
+            differentiationPlan: {},
+            resources: [],
+            timeline: "2-4 недели",
+            sections: []
+        };
+        
+        // ==================== АНАЛИЗ СИТУАЦИИ ====================
+        const situationAnalysis = analyzeTeachingSituation(stats, taskAnalysis, gradeDistribution);
+        recommendations.summary = situationAnalysis.summary;
+        recommendations.priorityLevel = situationAnalysis.priority;
+        
+        // ==================== ОСНОВНЫЕ РЕКОМЕНДАЦИИ ====================
+        
+        // 1. Рекомендации на основе статистики
+        if (stats.averageGrade < 3.0) {
+            recommendations.recommendations.push({
+                category: "Базовые знания",
+                title: "Повторение базового материала",
+                description: `Средний балл класса (${stats.averageGrade.toFixed(1)}) ниже удовлетворительного. Требуется повторение основных тем.`,
+                actions: [
+                    "Провести диагностический тест для выявления пробелов",
+                    "Организовать повторение ключевых понятий",
+                    "Использовать опорные конспекты и схемы"
+                ],
+                priority: "high",
+                timeframe: "1-2 недели"
+            });
+        }
+        
+        if (stats.weakPercentage > 20) {
+            recommendations.recommendations.push({
+                category: "Работа с отстающими",
+                title: "Индивидуальная поддержка",
+                description: `${stats.weakPercentage}% учащихся получили неудовлетворительные оценки.`,
+                actions: [
+                    "Составить индивидуальные планы работы",
+                    "Организовать дополнительные консультации",
+                    "Внедрить систему наставничества (сильные помогают слабым)"
+                ],
+                priority: "high",
+                timeframe: "2-3 недели"
+            });
+        }
+        
+        if (stats.excellentPercentage > 30) {
+            recommendations.recommendations.push({
+                category: "Развитие сильных учащихся",
+                title: "Дифференциация заданий",
+                description: `Высокий процент отличников (${stats.excellentPercentage}%) позволяет усложнять задания.`,
+                actions: [
+                    "Добавить задания повышенной сложности",
+                    "Предложить исследовательские проекты",
+                    "Организовать подготовку к олимпиадам"
+                ],
+                priority: "medium",
+                timeframe: "3-4 недели"
+            });
+        }
+        
+        // 2. Рекомендации на основе анализа заданий
+        const weakTasks = taskAnalysis.filter(t => t.successRate < 60);
+        if (weakTasks.length > 0) {
+            recommendations.recommendations.push({
+                category: "Сложные задания",
+                title: "Проработка проблемных заданий",
+                description: `${weakTasks.length} заданий выполнены менее чем на 60%.`,
+                actions: weakTasks.map(task => 
+                    `Задание ${task.number}: дополнительное объяснение (успешность: ${task.successRate}%)`
+                ),
+                priority: "medium",
+                timeframe: "2 недели"
+            });
+        }
+        
+        // 3. Рекомендации на основе типичных ошибок
+        if (errorAnalysis && errorAnalysis.length > 0) {
+            const topErrors = errorAnalysis.slice(0, 3);
+            recommendations.recommendations.push({
+                category: "Типичные ошибки",
+                title: "Коррекция ошибок",
+                description: "Выявлены систематические ошибки учащихся.",
+                actions: topErrors.map(error => 
+                    `${error.type}: специальные упражнения (${error.count} случаев, ${error.percentage}%)`
+                ),
+                priority: "high",
+                timeframe: "1-2 недели"
+            });
+        }
+        
+        // ==================== МЕТОДИЧЕСКИЕ СТРАТЕГИИ ====================
+        
+        // 1. Стратегии преподавания
+        recommendations.teachingStrategies = [
+            {
+                name: "Дифференцированный подход",
+                description: "Разделение учащихся на группы по уровню подготовки",
+                implementation: "Создать 3 уровня заданий: базовый, стандартный, продвинутый",
+                effectiveness: "Высокая для смешанных классов"
+            },
+            {
+                name: "Формирующее оценивание",
+                description: "Регулярная обратная связь в процессе обучения",
+                implementation: "Мини-тесты, самооценка, взаимопроверка",
+                effectiveness: "Повышает вовлеченность"
+            },
+            {
+                name: "Проектная деятельность",
+                description: "Применение знаний в практических ситуациях",
+                implementation: "Групповые проекты, исследования, презентации",
+                effectiveness: "Развивает soft skills"
+            }
+        ];
+        
+        // 2. План дифференциации
+        recommendations.differentiationPlan = {
+            groupA: {
+                level: "Высокий",
+                percentage: stats.excellentPercentage || 0,
+                objectives: ["Углубление знаний", "Творческие задания", "Самостоятельные исследования"],
+                methods: ["Проблемные задачи", "Проекты", "Эксперименты"]
+            },
+            groupB: {
+                level: "Средний",
+                percentage: stats.goodPercentage + stats.averagePercentage || 0,
+                objectives: ["Закрепление материала", "Развитие умений", "Подготовка к повышению уровня"],
+                methods: ["Тренировочные упражнения", "Работа в парах", "Поэтапные инструкции"]
+            },
+            groupC: {
+                level: "Низкий",
+                percentage: stats.weakPercentage || 0,
+                objectives: ["Ликвидация пробелов", "Формирование базовых умений", "Повышение мотивации"],
+                methods: ["Пошаговые инструкции", "Индивидуальная помощь", "Игровые формы"]
+            }
+        };
+        
+        // 3. Ресурсы и материалы
+        recommendations.resources = [
+            {
+                type: "Дидактические материалы",
+                items: ["Карточки-задания", "Опорные конспекты", "Тренажеры"]
+            },
+            {
+                type: "Технологические ресурсы",
+                items: ["Образовательные платформы", "Интерактивные упражнения", "Виртуальные лаборатории"]
+            },
+            {
+                type: "Методическая литература",
+                items: ["Сборники задач", "Методические пособия", "Журналы по педагогике"]
+            }
+        ];
+        
+        // ==================== ПЛАН МЕРОПРИЯТИЙ ====================
+        recommendations.sections = generateMethodicalSections(recommendations);
+        
+        // ==================== ОЦЕНКА ЭФФЕКТИВНОСТИ ====================
+        recommendations.evaluationPlan = {
+            metrics: [
+                { name: "Средний балл", target: `Увеличение на ${stats.averageGrade < 3.0 ? '0.5' : '0.3'} балла` },
+                { name: "Процент успеваемости", target: `Увеличение на ${stats.successRate < 70 ? '10' : '5'}%` },
+                { name: "Процент неуспевающих", target: `Снижение на ${stats.weakPercentage > 20 ? '15' : '10'}%` }
+            ],
+            methods: ["Промежуточные тесты", "Наблюдение", "Самооценка учащихся", "Анализ работ"],
+            timeline: "Еженедельный мониторинг, итоговая оценка через 1 месяц"
+        };
+        
+        return recommendations;
+        
+    } catch (error) {
+        console.error('Ошибка генерации методических рекомендаций:', error);
+        return {
+            summary: "Ошибка при формировании рекомендаций",
+            recommendations: [],
+            sections: []
+        };
+    }
+}
+
+// ==================== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ====================
+
+// Анализ педагогической ситуации
+function analyzeTeachingSituation(stats, taskAnalysis, gradeDistribution) {
+    let summary = "";
+    let priority = "medium";
+    
+    const excellent = gradeDistribution['5'] || 0;
+    const good = gradeDistribution['4'] || 0;
+    const average = gradeDistribution['3'] || 0;
+    const weak = gradeDistribution['2'] || 0;
+    
+    // Определяем тип ситуации
+    if (weak > 30) {
+        summary = `Критическая ситуация: ${weak}% учащихся не освоили материал. Требуется срочное вмешательство.`;
+        priority = "high";
+    } else if (excellent < 10 && good < 30) {
+        summary = `Низкий уровень подготовки: недостаточно хороших и отличных результатов (${excellent + good}%).`;
+        priority = "high";
+    } else if (stats.averageGrade >= 4.0) {
+        summary = `Высокий уровень подготовки: средний балл ${stats.averageGrade.toFixed(1)}. Можно сосредоточиться на развитии творческих способностей.`;
+        priority = "low";
+    } else if (Math.abs(excellent - weak) > 40) {
+        summary = `Высокий разрыв в подготовке: от ${weak}% слабых до ${excellent}% сильных учащихся. Требуется дифференциация.`;
+        priority = "medium";
+    } else {
+        summary = `Стабильная ситуация: равномерное распределение оценок. Можно работать над повышением качества.`;
+        priority = "medium";
+    }
+    
+    // Добавляем информацию о заданиях
+    const weakTasks = taskAnalysis.filter(t => t.successRate < 50);
+    if (weakTasks.length > 0) {
+        summary += ` Выявлено ${weakTasks.length} сложных заданий (успешность < 50%).`;
+    }
+    
+    return { summary, priority };
+}
+
+// Генерация разделов методических рекомендаций
+function generateMethodicalSections(recommendations) {
+    const sections = [];
+    
+    // Раздел 1: Общий анализ
+    sections.push({
+        title: "📊 Анализ текущей ситуации",
+        content: recommendations.summary,
+        type: "analysis"
+    });
+    
+    // Раздел 2: Приоритетные рекомендации
+    const highPriority = recommendations.recommendations.filter(r => r.priority === "high");
+    if (highPriority.length > 0) {
+        sections.push({
+            title: "🚨 Приоритетные меры",
+            content: generateRecommendationsHTML(highPriority),
+            type: "recommendations"
+        });
+    }
+    
+    // Раздел 3: Стратегии преподавания
+    sections.push({
+        title: "🎯 Методические стратегии",
+        content: generateStrategiesHTML(recommendations.teachingStrategies),
+        type: "strategies"
+    });
+    
+    // Раздел 4: План дифференциации
+    sections.push({
+        title: "👥 Дифференциация обучения",
+        content: generateDifferentiationHTML(recommendations.differentiationPlan),
+        type: "differentiation"
+    });
+    
+    // Раздел 5: Ресурсы
+    sections.push({
+        title: "📚 Ресурсы и материалы",
+        content: generateResourcesHTML(recommendations.resources),
+        type: "resources"
+    });
+    
+    // Раздел 6: План оценки
+    sections.push({
+        title: "📈 Оценка эффективности",
+        content: generateEvaluationHTML(recommendations.evaluationPlan),
+        type: "evaluation"
+    });
+    
+    return sections;
+}
+
+// HTML генераторы для каждого раздела
+function generateRecommendationsHTML(recommendations) {
+    return recommendations.map(rec => `
+        <div style="margin-bottom: 20px; padding: 15px; background: ${rec.priority === 'high' ? '#ffebee' : '#fff3e0'}; border-radius: 8px;">
+            <h4 style="margin-top: 0; color: ${rec.priority === 'high' ? '#c62828' : '#ef6c00'};">${rec.title}</h4>
+            <p>${rec.description}</p>
+            <strong>Действия:</strong>
+            <ul style="margin: 10px 0; padding-left: 20px;">
+                ${rec.actions.map(action => `<li>${action}</li>`).join('')}
+            </ul>
+            <div style="font-size: 14px; color: #666;">
+                <span>Категория: ${rec.category}</span> | 
+                <span>Срок: ${rec.timeframe}</span>
+            </div>
+        </div>
+    `).join('');
+}
+
+function generateStrategiesHTML(strategies) {
+    return `
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 15px;">
+            ${strategies.map(strategy => `
+                <div style="background: white; padding: 15px; border-radius: 8px; border: 1px solid #e0e0e0;">
+                    <h5 style="margin-top: 0; color: #1976d2;">${strategy.name}</h5>
+                    <p style="margin: 10px 0;">${strategy.description}</p>
+                    <div style="font-size: 14px;">
+                        <div><strong>Реализация:</strong> ${strategy.implementation}</div>
+                        <div><strong>Эффективность:</strong> ${strategy.effectiveness}</div>
+                    </div>
+                </div>
+            `).join('')}
+        </div>
+    `;
+}
+
+function generateDifferentiationHTML(plan) {
+    return `
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px;">
+            ${Object.entries(plan).map(([groupId, group]) => `
+                <div style="background: ${getGroupColor(groupId)}; padding: 15px; border-radius: 8px; color: white;">
+                    <h5 style="margin-top: 0;">Группа ${groupId.toUpperCase()}: ${group.level}</h5>
+                    <div style="font-size: 24px; font-weight: bold; text-align: center; margin: 10px 0;">
+                        ${group.percentage}%
+                    </div>
+                    <div style="background: rgba(255,255,255,0.2); padding: 10px; border-radius: 6px; margin: 10px 0;">
+                        <strong>Цели:</strong>
+                        <ul style="margin: 5px 0; padding-left: 20px;">
+                            ${group.objectives.map(obj => `<li>${obj}</li>`).join('')}
+                        </ul>
+                    </div>
+                    <div style="font-size: 14px;">
+                        <strong>Методы:</strong> ${group.methods.join(', ')}
+                    </div>
+                </div>
+            `).join('')}
+        </div>
+    `;
+}
+
+function getGroupColor(groupId) {
+    const colors = {
+        groupA: '#2ecc71', // зеленый
+        groupB: '#3498db', // синий
+        groupC: '#e74c3c'  // красный
+    };
+    return colors[groupId] || '#95a5a6';
+}
+
+function generateResourcesHTML(resources) {
+    return resources.map(resource => `
+        <div style="margin-bottom: 15px;">
+            <h5 style="margin: 0 0 10px 0; color: #7b1fa2;">${resource.type}</h5>
+            <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                ${resource.items.map(item => `
+                    <span style="background: #f3e5f5; color: #7b1fa2; padding: 5px 10px; border-radius: 15px; font-size: 14px;">
+                        ${item}
+                    </span>
+                `).join('')}
+            </div>
+        </div>
+    `).join('');
+}
+
+function generateEvaluationHTML(evaluationPlan) {
+    return `
+        <div style="background: #e8f5e9; padding: 15px; border-radius: 8px;">
+            <h5 style="margin-top: 0; color: #2e7d32;">Показатели эффективности</h5>
+            <table style="width: 100%; border-collapse: collapse;">
+                <thead>
+                    <tr style="background: #c8e6c9;">
+                        <th style="padding: 8px; border: 1px solid #a5d6a7;">Метрика</th>
+                        <th style="padding: 8px; border: 1px solid #a5d6a7;">Целевое значение</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${evaluationPlan.metrics.map(metric => `
+                        <tr>
+                            <td style="padding: 8px; border: 1px solid #a5d6a7;">${metric.name}</td>
+                            <td style="padding: 8px; border: 1px solid #a5d6a7;">${metric.target}</td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+            
+            <div style="margin-top: 15px;">
+                <strong>Методы оценки:</strong> ${evaluationPlan.methods.join(', ')}
+            </div>
+            
+            <div style="margin-top: 10px; font-size: 14px; color: #666;">
+                <strong>График:</strong> ${evaluationPlan.timeline}
+            </div>
+        </div>
+    `;
+}
+
+// Функция для отображения методических рекомендаций в отчете
+function displayMethodicalRecommendations(recommendations) {
+    return `
+        <div class="report-section">
+            <h2>🎓 Методические рекомендации</h2>
+            
+            <div style="background: #e3f2fd; padding: 20px; border-radius: 10px; margin: 20px 0; border-left: 4px solid #2196f3;">
+                <h3 style="margin-top: 0; color: #1565c0;">Общий вывод</h3>
+                <p style="font-size: 16px; line-height: 1.6;">${recommendations.summary}</p>
+                <div style="display: inline-block; padding: 5px 15px; background: ${getPriorityColor(recommendations.priorityLevel)}; color: white; border-radius: 20px; font-size: 14px;">
+                    Приоритет: ${getPriorityName(recommendations.priorityLevel)}
+                </div>
+            </div>
+            
+            ${recommendations.sections.map(section => `
+                <div style="margin: 30px 0;">
+                    <h3 style="border-bottom: 2px solid #ddd; padding-bottom: 5px;">${section.title}</h3>
+                    <div>${section.content}</div>
+                </div>
+            `).join('')}
+            
+            <div style="margin-top: 40px; padding: 20px; background: #fffde7; border-radius: 10px;">
+                <h4 style="margin-top: 0; color: #f57f17;">💡 Ключевые идеи</h4>
+                <ul style="margin: 15px 0; padding-left: 20px;">
+                    <li>Сосредоточьтесь на ${recommendations.priorityLevel === 'high' ? 'работе с отстающими' : 'развитии всех групп'}</li>
+                    <li>Используйте дифференцированный подход для повышения эффективности</li>
+                    <li>Регулярно оценивайте прогресс учащихся</li>
+                    <li>Адаптируйте методы преподавания под особенности класса</li>
+                </ul>
+            </div>
+        </div>
+    `;
+}
+
+function getPriorityColor(priority) {
+    const colors = {
+        high: '#e74c3c',
+        medium: '#f39c12',
+        low: '#2ecc71'
+    };
+    return colors[priority] || '#95a5a6';
+}
+
+function getPriorityName(priority) {
+    const names = {
+        high: 'Высокий',
+        medium: 'Средний',
+        low: 'Низкий'
+    };
+    return names[priority] || 'Не определен';
+}
+
+// Использование в отчете:
+function generateReportWithMethodicalRecommendations() {
+    const methodicalRecs = generateMethodicalRecommendations(appData);
+    
+    return {
+        ...yourReportData,
+        methodicalRecommendations: methodicalRecs,
+        html: `
+            ${yourExistingReportHTML}
+            ${displayMethodicalRecommendations(methodicalRecs)}
+        `
+    };
+}
