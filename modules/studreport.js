@@ -405,43 +405,50 @@ function analyzeByComplexityLevels() {
         let taskTotalScore = 0;
         let studentsCompleted = 0;
         
-        // Исправленный доступ к данным студентов
+        // Считаем баллы за это задание у всех студентов
         appData.students.forEach((student, studentIndex) => {
-            const results = appData.results[studentIndex] || []; // Доступ по индексу
+            const results = appData.results[studentIndex] || [];
             if (results.length > taskIndex) {
-                const score = parseFloat(results[taskIndex]) || 0;
-                taskTotalScore += score;
-                if (results[taskIndex] !== undefined && results[taskIndex] !== '') {
+                const scoreValue = results[taskIndex];
+                // Проверяем, что результат есть и он не пустой
+                if (scoreValue !== undefined && scoreValue !== '' && !isNaN(parseFloat(scoreValue))) {
+                    const score = parseFloat(scoreValue);
+                    taskTotalScore += score;
                     studentsCompleted++;
                 }
             }
         });
         
+        // Обновляем статистику по уровню
         levelAnalysis[level].count++;
-        levelAnalysis[level].totalMaxScore += maxScore * appData.students.length;
+        levelAnalysis[level].totalMaxScore += maxScore * studentsCompleted;
         levelAnalysis[level].totalActualScore += taskTotalScore;
         levelAnalysis[level].studentsCompleted += studentsCompleted;
         
+        // Сохраняем информацию о задании
         const avgScore = studentsCompleted > 0 ? taskTotalScore / studentsCompleted : 0;
         levelAnalysis[level].tasks.push({
             number: taskIndex + 1,
             avgScore: avgScore,
-            completionRate: (studentsCompleted / appData.students.length * 100).toFixed(1)
+            completionRate: appData.students.length > 0 ? 
+                (studentsCompleted / appData.students.length * 100).toFixed(1) : "0.0"
         });
     });
     
     // Рассчитываем итоговые показатели
     const result = {};
     
-    Object.entries(levelAnalysis).forEach(([level, data]) => {
+    Object.entries(levelAnalysis).forEach(([levelStr, data]) => {
+        const level = parseInt(levelStr);
+        
         if (data.count === 0) {
             result[level] = {
                 levelName: complexityLevels[level]?.name || `Уровень ${level}`,
                 taskCount: 0,
-                avgPercentage: 0,
-                avgCompletion: 0,
-                expectedPercentage: getExpectedLevelPercentage(parseInt(level)),
-                deviation: 0,
+                avgPercentage: "0.0",
+                avgCompletion: "0.0",
+                expectedPercentage: getExpectedLevelPercentage(level),
+                deviation: "0.0",
                 performance: 'unknown',
                 color: complexityLevels[level]?.color || '#95a5a6'
             };
@@ -449,20 +456,24 @@ function analyzeByComplexityLevels() {
         }
         
         // Исправленный расчет процента выполнения
-        const avgScorePerStudent = data.totalActualScore / appData.students.length;
-        const maxScorePerStudent = data.totalMaxScore / appData.students.length;
-        const avgPercentage = maxScorePerStudent > 0 ? 
-            (avgScorePerStudent / maxScorePerStudent * 100) : 0;
+        let avgPercentage = 0;
         
-        const avgCompletion = data.studentsCompleted > 0 ?
+        if (data.totalMaxScore > 0) {
+            avgPercentage = (data.totalActualScore / data.totalMaxScore * 100);
+        }
+        
+        const avgCompletion = appData.students.length > 0 ? 
             (data.studentsCompleted / (data.count * appData.students.length) * 100) : 0;
         
         // Сравнение с ожидаемыми значениями
-        const expectedPercentage = getExpectedLevelPercentage(parseInt(level));
+        const expectedPercentage = getExpectedLevelPercentage(level);
         const deviation = avgPercentage - expectedPercentage;
         
+        // ИСПРАВЛЕНИЕ: используем корректное имя уровня
+        const levelName = complexityLevels[level]?.name || `Уровень ${level}`;
+        
         result[level] = {
-            levelName: complexityLevels[level]?.name || `Уровень ${level}`,
+            levelName: levelName, // ГАРАНТИРУЕМ наличие levelName
             taskCount: data.count,
             avgPercentage: avgPercentage.toFixed(1),
             avgCompletion: avgCompletion.toFixed(1),
@@ -473,21 +484,23 @@ function analyzeByComplexityLevels() {
                        deviation >= -10 ? 'average' : 'weak',
             color: complexityLevels[level]?.color || '#95a5a6'
         };
+        
+        console.log(`Уровень ${level} (${levelName}): ${avgPercentage.toFixed(1)}% (ожидалось ${expectedPercentage}%)`);
     });
     
     return result;
 }
 
 function getExpectedLevelPercentage(level) {
-	// Ожидаемый процент выполнения по уровням
-	const expectations = {
-		1: 85, // Базовые задания
-		2: 70, // Применение
-		3: 50, // Анализ
-		4: 30  // Творчество
-	};
-	
-	return expectations[level] || 50;
+    // Ожидаемый процент выполнения по уровням
+    const expectations = {
+        1: 85, // Базовые задания
+        2: 70, // Применение
+        3: 50, // Анализ
+        4: 30  // Творчество
+    };
+    
+    return expectations[level] || 50;
 }
 
 function analyzeByErrorTypes() {
@@ -510,7 +523,21 @@ function analyzeByErrorTypes() {
     // Проверяем, есть ли данные об ошибках
     if (!appData.errors || appData.errors.length === 0) {
         console.log('Нет данных об ошибках');
-        return errorAnalysis;
+        // Возвращаем пустой объект с правильной структурой
+        const emptyResult = {};
+        Object.keys(errorTypes).forEach(errorKey => {
+            const errorType = errorTypes[errorKey];
+            emptyResult[errorKey] = {
+                name: errorType.name || errorKey,
+                color: errorType.color || '#95a5a6',
+                count: 0,
+                studentCount: 0,
+                percentage: "0.0",
+                avgPerStudent: "0.0",
+                tasks: []
+            };
+        });
+        return emptyResult;
     }
     
     // Собираем данные
@@ -577,18 +604,56 @@ function analyzeByErrorTypes() {
             (data.totalScore / data.maxPossible * 100) : 0;
         const studentCount = data.students.size;
         
+        // ГАРАНТИРУЕМ наличие всех обязательных полей
         filteredAnalysis[errorKey] = {
-            name: errorType.name,
-            color: errorType.color,
-            count: data.count,
-            studentCount,
+            name: errorType.name || errorKey,
+            color: errorType.color || '#95a5a6',
+            count: data.count || 0,
+            studentCount: studentCount || 0,
             percentage: percentage.toFixed(1),
-            avgPerStudent: studentCount > 0 ? (data.totalScore / studentCount).toFixed(2) : 0,
-            tasks: data.tasks
+            avgPerStudent: studentCount > 0 ? (data.totalScore / studentCount).toFixed(2) : "0.0",
+            tasks: data.tasks || []
         };
     });
     
+    // Если нет ошибок, все равно возвращаем структуру
+    if (Object.keys(filteredAnalysis).length === 0) {
+        Object.keys(errorTypes).forEach(errorKey => {
+            const errorType = errorTypes[errorKey];
+            filteredAnalysis[errorKey] = {
+                name: errorType.name || errorKey,
+                color: errorType.color || '#95a5a6',
+                count: 0,
+                studentCount: 0,
+                percentage: "0.0",
+                avgPerStudent: "0.0",
+                tasks: []
+            };
+        });
+    }
+    
     return filteredAnalysis;
+}
+
+// ДОПОЛНИТЕЛЬНО: добавим вспомогательную функцию для отладки
+function debugAnalysisData(analysis) {
+    console.log('🔍 Отладка данных анализа:');
+    console.log('Сводная статистика:', analysis.summary);
+    console.log('Уровни сложности:', analysis.byLevel);
+    console.log('Типы ошибок:', analysis.byErrorType);
+    
+    // Проверяем структуру уровней
+    if (analysis.byLevel) {
+        Object.entries(analysis.byLevel).forEach(([level, data]) => {
+            console.log(`Уровень ${level}:`, {
+                levelName: data.levelName,
+                avgPercentage: data.avgPercentage,
+                expectedPercentage: data.expectedPercentage,
+                hasLevelName: !!data.levelName,
+                hasAvgPercentage: data.avgPercentage !== undefined
+            });
+        });
+    }
 }
 
 function testCorrelationCalculation() {
@@ -789,94 +854,126 @@ function calculateCorrelation(x, y) {
 
 
 function generateInsights(analysis) {
-	console.log('💡 Генерация инсайтов...');
-	
-	const insights = [];
-	
-	// 1. Инсайты на основе общей статистики
-	const summary = analysis.summary;
-	
-	if (summary.completionRate < 50) {
-		insights.push({
-			type: 'warning',
-			title: 'Низкий процент выполнения',
-			message: `Только ${summary.completionRate}% учащихся выполнили все задания`,
-			suggestion: 'Рассмотрите возможность продления срока или дополнительных консультаций'
-		});
-	}
-	
-	if (summary.stdDev > summary.avgScore * 0.5) {
-		insights.push({
-			type: 'info',
-			title: 'Большой разброс результатов',
-			message: `Стандартное отклонение (${summary.stdDev}) составляет более 50% от среднего балла`,
-			suggestion: 'Уровень сложности заданий может быть неадекватным для данной группы'
-		});
-	}
-	
-	// 2. Инсайты на основе анализа заданий
-	const criticalTasks = analysis.byTask.filter(task => task.zone === 'critical');
-	if (criticalTasks.length > 0) {
-		insights.push({
-			type: 'danger',
-			title: 'Критические задания',
-			message: `${criticalTasks.length} заданий выполнены менее чем на 20%`,
-			suggestion: `Задания: ${criticalTasks.map(t => t.number).join(', ')}. Требуется повторное объяснение.`
-		});
-	}
-	
-	// 3. Инсайты на основе уровней сложности
-	Object.entries(analysis.byLevel).forEach(([level, data]) => {
-		if (data.deviation < -15) {
-			insights.push({
-				type: 'warning',
-				title: `Слабые результаты по ${data.levelName}`,
-				message: `Выполнение на ${data.percentage}% (ожидалось ${data.expectedPercentage}%)`,
-				suggestion: `Необходимо уделить больше внимания заданиям уровня ${level}`
-			});
-		}
-	});
-	
-	// 4. Инсайты на основе типов ошибок
-	const weakErrorTypes = Object.entries(analysis.byErrorType)
-		.filter(([_, data]) => data.percentage < 50);
-	
-	if (weakErrorTypes.length > 0) {
-		const worst = weakErrorTypes.sort((a, b) => a[1].percentage - b[1].percentage)[0];
-		insights.push({
-			type: 'info',
-			title: 'Проблемный тип ошибок',
-			message: `Наименьший процент выполнения по типу "${worst[1].name}" (${worst[1].percentage}%)`,
-			suggestion: 'Проведите дополнительные занятия по этой теме'
-		});
-	}
-	
-	// 5. Инсайты на основе корреляций
-	if (analysis.correlations.length > 0) {
-		const strongest = analysis.correlations[0];
-		if (Math.abs(strongest.correlation) > 0.8) {
-			insights.push({
-				type: 'success',
-				title: 'Сильная взаимосвязь заданий',
-				message: `Задания ${strongest.task1} и ${strongest.task2} сильно коррелируют (${strongest.correlation})`,
-				suggestion: 'Возможно, задания проверяют схожие умения или имеют общую тематику'
-			});
-		}
-	}
-	
-	// 6. Положительные инсайты
-	const excellentTasks = analysis.byTask.filter(task => task.zone === 'excellent');
-	if (excellentTasks.length > appData.tasks.length * 0.3) {
-		insights.push({
-			type: 'success',
-			title: 'Хорошее усвоение материала',
-			message: `Более 30% заданий выполнены на отлично (>80%)`,
-			suggestion: 'Группа хорошо усвоила основные темы'
-		});
-	}
-	
-	return insights;
+    console.log('💡 Генерация инсайтов...');
+    
+    const insights = [];
+    
+    // 1. Инсайты на основе общей статистики
+    const summary = analysis.summary;
+    
+    if (summary.completionRate < 50) {
+        insights.push({
+            type: 'warning',
+            title: 'Низкий процент выполнения',
+            message: `Только ${summary.completionRate}% учащихся выполнили все задания`,
+            suggestion: 'Рассмотрите возможность продления срока или дополнительных консультаций'
+        });
+    }
+    
+    if (summary.stdDev > summary.avgScore * 0.5) {
+        insights.push({
+            type: 'info',
+            title: 'Большой разброс результатов',
+            message: `Стандартное отклонение (${summary.stdDev}) составляет более 50% от среднего балла`,
+            suggestion: 'Уровень сложности заданий может быть неадекватным для данной группы'
+        });
+    }
+    
+    // 2. Инсайты на основе анализа заданий
+    const criticalTasks = analysis.byTask.filter(task => task.zone === 'critical');
+    if (criticalTasks.length > 0) {
+        insights.push({
+            type: 'danger',
+            title: 'Критические задания',
+            message: `${criticalTasks.length} заданий выполнены менее чем на 20%`,
+            suggestion: `Задания: ${criticalTasks.map(t => t.number).join(', ')}. Требуется повторное объяснение.`
+        });
+    }
+    
+    // 3. Инсайты на основе уровней сложности - ИСПРАВЛЕННЫЙ КОД
+    if (analysis.byLevel) {
+        Object.entries(analysis.byLevel).forEach(([level, data]) => {
+            // Проверяем, что данные существуют
+            if (!data || data.avgPercentage === undefined) {
+                console.warn(`Нет данных для уровня ${level}`);
+                return;
+            }
+            
+            const avgPercentage = parseFloat(data.avgPercentage);
+            const expectedPercentage = data.expectedPercentage || getExpectedLevelPercentage(parseInt(level));
+            
+            if (isNaN(avgPercentage)) {
+                console.warn(`Некорректный процент для уровня ${level}: ${data.avgPercentage}`);
+                return;
+            }
+            
+            // ИСПРАВЛЕНИЕ: используем правильное название поля
+            const levelName = data.levelName || complexityLevels[level]?.name || `Уровень ${level}`;
+            
+            if (avgPercentage < expectedPercentage - 10) {
+                insights.push({
+                    type: 'warning',
+                    title: `Слабые результаты по ${levelName}`,
+                    message: `Выполнение на ${avgPercentage.toFixed(1)}% (ожидалось ${expectedPercentage}%)`,
+                    suggestion: `Необходимо уделить больше внимания заданиям уровня ${level}`
+                });
+            }
+        });
+    } else {
+        console.warn('Нет данных по уровням сложности');
+    }
+    
+    // 4. Инсайты на основе типов ошибок
+    if (analysis.byErrorType) {
+        Object.entries(analysis.byErrorType).forEach(([errorKey, data]) => {
+            if (!data || data.percentage === undefined) {
+                return;
+            }
+            
+            const percentage = parseFloat(data.percentage);
+            if (percentage < 50) {
+                const errorName = data.name || errorKey;
+                insights.push({
+                    type: 'warning',
+                    title: 'Проблемный тип ошибок',
+                    message: `Низкий процент выполнения по типу "${errorName}" (${percentage}%)`,
+                    suggestion: `Проведите дополнительные занятия по этой теме`
+                });
+            }
+        });
+    }
+    
+    // 5. Инсайты на основе корреляций
+    if (analysis.correlations && analysis.correlations.length > 0) {
+        const strongest = analysis.correlations[0];
+        if (Math.abs(strongest.correlation) > 0.8) {
+            insights.push({
+                type: 'success',
+                title: 'Сильная взаимосвязь заданий',
+                message: `Задания ${strongest.task1} и ${strongest.task2} сильно коррелируют (${strongest.correlation})`,
+                suggestion: 'Возможно, задания проверяют схожие умения или имеют общую тематику'
+            });
+        }
+    }
+    
+    // 6. Положительные инсайты
+    if (analysis.byTask) {
+        const excellentTasks = analysis.byTask.filter(task => task.zone === 'excellent');
+        if (excellentTasks.length > appData.tasks.length * 0.3) {
+            insights.push({
+                type: 'success',
+                title: 'Хорошее усвоение материала',
+                message: `Более 30% заданий выполнены на отлично (>80%)`,
+                suggestion: 'Группа хорошо усвоила основные темы'
+            });
+        }
+    }
+    
+    console.log(`Сгенерировано ${insights.length} инсайтов`);
+    return insights;
 }
+
+
 
 function showAnalysisResults(analysis) {
 	console.log('📊 Показ результатов анализа:', analysis);
@@ -886,6 +983,10 @@ function showAnalysisResults(analysis) {
 			<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
 				<h3 style="margin: 0;">📈 Комплексный анализ результатов</h3>
 				<div>
+                    <!-- НОВАЯ КНОПКА -->
+                    <button class="btn btn-sm btn-primary" onclick="generateFullHTMLReport()" style="margin-left: 10px;">
+                        📄 Полный HTML отчет
+                    </button>				
 					<button class="btn btn-sm btn-outline" onclick="exportAnalysisReport(${JSON.stringify(analysis).replace(/"/g, '&quot;')})">
 						📥 Экспорт отчета
 					</button>
@@ -1937,6 +2038,10 @@ function renderCorrelationsAnalysis() {
             <button class="btn btn-sm btn-outline" onclick="exportCorrelationMatrix()">
                 📥 Экспорт матрицы
             </button>
+            <!-- НОВАЯ КНОПКА -->
+            <button class="btn btn-sm btn-primary" onclick="generateCorrelationReport()">
+                📄 Отчет по корреляциям
+            </button>			
         </div>
     `;
     
@@ -2045,12 +2150,12 @@ function generateDetailedRecommendations(analysis) {
     const recommendations = [];
     
     // Рекомендации на основе статистики
-    if (analysis.summary.completionRate < 70) {
+    if (analysis.summary && analysis.summary.completionRate < 70) {
         recommendations.push({
             type: 'completion',
             priority: 'high',
             title: 'Низкий процент выполнения работы',
-            description: `Только ${analysis.summary.completionRate}% учащихся выполнили все задания`,
+            description: `Только ${analysis.summary.completionRate || 0}% учащихся выполнили все задания`,
             actions: [
                 'Проверить адекватность времени выполнения',
                 'Рассмотреть возможность продления сроков',
@@ -2060,7 +2165,7 @@ function generateDetailedRecommendations(analysis) {
     }
     
     // Рекомендации по заданиям
-    const criticalTasks = analysis.byTask.filter(task => task.zone === 'critical');
+    const criticalTasks = analysis.byTask?.filter(task => task.zone === 'critical') || [];
     if (criticalTasks.length > 0) {
         recommendations.push({
             type: 'tasks',
@@ -2075,45 +2180,76 @@ function generateDetailedRecommendations(analysis) {
         });
     }
     
-    // Рекомендации по уровням сложности
-    Object.entries(analysis.byLevel).forEach(([level, data]) => {
-        if (data.deviation < -10) {
+    // Рекомендации по уровням сложности - ИСПРАВЛЕННЫЙ КОД
+    if (analysis.byLevel) {
+        Object.entries(analysis.byLevel).forEach(([level, data]) => {
+            if (!data || data.avgPercentage === undefined) {
+                return;
+            }
+            
+            const avgPercentage = parseFloat(data.avgPercentage);
+            const expectedPercentage = data.expectedPercentage || getExpectedLevelPercentage(parseInt(level));
+            
+            if (isNaN(avgPercentage) || avgPercentage >= expectedPercentage - 10) {
+                return;
+            }
+            
+            const levelName = data.levelName || complexityLevels[level]?.name || `Уровень ${level}`;
+            
             recommendations.push({
                 type: 'levels',
                 priority: 'medium',
-                title: `Слабые результаты по ${data.levelName}`,
-                description: `Выполнение на ${data.percentage}% при ожидаемых ${data.expectedPercentage}%`,
+                title: `Слабые результаты по ${levelName}`,
+                description: `Выполнение на ${avgPercentage.toFixed(1)}% при ожидаемых ${expectedPercentage}%`,
                 actions: [
                     `Уделить больше внимания заданиям уровня ${level}`,
                     'Разработать дифференцированные задания',
                     'Организовать групповую работу по данной теме'
                 ]
             });
-        }
-    });
-    
-    // Рекомендации по типам ошибок
-    const weakErrorTypes = Object.entries(analysis.byErrorType)
-        .filter(([_, data]) => data.percentage < 50);
-    
-    if (weakErrorTypes.length > 0) {
-        const worst = weakErrorTypes.sort((a, b) => a[1].percentage - b[1].percentage)[0];
-        recommendations.push({
-            type: 'errors',
-            priority: 'medium',
-            title: 'Проблемный тип ошибок',
-            description: `Низкий процент выполнения по типу "${worst[1].name}"`,
-            actions: [
-                `Провести дополнительные занятия по теме "${worst[1].name}"`,
-                'Использовать специальные методики коррекции',
-                'Разработать индивидуальные задания'
-            ]
         });
     }
     
+    // Рекомендации по типам ошибок - ИСПРАВЛЕННЫЙ КОД
+    if (analysis.byErrorType) {
+        // Находим тип ошибок с самым низким процентом выполнения
+        let worstError = null;
+        let minPercentage = Infinity;
+        
+        Object.entries(analysis.byErrorType).forEach(([errorKey, data]) => {
+            if (!data || data.percentage === undefined) {
+                return;
+            }
+            
+            const percentage = parseFloat(data.percentage);
+            if (percentage < minPercentage) {
+                minPercentage = percentage;
+                worstError = {
+                    key: errorKey,
+                    name: data.name || errorKey,
+                    percentage: percentage
+                };
+            }
+        });
+        
+        if (worstError && worstError.percentage < 50) {
+            recommendations.push({
+                type: 'errors',
+                priority: 'medium',
+                title: 'Проблемный тип ошибок',
+                description: `Низкий процент выполнения по типу "${worstError.name}" (${worstError.percentage}%)`,
+                actions: [
+                    `Провести дополнительные занятия по теме "${worstError.name}"`,
+                    'Использовать специальные методики коррекции',
+                    'Разработать индивидуальные задания'
+                ]
+            });
+        }
+    }
+    
     // Положительные результаты
-    const excellentTasks = analysis.byTask.filter(task => task.zone === 'excellent');
-    if (excellentTasks.length > appData.tasks.length * 0.3) {
+    const excellentTasks = analysis.byTask?.filter(task => task.zone === 'excellent') || [];
+    if (excellentTasks.length > (appData.tasks?.length || 0) * 0.3) {
         recommendations.push({
             type: 'positive',
             priority: 'low',
@@ -2129,6 +2265,7 @@ function generateDetailedRecommendations(analysis) {
     
     return recommendations;
 }
+
 
 function printAnalysisReport(analysis) {
     console.log('🖨️ Печать отчета анализа...');
@@ -3408,7 +3545,7 @@ function exportCorrelationMatrix() {
     showNotification('✅ Матрица корреляций экспортирована в CSV', 'success');
 }
 
-function generateCorrelationReport() {
+function generateCorrelationReportStar() {
     const analysis = window.currentAnalysis || {};
     const correlations = analysis.correlations || [];
     const matrix = calculateFullCorrelationMatrix();
@@ -3526,6 +3663,110 @@ function generateCorrelationReport() {
     document.body.removeChild(link);
     
     showNotification('✅ Отчет по корреляциям экспортирован', 'success');
+}
+
+function generateCorrelationReport() {
+    const analysis = window.currentAnalysis || {};
+    const correlations = analysis.correlations || [];
+    
+    if (correlations.length === 0) {
+        showNotification('Нет данных по корреляциям для отчета', 'warning');
+        return;
+    }
+    
+    // Создаем HTML отчет по корреляциям
+    const correlationHTML = createCorrelationReportHTML(analysis);
+    
+    // Создаем Blob и ссылку для скачивания
+    const blob = new Blob([correlationHTML], { type: 'text/html;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    
+    const date = new Date().toLocaleDateString('ru-RU').replace(/\./g, '-');
+    const fileName = `Отчет_по_корреляциям_${date}.html`;
+    
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = fileName;
+    link.style.display = 'none';
+    
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    setTimeout(() => URL.revokeObjectURL(url), 100);
+    
+    showNotification(`✅ Отчет по корреляциям сохранен как "${fileName}"`, 'success');
+}
+
+function createCorrelationReportHTML(analysis) {
+    const date = new Date();
+    const reportDate = date.toLocaleDateString('ru-RU');
+    
+    const correlations = analysis.correlations || [];
+    const matrix = calculateFullCorrelationMatrix();
+    
+    let html = `<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Отчет по корреляционному анализу</title>
+    <style>
+        /* Стили аналогичные createFullReportHTML, но упрощенные */
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .header { background: #3498db; color: white; padding: 20px; border-radius: 10px; margin-bottom: 20px; }
+        .matrix { font-size: 9pt; border-collapse: collapse; }
+        .matrix td { width: 40px; height: 40px; text-align: center; border: 1px solid #ddd; }
+        .positive { background: #d4edda; color: #155724; }
+        .negative { background: #f8d7da; color: #721c24; }
+        .neutral { background: #f8f9fa; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>📊 Отчет по корреляционному анализу</h1>
+        <p>Дата генерации: ${reportDate}</p>
+    </div>
+    
+    <h2>Статистика корреляций</h2>
+    <p>Всего корреляций: ${correlations.length}</p>
+    
+    <h2>Матрица корреляций</h2>
+    <div style="overflow-x: auto;">
+        ${renderFullCorrelationMatrixHTML(matrix)}
+    </div>
+    
+    <script>window.print();</script>
+</body>
+</html>`;
+    
+    return html;
+}
+
+function renderFullCorrelationMatrixHTML(matrix) {
+    const size = Math.min(10, matrix.length);
+    
+    let html = '<table class="matrix"><tr><th></th>';
+    
+    // Заголовки
+    for (let i = 0; i < size; i++) {
+        html += `<th>${i + 1}</th>`;
+    }
+    html += '</tr>';
+    
+    // Данные
+    for (let i = 0; i < size; i++) {
+        html += `<tr><th>${i + 1}</th>`;
+        for (let j = 0; j < size; j++) {
+            const corr = matrix[i][j];
+            const className = corr > 0.3 ? 'positive' : corr < -0.3 ? 'negative' : 'neutral';
+            html += `<td class="${className}">${corr.toFixed(2)}</td>`;
+        }
+        html += '</tr>';
+    }
+    
+    html += '</table>';
+    return html;
 }
 
 // ==================== ДОПОЛНИТЕЛЬНЫЕ ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ====================
@@ -4466,4 +4707,1124 @@ if (!window.workTypes) {
         homework: { name: 'Домашняя работа' },
         exam: { name: 'Экзамен' }
     };
+}
+// ==================== ГЕНЕРАЦИЯ ПОЛНОГО HTML ОТЧЕТА ====================
+
+function generateFullHTMLReport() {
+    console.log('📄 Генерация полного HTML отчета...');
+    
+    const analysis = window.currentAnalysis;
+    if (!analysis) {
+        showNotification('Сначала выполните анализ результатов', 'warning');
+        return;
+    }
+    
+    // Создаем HTML отчет
+    const htmlContent = createFullReportHTML(analysis);
+    
+    // Создаем Blob и ссылку для скачивания
+    const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    
+    const date = new Date().toLocaleDateString('ru-RU').replace(/\./g, '-');
+    const subject = appData.test.subject || 'предмет';
+    const className = appData.test.class || 'класс';
+    
+    const fileName = `Полный_отчет_${subject}_${className}_${date}.html`;
+    
+    // Создаем ссылку для скачивания
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = fileName;
+    link.style.display = 'none';
+    
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    // Освобождаем память
+    setTimeout(() => URL.revokeObjectURL(url), 100);
+    
+    showNotification(`✅ Полный отчет сохранен как "${fileName}"`, 'success');
+    
+    // Также открываем отчет в новой вкладке для просмотра
+    const previewWindow = window.open('', '_blank');
+    previewWindow.document.write(htmlContent);
+    previewWindow.document.close();
+}
+
+function createFullReportHTML(analysis) {
+    const date = new Date();
+    const reportDate = date.toLocaleDateString('ru-RU');
+    const reportTime = date.toLocaleTimeString('ru-RU');
+    
+    const subject = appData.test.subject || 'Не указан';
+    const className = appData.test.class || 'Не указан';
+    const theme = appData.test.theme || 'Не указана';
+    const workType = workTypes[appData.test.workType]?.name || appData.test.workType || 'Не указан';
+    const testDate = appData.test.testDate || 'Не указана';
+    
+    let html = `<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Полный аналитический отчет</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 20mm;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Arial', sans-serif;
+            color: #333;
+            font-size: 11pt;
+            line-height: 1.5;
+            padding: 20px;
+            background: #f8f9fa;
+        }
+        
+        .report-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #3498db, #2c3e50);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 28pt;
+            margin-bottom: 10px;
+        }
+        
+        .header .subtitle {
+            font-size: 14pt;
+            opacity: 0.9;
+            margin-bottom: 20px;
+        }
+        
+        .metadata {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            background: rgba(255,255,255,0.1);
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+        
+        .metadata-item {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .metadata-label {
+            font-size: 10pt;
+            opacity: 0.8;
+            margin-bottom: 5px;
+        }
+        
+        .metadata-value {
+            font-size: 12pt;
+            font-weight: bold;
+        }
+        
+        .section {
+            padding: 30px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .section-title {
+            color: #2c3e50;
+            font-size: 18pt;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #3498db;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .section-title i {
+            font-size: 20pt;
+        }
+        
+        .summary-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .card {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            border-left: 4px solid;
+        }
+        
+        .card-value {
+            font-size: 28pt;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+        
+        .card-label {
+            font-size: 10pt;
+            color: #666;
+        }
+        
+        .insights-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 15px;
+        }
+        
+        .insight {
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid;
+        }
+        
+        .insight-danger { background: #f8d7da; border-color: #e74c3c; }
+        .insight-warning { background: #fff3cd; border-color: #f39c12; }
+        .insight-info { background: #d1ecf1; border-color: #3498db; }
+        .insight-success { background: #d4edda; border-color: #27ae60; }
+        
+        .insight-title {
+            font-weight: bold;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .insight-message {
+            margin-bottom: 8px;
+        }
+        
+        .insight-suggestion {
+            font-size: 10pt;
+            color: #666;
+            font-style: italic;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+            font-size: 10pt;
+        }
+        
+        th {
+            background: #f8f9fa;
+            padding: 12px;
+            text-align: left;
+            border: 1px solid #dee2e6;
+            font-weight: 600;
+        }
+        
+        td {
+            padding: 10px;
+            border: 1px solid #dee2e6;
+        }
+        
+        .table-container {
+            overflow-x: auto;
+            margin: 20px 0;
+        }
+        
+        .chart-container {
+            height: 300px;
+            margin: 20px 0;
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            border: 1px solid #eee;
+        }
+        
+        .level-bar {
+            height: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 10px 0;
+            position: relative;
+        }
+        
+        .level-fill {
+            height: 100%;
+            transition: width 1s;
+        }
+        
+        .level-expected {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: #2c3e50;
+        }
+        
+        .footer {
+            text-align: center;
+            padding: 30px;
+            background: #f8f9fa;
+            color: #666;
+            font-size: 10pt;
+        }
+        
+        .print-button {
+            display: inline-block;
+            padding: 10px 20px;
+            background: #3498db;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 20px 0;
+            text-decoration: none;
+        }
+        
+        .print-button:hover {
+            background: #2980b9;
+        }
+        
+        @media print {
+            body {
+                padding: 0;
+                background: white;
+            }
+            
+            .report-container {
+                box-shadow: none;
+                border-radius: 0;
+            }
+            
+            .print-button {
+                display: none;
+            }
+            
+            .section {
+                page-break-inside: avoid;
+            }
+            
+            .page-break {
+                page-break-before: always;
+            }
+        }
+        
+        /* Цвета для различных элементов */
+        .color-excellent { color: #27ae60; }
+        .color-good { color: #3498db; }
+        .color-average { color: #f39c12; }
+        .color-weak { color: #e67e22; }
+        .color-critical { color: #e74c3c; }
+        
+        .bg-excellent { background: #27ae60; }
+        .bg-good { background: #3498db; }
+        .bg-average { background: #f39c12; }
+        .bg-weak { background: #e67e22; }
+        .bg-critical { background: #e74c3c; }
+        
+        .badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 9pt;
+            font-weight: bold;
+            color: white;
+        }
+        
+        .correlation-matrix {
+            font-size: 8pt;
+        }
+        
+        .correlation-cell {
+            text-align: center;
+            min-width: 40px;
+        }
+    </style>
+</head>
+<body>
+    <div class="report-container">
+        <div class="header">
+            <h1>📊 Полный аналитический отчет</h1>
+            <div class="subtitle">Система анализа образовательных результатов</div>
+            
+            <div class="metadata">
+                <div class="metadata-item">
+                    <div class="metadata-label">Предмет</div>
+                    <div class="metadata-value">${subject}</div>
+                </div>
+                <div class="metadata-item">
+                    <div class="metadata-label">Класс</div>
+                    <div class="metadata-value">${className}</div>
+                </div>
+                <div class="metadata-item">
+                    <div class="metadata-label">Тема</div>
+                    <div class="metadata-value">${theme}</div>
+                </div>
+                <div class="metadata-item">
+                    <div class="metadata-label">Тип работы</div>
+                    <div class="metadata-value">${workType}</div>
+                </div>
+                <div class="metadata-item">
+                    <div class="metadata-label">Дата проведения</div>
+                    <div class="metadata-value">${testDate}</div>
+                </div>
+                <div class="metadata-item">
+                    <div class="metadata-label">Дата анализа</div>
+                    <div class="metadata-value">${reportDate} ${reportTime}</div>
+                </div>
+            </div>
+        </div>
+        
+        ${createReportSections(analysis)}
+        
+        <div class="footer">
+            <p>Отчет сгенерирован автоматически системой "Анализ образовательных результатов"</p>
+            <p>Версия 1.0 | ${reportDate} ${reportTime}</p>
+            <a href="javascript:window.print()" class="print-button">🖨️ Печать отчета</a>
+        </div>
+    </div>
+    
+    <script>
+        // Скрипт для печати
+        document.addEventListener('DOMContentLoaded', function() {
+            const printBtn = document.querySelector('.print-button');
+            if (printBtn) {
+                printBtn.addEventListener('click', function() {
+                    window.print();
+                });
+            }
+            
+            // Автоматическая нумерация страниц при печати
+            if (window.location.search.includes('print')) {
+                window.print();
+            }
+        });
+    </script>
+</body>
+</html>`;
+    
+    return html;
+}
+
+function createReportSections(analysis) {
+    let sections = '';
+    
+    // 1. Сводная информация
+    sections += createSummarySection(analysis);
+    
+    // 2. Ключевые выводы
+    sections += createInsightsSection(analysis);
+    
+    // 3. Анализ по заданиям
+    sections += createTasksAnalysisSection(analysis);
+    
+    // 4. Анализ по учащимся
+    sections += createStudentsAnalysisSection(analysis);
+    
+    // 5. Анализ по уровням сложности
+    sections += createLevelsAnalysisSection(analysis);
+    
+    // 6. Анализ по типам ошибок
+    sections += createErrorsAnalysisSection(analysis);
+    
+    // 7. Корреляционный анализ
+    sections += createCorrelationsAnalysisSection(analysis);
+    
+    // 8. Детальные рекомендации
+    sections += createRecommendationsSection(analysis);
+    
+    return sections;
+}
+
+function createSummarySection(analysis) {
+    const summary = analysis.summary || {};
+    
+    return `
+        <div class="section">
+            <h2 class="section-title">📈 Сводная информация</h2>
+            
+            <div class="summary-cards">
+                <div class="card" style="border-left-color: #3498db;">
+                    <div class="card-value" style="color: #3498db;">${summary.avgPercentage || 0}%</div>
+                    <div class="card-label">Средний процент выполнения</div>
+                </div>
+                
+                <div class="card" style="border-left-color: #2ecc71;">
+                    <div class="card-value" style="color: #2ecc71;">${summary.avgGrade || 0}</div>
+                    <div class="card-label">Средняя оценка</div>
+                </div>
+                
+                <div class="card" style="border-left-color: #f39c12;">
+                    <div class="card-value" style="color: #f39c12;">${summary.completionRate || 0}%</div>
+                    <div class="card-label">Выполнили все задания</div>
+                </div>
+                
+                <div class="card" style="border-left-color: #e74c3c;">
+                    <div class="card-value" style="color: #e74c3c;">${summary.stdDev || 0}</div>
+                    <div class="card-label">Стандартное отклонение</div>
+                </div>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px; margin-top: 20px;">
+                <div style="background: #f8f9fa; padding: 15px; border-radius: 8px;">
+                    <strong>📊 Общая статистика:</strong>
+                    <div style="margin-top: 10px; font-size: 10pt;">
+                        <div style="display: flex; justify-content: space-between; margin: 5px 0;">
+                            <span>Учащихся:</span>
+                            <span>${summary.totalStudents || 0}</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; margin: 5px 0;">
+                            <span>Заданий:</span>
+                            <span>${summary.totalTasks || 0}</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; margin: 5px 0;">
+                            <span>Макс. балл:</span>
+                            <span>${summary.maxTotalScore || 0}</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; margin: 5px 0;">
+                            <span>Размах баллов:</span>
+                            <span>${summary.scoreRange || 0}</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div style="background: #f8f9fa; padding: 15px; border-radius: 8px;">
+                    <strong>🎯 Показатели эффективности:</strong>
+                    <div style="margin-top: 10px; font-size: 10pt;">
+                        <div style="display: flex; justify-content: space-between; margin: 5px 0;">
+                            <span>Мин. балл:</span>
+                            <span>${summary.minScore || 0}</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; margin: 5px 0;">
+                            <span>Макс. балл:</span>
+                            <span>${summary.maxScore || 0}</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; margin: 5px 0;">
+                            <span>Медиана:</span>
+                            <span>${summary.medianScore || 0}</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; margin: 5px 0;">
+                            <span>Выполнение:</span>
+                            <span>${summary.completedStudents || 0}/${summary.totalStudents || 0}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function createInsightsSection(analysis) {
+    const insights = analysis.insights || [];
+    
+    if (insights.length === 0) {
+        return `
+            <div class="section">
+                <h2 class="section-title">💡 Ключевые выводы</h2>
+                <p style="color: #666; text-align: center; padding: 40px;">
+                    Нет ключевых выводов для отображения
+                </p>
+            </div>
+        `;
+    }
+    
+    let insightsHTML = '<div class="insights-grid">';
+    
+    insights.forEach(insight => {
+        const insightClass = `insight-${insight.type || 'info'}`;
+        const icon = insight.type === 'danger' ? '⚠️' :
+                    insight.type === 'warning' ? '⚡' :
+                    insight.type === 'info' ? 'ℹ️' : '✅';
+        
+        insightsHTML += `
+            <div class="insight ${insightClass}">
+                <div class="insight-title">
+                    ${icon} ${insight.title}
+                </div>
+                <div class="insight-message">${insight.message}</div>
+                <div class="insight-suggestion">${insight.suggestion}</div>
+            </div>
+        `;
+    });
+    
+    insightsHTML += '</div>';
+    
+    return `
+        <div class="section">
+            <h2 class="section-title">💡 Ключевые выводы</h2>
+            ${insightsHTML}
+        </div>
+    `;
+}
+
+function createTasksAnalysisSection(analysis) {
+    const tasks = analysis.byTask || [];
+    
+    if (tasks.length === 0) {
+        return '';
+    }
+    
+    let tableHTML = `
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>№</th>
+                        <th>Задание</th>
+                        <th>Уровень</th>
+                        <th>% выполнения</th>
+                        <th>Средний балл</th>
+                        <th>Выполнили</th>
+                        <th>Зона</th>
+                        <th>Сложность</th>
+                    </tr>
+                </thead>
+                <tbody>
+    `;
+    
+    tasks.sort((a, b) => a.percentage - b.percentage).forEach(task => {
+        const zoneClass = `color-${task.zone}`;
+        const zoneText = task.zone === 'excellent' ? 'Отлично' :
+                        task.zone === 'good' ? 'Хорошо' :
+                        task.zone === 'average' ? 'Средне' :
+                        task.zone === 'weak' ? 'Слабо' : 'Критично';
+        
+        tableHTML += `
+            <tr>
+                <td><strong>${task.number}</strong></td>
+                <td>${(task.description || `Задание ${task.number}`).substring(0, 50)}${task.description && task.description.length > 50 ? '...' : ''}</td>
+                <td><span class="badge" style="background: ${complexityLevels[task.level]?.color || '#95a5a6'};">${task.level}</span></td>
+                <td><strong class="${zoneClass}">${task.percentage}%</strong></td>
+                <td>${task.avgScore}/${task.maxScore}</td>
+                <td>${task.completedBy}/${appData.students.length}</td>
+                <td><span class="${zoneClass}"><strong>${zoneText}</strong></span></td>
+                <td>${task.difficulty}</td>
+            </tr>
+        `;
+    });
+    
+    tableHTML += `
+                </tbody>
+            </table>
+        </div>
+    `;
+    
+    // Топ-5 самых сложных и самых легких заданий
+    const sortedByDifficulty = [...tasks].sort((a, b) => b.difficulty - a.difficulty);
+    const topDifficult = sortedByDifficulty.slice(0, 5);
+    const topEasy = [...tasks].sort((a, b) => a.difficulty - b.difficulty).slice(0, 5);
+    
+    let difficultHTML = '';
+    if (topDifficult.length > 0) {
+        difficultHTML = `
+            <div style="background: #fff8e1; padding: 15px; border-radius: 8px; margin-top: 20px;">
+                <strong>🎯 Самые сложные задания:</strong>
+                <div style="margin-top: 10px; font-size: 10pt;">
+                    ${topDifficult.map(task => `Задание ${task.number} (${task.difficulty} сложность)`).join(', ')}
+                </div>
+            </div>
+        `;
+    }
+    
+    let easyHTML = '';
+    if (topEasy.length > 0) {
+        easyHTML = `
+            <div style="background: #e8f4fc; padding: 15px; border-radius: 8px; margin-top: 10px;">
+                <strong>✅ Самые легкие задания:</strong>
+                <div style="margin-top: 10px; font-size: 10pt;">
+                    ${topEasy.map(task => `Задание ${task.number} (${task.difficulty} сложность)`).join(', ')}
+                </div>
+            </div>
+        `;
+    }
+    
+    return `
+        <div class="section page-break">
+            <h2 class="section-title">📝 Анализ выполнения заданий</h2>
+            <p style="color: #666; margin-bottom: 15px;">Всего заданий: ${tasks.length}</p>
+            ${tableHTML}
+            ${difficultHTML}
+            ${easyHTML}
+        </div>
+    `;
+}
+
+function createStudentsAnalysisSection(analysis) {
+    const students = analysis.byStudent || [];
+    const summary = analysis.summary || {};
+    
+    if (students.length === 0) {
+        return '';
+    }
+    
+    // Топ-10 учащихся
+    const topStudents = students.slice(0, 10);
+    
+    let tableHTML = `
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Место</th>
+                        <th>Учащийся</th>
+                        <th>Баллы</th>
+                        <th>%</th>
+                        <th>Оценка</th>
+                        <th>Рейтинг</th>
+                        <th>Стабильность</th>
+                    </tr>
+                </thead>
+                <tbody>
+    `;
+    
+    topStudents.forEach(student => {
+        const gradeColor = getGradeColor(student.grade);
+        const stabilityColor = student.stability >= 80 ? '#27ae60' :
+                             student.stability >= 60 ? '#3498db' :
+                             student.stability >= 40 ? '#f39c12' : '#e74c3c';
+        
+        tableHTML += `
+            <tr>
+                <td><span style="display: inline-block; width: 25px; height: 25px; background: ${student.rank <= 3 ? '#f39c12' : '#3498db'}; color: white; border-radius: 50%; text-align: center; line-height: 25px;">${student.rank}</span></td>
+                <td>${student.name}</td>
+                <td><strong>${student.totalScore}</strong>/${student.maxPossible}</td>
+                <td><strong style="color: ${getPercentageColor(student.percentage)}">${student.percentage}%</strong></td>
+                <td><span style="display: inline-block; width: 25px; height: 25px; background: ${gradeColor}; color: white; border-radius: 50%; text-align: center; line-height: 25px; font-weight: bold;">${student.grade}</span></td>
+                <td>${student.percentile}%</td>
+                <td><span style="color: ${stabilityColor}; font-weight: bold;">${student.stability}</span></td>
+            </tr>
+        `;
+    });
+    
+    tableHTML += `
+                </tbody>
+            </table>
+        </div>
+    `;
+    
+    // Распределение оценок
+    const gradeDistribution = {2: 0, 3: 0, 4: 0, 5: 0};
+    students.forEach(student => {
+        const grade = Math.floor(student.grade);
+        if (gradeDistribution[grade] !== undefined) {
+            gradeDistribution[grade]++;
+        }
+    });
+    
+    let distributionHTML = '';
+    Object.entries(gradeDistribution).forEach(([grade, count]) => {
+        const percentage = (count / students.length * 100).toFixed(1);
+        distributionHTML += `
+            <div style="margin: 5px 0;">
+                <span>Оценка ${grade}:</span>
+                <span style="float: right; font-weight: bold;">${count} (${percentage}%)</span>
+                <div style="height: 8px; background: #f8f9fa; border-radius: 4px; margin-top: 3px;">
+                    <div style="height: 100%; width: ${percentage}%; background: ${getGradeColor(parseFloat(grade))}; border-radius: 4px;"></div>
+                </div>
+            </div>
+        `;
+    });
+    
+    return `
+        <div class="section page-break">
+            <h2 class="section-title">👥 Анализ успеваемости учащихся</h2>
+            <p style="color: #666; margin-bottom: 15px;">Всего учащихся: ${students.length}</p>
+            
+            <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 30px; margin-bottom: 20px;">
+                <div>
+                    <h3 style="color: #2c3e50; margin-bottom: 15px; font-size: 14pt;">Топ-10 учащихся</h3>
+                    ${tableHTML}
+                </div>
+                
+                <div>
+                    <h3 style="color: #2c3e50; margin-bottom: 15px; font-size: 14pt;">Распределение оценок</h3>
+                    <div style="background: #f8f9fa; padding: 20px; border-radius: 8px;">
+                        ${distributionHTML}
+                    </div>
+                    
+                    <div style="margin-top: 20px;">
+                        <h4 style="color: #2c3e50; margin-bottom: 10px; font-size: 12pt;">Статистика группы:</h4>
+                        <div style="font-size: 10pt;">
+                            <div style="display: flex; justify-content: space-between; margin: 5px 0;">
+                                <span>Средний балл:</span>
+                                <span><strong>${summary.avgScore || 0}</strong></span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; margin: 5px 0;">
+                                <span>Размах баллов:</span>
+                                <span><strong>${summary.scoreRange || 0}</strong></span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; margin: 5px 0;">
+                                <span>Стандартное отклонение:</span>
+                                <span><strong>${summary.stdDev || 0}</strong></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function createLevelsAnalysisSection(analysis) {
+    const levels = analysis.byLevel || {};
+    
+    if (Object.keys(levels).length === 0) {
+        return '';
+    }
+    
+    let levelsHTML = '';
+    let chartHTML = '<div style="margin-top: 20px;">';
+    
+    Object.entries(levels).forEach(([level, data]) => {
+        const percentage = parseFloat(data.avgPercentage);
+        const expected = data.expectedPercentage;
+        const deviation = parseFloat(data.deviation);
+        
+        const deviationColor = deviation >= 0 ? '#27ae60' : '#e74c3c';
+        const deviationIcon = deviation >= 0 ? '↑' : '↓';
+        
+        levelsHTML += `
+            <tr>
+                <td><span class="badge" style="background: ${data.color || '#95a5a6'};">${level}. ${data.levelName}</span></td>
+                <td>${data.taskCount}</td>
+                <td><strong>${percentage}%</strong></td>
+                <td>${expected}%</td>
+                <td><span style="color: ${deviationColor}; font-weight: bold;">${deviationIcon} ${Math.abs(deviation)}%</span></td>
+                <td>
+                    ${deviation >= 10 ? '<span style="color: #27ae60;">✅ Выше нормы</span>' :
+                      deviation >= 0 ? '<span style="color: #3498db;">👍 Норма</span>' :
+                      deviation >= -10 ? '<span style="color: #f39c12;">⚠️ Ниже нормы</span>' :
+                      '<span style="color: #e74c3c;">🔻 Критично</span>'}
+                </td>
+            </tr>
+        `;
+        
+        // График для уровня
+        const barWidth = Math.min(100, Math.max(0, percentage));
+        const expectedPos = Math.min(100, Math.max(0, expected));
+        
+        chartHTML += `
+            <div style="margin-bottom: 20px;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                    <span><strong>${data.levelName}</strong></span>
+                    <span><strong style="color: ${data.color}">${percentage}%</strong> (ожидалось ${expected}%)</span>
+                </div>
+                <div class="level-bar">
+                    <div class="level-fill" style="width: ${barWidth}%; background: ${data.color};"></div>
+                    <div class="level-expected" style="left: ${expectedPos}%;"></div>
+                </div>
+            </div>
+        `;
+    });
+    
+    chartHTML += '</div>';
+    
+    return `
+        <div class="section page-break">
+            <h2 class="section-title">🎯 Анализ по уровням сложности</h2>
+            
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Уровень</th>
+                            <th>Заданий</th>
+                            <th>% выполнения</th>
+                            <th>Ожидалось</th>
+                            <th>Отклонение</th>
+                            <th>Статус</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${levelsHTML}
+                    </tbody>
+                </table>
+            </div>
+            
+            ${chartHTML}
+        </div>
+    `;
+}
+
+function createErrorsAnalysisSection(analysis) {
+    const errors = analysis.byErrorType || {};
+    
+    if (Object.keys(errors).length === 0) {
+        return `
+            <div class="section">
+                <h2 class="section-title">🔍 Анализ по типам ошибок</h2>
+                <p style="color: #666; text-align: center; padding: 40px;">
+                    Данные по типам ошибок не указаны
+                </p>
+            </div>
+        `;
+    }
+    
+    const errorEntries = Object.entries(errors);
+    
+    // Создаем круговую диаграмму
+    let pieChartHTML = '';
+    if (errorEntries.length > 0) {
+        let startAngle = 0;
+        const totalTasks = errorEntries.reduce((sum, [_, data]) => sum + data.count, 0);
+        
+        const gradientParts = errorEntries.map(([_, data], index) => {
+            const angle = (data.count / totalTasks * 360);
+            const endAngle = startAngle + angle;
+            const part = `${data.color} ${startAngle}deg ${endAngle}deg`;
+            startAngle = endAngle;
+            return part;
+        }).join(', ');
+        
+        pieChartHTML = `
+            <div style="text-align: center; margin: 20px 0;">
+                <div style="position: relative; display: inline-block; width: 200px; height: 200px;">
+                    <div style="width: 200px; height: 200px; border-radius: 50%; 
+                          background: conic-gradient(${gradientParts});"></div>
+                    <div style="position: absolute; top: 50%; left: 50%; width: 100px; height: 100px; 
+                          background: white; border-radius: 50%; transform: translate(-50%, -50%);"></div>
+                    <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); 
+                          text-align: center;">
+                        <div style="font-size: 24px; font-weight: bold;">${totalTasks}</div>
+                        <div style="font-size: 10px; color: #666;">заданий</div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+    
+    let tableHTML = `
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Тип ошибки</th>
+                        <th>Заданий</th>
+                        <th>% выполнения</th>
+                        <th>Учащихся</th>
+                        <th>Ср. балл/уч</th>
+                        <th>Статус</th>
+                    </tr>
+                </thead>
+                <tbody>
+    `;
+    
+    errorEntries.forEach(([_, data]) => {
+        const percentage = parseFloat(data.percentage);
+        const status = percentage >= 70 ? '<span style="color: #27ae60;">✅ Хорошо</span>' :
+                     percentage >= 50 ? '<span style="color: #3498db;">⚠️ Средне</span>' :
+                     percentage >= 30 ? '<span style="color: #f39c12;">🔻 Проблемно</span>' :
+                     '<span style="color: #e74c3c;">🚨 Критично</span>';
+        
+        tableHTML += `
+            <tr>
+                <td>
+                    <span style="display: inline-block; width: 12px; height: 12px; background: ${data.color}; border-radius: 2px; margin-right: 8px;"></span>
+                    ${data.name}
+                </td>
+                <td><strong>${data.count}</strong></td>
+                <td><strong style="color: ${percentage >= 50 ? '#27ae60' : '#e74c3c'}">${percentage}%</strong></td>
+                <td>${data.studentCount}</td>
+                <td>${data.avgPerStudent}</td>
+                <td>${status}</td>
+            </tr>
+        `;
+    });
+    
+    tableHTML += `
+                </tbody>
+            </table>
+        </div>
+    `;
+    
+    return `
+        <div class="section page-break">
+            <h2 class="section-title">🔍 Анализ по типам ошибок</h2>
+            ${pieChartHTML}
+            ${tableHTML}
+        </div>
+    `;
+}
+
+function createCorrelationsAnalysisSection(analysis) {
+    const correlations = analysis.correlations || [];
+    
+    if (correlations.length === 0) {
+        return `
+            <div class="section">
+                <h2 class="section-title">🔗 Корреляционный анализ</h2>
+                <p style="color: #666; text-align: center; padding: 40px;">
+                    Значимых корреляций не обнаружено
+                </p>
+            </div>
+        `;
+    }
+    
+    // Топ-10 корреляций
+    const topCorrelations = correlations.slice(0, 10);
+    
+    let tableHTML = `
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Задание 1</th>
+                        <th>Задание 2</th>
+                        <th>Коэффициент (r)</th>
+                        <th>Сила связи</th>
+                        <th>Тип</th>
+                        <th>Интерпретация</th>
+                    </tr>
+                </thead>
+                <tbody>
+    `;
+    
+    topCorrelations.forEach(corr => {
+        const r = parseFloat(corr.correlation);
+        const isPositive = r > 0;
+        const color = isPositive ? '#27ae60' : '#e74c3c';
+        const icon = isPositive ? '↗️' : '↘️';
+        const strength = corr.strength === 'strong' ? 'Сильная' :
+                        corr.strength === 'moderate' ? 'Умеренная' : 'Слабая';
+        const type = isPositive ? 'Прямая' : 'Обратная';
+        const interpretation = isPositive ? 
+            'Задания выполняются сходным образом' : 
+            'Обратная зависимость между выполнениями';
+        
+        tableHTML += `
+            <tr>
+                <td><strong>${corr.task1}</strong></td>
+                <td><strong>${corr.task2}</strong></td>
+                <td><span style="color: ${color}; font-weight: bold;">${icon} ${corr.correlation}</span></td>
+                <td><span style="padding: 3px 8px; background: ${color}; color: white; border-radius: 10px; font-size: 9pt;">${strength}</span></td>
+                <td><span style="color: ${color}">${type}</span></td>
+                <td style="font-size: 9pt;">${interpretation}</td>
+            </tr>
+        `;
+    });
+    
+    tableHTML += `
+                </tbody>
+            </table>
+        </div>
+    `;
+    
+    // Статистика корреляций
+    const strongCorrelations = correlations.filter(c => c.strength === 'strong');
+    const positiveCorrelations = correlations.filter(c => c.type === 'positive');
+    const negativeCorrelations = correlations.filter(c => c.type === 'negative');
+    
+    const statsHTML = `
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-top: 20px;">
+            <div style="background: #f8f9fa; padding: 15px; border-radius: 8px;">
+                <div style="text-align: center;">
+                    <div style="font-size: 24px; font-weight: bold; color: #3498db;">${correlations.length}</div>
+                    <div style="font-size: 10pt; color: #666;">Всего корреляций</div>
+                </div>
+            </div>
+            
+            <div style="background: #f8f9fa; padding: 15px; border-radius: 8px;">
+                <div style="text-align: center;">
+                    <div style="font-size: 24px; font-weight: bold; color: #27ae60;">${strongCorrelations.length}</div>
+                    <div style="font-size: 10pt; color: #666;">Сильных корреляций</div>
+                </div>
+            </div>
+            
+            <div style="background: #f8f9fa; padding: 15px; border-radius: 8px;">
+                <div style="text-align: center;">
+                    <div style="font-size: 24px; font-weight: bold; color: #27ae60;">${positiveCorrelations.length}</div>
+                    <div style="font-size: 10pt; color: #666;">Прямых связей</div>
+                </div>
+            </div>
+            
+            <div style="background: #f8f9fa; padding: 15px; border-radius: 8px;">
+                <div style="text-align: center;">
+                    <div style="font-size: 24px; font-weight: bold; color: #e74c3c;">${negativeCorrelations.length}</div>
+                    <div style="font-size: 10pt; color: #666;">Обратных связей</div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    return `
+        <div class="section page-break">
+            <h2 class="section-title">🔗 Корреляционный анализ</h2>
+            <p style="color: #666; margin-bottom: 15px;">Топ-10 значимых корреляций</p>
+            ${tableHTML}
+            ${statsHTML}
+        </div>
+    `;
+}
+
+function createRecommendationsSection(analysis) {
+    const recommendations = generateDetailedRecommendations(analysis);
+    
+    if (recommendations.length === 0) {
+        return '';
+    }
+    
+    let recommendationsHTML = '';
+    
+    // Группируем по приоритету
+    const highPriority = recommendations.filter(r => r.priority === 'high');
+    const mediumPriority = recommendations.filter(r => r.priority === 'medium');
+    const lowPriority = recommendations.filter(r => r.priority === 'low');
+    
+    const renderPrioritySection = (priorityList, title, color) => {
+        if (priorityList.length === 0) return '';
+        
+        return `
+            <div style="margin-bottom: 25px;">
+                <h3 style="color: ${color}; margin-bottom: 15px; border-bottom: 2px solid ${color}; padding-bottom: 5px;">
+                    ${title} приоритет
+                </h3>
+                ${priorityList.map(rec => `
+                    <div style="background: ${color}15; padding: 15px; border-radius: 8px; border-left: 4px solid ${color}; margin-bottom: 15px;">
+                        <div style="font-weight: bold; margin-bottom: 8px; color: ${color};">${rec.title}</div>
+                        <div style="margin-bottom: 10px;">${rec.description}</div>
+                        <div style="font-size: 10pt;">
+                            <strong>Рекомендуемые действия:</strong>
+                            <ul style="margin: 5px 0 0 20px;">
+                                ${rec.actions.map(action => `<li>${action}</li>`).join('')}
+                            </ul>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+    };
+    
+    recommendationsHTML += renderPrioritySection(highPriority, 'Высокий', '#e74c3c');
+    recommendationsHTML += renderPrioritySection(mediumPriority, 'Средний', '#f39c12');
+    recommendationsHTML += renderPrioritySection(lowPriority, 'Низкий', '#27ae60');
+    
+    return `
+        <div class="section page-break">
+            <h2 class="section-title">🎯 Детальные рекомендации</h2>
+            <p style="color: #666; margin-bottom: 20px;">
+                На основе всестороннего анализа результатов сформулированы следующие рекомендации:
+            </p>
+            ${recommendationsHTML}
+        </div>
+    `;
 }
