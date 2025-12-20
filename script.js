@@ -14,6 +14,8 @@ const tabState = {
     currentTab: 'setup'
 };
 
+
+
 // Инициализация при загрузке страницы
 document.addEventListener('DOMContentLoaded', function() {
     loadSavedData();

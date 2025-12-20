@@ -2585,6 +2585,52 @@
 
 		.encoding-fix-btn:hover {
 			background: #2980b9;
+		}	
+		/* Дополнительные стили для системы проектов */
+		
+		/* Адаптация основного контейнера */
+		.container {
+			transition: margin-left 0.3s ease;
+		}
+		
+		/* Уведомления */
+		.save-notification {
+			position: fixed;
+			bottom: 20px;
+			right: 20px;
+			background: #27ae60;
+			color: white;
+			padding: 12px 20px;
+			border-radius: 8px;
+			box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+			z-index: 10000;
+			animation: slideInRight 0.3s ease;
+		}
+		
+		@keyframes slideInRight {
+			from { transform: translateX(100%); opacity: 0; }
+			to { transform: translateX(0); opacity: 1; }
+		}
+		
+		/* Контекстное меню */
+		.context-menu {
+			animation: fadeIn 0.2s ease;
+		}
+		
+		/* Панель управления проектами */
+		.projects-manager-modal {
+			max-width: 1200px;
+		}
+		
+		/* Адаптивность */
+		@media (max-width: 768px) {
+			.projects-sidebar {
+				width: 100% !important;
+			}
+			
+			.container {
+				margin-left: 0 !important;
+			}
 		}		
     </style>
 </head>
@@ -4155,6 +4201,53 @@
 		<span>Работа в офлайн-режиме</span>
 	  </div>
 	</div>
+	<div class="header-controls no-print" style="position: absolute; top: 20px; right: 20px;">
+		<div class="project-controls">
+			<button class="btn-icon" onclick="toggleProjectsSidebar()" title="Панель проектов">
+				<i class="fas fa-folder"></i>
+			</button>
+			<button class="btn-icon" onclick="createNewProject()" title="Новая работа">
+				<i class="fas fa-plus"></i>
+			</button>
+			<button class="btn-icon" onclick="showProjectsManager()" title="Управление работами">
+				<i class="fas fa-th"></i>
+			</button>
+		</div>
+	</div>
+
+	<style>
+		.header-controls {
+			z-index: 100;
+		}
+		
+		.project-controls {
+			display: flex;
+			gap: 10px;
+			background: rgba(255,255,255,0.1);
+			padding: 8px;
+			border-radius: 8px;
+			backdrop-filter: blur(10px);
+		}
+		
+		.project-controls .btn-icon {
+			background: rgba(255,255,255,0.2);
+			color: white;
+			border: none;
+			width: 36px;
+			height: 36px;
+			border-radius: 50%;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			cursor: pointer;
+			transition: all 0.3s;
+		}
+		
+		.project-controls .btn-icon:hover {
+			background: rgba(255,255,255,0.3);
+			transform: scale(1.1);
+		}
+	</style>
 	<script src="modules/errorHandler.js"></script>
 	<script src="modules/tableRenderer.js"></script>
 	<script src="modules/tests.js"></script>
@@ -4162,6 +4255,12 @@
     <script src="script.js"></script>
 	<script src="modules/report.js"></script>
 	<script src="modules/studreport.js"></script>
+	<script src="modules/projects.js"></script>
+	<script src="modules/projects-storage.js"></script>
+	<script src="modules/projects-ui.js"></script>
+	<script src="modules/projects-ui.js"></script>
+	<script src="modules/projects-init.js"></script>
+	
     <script>
   
 		window.ErrorHandler = null;
@@ -6755,6 +6854,52 @@
 		// Инициализируем кнопку перезагрузки
 		setTimeout(addReloadButton, 1000);
 		
+		// В начало script.js добавляем
+		let projectManager = null;
+		let projectsUI = null;
+		let autoSaveManager = null;
+
+		// Инициализация при загрузке
+		document.addEventListener('DOMContentLoaded', async function() {
+			// Инициализируем менеджер проектов
+			projectManager = window.projectManager;
+			projectsUI = window.projectsUI;
+			autoSaveManager = window.autoSaveManager;
+			
+			// Загружаем проекты
+			await projectManager.init();
+			
+			// Инициализируем UI
+			projectsUI.init();
+			
+			// Инициализируем автосохранение
+			autoSaveManager.init();
+			
+			// Обновляем существующие функции для работы с проектами
+			
+			// Переопределяем saveData
+			const originalSaveData = window.saveData;
+			window.saveData = function() {
+				if (projectManager && projectManager.currentProjectId) {
+					projectManager.saveCurrentProject();
+				}
+				if (originalSaveData) originalSaveData();
+			};
+			
+			// Переопределяем scheduleAutoSave
+			window.scheduleAutoSave = function() {
+				if (autoSaveManager) {
+					autoSaveManager.markAsChanged();
+				}
+			};
+			
+			// Добавляем глобальные функции для доступа
+			window.createNewProject = () => projectsUI.createNewProject();
+			window.showProjectsManager = () => projectsUI.showProjectsManager();
+			window.toggleProjectsSidebar = () => projectsUI.toggleSidebar();
+			
+			console.log('🚀 Project management system initialized');
+		});
 		// ==================== PWA ФУНКЦИИ ====================
 
 		let deferredPrompt = null;
@@ -7223,38 +7368,14 @@
 			const file = event.target.files[0];
 			if (!file) return;
 			
-			console.log('📤 Начинаем импорт файла:', file.name);
+			if (projectManager) {
+				projectManager.importProjects([file]);
+			} else {
+				// Старый метод импорта
+				importFromFile(file);
+			}
 			
-			const reader = new FileReader();
-			reader.onload = function(e) {
-				try {
-					const importedData = JSON.parse(e.target.result);
-					console.log('📥 Файл прочитан, структура:', {
-						metadata: importedData.metadata,
-						tasksCount: importedData.tasks?.length,
-						test: importedData.test
-					});
-					
-					if (!importedData.tasks || !Array.isArray(importedData.tasks)) {
-						throw new Error('Некорректная структура данных: задания отсутствуют или не являются массивом');
-					}
-					
-					// Валидация данных
-					const validatedData = validateImportedData(importedData);
-					
-					// Загружаем данные
-					loadImportedData(validatedData);
-					
-					// Сбрасываем input
-					event.target.value = '';
-					
-				} catch (error) {
-					console.error('❌ Ошибка при импорте:', error);
-					showNotification(`Ошибка импорта: ${error.message}`, 'error');
-				}
-			};
-			
-			reader.readAsText(file);
+			event.target.value = ''; // Сбрасываем input
 		}
 
 		function validateImportedData(data) {
@@ -22307,43 +22428,14 @@
 		}
 
 		// ==================== ЕДИНАЯ СИСТЕМА ЭКСПОРТА/ИМПОРТА ====================
+		// Обновляем функцию экспорта
 		function exportAppData(format = 'json') {
-			try {
-				// Создаем копию данных
-				const exportData = {
-					version: '2.0',
-					timestamp: new Date().toISOString(),
-					appData: JSON.parse(JSON.stringify(appData)),
-					metadata: {
-						testCount: appData.tasks.length,
-						studentCount: appData.students.length,
-						errorCount: appData.errors.length,
-						avgScore: calculateAverageScore().toFixed(2)
-					}
-				};
-				
-				const dataStr = JSON.stringify(exportData, null, 2);
-				
-				if (format === 'json') {
-					// Создаем и скачиваем файл
-					const blob = new Blob([dataStr], { type: 'application/json' });
-					const url = URL.createObjectURL(blob);
-					const a = document.createElement('a');
-					a.href = url;
-					a.download = `анализ_${appData.test.subject || 'данные'}_${new Date().toISOString().slice(0, 10)}.json`;
-					a.click();
-					URL.revokeObjectURL(url);
-					
-					showNotification('Данные экспортированы в JSON', 'success');
-					return true;
-				}
-				
-				return false;
-				
-			} catch (error) {
-				console.error('Ошибка экспорта:', error);
-				showNotification('Ошибка экспорта данных', 'error');
-				return false;
+			if (projectManager && projectManager.currentProjectId) {
+				// Экспортируем текущий проект
+				projectManager.exportProject(projectManager.currentProjectId, format);
+			} else {
+				// Старый метод экспорта
+				exportToFormat(format);
 			}
 		}
 
