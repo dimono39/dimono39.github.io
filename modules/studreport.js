@@ -1,6 +1,40 @@
 window.currentAnalysis = null;
+// В начале файла или в секции инициализации
+if (!window.complexityLevels) {
+    window.complexityLevels = {
+        1: { name: 'Знание', color: '#3498db' },
+        2: { name: 'Понимание', color: '#2ecc71' },
+        3: { name: 'Применение', color: '#f39c12' },
+        4: { name: 'Анализ', color: '#e74c3c' }
+    };
+}
+
+if (!window.errorTypes) {
+    window.errorTypes = {
+        factual: { name: 'Фактические ошибки', color: '#e74c3c' },
+        conceptual: { name: 'Концептуальные ошибки', color: '#3498db' },
+        application: { name: 'Ошибки применения', color: '#f39c12' },
+        calculation: { name: 'Вычислительные ошибки', color: '#9b59b6' },
+        logical: { name: 'Логические ошибки', color: '#1abc9c' },
+        attention: { name: 'Ошибки внимательности', color: '#95a5a6' },
+        technical: { name: 'Технические ошибки', color: '#34495e' }
+    };
+}
+
+
 function analyzeResults() {
 	console.log('📈 Анализ результатов...');
+	
+    // Отладочная информация
+    console.log('Данные приложения:', {
+        tasks: appData.tasks?.length || 0,
+        students: appData.students?.length || 0,
+        results: appData.results?.length || 0,
+        tasksSample: appData.tasks?.slice(0, 2),
+        studentsSample: appData.students?.slice(0, 2),
+        resultsSample: appData.results?.slice(0, 2)
+    });	
+	
 	// Проверяем наличие данных
 	if (!appData.tasks || appData.tasks.length === 0) {
 		showNotification('Сначала добавьте задания', 'warning');
@@ -348,84 +382,100 @@ function calculateStability(percentages) {
 }
 
 function analyzeByComplexityLevels() {
-	console.log('🎯 Анализ по уровням сложности...');
-	
-	const levelAnalysis = {};
-	
-	// Инициализируем объекты для каждого уровня
-	for (let level = 1; level <= 4; level++) {
-		levelAnalysis[level] = {
-			count: 0,
-			totalMaxScore: 0,
-			totalActualScore: 0,
-			studentsCompleted: 0,
-			tasks: []
-		};
-	}
-	
-	// Собираем данные по каждому уровню
-	appData.tasks.forEach((task, taskIndex) => {
-		const level = task.level || 1;
-		const taskId = task.id || taskIndex;
-		const maxScore = task.maxScore || 1;
-		
-		let taskTotalScore = 0;
-		let studentsCompleted = 0;
-		
-		appData.students.forEach(student => {
-			const studentId = student.id;
-			const results = appData.results[studentId] || {};
-			const score = parseFloat(results[taskId]) || 0;
-			
-			if (results[taskId] !== undefined) {
-				taskTotalScore += score;
-				studentsCompleted++;
-			}
-		});
-		
-		levelAnalysis[level].count++;
-		levelAnalysis[level].totalMaxScore += maxScore;
-		levelAnalysis[level].totalActualScore += taskTotalScore;
-		levelAnalysis[level].studentsCompleted += studentsCompleted;
-		
-		levelAnalysis[level].tasks.push({
-			number: taskIndex + 1,
-			avgScore: studentsCompleted > 0 ? taskTotalScore / studentsCompleted : 0,
-			completionRate: (studentsCompleted / appData.students.length * 100).toFixed(1)
-		});
-	});
-	
-	// Рассчитываем итоговые показатели
-	const result = {};
-	
-	Object.entries(levelAnalysis).forEach(([level, data]) => {
-		if (data.count === 0) return;
-		
-		const avgPercentage = data.totalMaxScore > 0 ? 
-			(data.totalActualScore / data.totalMaxScore / appData.students.length * 100) : 0;
-		
-		const avgCompletion = data.studentsCompleted > 0 ?
-			(data.studentsCompleted / (data.count * appData.students.length) * 100) : 0;
-		
-		// Сравнение с ожидаемыми значениями
-		const expectedPercentage = getExpectedLevelPercentage(parseInt(level));
-		const deviation = avgPercentage - expectedPercentage;
-		
-		result[level] = {
-			levelName: complexityLevels[level]?.name || `Уровень ${level}`,
-			taskCount: data.count,
-			avgPercentage: avgPercentage.toFixed(1),
-			avgCompletion: avgCompletion.toFixed(1),
-			expectedPercentage,
-			deviation: deviation.toFixed(1),
-			performance: deviation >= 10 ? 'excellent' : 
-					   deviation >= 0 ? 'good' : 
-					   deviation >= -10 ? 'average' : 'weak',
-			color: complexityLevels[level]?.color || '#95a5a6'
-		};
-	});
-	
-	return result;
+    console.log('🎯 Анализ по уровням сложности...');
+    
+    const levelAnalysis = {};
+    
+    // Инициализируем объекты для каждого уровня
+    for (let level = 1; level <= 4; level++) {
+        levelAnalysis[level] = {
+            count: 0,
+            totalMaxScore: 0,
+            totalActualScore: 0,
+            studentsCompleted: 0,
+            tasks: []
+        };
+    }
+    
+    // Собираем данные по каждому уровню
+    appData.tasks.forEach((task, taskIndex) => {
+        const level = task.level || 1;
+        const maxScore = task.maxScore || 1;
+        
+        let taskTotalScore = 0;
+        let studentsCompleted = 0;
+        
+        // Исправленный доступ к данным студентов
+        appData.students.forEach((student, studentIndex) => {
+            const results = appData.results[studentIndex] || []; // Доступ по индексу
+            if (results.length > taskIndex) {
+                const score = parseFloat(results[taskIndex]) || 0;
+                taskTotalScore += score;
+                if (results[taskIndex] !== undefined && results[taskIndex] !== '') {
+                    studentsCompleted++;
+                }
+            }
+        });
+        
+        levelAnalysis[level].count++;
+        levelAnalysis[level].totalMaxScore += maxScore * appData.students.length;
+        levelAnalysis[level].totalActualScore += taskTotalScore;
+        levelAnalysis[level].studentsCompleted += studentsCompleted;
+        
+        const avgScore = studentsCompleted > 0 ? taskTotalScore / studentsCompleted : 0;
+        levelAnalysis[level].tasks.push({
+            number: taskIndex + 1,
+            avgScore: avgScore,
+            completionRate: (studentsCompleted / appData.students.length * 100).toFixed(1)
+        });
+    });
+    
+    // Рассчитываем итоговые показатели
+    const result = {};
+    
+    Object.entries(levelAnalysis).forEach(([level, data]) => {
+        if (data.count === 0) {
+            result[level] = {
+                levelName: complexityLevels[level]?.name || `Уровень ${level}`,
+                taskCount: 0,
+                avgPercentage: 0,
+                avgCompletion: 0,
+                expectedPercentage: getExpectedLevelPercentage(parseInt(level)),
+                deviation: 0,
+                performance: 'unknown',
+                color: complexityLevels[level]?.color || '#95a5a6'
+            };
+            return;
+        }
+        
+        // Исправленный расчет процента выполнения
+        const avgScorePerStudent = data.totalActualScore / appData.students.length;
+        const maxScorePerStudent = data.totalMaxScore / appData.students.length;
+        const avgPercentage = maxScorePerStudent > 0 ? 
+            (avgScorePerStudent / maxScorePerStudent * 100) : 0;
+        
+        const avgCompletion = data.studentsCompleted > 0 ?
+            (data.studentsCompleted / (data.count * appData.students.length) * 100) : 0;
+        
+        // Сравнение с ожидаемыми значениями
+        const expectedPercentage = getExpectedLevelPercentage(parseInt(level));
+        const deviation = avgPercentage - expectedPercentage;
+        
+        result[level] = {
+            levelName: complexityLevels[level]?.name || `Уровень ${level}`,
+            taskCount: data.count,
+            avgPercentage: avgPercentage.toFixed(1),
+            avgCompletion: avgCompletion.toFixed(1),
+            expectedPercentage: expectedPercentage,
+            deviation: deviation.toFixed(1),
+            performance: deviation >= 10 ? 'excellent' : 
+                       deviation >= 0 ? 'good' : 
+                       deviation >= -10 ? 'average' : 'weak',
+            color: complexityLevels[level]?.color || '#95a5a6'
+        };
+    });
+    
+    return result;
 }
 
 function getExpectedLevelPercentage(level) {
@@ -445,23 +495,9 @@ function analyzeByErrorTypes() {
     
     const errorAnalysis = {};
     
-    // Инициализируем для каждого типа ошибок
-    // Проблема: errorTypes не определен или имеет другую структуру
-    // Из ваших данных видно, что типы ошибок: factual, conceptual, application, calculation, logical, attention, technical
-    
-    // Создаем временный объект с типами ошибок из ваших данных
-    const errorTypesFromData = {
-        factual: { name: 'Фактические ошибки', color: '#e74c3c' },
-        conceptual: { name: 'Концептуальные ошибки', color: '#3498db' },
-        application: { name: 'Ошибки применения', color: '#f39c12' },
-        calculation: { name: 'Вычислительные ошибки', color: '#9b59b6' },
-        logical: { name: 'Логические ошибки', color: '#1abc9c' },
-        attention: { name: 'Ошибки внимательности', color: '#95a5a6' },
-        technical: { name: 'Технические ошибки', color: '#34495e' }
-    };
-    
-    // Используем errorTypesFromData вместо window.errorTypes
-    Object.keys(errorTypesFromData).forEach(errorKey => {
+    // Используем типы ошибок из глобального объекта
+    const errorTypes = window.errorTypes || {};
+    Object.keys(errorTypes).forEach(errorKey => {
         errorAnalysis[errorKey] = {
             count: 0,
             totalScore: 0,
@@ -471,71 +507,70 @@ function analyzeByErrorTypes() {
         };
     });
     
+    // Проверяем, есть ли данные об ошибках
+    if (!appData.errors || appData.errors.length === 0) {
+        console.log('Нет данных об ошибках');
+        return errorAnalysis;
+    }
+    
     // Собираем данные
-    appData.tasks.forEach((task, taskIndex) => {
-        // Проверяем, есть ли тип ошибки у задания
-        // В ваших данных у задач нет поля errorType
-        // Нужно связывать ошибки из appData.errors с заданиями
+    appData.errors.forEach(error => {
+        const errorType = error.type || 'unknown';
+        const taskIndex = error.taskIndex;
         
-        // Ищем все ошибки для этого задания
-        const errorsForTask = appData.errors.filter(error => error.taskIndex === taskIndex);
-        
-        // Если у задания есть ошибки, анализируем их
-        if (errorsForTask.length > 0) {
-            errorsForTask.forEach(error => {
-                const errorType = error.type;
-                
-                if (!errorAnalysis[errorType]) {
-                    // Создаем запись, если тип ошибки не был инициализирован
-                    errorAnalysis[errorType] = {
-                        count: 0,
-                        totalScore: 0,
-                        maxPossible: 0,
-                        tasks: [],
-                        students: new Set()
-                    };
-                }
-                
-                // Собираем статистику по выполнению этого задания
-                let taskTotalScore = 0;
-                let taskMaxScore = 0;
-                const task = appData.tasks[taskIndex];
-                
-                appData.students.forEach((student, studentIndex) => {
-                    const results = appData.results[studentIndex] || [];
-                    if (results.length > taskIndex) {
-                        const score = parseFloat(results[taskIndex]) || 0;
-                        taskTotalScore += score;
-                        taskMaxScore += task.maxScore || 1;
-                        
-                        // Если у этого студента есть такая ошибка
-                        if (error.studentIndex === studentIndex) {
-                            errorAnalysis[errorType].students.add(studentIndex);
-                        }
-                    }
-                });
-                
-                errorAnalysis[errorType].count++;
-                errorAnalysis[errorType].totalScore += taskTotalScore;
-                errorAnalysis[errorType].maxPossible += taskMaxScore;
-                
-                const percentage = taskMaxScore > 0 ? (taskTotalScore / taskMaxScore * 100) : 0;
-                errorAnalysis[errorType].tasks.push({
-                    number: taskIndex + 1,
-                    percentage: percentage.toFixed(1)
-                });
-            });
+        if (taskIndex === undefined || taskIndex < 0 || taskIndex >= appData.tasks.length) {
+            console.log('Некорректный индекс задания в ошибке:', error);
+            return;
         }
+        
+        // Инициализируем тип ошибки, если его нет
+        if (!errorAnalysis[errorType]) {
+            errorAnalysis[errorType] = {
+                count: 0,
+                totalScore: 0,
+                maxPossible: 0,
+                tasks: [],
+                students: new Set()
+            };
+        }
+        
+        // Считаем статистику по заданию
+        const task = appData.tasks[taskIndex];
+        let taskTotalScore = 0;
+        let taskMaxScore = 0;
+        
+        appData.students.forEach((student, studentIndex) => {
+            const results = appData.results[studentIndex] || [];
+            if (results.length > taskIndex) {
+                const score = parseFloat(results[taskIndex]) || 0;
+                taskTotalScore += score;
+                taskMaxScore += task.maxScore || 1;
+                
+                // Если этот студент сделал эту ошибку
+                if (error.studentIndex === studentIndex) {
+                    errorAnalysis[errorType].students.add(studentIndex);
+                }
+            }
+        });
+        
+        errorAnalysis[errorType].count++;
+        errorAnalysis[errorType].totalScore += taskTotalScore;
+        errorAnalysis[errorType].maxPossible += taskMaxScore;
+        
+        const percentage = taskMaxScore > 0 ? (taskTotalScore / taskMaxScore * 100) : 0;
+        errorAnalysis[errorType].tasks.push({
+            number: taskIndex + 1,
+            percentage: percentage.toFixed(1)
+        });
     });
     
-    // Фильтруем только те типы ошибок, которые встречаются
+    // Фильтруем и форматируем результат
     const filteredAnalysis = {};
-    
     Object.entries(errorAnalysis).forEach(([errorKey, data]) => {
         if (data.count === 0) return;
         
-        const errorType = errorTypesFromData[errorKey] || { 
-            name: errorKey, 
+        const errorType = errorTypes[errorKey] || { 
+            name: errorKey.charAt(0).toUpperCase() + errorKey.slice(1), 
             color: '#95a5a6' 
         };
         const percentage = data.maxPossible > 0 ? 
@@ -556,59 +591,157 @@ function analyzeByErrorTypes() {
     return filteredAnalysis;
 }
 
+function testCorrelationCalculation() {
+    console.log('🧪 Тест расчета корреляций');
+    
+    // Тестовые данные с явной корреляцией
+    const testData1 = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]; // Возрастающая последовательность
+    const testData2 = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]; // Такая же
+    const testData3 = [10, 9, 8, 7, 6, 5, 4, 3, 2, 1]; // Убывающая
+    const testData4 = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1]; // Все одинаковые
+    
+    console.log('Тест 1: Идеальная положительная корреляция');
+    console.log('Результат:', calculateCorrelation(testData1, testData2));
+    
+    console.log('Тест 2: Идеальная отрицательная корреляция');
+    console.log('Результат:', calculateCorrelation(testData1, testData3));
+    
+    console.log('Тест 3: Нет вариации');
+    console.log('Результат:', calculateCorrelation(testData1, testData4));
+    
+    // Тест с реальными данными
+    if (appData.tasks && appData.tasks.length >= 2) {
+        console.log('Тест с реальными данными:');
+        
+        const task1Scores = [];
+        const task2Scores = [];
+        
+        appData.students.forEach((student, studentIndex) => {
+            const results = appData.results[studentIndex] || [];
+            const score1 = results.length > 0 ? parseFloat(results[0]) || 0 : 0;
+            const score2 = results.length > 1 ? parseFloat(results[1]) || 0 : 0;
+            
+            task1Scores.push(score1);
+            task2Scores.push(score2);
+        });
+        
+        console.log('Задание 1:', task1Scores.slice(0, 10));
+        console.log('Задание 2:', task2Scores.slice(0, 10));
+        console.log('Корреляция 1-2:', calculateCorrelation(task1Scores, task2Scores));
+    }
+}
+
 function findCorrelations() {
     console.log('🔗 Поиск корреляций...');
     
     const correlations = [];
     
-    if (appData.tasks.length < 2) return correlations;
-    
-    // Матрица корреляций между заданиями
-    const taskScores = [];
+    if (!appData.tasks || appData.tasks.length < 2) {
+        console.log('Мало заданий для корреляционного анализа');
+        return correlations;
+    }
     
     // Собираем баллы по заданиям
+    const taskScores = [];
+    
+    console.log('Сбор данных для корреляций...');
+    
     appData.tasks.forEach((task, taskIndex) => {
         const scores = [];
+        let completedCount = 0;
         
         appData.students.forEach((student, studentIndex) => {
             const results = appData.results[studentIndex] || [];
-            // Берем балл за это задание, если он есть
-            const score = results.length > taskIndex ? 
-                parseFloat(results[taskIndex]) || 0 : 0;
-            scores.push(score);
+            if (results.length > taskIndex) {
+                const score = parseFloat(results[taskIndex]) || 0;
+                scores.push(score);
+                if (score > 0) completedCount++;
+            } else {
+                scores.push(0);
+            }
         });
         
+        console.log(`Задание ${taskIndex + 1}: ${completedCount} выполнено из ${appData.students.length}`);
         taskScores.push(scores);
     });
     
-    console.log(`Собрано данных: ${taskScores.length} заданий`);
+    console.log(`Собрано данных: ${taskScores.length} заданий, по ${taskScores[0]?.length || 0} учащихся`);
+    
+    // Анализируем первые несколько значений для отладки
+    if (taskScores.length > 0) {
+        console.log('Пример данных для анализа корреляций:');
+        console.log('Задание 1 (первые 5 значений):', taskScores[0].slice(0, 5));
+        console.log('Задание 2 (первые 5 значений):', taskScores[1]?.slice(0, 5));
+        
+        // Проверяем вариацию
+        const uniqueValues1 = [...new Set(taskScores[0])];
+        const uniqueValues2 = [...new Set(taskScores[1] || [])];
+        console.log(`Уникальные значения задания 1: ${uniqueValues1.length} (${uniqueValues1.join(', ')})`);
+        console.log(`Уникальные значения задания 2: ${uniqueValues2.length} (${uniqueValues2.join(', ')})`);
+    }
+    
+    // Уменьшаем порог для демонстрации
+    const threshold = 0.1; // Еще ниже для тестирования
     
     // Рассчитываем корреляции между всеми парами заданий
+    let correlationCount = 0;
+    
     for (let i = 0; i < taskScores.length; i++) {
         for (let j = i + 1; j < taskScores.length; j++) {
             const correlation = calculateCorrelation(taskScores[i], taskScores[j]);
+            correlationCount++;
             
-            console.log(`Корреляция ${i+1}-${j+1}: ${correlation}`);
+            if (correlationCount <= 5) {
+                console.log(`Корреляция ${i+1}-${j+1}: ${correlation}`);
+            }
             
-            if (Math.abs(correlation) > 0.5) {
+            if (Math.abs(correlation) > threshold) {
+                const strength = Math.abs(correlation) > 0.7 ? 'strong' : 
+                               Math.abs(correlation) > 0.5 ? 'moderate' : 
+                               Math.abs(correlation) > 0.3 ? 'weak' : 'very weak';
+                
                 correlations.push({
                     task1: i + 1,
                     task2: j + 1,
                     correlation: correlation.toFixed(3),
-                    strength: Math.abs(correlation) > 0.7 ? 'strong' : 
-                             Math.abs(correlation) > 0.5 ? 'moderate' : 'weak',
-                    type: correlation > 0 ? 'positive' : 'negative'
+                    strength: strength,
+                    type: correlation > 0 ? 'positive' : 'negative',
+                    raw: correlation // Для отладки
                 });
             }
         }
     }
     
+    console.log(`Всего проверено ${correlationCount} пар, найдено ${correlations.length} корреляций > ${threshold}`);
+    
     // Сортируем по силе корреляции
-    correlations.sort((a, b) => Math.abs(b.correlation) - Math.abs(a.correlation));
+    correlations.sort((a, b) => Math.abs(b.raw || 0) - Math.abs(a.raw || 0));
     
-    console.log(`Найдено корреляций: ${correlations.length}`);
+    // Если не найдено корреляций с порогом 0.1, показываем любые ненулевые
+    if (correlations.length === 0) {
+        console.log('Пробуем найти любые ненулевые корреляции...');
+        
+        for (let i = 0; i < taskScores.length; i++) {
+            for (let j = i + 1; j < taskScores.length; j++) {
+                const correlation = calculateCorrelation(taskScores[i], taskScores[j]);
+                
+                if (Math.abs(correlation) > 0.001) { // Очень низкий порог
+                    correlations.push({
+                        task1: i + 1,
+                        task2: j + 1,
+                        correlation: correlation.toFixed(3),
+                        strength: 'very weak',
+                        type: correlation > 0 ? 'positive' : 'negative',
+                        raw: correlation
+                    });
+                }
+            }
+        }
+        
+        console.log(`Найдено ${correlations.length} очень слабых корреляций`);
+    }
     
-    return correlations.slice(0, 10); // Только топ-10
+    return correlations.slice(0, 20);
 }
 
 // Дополнительно проверим функцию calculateCorrelation
@@ -619,17 +752,17 @@ function calculateCorrelation(x, y) {
         return 0;
     }
     
-    // Проверяем, что есть вариация в данных
-    const xSum = x.reduce((a, b) => a + b, 0);
-    const ySum = y.reduce((a, b) => a + b, 0);
+    // Проверяем, что данные не все одинаковые
+    const xValues = new Set(x);
+    const yValues = new Set(y);
     
-    if (xSum === 0 || ySum === 0) {
-        console.log(`Нет вариации: xSum=${xSum}, ySum=${ySum}`);
+    if (xValues.size <= 1 || yValues.size <= 1) {
+        console.log('Нет вариации в данных: все значения одинаковые');
         return 0;
     }
     
-    const sumX = xSum;
-    const sumY = ySum;
+    const sumX = x.reduce((a, b) => a + b, 0);
+    const sumY = y.reduce((a, b) => a + b, 0);
     const sumXY = x.reduce((sum, xi, i) => sum + xi * y[i], 0);
     const sumX2 = x.reduce((sum, xi) => sum + xi * xi, 0);
     const sumY2 = y.reduce((sum, yi) => sum + yi * yi, 0);
@@ -643,9 +776,15 @@ function calculateCorrelation(x, y) {
     }
     
     const result = numerator / denominator;
-    console.log(`calculateCorrelation: result=${result}`);
     
-    return result;
+    // Проверяем на NaN и Infinity
+    if (isNaN(result) || !isFinite(result)) {
+        console.log(`Некорректный результат корреляции: ${result}`);
+        return 0;
+    }
+    
+    // Округляем до 4 знаков
+    return Math.round(result * 10000) / 10000;
 }
 
 
@@ -1443,42 +1582,41 @@ function renderErrorsAnalysis() {
     `;
     
     // Создаем круговую диаграмму
-    const errorEntries = Object.entries(errors);
-    if (errorEntries.length > 0) {
-        let startAngle = 0;
-        const totalTasks = errorEntries.reduce((sum, [_, data]) => sum + data.count, 0);
-        
-        errorEntries.forEach(([errorKey, data], index) => {
-            const percentage = (data.count / totalTasks * 100).toFixed(1);
-            const angle = (data.count / totalTasks * 360).toFixed(1);
-            
-            html += `
-                <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;">
-                    <div style="position: absolute; top: 50%; left: 50%; width: 150px; height: 150px; border-radius: 50%; 
-                          background: conic-gradient(${data.color} ${startAngle}deg ${parseFloat(startAngle) + parseFloat(angle)}deg, transparent ${parseFloat(startAngle) + parseFloat(angle)}deg); 
-                          transform: translate(-50%, -50%) rotate(-90deg);">
-                    </div>
-                </div>
-            `;
-            
-            startAngle += parseFloat(angle);
-        });
-        
-        // Центр
-        html += `
-                        <div style="position: absolute; top: 50%; left: 50%; width: 70px; height: 70px; background: white; border-radius: 50%; transform: translate(-50%, -50%);"></div>
-                        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center;">
-                            <div style="font-size: 24px; font-weight: bold;">${totalTasks}</div>
-                            <div style="font-size: 10px; color: #666;">заданий</div>
-                        </div>
-        `;
-    } else {
-        html += `
-            <div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #666;">
-                Нет данных по типам ошибок
-            </div>
-        `;
-    }
+	const errorEntries = Object.entries(errors);
+	if (errorEntries.length > 0) {
+		let startAngle = 0;
+		const totalTasks = errorEntries.reduce((sum, [_, data]) => sum + data.count, 0);
+		
+		const gradientParts = errorEntries.map(([_, data], index) => {
+			const percentage = (data.count / totalTasks * 100);
+			const angle = (data.count / totalTasks * 360);
+			const endAngle = startAngle + angle;
+			
+			const part = `${data.color} ${startAngle}deg ${endAngle}deg`;
+			startAngle = endAngle;
+			return part;
+		}).join(', ');
+		
+		html += `
+			<div style="width: 150px; height: 150px; border-radius: 50%; 
+				  background: conic-gradient(${gradientParts});
+				  margin: 0 auto; position: relative;">
+				<div style="position: absolute; top: 50%; left: 50%; width: 70px; height: 70px; 
+					  background: white; border-radius: 50%; transform: translate(-50%, -50%);"></div>
+				<div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); 
+					  text-align: center;">
+					<div style="font-size: 24px; font-weight: bold;">${totalTasks}</div>
+					<div style="font-size: 10px; color: #666;">заданий</div>
+				</div>
+			</div>
+		`;
+	} else {
+		html += `
+			<div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #666;">
+				Нет данных по типам ошибок
+			</div>
+		`;
+	}
     
     html += `
                     </div>
@@ -1860,7 +1998,8 @@ function getCorrelationColor(correlation) {
     if (absCorr > 0.7) return correlation > 0 ? '#27ae60' : '#e74c3c';
     if (absCorr > 0.5) return correlation > 0 ? '#7bed9f' : '#ff6b81';
     if (absCorr > 0.3) return correlation > 0 ? '#d1f2eb' : '#ffcccc';
-    return '#f8f9fa';
+    if (absCorr > 0.1) return correlation > 0 ? '#e8f8f5' : '#ffe6e6'; // Добавили для слабых корреляций
+    return '#f8f9fa'; // Для очень слабых или нулевых
 }
 
 function exportAnalysisReport(analysis) {
@@ -2436,7 +2575,27 @@ function printAnalysisReport(analysis) {
     showNotification('🖨️ Отчет подготовлен для печати', 'info');
 }
 // ==================== DETAILED CORRELATION ANALYSIS ====================
-
+function recalculateAndShowCorrelations() {
+    console.log('🔄 Принудительный перерасчет корреляций...');
+    
+    // Пересчитываем корреляции
+    const correlations = findCorrelations();
+    const matrix = calculateFullCorrelationMatrix();
+    
+    // Обновляем текущий анализ
+    if (window.currentAnalysis) {
+        window.currentAnalysis.correlations = correlations;
+        window.currentAnalysis._correlationMatrix = matrix; // Сохраняем матрицу
+    }
+    
+    // Показываем сообщение
+    showNotification(`Пересчитано ${correlations.length} корреляций`, 'info');
+    
+    // Обновляем отображение
+    if (document.querySelector('.modal-analysis')) {
+        showDetailedCorrelationAnalysis();
+    }
+}
 function showDetailedCorrelationAnalysis() {
     console.log('🔍 Детальный корреляционный анализ...');
     
@@ -2549,6 +2708,9 @@ function showDetailedCorrelationAnalysis() {
             
             <!-- Кнопки действий -->
             <div style="margin-top: 20px; display: flex; gap: 10px; justify-content: center;">
+				<button class="btn btn-outline" onclick="recalculateAndShowCorrelations()">
+					🔄 Пересчитать
+				</button>
                 <button class="btn btn-outline" onclick="exportCorrelationMatrix()">
                     📥 Экспорт матрицы
                 </button>
@@ -2563,25 +2725,49 @@ function showDetailedCorrelationAnalysis() {
 }
 
 function calculateFullCorrelationMatrix() {
+    if (!appData || !appData.tasks || appData.tasks.length === 0) {
+        console.warn('Нет данных для расчета матрицы корреляций');
+        return [];
+    }
+    
     const tasksCount = appData.tasks.length;
-    const matrix = Array(tasksCount).fill().map(() => Array(tasksCount).fill(0));
+    console.log('🧮 Расчет полной матрицы корреляций для', tasksCount, 'заданий');
     
     // Собираем баллы по заданиям
     const taskScores = [];
+    
     for (let i = 0; i < tasksCount; i++) {
         const scores = [];
-        const taskId = appData.tasks[i].id || i;
+        let hasData = false;
         
-        appData.students.forEach(student => {
-            const studentId = student.id;
-            const results = appData.results[studentId] || {};
-            scores.push(parseFloat(results[taskId]) || 0);
-        });
+        for (let studentIndex = 0; studentIndex < appData.students.length; studentIndex++) {
+            const results = appData.results[studentIndex] || [];
+            let score = 0;
+            
+            if (results.length > i) {
+                const value = results[i];
+                if (value !== undefined && value !== '' && !isNaN(parseFloat(value))) {
+                    score = parseFloat(value);
+                    hasData = true;
+                }
+            }
+            
+            scores.push(score);
+        }
+        
+        if (!hasData) {
+            console.warn(`Задание ${i + 1}: нет данных`);
+        }
         
         taskScores.push(scores);
     }
     
+    // Создаем матрицу
+    const matrix = Array(tasksCount).fill().map(() => Array(tasksCount).fill(0));
+    
     // Рассчитываем корреляции
+    let nonZeroCount = 0;
+    
     for (let i = 0; i < tasksCount; i++) {
         matrix[i][i] = 1.0; // Диагональ
         
@@ -2589,7 +2775,26 @@ function calculateFullCorrelationMatrix() {
             const correlation = calculateCorrelation(taskScores[i], taskScores[j]);
             matrix[i][j] = correlation;
             matrix[j][i] = correlation;
+            
+            if (Math.abs(correlation) > 0.001) {
+                nonZeroCount++;
+            }
+            
+            // Логируем сильные корреляции
+            if (Math.abs(correlation) > 0.5) {
+                console.log(`  Сильная корреляция ${i+1}-${j+1}: ${correlation.toFixed(3)}`);
+            }
         }
+    }
+    
+    console.log(`Матрица рассчитана: ${nonZeroCount} ненулевых корреляций`);
+    
+    // Проверка: выведем первые несколько значений
+    if (tasksCount > 3) {
+        console.log('Пример из матрицы:');
+        console.log('1-2:', matrix[0][1]);
+        console.log('1-3:', matrix[0][2]);
+        console.log('2-3:', matrix[1][2]);
     }
     
     return matrix;
@@ -2597,26 +2802,27 @@ function calculateFullCorrelationMatrix() {
 
 function renderFullCorrelationMatrix(matrix) {
     const tasksCount = matrix.length;
-    const showAll = tasksCount <= 15; // Показывать все, если заданий <= 15
-    
+    const showAll = tasksCount <= 15;
     const displayCount = showAll ? tasksCount : 10;
+    
+    // Проверяем матрицу
+    console.log('Матрица для отображения:', matrix.slice(0, 3).map(row => row.slice(0, 3)));
     
     let html = `
         <div style="font-size: 11px; color: #666; margin-bottom: 10px;">
             ${showAll ? `Матрица ${tasksCount}×${tasksCount}` : `Показаны первые ${displayCount} заданий`}
-            ${!showAll ? '<span style="color: #f39c12; margin-left: 10px;">(для полной матрицы экспортируйте данные)</span>' : ''}
         </div>
         
-        <table style="border-collapse: collapse; font-size: 10px;">
+        <table style="border-collapse: collapse; font-size: 10px; background: white;">
             <tr>
-                <th style="padding: 5px; background: #f8f9fa; min-width: 30px; position: sticky; left: 0; z-index: 2;"></th>
+                <th style="padding: 5px; background: #f8f9fa; min-width: 30px; position: sticky; left: 0; z-index: 2; border: 1px solid #ddd;"></th>
     `;
     
     // Заголовки столбцов
     for (let i = 0; i < displayCount; i++) {
         html += `
             <th style="padding: 5px; background: #f8f9fa; text-align: center; min-width: 30px; 
-                       position: sticky; top: 0; z-index: 1;">
+                       position: sticky; top: 0; z-index: 1; border: 1px solid #ddd;">
                 ${i + 1}
             </th>
         `;
@@ -2627,22 +2833,24 @@ function renderFullCorrelationMatrix(matrix) {
     for (let i = 0; i < displayCount; i++) {
         html += `<tr>
             <td style="padding: 5px; background: #f8f9fa; font-weight: bold; text-align: center;
-                       position: sticky; left: 0; z-index: 1;">
+                       position: sticky; left: 0; z-index: 1; border: 1px solid #ddd;">
                 ${i + 1}
             </td>`;
         
         for (let j = 0; j < displayCount; j++) {
-            const correlation = matrix[i][j];
+            const correlation = matrix[i]?.[j] || 0;
             const color = getCorrelationColor(correlation);
-            const textColor = Math.abs(correlation) > 0.5 ? 'white' : '#333';
-            const fontWeight = Math.abs(correlation) > 0.7 ? 'bold' : 'normal';
+            const textColor = Math.abs(correlation) > 0.3 ? 'white' : '#333';
+            const fontWeight = Math.abs(correlation) > 0.5 ? 'bold' : 'normal';
+            const displayValue = correlation.toFixed(2);
             
             html += `
                 <td style="padding: 5px; text-align: center; background: ${color}; 
                            color: ${textColor}; font-weight: ${fontWeight};
+                           border: 1px solid #ddd;
                            cursor: help;" 
-                    title="Корреляция заданий ${i + 1} и ${j + 1}: ${correlation.toFixed(3)}">
-                    ${correlation.toFixed(2)}
+                    title="Корреляция заданий ${i + 1} и ${j + 1}: ${correlation.toFixed(4)}">
+                    ${displayValue}
                 </td>
             `;
         }
@@ -2651,12 +2859,32 @@ function renderFullCorrelationMatrix(matrix) {
     
     html += '</table>';
     
+    // Добавим статистику по матрице
+    let nonZeroCount = 0;
+    let strongCount = 0;
+    
+    for (let i = 0; i < Math.min(tasksCount, displayCount); i++) {
+        for (let j = i + 1; j < Math.min(tasksCount, displayCount); j++) {
+            const corr = matrix[i][j];
+            if (corr !== 0) nonZeroCount++;
+            if (Math.abs(corr) > 0.5) strongCount++;
+        }
+    }
+    
+    html += `
+        <div style="margin-top: 15px; padding: 10px; background: #f8f9fa; border-radius: 5px; font-size: 11px;">
+            <strong>📊 Статистика показанной матрицы:</strong><br>
+            • Ненулевых корреляций: ${nonZeroCount}<br>
+            • Сильных корреляций (|r| > 0.5): ${strongCount}<br>
+            • Всего пар: ${displayCount * (displayCount - 1) / 2}
+        </div>
+    `;
+    
     if (!showAll) {
         html += `
             <div style="margin-top: 15px; padding: 10px; background: #fff8e1; border-radius: 5px; font-size: 11px;">
                 <strong>⚠️ Матрица сокращена для отображения.</strong>
                 Полная матрица содержит ${tasksCount}×${tasksCount} = ${tasksCount * tasksCount} значений корреляций.
-                Для анализа всей матрицы используйте экспорт.
             </div>
         `;
     }
@@ -2669,88 +2897,167 @@ function renderCorrelationClusters(matrix) {
     const clusters = [];
     const visited = new Set();
     
-    // Порог для включения в кластер
-    const threshold = 0.6;
+    // Уменьшаем порог для кластеризации
+    const threshold = 0.4;
+    
+    console.log('Поиск кластеров с порогом', threshold, 'для матрицы', tasksCount, 'x', tasksCount);
     
     // Находим кластеры сильных корреляций
     for (let i = 0; i < tasksCount; i++) {
         if (visited.has(i)) continue;
         
-        const cluster = [i];
+        const clusterTasks = [i];
         visited.add(i);
         
         for (let j = i + 1; j < tasksCount; j++) {
             if (visited.has(j)) continue;
             
-            // Проверяем сильные связи со всеми заданиями в кластере
-            let strongConnection = true;
-            for (const task of cluster) {
-                if (Math.abs(matrix[task][j]) < threshold) {
-                    strongConnection = false;
+            // Проверяем достаточно сильные связи с заданиями в кластере
+            let strongEnough = true;
+            
+            for (const task of clusterTasks) {
+                const corr = Math.abs(matrix[task][j]);
+                if (corr < threshold) {
+                    strongEnough = false;
                     break;
                 }
             }
             
-            if (strongConnection) {
-                cluster.push(j);
+            if (strongEnough) {
+                clusterTasks.push(j);
                 visited.add(j);
             }
         }
         
-        if (cluster.length > 1) {
-            clusters.push(cluster);
+        if (clusterTasks.length > 1) {
+            // Рассчитываем среднюю корреляцию в кластере
+            let totalCorrelation = 0;
+            let correlationCount = 0;
+            
+            for (let k = 0; k < clusterTasks.length; k++) {
+                for (let l = k + 1; l < clusterTasks.length; l++) {
+                    totalCorrelation += Math.abs(matrix[clusterTasks[k]][clusterTasks[l]]);
+                    correlationCount++;
+                }
+            }
+            
+            const avgCorrelation = correlationCount > 0 ? totalCorrelation / correlationCount : 0;
+            
+            clusters.push({
+                tasks: clusterTasks,
+                size: clusterTasks.length,
+                avgCorrelation: avgCorrelation
+            });
         }
     }
     
+    console.log('Найдено кластеров:', clusters.length);
+    
     if (clusters.length === 0) {
+        // Попробуем найти хотя бы пары с сильной корреляцией
+        const pairs = [];
+        
+        for (let i = 0; i < tasksCount; i++) {
+            for (let j = i + 1; j < tasksCount; j++) {
+                const corr = Math.abs(matrix[i][j]);
+                if (corr > 0.3) { // Понизим порог для пар
+                    pairs.push({
+                        task1: i,
+                        task2: j,
+                        correlation: corr
+                    });
+                }
+            }
+        }
+        
+        // Сортируем по силе корреляции
+        pairs.sort((a, b) => b.correlation - a.correlation);
+        
+        if (pairs.length > 0) {
+            let html = `
+                <div style="background: #f8f9fa; padding: 15px; border-radius: 8px;">
+                    <h5 style="margin-top: 0;">🔗 Пары с заметной корреляцией</h5>
+                    <div style="font-size: 12px; color: #666; margin-bottom: 10px;">
+                        Найдено ${pairs.length} пар с корреляцией > 0.3
+                    </div>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px;">
+            `;
+            
+            pairs.slice(0, 6).forEach(pair => {
+                const strength = pair.correlation > 0.7 ? 'Сильная' : 
+                               pair.correlation > 0.5 ? 'Умеренная' : 'Слабая';
+                const color = pair.correlation > 0.7 ? '#27ae60' : 
+                            pair.correlation > 0.5 ? '#f39c12' : '#3498db';
+                
+                html += `
+                    <div style="background: white; padding: 10px; border-radius: 5px; border-left: 4px solid ${color};">
+                        <div style="font-weight: bold; font-size: 14px;">
+                            Задание ${pair.task1 + 1} ↔ ${pair.task2 + 1}
+                        </div>
+                        <div style="font-size: 12px; color: #666; margin-top: 5px;">
+                            <strong>Корреляция:</strong> ${pair.correlation.toFixed(3)}<br>
+                            <strong>Тип:</strong> ${strength} связь
+                        </div>
+                    </div>
+                `;
+            });
+            
+            html += `
+                    </div>
+                    ${pairs.length > 6 ? `
+                        <div style="margin-top: 10px; font-size: 11px; color: #666;">
+                            И еще ${pairs.length - 6} пар...
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+            
+            return html;
+        }
+        
         return `
             <div style="padding: 20px; text-align: center; color: #666; background: #f8f9fa; border-radius: 8px;">
-                <div style="font-size: 48px; margin-bottom: 10px;">🔍</div>
-                <div>Кластеры сильных корреляций не обнаружены</div>
+                <div style="font-size: 36px; margin-bottom: 10px;">🔍</div>
+                <div>Кластеры корреляций не обнаружены</div>
                 <div style="font-size: 11px; margin-top: 5px;">
-                    (для образования кластера требуется минимум 2 задания с взаимной корреляцией > 0.6)
+                    (попробуйте уменьшить порог корреляции в настройках)
                 </div>
             </div>
         `;
     }
     
+    // Рендерим найденные кластеры
     let html = `
         <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 15px;">
     `;
     
-    clusters.forEach((cluster, index) => {
-        // Вычисляем среднюю корреляцию в кластере
-        let totalCorrelation = 0;
-        let correlationCount = 0;
+    clusters.forEach((clusterObj, index) => {
+        const clusterTasks = clusterObj.tasks; // Это массив!
+        const avgCorrelation = clusterObj.avgCorrelation;
         
-        for (let i = 0; i < cluster.length; i++) {
-            for (let j = i + 1; j < cluster.length; j++) {
-                totalCorrelation += Math.abs(matrix[cluster[i]][cluster[j]]);
-                correlationCount++;
-            }
-        }
-        
-        const avgCorrelation = correlationCount > 0 ? totalCorrelation / correlationCount : 0;
-        const strength = avgCorrelation > 0.8 ? 'сильный' : avgCorrelation > 0.6 ? 'средний' : 'слабый';
-        const strengthColor = avgCorrelation > 0.8 ? '#27ae60' : avgCorrelation > 0.6 ? '#f39c12' : '#3498db';
+        const strength = avgCorrelation > 0.7 ? 'сильный' : 
+                       avgCorrelation > 0.5 ? 'средний' : 'слабый';
+        const strengthColor = avgCorrelation > 0.7 ? '#27ae60' : 
+                            avgCorrelation > 0.5 ? '#f39c12' : '#3498db';
         
         // Находим наиболее тематически связанные задания
-        const clusterTasks = cluster.map(taskIndex => {
+        const taskDetails = clusterTasks.map(taskIndex => {
             const task = appData.tasks[taskIndex];
             return {
                 number: taskIndex + 1,
-                description: task.description || `Задание ${taskIndex + 1}`,
-                level: task.level || 1
+                description: task?.description || `Задание ${taskIndex + 1}`,
+                level: task?.level || 1
             };
         });
         
         // Группируем по уровням
         const levelGroups = {};
-        clusterTasks.forEach(task => {
-            if (!levelGroups[task.level]) {
-                levelGroups[task.level] = [];
+        taskDetails.forEach(task => {
+            const level = task.level;
+            if (!levelGroups[level]) {
+                levelGroups[level] = [];
             }
-            levelGroups[task.level].push(task.number);
+            levelGroups[level].push(task.number);
         });
         
         html += `
@@ -2766,10 +3073,10 @@ function renderCorrelationClusters(matrix) {
                 
                 <div style="margin-bottom: 10px;">
                     <div style="font-size: 12px; color: #666; margin-bottom: 5px;">
-                        Задания в кластере (${clusterTasks.length}):
+                        Задания в кластере (${taskDetails.length}):
                     </div>
                     <div style="display: flex; flex-wrap: wrap; gap: 5px;">
-                        ${clusterTasks.map(task => `
+                        ${taskDetails.map(task => `
                             <span style="padding: 3px 8px; background: ${complexityLevels[task.level]?.color || '#95a5a6'}; 
                                   color: white; border-radius: 10px; font-size: 11px;"
                                   title="${task.description}">
@@ -2781,13 +3088,15 @@ function renderCorrelationClusters(matrix) {
                 
                 <div style="font-size: 11px; color: #666;">
                     <strong>Средняя корреляция:</strong> ${avgCorrelation.toFixed(3)} (${strength})<br>
-                    <strong>Заданий:</strong> ${clusterTasks.length}<br>
-                    <strong>Уровни:</strong> ${Object.entries(levelGroups).map(([level, tasks]) => 
-                        `${level} (${tasks.join(',')})`).join(', ')}
+                    <strong>Заданий:</strong> ${taskDetails.length}<br>
+                    ${Object.keys(levelGroups).length > 0 ? `
+                        <strong>Уровни:</strong> ${Object.entries(levelGroups).map(([level, tasks]) => 
+                            `${level} (${tasks.join(',')})`).join(', ')}
+                    ` : ''}
                 </div>
                 
                 <div style="margin-top: 10px; font-size: 10px; color: #999;">
-                    ${clusterTasks.length >= 3 ? 
+                    ${taskDetails.length >= 3 ? 
                         '✅ Кластер устойчив' : 
                         '⚠️ Мало заданий для устойчивого кластера'}
                 </div>
@@ -3359,18 +3668,31 @@ function showTaskDetails(taskIndex) {
 }
 
 function renderTaskScoreDistribution(taskIndex) {
-    const scores = [];
-    const maxScore = appData.tasks[taskIndex]?.maxScore || 1;
+    console.log('📈 Распределение баллов для задания:', taskIndex);
+    
+    if (!appData.tasks || taskIndex < 0 || taskIndex >= appData.tasks.length) {
+        return `
+            <div style="text-align: center; padding: 40px; color: #999;">
+                <div style="font-size: 36px; margin-bottom: 10px;">❌</div>
+                <div>Задание не найдено</div>
+            </div>
+        `;
+    }
+    
+    const task = appData.tasks[taskIndex];
+    const maxScore = task.maxScore || 1;
     
     // Собираем баллы за это задание
-    appData.students.forEach(student => {
-        const studentId = student.id;
-        const results = appData.results[studentId] || {};
-        const taskId = appData.tasks[taskIndex].id || taskIndex;
-        const score = parseFloat(results[taskId]) || 0;
-        
-        if (results[taskId] !== undefined) {
-            scores.push(score);
+    const scores = [];
+    
+    appData.students.forEach((student, studentIndex) => {
+        const results = appData.results[studentIndex] || [];
+        if (results.length > taskIndex) {
+            const resultValue = results[taskIndex];
+            if (resultValue !== undefined && resultValue !== '') {
+                const score = parseFloat(resultValue) || 0;
+                scores.push(score);
+            }
         }
     });
     
@@ -3379,20 +3701,29 @@ function renderTaskScoreDistribution(taskIndex) {
             <div style="text-align: center; padding: 40px; color: #999;">
                 <div style="font-size: 36px; margin-bottom: 10px;">📊</div>
                 <div>Нет данных о выполнении этого задания</div>
+                <div style="font-size: 11px; margin-top: 5px;">
+                    ${appData.students.length} учащихся, но нет результатов
+                </div>
             </div>
         `;
     }
     
-    // Создаем гистограмму
-    const step = maxScore / 5;
-    const bins = Array.from({length: 6}, (_, i) => ({
-        range: i === 5 ? `${(i * step).toFixed(1)}+` : 
+    console.log(`Собрано ${scores.length} результатов для задания ${taskIndex + 1}`);
+    
+    // Создаем гистограмму с 5 интервалами
+    const binCount = Math.min(5, maxScore);
+    const step = maxScore / binCount;
+    
+    const bins = Array.from({length: binCount}, (_, i) => ({
+        range: i === binCount - 1 ? 
+               `${(i * step).toFixed(1)}+` : 
                `${(i * step).toFixed(1)}-${((i + 1) * step).toFixed(1)}`,
         min: i * step,
-        max: i === 5 ? Infinity : (i + 1) * step,
+        max: i === binCount - 1 ? Infinity : (i + 1) * step,
         count: 0
     }));
     
+    // Заполняем бины
     scores.forEach(score => {
         const bin = bins.find(b => score >= b.min && score < b.max);
         if (bin) bin.count++;
@@ -3401,22 +3732,31 @@ function renderTaskScoreDistribution(taskIndex) {
     const maxCount = Math.max(...bins.map(b => b.count));
     
     let html = `
-        <div style="display: flex; height: 150px; align-items: flex-end; gap: 10px; padding: 0 20px; border-bottom: 1px solid #eee;">
+        <div style="margin-bottom: 10px; font-size: 12px; color: #666;">
+            Всего выполнено: <strong>${scores.length}</strong> из ${appData.students.length} учащихся
+            (${((scores.length / appData.students.length) * 100).toFixed(1)}%)
+        </div>
+        
+        <div style="display: flex; height: 120px; align-items: flex-end; gap: 10px; padding: 0 10px; border-bottom: 1px solid #eee;">
     `;
     
     bins.forEach(bin => {
-        const height = maxCount > 0 ? (bin.count / maxCount * 100) + '%' : '0%';
+        const height = maxCount > 0 ? (bin.count / maxCount * 100) + '%' : '5%';
         const percentage = scores.length > 0 ? (bin.count / scores.length * 100).toFixed(1) : 0;
         
         html += `
             <div style="flex: 1; display: flex; flex-direction: column; align-items: center; height: 100%;">
-                <div style="width: 80%; background: ${percentage > 50 ? '#3498db' : '#f39c12'}; 
+                <div style="width: 70%; background: ${percentage > 50 ? '#3498db' : 
+                                                      percentage > 25 ? '#f39c12' : '#e74c3c'}; 
                       height: ${height}; border-radius: 5px 5px 0 0; position: relative;"
                       title="${bin.range} баллов: ${bin.count} учащихся (${percentage}%)">
+                    <div style="position: absolute; top: -20px; left: 0; right: 0; text-align: center; 
+                          font-size: 10px; font-weight: bold;">
+                        ${bin.count}
+                    </div>
                 </div>
                 <div style="margin-top: 5px; font-size: 10px; text-align: center;">
-                    ${bin.range}<br>
-                    <strong>${bin.count}</strong>
+                    ${bin.range}
                 </div>
             </div>
         `;
@@ -3425,7 +3765,7 @@ function renderTaskScoreDistribution(taskIndex) {
     html += `
         </div>
         <div style="text-align: center; margin-top: 10px; font-size: 11px; color: #666;">
-            Всего выполнено: ${scores.length} из ${appData.students.length} учащихся
+            Макс. балл: ${maxScore} | Средний: ${(scores.reduce((a, b) => a + b, 0) / scores.length).toFixed(2)}
         </div>
     `;
     
@@ -3491,19 +3831,56 @@ function renderTaskRecommendations(taskAnalysis) {
 }
 
 function showStudentDetails(studentIndex) {
-    const student = appData.students[studentIndex];
-    const analysis = window.currentAnalysis || {};
-    const studentAnalysis = analysis.byStudent?.find(s => s.index === studentIndex);
+    console.log('👤 Детальный анализ студента с индексом:', studentIndex);
     
-    if (!student) {
+    // Проверяем, что индекс корректен
+    if (!appData.students || studentIndex < 0 || studentIndex >= appData.students.length) {
         showNotification('Учащийся не найден', 'error');
         return;
     }
     
+    const student = appData.students[studentIndex];
+    
+    // Обрабатываем разные форматы данных о студенте
+    let studentName = '';
+    let lastName = '';
+    let firstName = '';
+    let studentLogin = '';
+    let studentGroup = '';
+    
+    if (typeof student === 'string') {
+        // Если студент представлен как строка "Фамилия Имя"
+        studentName = student;
+        const nameParts = student.split(' ');
+        lastName = nameParts[0] || '';
+        firstName = nameParts[1] || '';
+    } else if (typeof student === 'object') {
+        // Если студент представлен как объект
+        studentName = student.name || student.fullName || '';
+        lastName = student.lastName || student.surname || '';
+        firstName = student.firstName || '';
+        studentLogin = student.login || '';
+        studentGroup = student.group || student.class || '';
+        
+        // Если имя не задано, но есть фамилия и имя
+        if (!studentName && (lastName || firstName)) {
+            studentName = `${lastName} ${firstName}`.trim();
+        }
+    }
+    
+    // Если все равно нет имени, создаем общее
+    if (!studentName.trim()) {
+        studentName = `Учащийся ${studentIndex + 1}`;
+    }
+    
+    // Получаем анализ студента
+    const analysis = window.currentAnalysis || {};
+    const studentAnalysis = analysis.byStudent?.find(s => s.index === studentIndex);
+    
     let html = `
         <div style="max-width: 900px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                <h3 style="margin: 0;">👤 Детальный анализ: ${student.lastName} ${student.firstName}</h3>
+                <h3 style="margin: 0;">👤 Детальный анализ: ${studentName}</h3>
                 <div>
                     <button class="btn btn-sm btn-outline" onclick="generateStudentReport(${studentIndex})">
                         📄 Отчет
@@ -3520,14 +3897,24 @@ function showStudentDetails(studentIndex) {
                     <div>
                         <h4 style="margin-top: 0;">📋 Информация об учащемся</h4>
                         <div style="margin-bottom: 10px;">
-                            <strong>ФИО:</strong> ${student.lastName} ${student.firstName}
+                            <strong>ФИО:</strong> ${studentName}
                         </div>
-                        <div style="margin-bottom: 10px;">
-                            <strong>Логин:</strong> ${student.login || 'Не указан'}
-                        </div>
-                        <div style="margin-bottom: 10px;">
-                            <strong>Группа:</strong> ${student.group || 'Не указана'}
-                        </div>
+                        ${lastName || firstName ? `
+                            <div style="margin-bottom: 10px;">
+                                <strong>Фамилия:</strong> ${lastName || 'Не указана'}<br>
+                                <strong>Имя:</strong> ${firstName || 'Не указано'}
+                            </div>
+                        ` : ''}
+                        ${studentLogin ? `
+                            <div style="margin-bottom: 10px;">
+                                <strong>Логин:</strong> ${studentLogin}
+                            </div>
+                        ` : ''}
+                        ${studentGroup ? `
+                            <div style="margin-bottom: 10px;">
+                                <strong>Группа/Класс:</strong> ${studentGroup}
+                            </div>
+                        ` : ''}
                         ${student.notes ? `
                             <div style="margin-top: 15px;">
                                 <strong>Заметки:</strong><br>
@@ -3642,46 +4029,67 @@ function showStudentDetails(studentIndex) {
 }
 
 function renderStudentTaskDetails(studentIndex, studentAnalysis) {
-    const student = appData.students[studentIndex];
-    const studentId = student.id;
-    const results = appData.results[studentId] || {};
+    console.log('📝 Рендеринг деталей заданий для студента:', studentIndex);
+    
+    if (!appData.tasks || appData.tasks.length === 0) {
+        return '<tr><td colspan="8" style="text-align: center; color: #666;">Нет заданий</td></tr>';
+    }
     
     let html = '';
     
     appData.tasks.forEach((task, taskIndex) => {
         const taskId = task.id || taskIndex;
-        const score = parseFloat(results[taskId]) || 0;
         const maxScore = task.maxScore || 1;
+        
+        // Получаем результат студента
+        const results = appData.results[studentIndex] || [];
+        let score = 0;
+        let hasResult = false;
+        
+        if (results.length > taskIndex) {
+            const resultValue = results[taskIndex];
+            if (resultValue !== undefined && resultValue !== '') {
+                score = parseFloat(resultValue) || 0;
+                hasResult = true;
+            }
+        }
+        
         const percentage = maxScore > 0 ? (score / maxScore * 100) : 0;
         
         // Получаем групповой процент для этого задания
         const taskAnalysis = window.currentAnalysis?.byTask?.[taskIndex];
-        const groupPercentage = taskAnalysis ? parseFloat(taskAnalysis.percentage) : 0;
-        const deviation = percentage - groupPercentage;
+        const groupPercentage = taskAnalysis ? parseFloat(taskAnalysis.percentage) || 0 : 0;
+        const deviation = hasResult ? (percentage - groupPercentage) : 0;
         
         // Определяем цвет в зависимости от отклонения
-        let deviationColor = '#666';
-        let deviationIcon = '';
+        let deviationColor = '#999';
+        let deviationIcon = '−';
+        let deviationText = '−';
         
-        if (results[taskId] === undefined) {
+        if (!hasResult) {
             deviationColor = '#999';
             deviationIcon = '−';
+            deviationText = '−';
         } else if (deviation > 20) {
             deviationColor = '#27ae60';
             deviationIcon = '↑';
+            deviationText = `+${deviation.toFixed(1)}`;
         } else if (deviation > 0) {
             deviationColor = '#3498db';
             deviationIcon = '↗';
+            deviationText = `+${deviation.toFixed(1)}`;
         } else if (deviation > -20) {
             deviationColor = '#f39c12';
             deviationIcon = '↘';
+            deviationText = `${deviation.toFixed(1)}`;
         } else {
             deviationColor = '#e74c3c';
             deviationIcon = '↓';
+            deviationText = `${deviation.toFixed(1)}`;
         }
         
         html += `
-            <tr style="${results[taskId] === undefined ? 'opacity: 0.6;' : ''}">
+            <tr style="${!hasResult ? 'opacity: 0.6; background: #f8f9fa;' : ''}">
                 <td style="padding: 8px; text-align: center; font-weight: bold;">${taskIndex + 1}</td>
                 <td style="padding: 8px;">
                     ${task.description ? 
@@ -3690,21 +4098,21 @@ function renderStudentTaskDetails(studentIndex, studentAnalysis) {
                 </td>
                 <td style="padding: 8px; text-align: center; font-weight: bold; 
                     color: ${score === maxScore ? '#27ae60' : score > 0 ? '#f39c12' : '#e74c3c'}">
-                    ${score}
+                    ${hasResult ? score : '−'}
                 </td>
                 <td style="padding: 8px; text-align: center;">${maxScore}</td>
                 <td style="padding: 8px; text-align: center; font-weight: bold; color: ${getPercentageColor(percentage)}">
-                    ${percentage.toFixed(1)}%
+                    ${hasResult ? percentage.toFixed(1) + '%' : '−'}
                 </td>
                 <td style="padding: 8px; text-align: center;">
                     <span style="padding: 3px 8px; background: ${complexityLevels[task.level]?.color || '#95a5a6'}; 
                           color: white; border-radius: 10px; font-size: 11px;">
-                        ${task.level}
+                        ${task.level || '?'}
                     </span>
                 </td>
                 <td style="padding: 8px; text-align: center;">${groupPercentage.toFixed(1)}%</td>
                 <td style="padding: 8px; text-align: center; color: ${deviationColor}; font-weight: bold;">
-                    ${deviationIcon} ${results[taskId] !== undefined ? deviation.toFixed(1) : '−'}%
+                    ${hasResult ? `${deviationIcon} ${deviationText}%` : '−'}
                 </td>
             </tr>
         `;
