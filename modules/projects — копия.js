@@ -40,22 +40,35 @@ class ProjectManager {
             await this.loadProjects();
             
             // Загружаем последнюю активную работу
-            await this.loadLastActiveProject();
+            const lastActiveProject = await this.loadLastActiveProject();
             
-			// Добавьте эти методы в конструктор:
-			this.initUI = function() {
-				console.log('ℹ️ UI will be initialized by ProjectsUI');
-			};
-			
-			this.initAutoSave = function() {
-				console.log('ℹ️ Auto-save will be initialized by AutoSaveManager');
-			};
-			
-			this.loadTemplates = async function() {
-				console.log('ℹ️ Loading templates...');
-				this.templates = [];
-				return [];
-			};
+            if (lastActiveProject) {
+                // Открываем последнюю активную работу
+                await this.openProject(lastActiveProject.id);
+            } else if (this.projects.length > 0) {
+                // Если нет последней активной, открываем первую
+                await this.openProject(this.projects[0].id);
+            } else {
+                // Если вообще нет проектов, создаем новый
+                const newProject = this.createNewProject({
+                    name: 'Пример работы',
+                    type: 'current',
+                    subject: 'Математика',
+                    class: '5А',
+                    theme: 'Введение в дроби'
+                });
+                
+                await this.openProject(newProject.id);
+            }
+            
+            // Инициализируем UI
+            this.initUI();
+            
+            // Запускаем автосохранение
+            this.initAutoSave();
+            
+            // Загружаем шаблоны
+            await this.loadTemplates();
             
             this.isInitialized = true;
             console.log('✅ ProjectManager initialized');
@@ -68,11 +81,194 @@ class ProjectManager {
             this.showError('Ошибка загрузки проектов', error.message);
         }
     }
-	
-    initUI() {
-		// UI инициализируется в ProjectsUI
-		console.log('ℹ️ UI will be initialized by ProjectsUI');
+	function initAutoSave() {
+		// Автосохранение каждые 30 секунд
+		appState.autoSaveInterval = setInterval(() => {
+			if (appState.currentProjectId) {
+				autoSaveProject();
+			}
+		}, 30000);
+		
+		// Автосохранение при изменении данных
+		const saveTriggers = ['input', 'change', 'blur'];
+		saveTriggers.forEach(event => {
+			document.addEventListener(event, (e) => {
+				if (e.target.matches('.form-input, .form-select, .score-input, .form-textarea')) {
+					scheduleAutoSave();
+				}
+			});
+		});
+		
+		// Автосохранение при закрытии вкладки
+		window.addEventListener('beforeunload', () => {
+			if (appState.currentProjectId) {
+				saveProject(appState.currentProjectId);
+			}
+		});
+	}	
+	// Обновляем метод initUI (если он существует) или добавляем его
+	initUI() {
+		console.log('🎨 Initializing ProjectManager UI...');
+		
+		try {
+			// Проверяем, инициализирован ли projectsUI
+			if (typeof projectsUI !== 'undefined' && projectsUI) {
+				if (typeof projectsUI.init === 'function') {
+					projectsUI.init();
+				} else {
+					console.log('ℹ️ projectsUI.init not available');
+				}
+			} else {
+				console.log('⚠️ projectsUI not defined, UI will be initialized later');
+			}
+			
+		} catch (error) {
+			console.error('❌ Failed to initialize UI:', error);
+		}
 	}
+	
+	// В класс ProjectManager добавляем метод updateUI
+	updateUI() {
+		console.log('🔄 Updating ProjectManager UI...');
+		
+		try {
+			// Проверяем, инициализирован ли UI
+			if (typeof projectsUI !== 'undefined' && projectsUI) {
+				// Обновляем список проектов
+				if (typeof projectsUI.renderProjectsList === 'function') {
+					projectsUI.renderProjectsList();
+				}
+				
+				// Обновляем информацию о текущем проекте
+				if (typeof projectsUI.updateCurrentProjectInfo === 'function') {
+					projectsUI.updateCurrentProjectInfo();
+				}
+				
+				// Обновляем статистику
+				if (typeof projectsUI.updateQuickStats === 'function') {
+					projectsUI.updateQuickStats();
+				}
+			} else {
+				// Если UI не инициализирован, просто логируем
+				console.log('ℹ️ ProjectsUI not available for update');
+			}
+			
+			// Также можно обновить другие UI компоненты при необходимости
+			this.updateTitle();
+			
+		} catch (error) {
+			console.error('❌ Failed to update UI:', error);
+		}
+	}
+
+	// Метод для обновления заголовка страницы
+	updateTitle() {
+		const project = this.getCurrentProject();
+		if (project) {
+			document.title = `${project.name} - Система анализа образовательных результатов`;
+		} else {
+			document.title = 'Система анализа образовательных результатов';
+		}
+	}
+	// В класс ProjectManager добавляем
+	clearLastActiveProject() {
+		localStorage.removeItem('lastActiveProject');
+		this.showNotification('✅ Сброшена последняя активная работа', 'info');
+	}
+
+	getLastActiveProjectInfo() {
+		const lastActiveId = localStorage.getItem('lastActiveProject');
+		if (!lastActiveId) {
+			return {
+				exists: false,
+				message: 'Нет последней активной работы'
+			};
+		}
+		
+		const project = this.getProject(lastActiveId);
+		if (!project) {
+			localStorage.removeItem('lastActiveProject');
+			return {
+				exists: false,
+				message: 'Проект не найден, запись очищена'
+			};
+		}
+		
+		return {
+			exists: true,
+			project: project,
+			id: lastActiveId,
+			name: project.name,
+			lastOpened: project.lastOpened,
+			daysSinceLastOpened: Math.floor((Date.now() - new Date(project.lastOpened || project.updatedAt).getTime()) / (1000 * 60 * 60 * 24))
+		};
+	}
+  
+	// В класс ProjectManager добавляем
+	async deleteProject(projectId, confirm = true) {
+		const project = this.getProject(projectId);
+		if (!project) return false;
+		
+		if (confirm) {
+			const confirmed = await this.showConfirmDialog(
+				'Удалить работу?',
+				`Вы уверены, что хотите удалить работу "${project.name}"? Это действие нельзя отменить.`,
+				'Удалить',
+				'Отмена'
+			);
+			
+			if (!confirmed) return false;
+		}
+		
+		// Если удаляем последнюю активную работу, очищаем запись
+		const lastActiveId = localStorage.getItem('lastActiveProject');
+		if (lastActiveId === projectId) {
+			localStorage.removeItem('lastActiveProject');
+		}
+		
+		// Удаляем проект
+		const index = this.projects.findIndex(p => p.id === projectId);
+		if (index !== -1) {
+			this.projects.splice(index, 1);
+		}
+		
+		// Удаляем из недавних
+		this.recentProjects = this.recentProjects.filter(id => id !== projectId);
+		
+		// Если удаляем текущий проект, открываем другой
+		if (this.currentProjectId === projectId) {
+			this.currentProjectId = null;
+			
+			// Открываем последний проект или создаем новый
+			if (this.projects.length > 0) {
+				// Пытаемся найти другую неархивированную работу
+				const otherProject = this.projects.find(p => p.id !== projectId && p.status !== 'archived');
+				if (otherProject) {
+					await this.openProject(otherProject.id);
+				} else if (this.projects.length > 0) {
+					await this.openProject(this.projects[0].id);
+				} else {
+					// Создаем новый пустой проект
+					this.createNewProject();
+				}
+			} else {
+				// Создаем новый пустой проект
+				this.createNewProject();
+			}
+		}
+		
+		// Сохраняем изменения
+		await this.saveProjects();
+		
+		// Отправляем событие
+		this.triggerEvent('projectDeleted', { projectId });
+		
+		// Показываем уведомление
+		this.showNotification(`🗑️ Работа "${project.name}" удалена`, 'info');
+		
+		return true;
+	}
+  
     // СОЗДАНИЕ ПРОЕКТОВ
     
     createNewProject(options = {}) {
@@ -125,89 +321,7 @@ class ProjectManager {
             return [];
         }
     }
-  
-    // ЗАГРУЗКА ПОСЛЕДНЕЙ АКТИВНОЙ РАБОТЫ
-	async loadLastActiveProject() {
-		try {
-			console.log('🔍 Loading last active project...');
-			
-			// Пытаемся загрузить из localStorage
-			const lastActiveId = localStorage.getItem('lastActiveProject');
-			
-			if (lastActiveId) {
-				// Проверяем, существует ли проект с таким ID
-				const project = this.getProject(lastActiveId);
-				
-				if (project) {
-					console.log(`📂 Found last active project: ${project.name} (${project.id})`);
-					
-					// Проверяем, не слишком ли старый проект
-					const lastOpened = project.lastOpened ? new Date(project.lastOpened) : new Date(project.updatedAt);
-					const daysSinceLastOpened = (Date.now() - lastOpened.getTime()) / (1000 * 60 * 60 * 24);
-					
-					if (daysSinceLastOpened > 30) { // Больше 30 дней назад
-						console.log('📅 Project is too old, not opening automatically');
-						return null;
-					}
-					
-					// Обновляем время последнего открытия
-					project.lastOpened = new Date().toISOString();
-					
-					// Сохраняем изменения
-					await this.saveProjects();
-					
-					return project;
-				} else {
-					console.log(`❌ Last active project not found (ID: ${lastActiveId})`);
-					localStorage.removeItem('lastActiveProject');
-				}
-			}
-			
-			// Если нет последней активной работы, пробуем найти недавно измененную
-			if (this.projects.length > 0) {
-				const recentProjects = this.projects
-					.filter(p => p.status !== 'archived')
-					.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
-				
-				if (recentProjects.length > 0) {
-					const recentProject = recentProjects[0];
-					console.log(`📅 Opening most recent project: ${recentProject.name}`);
-					
-					// Обновляем время последнего открытия
-					recentProject.lastOpened = new Date().toISOString();
-					localStorage.setItem('lastActiveProject', recentProject.id);
-					
-					return recentProject;
-				}
-			}
-			
-			console.log('ℹ️ No projects found to open');
-			return null;
-			
-		} catch (error) {
-			console.error('❌ Failed to load last active project:', error);
-			return null;
-		}
-	}
-	
-	// И добавляем метод updateUI (вызывается в openProject):
-	updateUI() {
-		// Обновляем UI проектов
-		if (window.projectsUI && typeof window.projectsUI.renderProjectsList === 'function') {
-			window.projectsUI.renderProjectsList();
-		}
-		
-		// Обновляем текущий проект в UI
-		if (window.projectsUI && typeof window.projectsUI.updateCurrentProjectInfo === 'function') {
-			window.projectsUI.updateCurrentProjectInfo();
-		}
-		
-		// Обновляем основное приложение
-		if (typeof updateAllTabs === 'function') {
-			setTimeout(updateAllTabs, 50);
-		}
-	}
-  
+    
     async saveProjects() {
         try {
             await ProjectStorage.saveProjects({
@@ -249,6 +363,9 @@ class ProjectManager {
         this.currentProjectId = projectId;
         project.lastOpened = new Date().toISOString();
         
+        // Сохраняем как последнюю активную работу
+        localStorage.setItem('lastActiveProject', projectId);
+        
         // Добавляем в недавние
         this.addToRecent(projectId);
         
@@ -270,96 +387,119 @@ class ProjectManager {
         
         return project;
     }
+
+    // ЗАГРУЗКА ПОСЛЕДНЕЙ АКТИВНОЙ РАБОТЫ
+    async loadLastActiveProject() {
+        try {
+            console.log('🔍 Loading last active project...');
+            
+            // Пытаемся загрузить из localStorage
+            const lastActiveId = localStorage.getItem('lastActiveProject');
+            
+            if (lastActiveId) {
+                // Проверяем, существует ли проект с таким ID
+                const project = this.getProject(lastActiveId);
+                
+                if (project) {
+                    console.log(`📂 Found last active project: ${project.name} (${project.id})`);
+                    
+                    // Проверяем, не слишком ли старый проект
+                    const lastOpened = project.lastOpened ? new Date(project.lastOpened) : new Date(project.updatedAt);
+                    const daysSinceLastOpened = (Date.now() - lastOpened.getTime()) / (1000 * 60 * 60 * 24);
+                    
+                    if (daysSinceLastOpened > 30) { // Больше 30 дней назад
+                        console.log('📅 Project is too old, not opening automatically');
+                        return null;
+                    }
+                    
+                    // Обновляем время последнего открытия
+                    project.lastOpened = new Date().toISOString();
+                    
+                    // Сохраняем изменения
+                    await this.saveProjects();
+                    
+                    return project;
+                } else {
+                    console.log(`❌ Last active project not found (ID: ${lastActiveId})`);
+                    localStorage.removeItem('lastActiveProject');
+                }
+            }
+            
+            // Если нет последней активной работы, пробуем найти недавно измененную
+            if (this.projects.length > 0) {
+                const recentProjects = this.projects
+                    .filter(p => p.status !== 'archived')
+                    .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+                
+                if (recentProjects.length > 0) {
+                    const recentProject = recentProjects[0];
+                    console.log(`📅 Opening most recent project: ${recentProject.name}`);
+                    
+                    // Обновляем время последнего открытия
+                    recentProject.lastOpened = new Date().toISOString();
+                    localStorage.setItem('lastActiveProject', recentProject.id);
+                    
+                    return recentProject;
+                }
+            }
+            
+            console.log('ℹ️ No projects found to open');
+            return null;
+            
+        } catch (error) {
+            console.error('❌ Failed to load last active project:', error);
+            return null;
+        }
+    }
     
-	async loadProjectData(project) {
-		console.log('📥 Loading project data into appData...', project);
-		
-		return new Promise((resolve) => {
-			try {
-				// СОХРАНЯЕМ существующую структуру appData, только заменяем данные
-				// Но обновляем appData.test полностью из настроек проекта
-				appData.test = {
-					...appData.test, // Сохраняем структуру по умолчанию
-					...(project.settings || {}) // Перезаписываем данными проекта
-				};
-				
-				// Копируем массивы
-				appData.tasks = Array.isArray(project.tasks) ? [...project.tasks] : [];
-				appData.students = Array.isArray(project.students) ? [...project.students] : [];
-				
-				// ВАЖНО: results должен быть ОБЪЕКТОМ в appData, не массивом!
-				// Потому что вся система использует объектную структуру { studentId: { taskId: score } }
-				if (project.results && typeof project.results === 'object') {
-					appData.results = { ...project.results };
-				} else {
-					appData.results = {};
-				}
-				
-				appData.errors = project.errors && typeof project.errors === 'object' ? { ...project.errors } : {};
-				appData.psychologyFeatures = Array.isArray(project.psychologyFeatures) ? [...project.psychologyFeatures] : [];
-				
-				console.log('✅ Project data loaded:', {
-					tasks: appData.tasks.length,
-					students: appData.students.length,
-					resultsKeys: Object.keys(appData.results).length,
-					test: appData.test
-				});
-				
-				// Обновляем все вкладки
-				if (typeof updateAllTabs === 'function') {
-					setTimeout(() => {
-						updateAllTabs();
-						resolve();
-					}, 100);
-				} else {
-					resolve();
-				}
-				
-			} catch (error) {
-				console.error('❌ Failed to load project data:', error);
-				resolve();
-			}
-		});
-	}
-	
-	async saveCurrentProject() {
-		if (!this.currentProjectId) return;
-		
-		const project = this.getProject(this.currentProjectId);
-		if (!project) return;
-		
-		// Сохраняем текущие данные в проект
-		project.tasks = [...appData.tasks];
-		project.students = [...appData.students];
-		
-		// ИСПРАВЛЯЕМ: преобразуем массив results обратно в объект для хранения
-		const resultsObj = {};
-		if (Array.isArray(appData.results)) {
-			appData.results.forEach(result => {
-				if (result.studentId) {
-					const { studentId, ...rest } = result;
-					resultsObj[studentId] = rest;
-				}
-			});
-		}
-		project.results = resultsObj;
-		
-		project.errors = { ...appData.errors };
-		project.settings = { ...appData.test };
-		project.psychologyFeatures = [...appData.psychologyFeatures];
-		
-		// Обновляем статистику
-		project.stats = this.calculateProjectStats(project);
-		project.updatedAt = new Date().toISOString();
-		
-		// Сохраняем
-		await this.saveProjects();
-		
-		// Отправляем событие
-		this.triggerEvent('projectSaved', { project });
-		
-		return project;
-	}
+    async loadProjectData(project) {
+        return new Promise((resolve) => {
+            // Загружаем данные в глобальное состояние
+            appData.tasks = project.tasks || [];
+            appData.students = project.students || [];
+            appData.results = project.results || {};
+            appData.errors = project.errors || {};
+            appData.test = project.settings || {};
+            appData.psychologyFeatures = project.psychologyFeatures || [];
+            
+            // Обновляем все вкладки
+            if (typeof updateAllTabs === 'function') {
+                setTimeout(() => {
+                    updateAllTabs();
+                    resolve();
+                }, 100);
+            } else {
+                resolve();
+            }
+        });
+    }
+    
+    async saveCurrentProject() {
+        if (!this.currentProjectId) return;
+        
+        const project = this.getProject(this.currentProjectId);
+        if (!project) return;
+        
+        // Сохраняем текущие данные в проект
+        project.tasks = [...appData.tasks];
+        project.students = [...appData.students];
+        project.results = { ...appData.results };
+        project.errors = { ...appData.errors };
+        project.settings = { ...appData.test };
+        project.psychologyFeatures = [...appData.psychologyFeatures];
+        
+        // Обновляем статистику
+        project.stats = this.calculateProjectStats(project);
+        project.updatedAt = new Date().toISOString();
+        
+        // Сохраняем
+        await this.saveProjects();
+        
+        // Отправляем событие
+        this.triggerEvent('projectSaved', { project });
+        
+        return project;
+    }
     
     // ПОИСК И ФИЛЬТРАЦИЯ
     
@@ -948,8 +1088,6 @@ class Project {
             visibleColumns: []
         };
     }
-	
-
     
     // Геттеры для удобства
     get displayName() {
@@ -1020,4 +1158,27 @@ window.projectManager = new ProjectManager();
 // Экспортируем для использования в других модулях
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = { ProjectManager, Project };
+}
+
+console.log('📦 ProjectManager class loaded');
+
+// Простая функция уведомления для использования до загрузки основной системы
+if (typeof showNotification === 'undefined') {
+    window.showNotification = function(message, type = 'info') {
+        console.log(`${type}: ${message}`);
+    };
+}
+
+// Простая функция модального окна
+if (typeof showModal === 'undefined') {
+    window.showModal = function(title, content, size = 'medium') {
+        console.log(`Modal: ${title}`, content);
+        alert(`${title}\n\n${content}`);
+    };
+}
+
+if (typeof closeModal === 'undefined') {
+    window.closeModal = function() {
+        console.log('Modal closed');
+    };
 }

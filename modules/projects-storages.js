@@ -6,7 +6,7 @@ class ProjectStorage {
     
     // IndexedDB для больших проектов
     static DB_NAME = 'EducationAnalyticsDB';
-    static DB_VERSION = 3;
+    static DB_VERSION = 2;
     static STORE_NAME = 'projects';
     
     // Проверяем поддержку IndexedDB
@@ -53,7 +53,43 @@ class ProjectStorage {
 			}
 		}
 	}
-
+	// УПРОЩЕННЫЙ МЕТОД СОХРАНЕНИЯ проектов
+	static async saveProjects(data) {
+		console.log('💾 Saving projects...');
+		
+		try {
+			// Сохраняем в localStorage (основное хранилище)
+			this.saveToLocalStorage(data);
+			
+			// Пробуем сохранить в IndexedDB, но не критично если не получится
+			if (this.supportsIndexedDB) {
+				try {
+					await this.saveToIndexedDB(data);
+					console.log('✅ Saved to both localStorage and IndexedDB');
+				} catch (indexedDBError) {
+					console.warn('⚠️ Failed to save to IndexedDB, using localStorage only:', indexedDBError);
+					console.log('✅ Saved to localStorage only');
+				}
+			} else {
+				console.log('✅ Saved to localStorage (IndexedDB not supported)');
+			}
+			
+			return true;
+			
+		} catch (error) {
+			console.error('❌ Failed to save projects:', error);
+			
+			// Fallback: пробуем сохранить хотя бы в localStorage
+			try {
+				this.saveToLocalStorage(data);
+				console.log('✅ Saved to localStorage as fallback');
+				return true;
+			} catch (fallbackError) {
+				console.error('❌ Fallback save failed:', fallbackError);
+				throw error;
+			}
+		}
+	}
 		
 	static async loadProjects() {
 		console.log('📂 Loading projects...');
@@ -155,76 +191,59 @@ class ProjectStorage {
 				return;
 			}
 			
-			// Пробуем открыть базу данных с текущей версией
-			const openRequest = indexedDB.open(this.DB_NAME);
+			const request = indexedDB.open(this.DB_NAME, this.DB_VERSION);
 			
-			openRequest.onerror = (event) => {
+			request.onerror = (event) => {
 				console.error('IndexedDB open error:', event.target.error);
-				resolve(false);
+				resolve(false); // Не отклоняем, просто возвращаем false
 			};
 			
-			openRequest.onsuccess = (event) => {
+			request.onsuccess = (event) => {
 				const db = event.target.result;
-				const currentVersion = db.version;
-				db.close();
 				
-				// Используем текущую версию + 1 для обновления
-				const version = Math.max(currentVersion, this.DB_VERSION) + 1;
-				
-				const request = indexedDB.open(this.DB_NAME, version);
-				
-				request.onerror = (event) => {
-					console.error('IndexedDB version open error:', event.target.error);
-					resolve(false);
-				};
-				
-				request.onsuccess = (event) => {
-					const db = event.target.result;
+				try {
+					// Проверяем существование store
+					if (!db.objectStoreNames.contains(this.STORE_NAME)) {
+						console.log('Creating object store...');
+						
+						// Закрываем и открываем снова для обновления версии
+						db.close();
+						this.createObjectStore()
+							.then(() => this.saveToIndexedDB(data))
+							.then(resolve)
+							.catch(reject);
+						return;
+					}
 					
-					try {
-						// Проверяем существование store
-						if (!db.objectStoreNames.contains(this.STORE_NAME)) {
-							console.log('Creating object store...');
-							
-							// Закрываем и открываем снова для обновления версии
-							db.close();
-							this.createObjectStore()
-								.then(() => this.saveToIndexedDB(data))
-								.then(resolve)
-								.catch(() => resolve(false));
-							return;
-						}
-						
-						const transaction = db.transaction([this.STORE_NAME], 'readwrite');
-						const store = transaction.objectStore(this.STORE_NAME);
-						
-						// Сохраняем данные
-						const projectsRequest = store.put(data.projects, 'projects');
-						const recentRequest = store.put(data.recentProjects, 'recent');
-						
-						transaction.oncomplete = () => {
-							db.close();
-							console.log('💾 Saved to IndexedDB');
-							resolve(true);
-						};
-						
-						transaction.onerror = (event) => {
-							console.error('Transaction error:', event.target.error);
-							db.close();
-							resolve(false);
-						};
-						
-					} catch (error) {
-						console.error('Error in IndexedDB operation:', error);
+					const transaction = db.transaction([this.STORE_NAME], 'readwrite');
+					const store = transaction.objectStore(this.STORE_NAME);
+					
+					// Сохраняем данные
+					const projectsRequest = store.put(data.projects, 'projects');
+					const recentRequest = store.put(data.recentProjects, 'recent');
+					
+					transaction.oncomplete = () => {
+						db.close();
+						console.log('💾 Saved to IndexedDB');
+						resolve(true);
+					};
+					
+					transaction.onerror = (event) => {
+						console.error('Transaction error:', event.target.error);
 						db.close();
 						resolve(false);
-					}
-				};
-				
-				request.onupgradeneeded = (event) => {
-					const db = event.target.result;
-					this.createObjectStoreInDB(db);
-				};
+					};
+					
+				} catch (error) {
+					console.error('Error in IndexedDB operation:', error);
+					db.close();
+					resolve(false);
+				}
+			};
+			
+			request.onupgradeneeded = (event) => {
+				const db = event.target.result;
+				this.createObjectStoreInDB(db);
 			};
 		});
 	}
@@ -240,38 +259,23 @@ class ProjectStorage {
 	// Создание store при необходимости
 	static async createObjectStore() {
 		return new Promise((resolve, reject) => {
-			// Нужно получить текущую версию базы данных
-			const request = indexedDB.open(this.DB_NAME);
+			const request = indexedDB.open(this.DB_NAME, this.DB_VERSION + 1);
 			
 			request.onerror = (event) => {
-				console.error('Failed to open database:', event.target.error);
+				console.error('Failed to create object store:', event.target.error);
 				reject(event.target.error);
 			};
 			
 			request.onsuccess = (event) => {
 				const db = event.target.result;
-				const currentVersion = db.version;
 				db.close();
-				
-				// Открываем с новой версией
-				const upgradeRequest = indexedDB.open(this.DB_NAME, currentVersion + 1);
-				
-				upgradeRequest.onerror = (event) => {
-					console.error('Failed to create object store:', event.target.error);
-					reject(event.target.error);
-				};
-				
-				upgradeRequest.onsuccess = (event) => {
-					const db = event.target.result;
-					db.close();
-					console.log('✅ Object store created');
-					resolve();
-				};
-				
-				upgradeRequest.onupgradeneeded = (event) => {
-					const db = event.target.result;
-					this.createObjectStoreInDB(db);
-				};
+				console.log('✅ Object store created');
+				resolve();
+			};
+			
+			request.onupgradeneeded = (event) => {
+				const db = event.target.result;
+				this.createObjectStoreInDB(db);
 			};
 		});
 	}
@@ -360,33 +364,42 @@ class ProjectStorage {
     
     // МИГРАЦИЯ ДАННЫХ
     
-	static migrateData(data) {
-		// Версия 1.0 → 2.0
-		if (data.projects && Array.isArray(data.projects)) {
-			data.projects = data.projects.map(project => {
-				// ... существующий код ...
-				
-				// ИСПРАВЛЯЕМ: убедимся, что results это объект для хранения
-				if (project.results && Array.isArray(project.results)) {
-					// Конвертируем массив в объект
-					const resultsObj = {};
-					project.results.forEach(result => {
-						if (result && result.studentId) {
-							const { studentId, ...rest } = result;
-							resultsObj[studentId] = rest;
-						}
-					});
-					project.results = resultsObj;
-				} else if (!project.results) {
-					project.results = {};
-				}
-				
-				return project;
-			});
-		}
-		
-		return data;
-	}
+    static migrateData(data) {
+        // Версия 1.0 → 2.0
+        if (data.projects && Array.isArray(data.projects)) {
+            data.projects = data.projects.map(project => {
+                // Добавляем отсутствующие поля
+                if (!project.id) {
+                    project.id = 'project_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+                }
+                
+                if (!project.createdAt) {
+                    project.createdAt = new Date().toISOString();
+                }
+                
+                if (!project.updatedAt) {
+                    project.updatedAt = project.createdAt;
+                }
+                
+                if (!project.status) {
+                    project.status = 'draft';
+                }
+                
+                if (!project.icon) {
+                    project.icon = '📊';
+                }
+                
+                if (!project.color) {
+                    const colors = ['#3498db', '#2ecc71', '#e74c3c', '#f39c12'];
+                    project.color = colors[Math.floor(Math.random() * colors.length)];
+                }
+                
+                return project;
+            });
+        }
+        
+        return data;
+    }
     
     // ОЧИСТКА
     
