@@ -44,13 +44,2705 @@
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/html-docx-js/0.3.1/html-docx.js"></script>
-	<link rel="stylesheet" href="css/analysis-styles.css">
+	
+	<link rel="stylesheet" href="/css/analysis-styles.css">
 	<script src="modules/new-year-countdown.js" defer></script>
-	<link href="css/main.css">
+    <style>
+	    /* Стили для сайдбара */
+		.projects-sidebar {
+			position: fixed;
+			left: 0;
+			top: 0;
+			bottom: 0;
+			width: 280px;
+			background: #2c3e50;
+			color: white;
+			z-index: 1000;
+			box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+			transition: transform 0.3s ease;
+			overflow-y: auto;
+		}
+		
+		.main-content {
+			margin-left: 280px;
+			transition: margin-left 0.3s ease;
+		}
+		
+		.sidebar-collapsed .projects-sidebar {
+			transform: translateX(-280px);
+		}
+		
+		.sidebar-collapsed .main-content {
+			margin-left: 0;
+		}
+		
+		.project-item {
+			display: flex;
+			align-items: center;
+			gap: 10px;
+			padding: 12px 15px;
+			cursor: pointer;
+			border-bottom: 1px solid rgba(255,255,255,0.1);
+			transition: all 0.3s;
+		}
+		
+		.project-item:hover {
+			background: rgba(255,255,255,0.1);
+		}
+		
+		.project-item.active {
+			background: #3498db;
+		}
+		
+		.project-icon {
+			font-size: 20px;
+			width: 30px;
+			text-align: center;
+		}
+		
+		.project-info {
+			flex: 1;
+			overflow: hidden;
+		}
+		
+		.project-name {
+			font-weight: bold;
+			white-space: nowrap;
+			overflow: hidden;
+			text-overflow: ellipsis;
+		}
+		
+		.project-meta {
+			font-size: 11px;
+			opacity: 0.8;
+		}
+		
+		.project-status {
+			display: inline-block;
+			padding: 2px 6px;
+			border-radius: 10px;
+			font-size: 10px;
+			margin-left: 5px;
+		}
+		
+		.status-draft { background: #f39c12; color: white; }
+		.status-active { background: #2ecc71; color: white; }
+		.status-completed { background: #3498db; color: white; }
+		/* Адаптация основного контейнера */
+		.container {
+			transition: margin-left 0.3s ease;
+		}
+		
+		/* Уведомления */
+		.save-notification {
+			position: fixed;
+			bottom: 20px;
+			right: 20px;
+			background: #27ae60;
+			color: white;
+			padding: 12px 20px;
+			border-radius: 8px;
+			box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+			z-index: 10000;
+			animation: slideInRight 0.3s ease;
+		}
+		
+		@keyframes slideInRight {
+			from { transform: translateX(100%); opacity: 0; }
+			to { transform: translateX(0); opacity: 1; }
+		}
+		
+		/* Контекстное меню */
+		.context-menu {
+			animation: fadeIn 0.2s ease;
+		}
+		
+		/* Панель управления проектами */
+		.projects-manager-modal {
+			max-width: 1200px;
+		}
+		
+		/* Адаптивность */
+		@media (max-width: 768px) {
+			.projects-sidebar {
+				width: 100% !important;
+			}
+			
+			.container {
+				margin-left: 0 !important;
+			}
+		}
+		.header-controls {
+			z-index: 100;
+		}
+		
+		.project-controls {
+			display: flex;
+			gap: 10px;
+			background: rgba(255,255,255,0.1);
+			padding: 8px;
+			border-radius: 8px;
+			backdrop-filter: blur(10px);
+		}
+		
+		.project-controls .btn-icon {
+			background: rgba(255,255,255,0.2);
+			color: white;
+			border: none;
+			width: 36px;
+			height: 36px;
+			border-radius: 50%;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			cursor: pointer;
+			transition: all 0.3s;
+		}
+		
+		.project-controls .btn-icon:hover {
+			background: rgba(255,255,255,0.3);
+			transform: scale(1.1);
+		}	
+		/* Стили для новой вкладки настройки */
+		.setup-steps {
+			position: sticky;
+			top: 20px;
+		}
 
-	<style>
-		@import url('./css/main.css');
-	</style>
+		.step-nav {
+			display: flex;
+			flex-direction: column;
+			gap: 10px;
+		}
+
+		.step-item {
+			display: flex;
+			align-items: center;
+			gap: 15px;
+			padding: 15px;
+			border-radius: 8px;
+			cursor: pointer;
+			transition: all 0.3s;
+			opacity: 0.6;
+		}
+
+		.step-item.active {
+			background: rgba(255, 255, 255, 0.1);
+			opacity: 1;
+		}
+
+		.step-item:hover:not(.active) {
+			background: rgba(255, 255, 255, 0.05);
+			opacity: 0.8;
+		}
+
+		.step-icon {
+			width: 36px;
+			height: 36px;
+			background: #3498db;
+			border-radius: 50%;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			font-weight: bold;
+			font-size: 16px;
+		}
+
+		.step-info {
+			flex: 1;
+		}
+
+		.step-info strong {
+			display: block;
+			font-size: 14px;
+		}
+
+		.step-info small {
+			font-size: 12px;
+			opacity: 0.8;
+		}
+
+		.step-content {
+			display: none;
+			animation: fadeIn 0.3s ease;
+		}
+
+		.step-content.active {
+			display: block;
+		}
+
+		@keyframes fadeIn {
+			from { opacity: 0; transform: translateY(10px); }
+			to { opacity: 1; transform: translateY(0); }
+		}
+
+		/* Карточки оценок */
+		.grade-card {
+			background: white;
+			border: 2px solid #ddd;
+			border-radius: 10px;
+			padding: 15px;
+			text-align: center;
+			cursor: pointer;
+			transition: all 0.3s;
+		}
+
+		.grade-card:hover {
+			transform: translateY(-5px);
+			box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+			border-color: #3498db;
+		}
+
+		.grade-card.selected {
+			border-color: #2ecc71;
+			background: #f0fff4;
+		}
+
+		.grade-badge {
+			width: 50px;
+			height: 50px;
+			border-radius: 50%;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			color: white;
+			font-size: 20px;
+			font-weight: bold;
+			margin: 0 auto 10px;
+		}
+
+		.grade-range {
+			font-size: 18px;
+			font-weight: bold;
+			margin: 5px 0;
+		}
+
+		.grade-desc {
+			font-size: 12px;
+			color: #666;
+		}
+
+		/* Слайдер критериев */
+		.slider-track {
+			position: relative;
+			cursor: pointer;
+		}
+
+		.slider-handle {
+			position: absolute;
+			width: 20px;
+			height: 20px;
+			background: white;
+			border: 3px solid #2c3e50;
+			border-radius: 50%;
+			top: 50%;
+			transform: translateY(-50%);
+			cursor: ew-resize;
+			box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+			z-index: 10;
+		}
+
+		.slider-segment {
+			position: absolute;
+			top: 0;
+			height: 100%;
+			opacity: 0.7;
+			transition: all 0.3s;
+		}
+
+		.slider-segment:hover {
+			opacity: 1;
+		}
+
+		/* Таблица критериев */
+		.criteria-table {
+			width: 100%;
+			border-collapse: collapse;
+			font-size: 13px;
+		}
+
+		.criteria-table th,
+		.criteria-table td {
+			padding: 10px;
+			border: 1px solid #ddd;
+			text-align: center;
+		}
+
+		.criteria-table th {
+			background: #34495e;
+			color: white;
+		}
+
+		.criteria-table tr:hover {
+			background: #f5f5f5;
+		}
+
+		.color-picker {
+			width: 30px;
+			height: 30px;
+			border: none;
+			border-radius: 4px;
+			cursor: pointer;
+			padding: 0;
+		}
+
+		/* Адаптивность */
+		@media (max-width: 768px) {
+			.setup-board {
+				grid-template-columns: 1fr;
+			}
+			
+			.setup-steps {
+				position: static;
+				margin-bottom: 20px;
+			}
+			
+			.step-nav {
+				flex-direction: row;
+				overflow-x: auto;
+				padding-bottom: 10px;
+			}
+			
+			.step-item {
+				flex-direction: column;
+				text-align: center;
+				min-width: 100px;
+			}
+			
+			.step-info small {
+				display: none;
+			}
+			
+			.criteria-mode-switch {
+				display: flex;
+				flex-wrap: wrap;
+				gap: 5px;
+			}
+		}	
+		/* Анимации для горячих клавиш */
+		@keyframes fadeInOut {
+			0% { opacity: 0; transform: translateX(-50%) translateY(10px); }
+			15% { opacity: 1; transform: translateX(-50%) translateY(0); }
+			85% { opacity: 1; transform: translateX(-50%) translateY(0); }
+			100% { opacity: 0; transform: translateX(-50%) translateY(-10px); }
+		}
+
+		/* Стили для шаблонов отчетов */
+		.template-item {
+			transition: all 0.3s ease;
+			cursor: pointer;
+		}
+
+		.template-item:hover {
+			background: #e8f4fc !important;
+			transform: translateX(5px);
+		}
+
+		/* Индикаторы состояния */
+		.status-indicator {
+			padding: 2px 8px;
+			border-radius: 10px;
+			font-size: 11px;
+			font-weight: bold;
+		}
+
+		.status-saving { background: #fff3cd; color: #f39c12; }
+		.status-saved { background: #d4edda; color: #27ae60; }
+		.status-error { background: #f8d7da; color: #e74c3c; }
+		/* Стили для тура/обучения */
+		.tour-overlay {
+			position: fixed;
+			top: 0;
+			left: 0;
+			right: 0;
+			bottom: 0;
+			background: rgba(0, 0, 0, 0.7);
+			z-index: 10000;
+			display: none;
+		}
+
+		.tour-step {
+			position: absolute;
+			background: white;
+			border-radius: 12px;
+			padding: 20px;
+			max-width: 400px;
+			box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+			z-index: 10001;
+			animation: tourSlideIn 0.3s ease;
+		}
+
+		@keyframes tourSlideIn {
+			from { opacity: 0; transform: translateY(20px); }
+			to { opacity: 1; transform: translateY(0); }
+		}
+
+		.tour-step h3 {
+			margin-top: 0;
+			color: #2c3e50;
+		}
+
+		.tour-step p {
+			margin: 10px 0;
+			color: #34495e;
+		}
+
+		.tour-actions {
+			display: flex;
+			justify-content: space-between;
+			margin-top: 20px;
+		}
+
+		.tour-counter {
+			font-size: 0.9em;
+			color: #7f8c8d;
+			text-align: center;
+			margin-top: 10px;
+		}
+
+		.tour-highlight {
+			position: relative;
+			z-index: 10002 !important;
+			box-shadow: 0 0 0 4px #3498db, 0 0 20px rgba(52, 152, 219, 0.5) !important;
+			animation: pulse 1.5s infinite;
+		}
+
+		@keyframes pulse {
+			0% { box-shadow: 0 0 0 4px rgba(52, 152, 219, 0.5); }
+			50% { box-shadow: 0 0 0 8px rgba(52, 152, 219, 0.3); }
+			100% { box-shadow: 0 0 0 4px rgba(52, 152, 219, 0.5); }
+		}
+
+		.tour-start-btn {
+			position: fixed;
+			bottom: 20px;
+			right: 20px;
+			z-index: 9999;
+			background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+			color: white;
+			border: none;
+			border-radius: 50%;
+			width: 60px;
+			height: 60px;
+			font-size: 24px;
+			cursor: pointer;
+			box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+			transition: all 0.3s;
+		}
+
+		.tour-start-btn:hover {
+			transform: scale(1.1);
+			box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+		}	
+        /* Основные стили */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+		[data-theme="dark"] {
+		  --bg-primary: #1a1a2e;
+		  --bg-secondary: #16213e;
+		  --text-primary: #e6e6e6;
+		}
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        /* Шапка */
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            opacity: 0.9;
+            font-size: 1.1em;
+        }
+
+        /* Вкладки */
+        .tabs {
+            background: #34495e;
+            padding: 0;
+            display: flex;
+            flex-wrap: wrap;
+        }
+
+        .tab-btn {
+            background: none;
+            color: white;
+            border: none;
+            padding: 15px 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 13px;
+            flex: 1;
+            min-width: 140px;
+        }
+
+        .tab-btn:hover {
+            background: rgba(255,255,255,0.1);
+        }
+
+        .tab-btn.active {
+            background: #3498db;
+            box-shadow: inset 0 -3px 0 #2980b9;
+        }
+
+        .tab-content {
+            display: none;
+            padding: 25px;
+            min-height: 600px;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Прогресс бар */
+        .progress-container {
+            padding: 20px 30px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .progress-bar {
+            height: 8px;
+            background: #e9ecef;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 10px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4CAF50, #8BC34A);
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+
+        .progress-text {
+            font-size: 0.9em;
+            color: #666;
+            text-align: center;
+        }
+
+        /* Мастер настройки */
+        .setup-wizard {
+            padding: 30px;
+        }
+
+        .wizard-step {
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .wizard-step.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Шаги */
+        .step-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .step-number {
+            background: #667eea;
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1.2em;
+        }
+
+        .step-description {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 1.1em;
+        }
+
+        /* Карточки типов работ */
+        .worktype-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .worktype-card {
+            background: white;
+            border: 2px solid #e9ecef;
+            border-radius: 15px;
+            padding: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .worktype-card:hover {
+            border-color: #667eea;
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.2);
+        }
+
+        .worktype-card.selected {
+            border-color: #4CAF50;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        }
+
+        .worktype-icon {
+            font-size: 2.5em;
+            margin-bottom: 15px;
+        }
+
+        .worktype-card h3 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 1.2em;
+        }
+
+        .worktype-card p {
+            color: #666;
+            font-size: 0.9em;
+            margin-bottom: 15px;
+            line-height: 1.4;
+        }
+
+        .worktype-details {
+            display: flex;
+            gap: 15px;
+            color: #888;
+            font-size: 0.85em;
+        }
+
+        /* Карточки настроек */
+        .settings-card {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 25px;
+            border-left: 5px solid #667eea;
+            animation: slideIn 0.4s ease;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(-20px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        .card-title {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.3em;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* Формы */
+        .form-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        label.required::after {
+            content: " *";
+            color: #e74c3c;
+        }
+
+        .form-input, .form-select, .form-textarea {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            background: white;
+        }
+
+        .form-input:focus, .form-select:focus, .form-textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .form-textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .form-hint {
+            color: #666;
+            font-size: 0.85em;
+            margin-top: 5px;
+            display: block;
+        }
+
+        /* Кнопки */
+        .btn {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #4CAF50 0%, #8BC34A 100%);
+            color: white;
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+            color: white;
+        }
+
+        .btn-warning {
+            background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+            color: white;
+        }
+
+        .btn-outline {
+            background: white;
+            border: 2px solid #667eea;
+            color: #667eea;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        .btn-icon {
+            padding: 10px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+
+        .btn-icon:hover {
+            background: #5a6fd8;
+        }
+
+        /* Навигация шагов */
+        .step-navigation {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+        }
+
+        /* Карточка с информацией */
+        .info-card {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            border: 2px solid #e9ecef;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .info-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .info-label {
+            font-size: 0.9em;
+            color: #666;
+            margin-bottom: 5px;
+        }
+
+        .info-value {
+            font-weight: 600;
+            color: #333;
+        }
+
+        /* Статистика посещаемости */
+        .attendance-stats {
+            display: flex;
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            min-width: 120px;
+            border: 2px solid #e9ecef;
+        }
+
+        .stat-value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .stat-label {
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        /* Критерии */
+        .criteria-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .criteria-type-selector {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .criteria-presets {
+            background: white;
+            border-radius: 10px;
+            padding: 15px;
+            margin: 20px 0;
+        }
+
+        .preset-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .preset-btn {
+            padding: 8px 15px;
+            background: #f8f9fa;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 14px;
+        }
+
+        .preset-btn:hover {
+            border-color: #667eea;
+            background: #eef1ff;
+        }
+
+        .criteria-controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .recommendation-card {
+            background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 20px;
+        }
+
+        .recommendation-card ul {
+            margin: 10px 0 0 20px;
+        }
+
+        .recommendation-card li {
+            margin-bottom: 5px;
+            font-size: 0.9em;
+        }
+
+        /* Модальные окна */
+
+
+		.modal-actions {
+			display: flex;
+			gap: 10px;
+			justify-content: flex-end;
+			margin-top: 20px;
+		}
+		.modal-overlay.show {
+			display: flex;
+		}
+		.modal-overlay {
+			position: fixed;
+			top: 0;
+			left: 0;
+			right: 0;
+			bottom: 0;
+			background: rgba(0,0,0,0.5);
+			display: none;
+			justify-content: center;
+			align-items: center;
+			z-index: 2000;
+		}
+        .modal-content {
+			background: white;
+			padding: 30px;
+			border-radius: 15px;
+			max-width: 800px;
+			width: 700px;
+			max-height: 95vh;
+			overflow-y: auto;
+			animation: modalSlideIn 0.3s ease;
+			box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+			margin: 20px;
+		}
+
+		@keyframes modalSlideIn {
+			from { transform: translateY(-50px); opacity: 0; }
+			to { transform: translateY(0); opacity: 1; }
+		}
+		.modal-content.success {
+			text-align: center;
+		}
+
+		.modal-icon {
+			font-size: 4em;
+			margin-bottom: 20px;
+		}
+
+		.modal-actions {
+			display: flex;
+			gap: 10px;
+			justify-content: flex-end;
+			margin-top: 20px;
+		}
+
+        /* Критерии оценивания */
+        .criteria-grid {
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            border: 1px solid #e9ecef;
+            margin-bottom: 20px;
+        }
+
+        .criteria-row {
+            display: grid;
+            grid-template-columns: 150px 150px 1fr;
+            gap: 15px;
+            padding: 12px 15px;
+            border-bottom: 1px solid #f1f1f1;
+            align-items: center;
+        }
+
+        .criteria-row.header {
+            background: #f8f9fa;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .criteria-grade {
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .criteria-range {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .criteria-range input {
+            width: 70px;
+            padding: 6px 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        .criteria-range input:disabled {
+            background: #f5f5f5;
+            cursor: not-allowed;
+        }
+
+        .criteria-description input {
+            width: 100%;
+            padding: 6px 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        .grade-badge {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
+
+        .grade-5 { background: #4CAF50; }
+        .grade-4 { background: #8BC34A; }
+        .grade-3 { background: #FFC107; }
+        .grade-2 { background: #F44336; }
+        .level-high { background: #4CAF50; }
+        .level-medium { background: #FFC107; }
+        .level-low { background: #F44336; }
+
+        .criteria-action {
+            display: flex;
+            gap: 5px;
+        }
+
+        .btn-icon.small {
+            padding: 4px 8px;
+            font-size: 12px;
+        }
+
+        .btn-icon.small.danger {
+            background: #F44336;
+        }
+
+        .preview-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .preview-item {
+            background: white;
+            border-radius: 8px;
+            padding: 15px;
+            border: 2px solid #e9ecef;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .preview-item:hover {
+            border-color: #667eea;
+            transform: translateY(-2px);
+        }
+
+        .preview-grade {
+            font-size: 1.8em;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .preview-range {
+            color: #666;
+            font-size: 0.9em;
+            margin-bottom: 10px;
+        }
+
+        .preview-desc {
+            font-size: 0.85em;
+            color: #333;
+            line-height: 1.4;
+        }
+
+        .input-with-button {
+            display: flex;
+            gap: 10px;
+        }
+
+        .input-with-button input {
+            flex: 1;
+        }
+
+        .form-control-large {
+            padding: 12px;
+            font-size: 16px;
+            width: 100%;
+        }
+
+        /* Адаптивность */
+        @media (max-width: 768px) {
+            .worktype-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+            
+            .step-navigation {
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .btn {
+                width: 100%;
+            }
+            
+            .container {
+                border-radius: 10px;
+            }
+            
+            .header {
+                padding: 20px;
+            }
+            
+            .setup-wizard {
+                padding: 20px;
+            }
+            
+            .tabs {
+                flex-direction: column;
+            }
+            
+            .tab-btn {
+                min-width: 100%;
+                font-size: 12px;
+                padding: 12px 15px;
+            }
+            
+            .criteria-row {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+            
+            .preview-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Для очень маленьких экранов */
+        @media (max-width: 480px) {
+            .tab-btn {
+                padding: 10px 15px;
+                font-size: 14px;
+            }
+        }
+
+        /* Стили для элементов печати */
+        @media print {
+            .no-print {
+                display: none !important;
+            }
+            
+            .print-only {
+                display: block !important;
+            }
+            
+            .avoid-page-break {
+                page-break-inside: avoid;
+            }
+            
+            .force-page-break {
+                page-break-before: always;
+            }
+        }
+
+        /* Классы для управления печатью в основном интерфейсе */
+        .print-ignore {
+            display: none !important;
+        }
+
+        .print-chart {
+            max-width: 100%;
+            height: auto;
+        }
+
+        /* Основные стили для печати на странице отчета */
+        @media print {
+            @page {
+                margin: 15mm;
+            }
+            
+            body {
+                font-size: 12pt !important;
+                line-height: 1.5 !important;
+            }
+            
+            .no-print {
+                display: none !important;
+            }
+            
+            .print-break {
+                page-break-before: always;
+            }
+            
+            .avoid-break {
+                page-break-inside: avoid;
+            }
+        }
+
+        /* Уведомления */
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 20px;
+            border-radius: 8px;
+            color: white;
+            z-index: 10000;
+            transform: translateX(120%);
+            transition: transform 0.3s ease;
+            max-width: 400px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .notification.show {
+            transform: translateX(0);
+        }
+
+        .notification.info {
+            background: #3498db;
+        }
+
+        .notification.success {
+            background: #2ecc71;
+        }
+
+        .notification.warning {
+            background: #f39c12;
+        }
+
+        .notification.error {
+            background: #e74c3c;
+        }
+
+        /* Улучшенные стили для печати */
+        @media print {
+            /* Скрываем непечатаемые элементы */
+            .no-print, .tabs, .tab-btn, .btn, .search-box, 
+            input, select, textarea, .modal-overlay, .notification {
+                display: none !important;
+            }
+            
+            /* Базовые настройки страницы */
+            @page {
+                size: A4;
+                margin: 15mm;
+                orphans: 3;
+                widows: 3;
+            }
+            
+            /* Настройки для всех страниц */
+            body {
+                font-size: 12pt !important;
+                line-height: 1.4 !important;
+                color: black !important;
+                background: white !important;
+                padding: 0 !important;
+                margin: 0 !important;
+            }
+            
+            /* Контейнер для А4 */
+            .container {
+                width: 210mm !important;
+                max-width: 210mm !important;
+                min-height: 297mm !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                box-shadow: none !important;
+                border: none !important;
+                background: white !important;
+            }
+        }
+
+        .section-title {
+            color: #2c3e50;
+            margin: 20px 0 15px 0;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #3498db;
+            font-size: 1.3em;
+        }
+
+        /* Экспортные кнопки */
+        .export-buttons {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin: 15px 0;
+        }
+
+        /* Графики */
+        .chart-container {
+            background: white;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 8px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+            position: relative;
+        }
+
+        .chart-legend {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 12px;
+        }
+
+        .legend-color {
+            width: 15px;
+            height: 15px;
+            border-radius: 3px;
+        }
+
+        /* KPI карточки */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 15px;
+            margin: 15px 0;
+        }
+
+        .kpi-card {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+            border-left: 4px solid #3498db;
+        }
+
+        .kpi-card.success { border-left-color: #27ae60 !important; }
+        .kpi-card.warning { border-left-color: #f39c12 !important; }
+        .kpi-card.danger { border-left-color: #e74c3c !important; }
+
+        .kpi-card.success .kpi-value { color: #27ae60; }
+        .kpi-card.warning .kpi-value { color: #f39c12; }
+        .kpi-card.danger .kpi-value { color: #e74c3c; }
+
+        .kpi-value {
+            font-size: 1.6em;
+            font-weight: bold;
+            color: #2c3e50;
+            margin: 8px 0;
+        }
+
+        .kpi-label {
+            color: #7f8c8d;
+            font-size: 0.85em;
+        }
+
+        /* Таблицы */
+        .table-container {
+            overflow-x: auto;
+            margin: 15px 0;
+            font-size: 13px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            font-size: 13px;
+        }
+
+        th, td {
+            padding: 10px 12px;
+            text-align: left;
+            border-bottom: 1px solid #ecf0f1;
+        }
+
+        th {
+            background: #34495e;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        th:hover {
+            background: #2c3e50;
+        }
+
+        tr:nth-child(even) {
+            background: #f8f9fa;
+        }
+
+        tr:hover {
+            background: #e8f4fc;
+        }
+
+        /* Поиск */
+        .search-box {
+            width: 100%;
+            padding: 10px;
+            margin: 8px 0;
+            border: 2px solid #3498db;
+            border-radius: 20px;
+            font-size: 14px;
+        }
+
+        .print-only {
+            display: none;
+        }
+
+        .print-controls {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            border-left: 4px solid #3498db;
+        }
+
+        .btn-print {
+            background: #9b59b6;
+            color: white;
+        }
+
+        .btn-print:hover {
+            background: #8e44ad;
+        }
+		/* Стили для QR-кода */
+		.qr-code-container {
+			position: fixed;
+			top: 20px;
+			right: 20px;
+			z-index: 9999;
+		}
+		
+		.qr-code-tooltip {
+			position: relative;
+			background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+			color: white;
+			padding: 10px 15px;
+			border-radius: 8px;
+			font-size: 12px;
+			font-weight: bold;
+			box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+			cursor: help;
+			transition: all 0.3s;
+			text-align: center;
+		}
+		
+		.qr-code-tooltip:hover {
+			transform: scale(1.05);
+			box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+		}
+		
+		.qr-code-tooltip:hover .qr-code-image {
+			opacity: 1;
+			visibility: visible;
+			transform: translateY(0);
+		}
+		
+		.qr-code-image {
+			position: absolute;
+			top: 100%;
+			right: 0;
+			margin-top: 10px;
+			opacity: 0;
+			visibility: hidden;
+			transform: translateY(-10px);
+			transition: all 0.3s;
+			z-index: 10000;
+			background: white;
+			padding: 10px;
+			border-radius: 8px;
+			box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+		}
+		
+		.qr-code-image img {
+			width: 150px;
+			height: 150px;
+			border: 2px solid #3498db;
+			border-radius: 5px;
+		}
+		
+		/* Адаптивность */
+		@media (max-width: 768px) {
+			.qr-code-container {
+				top: 10px;
+				right: 10px;
+			}
+			
+			.qr-code-tooltip {
+				font-size: 11px;
+				padding: 8px 12px;
+			}
+			
+			.qr-code-image {
+				position: fixed;
+				top: 50%;
+				left: 50%;
+				transform: translate(-50%, -50%) scale(0.9);
+			}
+			
+			.qr-code-tooltip:hover .qr-code-image {
+				transform: translate(-50%, -50%) scale(1);
+			}
+		}
+		/* Стили для QR-кода с анимациями */
+		/* Базовые стили контейнера */
+		.author-support {
+			position: fixed;
+			top: 20px;
+			right: 20px;
+			z-index: 10000;
+		}
+		
+		/* Стили кнопки */
+		.support-btn {
+			background: linear-gradient(135deg, #ff6b6b, #ffa726, #4caf50, #2196f3);
+			background-size: 300% 300%;
+			animation: gradient 4s ease infinite;
+			color: white;
+			padding: 12px 20px;
+			border-radius: 50px;
+			font-size: 14px;
+			font-weight: bold;
+			cursor: pointer;
+			box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+			transition: all 0.3s;
+			user-select: none;
+			border: 2px solid rgba(255,255,255,0.3);
+			text-align: center;
+		}
+		
+		/* Анимация градиента */
+		@keyframes gradient {
+			0% { background-position: 0% 50%; }
+			50% { background-position: 100% 50%; }
+			100% { background-position: 0% 50%; }
+		}
+		
+		.support-btn:hover {
+			transform: translateY(-2px);
+			box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+		}
+		
+		/* Пульсирующее сердечко */
+		.heart {
+			display: inline-block;
+			animation: heartbeat 1.2s ease-in-out infinite;
+		}
+		
+		@keyframes heartbeat {
+			0%, 100% { transform: scale(1); }
+			50% { transform: scale(1.2); }
+		}
+		
+		/* Стили всплывающего окна с QR-кодом */
+		.qr-popup {
+			position: absolute;
+			top: calc(100% + 15px);
+			right: 0;
+			background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+			padding: 20px;
+			border-radius: 15px;
+			box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+			border: 1px solid rgba(255,255,255,0.5);
+			opacity: 0;
+			visibility: hidden;
+			transform: translateY(-10px);
+			transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+			min-width: 180px;
+		}
+		
+		/* Класс для показа попапа (управляется JavaScript) */
+		.qr-popup.show {
+			opacity: 1;
+			visibility: visible;
+			transform: translateY(0);
+		}
+		
+		/* Рамка для QR-кода */
+		.qr-frame {
+			background: white;
+			padding: 10px;
+			border-radius: 10px;
+			box-shadow: inset 0 0 10px rgba(0,0,0,0.1);
+			margin-bottom: 15px;
+			border: 2px solid #3498db;
+		}
+		
+		.qr-frame img {
+			width: 150px;
+			height: 150px;
+			display: block;
+			border-radius: 5px;
+		}
+		
+		/* Текст под QR-кодом */
+		.qr-text {
+			margin: 10px 0 5px 0;
+			color: #2c3e50;
+			font-size: 13px;
+			font-weight: bold;
+			text-align: center;
+		}
+		
+		.qr-thanks {
+			margin: 0;
+			color: #7f8c8d;
+			font-size: 11px;
+			text-align: center;
+			font-style: italic;
+		}
+		
+		/* Блестящая звездочка */
+		.sparkle {
+			display: inline-block;
+			animation: sparkle 2s infinite;
+		}
+		
+		@keyframes sparkle {
+			0%, 100% { opacity: 0.5; transform: scale(1); }
+			50% { opacity: 1; transform: scale(1.2); }
+		}
+		
+		/* Для мобильных устройств */
+		@media (max-width: 768px) {
+			.author-support {
+				top: 10px;
+				right: 10px;
+			}
+			
+			.support-btn {
+				padding: 10px 16px;
+				font-size: 13px;
+			}
+			
+			.qr-popup {
+				position: fixed;
+				top: 50%;
+				left: 50%;
+				right: auto;
+				transform: translate(-50%, -50%) scale(0.9);
+			}
+			
+			.qr-popup.show {
+				transform: translate(-50%, -50%) scale(1);
+			}
+		}
+		/* Туториал */
+		.tutorial-overlay {
+		  position: fixed;
+		  top: 0;
+		  left: 0;
+		  right: 0;
+		  bottom: 0;
+		  background: rgba(0,0,0,0.85);
+		  z-index: 999999;
+		  display: flex;
+		  justify-content: center;
+		  align-items: center;
+		  backdrop-filter: blur(5px);
+		}
+
+		.tutorial-container {
+		  background: white;
+		  border-radius: 20px;
+		  max-width: 500px;
+		  width: 90%;
+		  padding: 25px;
+		  box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+		  animation: tutorialSlideIn 0.4s ease;
+		}
+
+		@keyframes tutorialSlideIn {
+		  from { opacity: 0; transform: translateY(-30px); }
+		  to { opacity: 1; transform: translateY(0); }
+		}
+
+		.tutorial-header {
+		  display: flex;
+		  justify-content: space-between;
+		  align-items: center;
+		  margin-bottom: 20px;
+		  padding-bottom: 15px;
+		  border-bottom: 2px solid #eee;
+		}
+
+		.tutorial-content {
+		  margin: 20px 0;
+		  min-height: 80px;
+		  font-size: 16px;
+		  line-height: 1.6;
+		}
+
+		.tutorial-actions {
+		  display: flex;
+		  justify-content: space-between;
+		  margin-top: 25px;
+		  gap: 10px;
+		}
+
+		.tutorial-progress {
+		  margin-top: 20px;
+		}
+
+		.tutorial-helper {
+		  position: fixed;
+		  bottom: 25px;
+		  right: 25px;
+		  width: 60px;
+		  height: 60px;
+		  border-radius: 50%;
+		  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+		  color: white;
+		  border: none;
+		  font-size: 24px;
+		  cursor: pointer;
+		  box-shadow: 0 8px 25px rgba(102, 126, 234, 0.5);
+		  z-index: 9999;
+		  display: flex;
+		  align-items: center;
+		  justify-content: center;
+		  transition: all 0.3s;
+		}
+
+		.tutorial-helper:hover {
+		  transform: scale(1.1);
+		  box-shadow: 0 12px 30px rgba(102, 126, 234, 0.7);
+		}
+
+		.tutorial-highlight {
+		  position: absolute;
+		  border: 3px solid #667eea;
+		  border-radius: 10px;
+		  background: rgba(102, 126, 234, 0.1);
+		  box-shadow: 0 0 0 9999px rgba(0,0,0,0.7);
+		  z-index: 999998;
+		  pointer-events: none;
+		  animation: pulse 2s infinite;
+		}
+
+		@keyframes pulse {
+		  0% { box-shadow: 0 0 0 9999px rgba(0,0,0,0.7); }
+		  50% { box-shadow: 0 0 0 9999px rgba(0,0,0,0.8); }
+		  100% { box-shadow: 0 0 0 9999px rgba(0,0,0,0.7); }
+		}
+
+		/* Для мобильных */
+		@media (max-width: 768px) {
+		  .tutorial-container {
+			padding: 20px;
+			width: 95%;
+		  }
+		  
+		  .tutorial-helper {
+			bottom: 20px;
+			right: 20px;
+			width: 50px;
+			height: 50px;
+			font-size: 20px;
+		  }
+		}
+		/* PWA Стили */
+		.pwa-prompt {
+		  position: fixed;
+		  bottom: 20px;
+		  left: 50%;
+		  transform: translateX(-50%);
+		  background: white;
+		  border-radius: 15px;
+		  padding: 15px;
+		  box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+		  z-index: 100000;
+		  max-width: 400px;
+		  width: 90%;
+		  animation: slideUp 0.3s ease;
+		}
+
+		@keyframes slideUp {
+		  from { transform: translateX(-50%) translateY(100px); opacity: 0; }
+		  to { transform: translateX(-50%) translateY(0); opacity: 1; }
+		}
+
+		.pwa-prompt-content {
+		  display: flex;
+		  align-items: center;
+		  gap: 15px;
+		}
+
+		.pwa-prompt-icon {
+		  font-size: 2em;
+		  color: #667eea;
+		}
+
+		.pwa-prompt-text {
+		  flex: 1;
+		}
+
+		.pwa-prompt-text h4 {
+		  margin: 0 0 5px 0;
+		  color: #2c3e50;
+		}
+
+		.pwa-prompt-text p {
+		  margin: 0;
+		  color: #7f8c8d;
+		  font-size: 0.9em;
+		}
+
+		.pwa-prompt-actions {
+		  display: flex;
+		  gap: 10px;
+		}
+
+		.offline-indicator {
+		  position: fixed;
+		  top: 0;
+		  left: 0;
+		  right: 0;
+		  background: #f39c12;
+		  color: white;
+		  padding: 10px;
+		  text-align: center;
+		  z-index: 100001;
+		  font-size: 0.9em;
+		}
+
+		.offline-content {
+		  display: flex;
+		  align-items: center;
+		  justify-content: center;
+		  gap: 10px;
+		}
+
+		/* Mobile-specific improvements */
+		@media (max-width: 768px) {
+		  .mobile-optimized {
+			/* Увеличиваем области клика для мобильных */
+			min-height: 44px;
+			min-width: 44px;
+		  }
+		  
+		  /* Улучшаем ввод для мобильных */
+		  input, select, textarea {
+			font-size: 16px !important; /* Предотвращает масштабирование в iOS */
+		  }
+		  
+		  /* Убираем hover эффекты на тач-устройствах */
+		  @media (hover: none) {
+			.btn:hover {
+			  transform: none !important;
+			}
+			
+			.worktype-card:hover {
+			  transform: none !important;
+			  border-color: #e9ecef !important;
+			}
+		  }
+		}
+
+		/* Принудительный ландшафтный режим для некоторых разделов */
+		@media (max-width: 768px) and (orientation: landscape) {
+		  .table-container {
+			max-height: 60vh;
+			overflow-x: auto;
+		  }
+		}
+
+		/* Улучшения для очень маленьких экранов */
+		@media (max-width: 360px) {
+		  .header h1 {
+			font-size: 1.8em !important;
+		  }
+		  
+		  .tab-btn {
+			padding: 10px 5px !important;
+			font-size: 11px !important;
+			min-width: 80px !important;
+		  }
+		}		
+		/* Стили для таблицы результатов */
+		.results-table {
+			font-size: 13px;
+		}
+
+		.results-table th {
+			position: sticky;
+			top: 0;
+			background: #34495e;
+			color: white;
+			font-weight: 500;
+			padding: 8px;
+			text-align: center;
+			border: 1px solid #2c3e50;
+		}
+
+		.results-table td {
+			padding: 4px;
+			border: 1px solid #ecf0f1;
+			text-align: center;
+			vertical-align: middle;
+		}
+
+		.score-input {
+			transition: all 0.3s;
+			font-size: 14px;
+		}
+
+		.score-input:focus {
+			transform: scale(1.05);
+			box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.3);
+			z-index: 1;
+			position: relative;
+		}
+
+		/* Подсветка текущей строки */
+		.results-table tbody tr:hover {
+			background-color: #e8f4fc;
+		}
+
+		/* Фиксированные колонки */
+		.results-table th:first-child,
+		.results-table td:first-child {
+			position: sticky;
+			left: 0;
+			z-index: 2;
+			background: white;
+		}
+
+		.results-table th:first-child {
+			z-index: 11;
+		}
+
+		/* Кнопки действий */
+		.btn-group {
+			display: flex;
+			gap: 5px;
+		}
+
+		.btn-icon.small {
+			width: 30px;
+			height: 30px;
+			padding: 0;
+			display: inline-flex;
+			align-items: center;
+			justify-content: center;
+			font-size: 12px;
+		}
+
+		/* Адаптивность */
+		@media (max-width: 768px) {
+			.results-controls {
+				flex-direction: column;
+				align-items: stretch;
+			}
+			
+			.score-input {
+				width: 100% !important;
+				max-width: 60px;
+			}
+			
+			.results-table {
+				font-size: 11px;
+			}
+		}	
+		/* Стили для заданий */
+		.tasks-grid {
+			display: grid;
+			grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+			gap: 20px;
+			margin: 20px 0;
+		}
+
+		.task-card {
+			background: white;
+			border: 2px solid #e9ecef;
+			border-radius: 12px;
+			padding: 20px;
+			transition: all 0.3s;
+			position: relative;
+		}
+
+		.task-card:hover {
+			border-color: #3498db;
+			transform: translateY(-5px);
+			box-shadow: 0 10px 30px rgba(52, 152, 219, 0.1);
+		}
+
+		.task-header {
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+			margin-bottom: 15px;
+		}
+
+		.task-number {
+			background: #3498db;
+			color: white;
+			width: 30px;
+			height: 30px;
+			border-radius: 50%;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			font-weight: bold;
+			font-size: 14px;
+		}
+
+		.task-controls {
+			display: flex;
+			gap: 5px;
+		}
+
+		.task-footer {
+			margin-top: 15px;
+			padding-top: 10px;
+			border-top: 1px solid #eee;
+			font-size: 11px;
+		}
+
+		/* Статусы */
+		.status-indicator {
+			display: inline-block;
+			padding: 2px 8px;
+			border-radius: 10px;
+			font-size: 11px;
+			font-weight: bold;
+			margin-left: 10px;
+		}
+
+		.status-saving { background: #fff3cd; color: #f39c12; }
+		.status-saved { background: #d4edda; color: #27ae60; }
+		.status-error { background: #f8d7da; color: #e74c3c; }	
+		@keyframes slideIn {
+			from { transform: translateX(100%); opacity: 0; }
+			to { transform: translateX(0); opacity: 1; }
+		}
+		
+		@keyframes slideOut {
+			from { transform: translateX(0); opacity: 1; }
+			to { transform: translateX(100%); opacity: 0; }
+		}		
+
+		/* Стили для генератора отчетов */
+		.report-builder-container {
+			display: grid;
+			grid-template-columns: 1fr 1fr;
+			gap: 25px;
+			margin-bottom: 30px;
+		}
+
+		@media (max-width: 1200px) {
+			.report-builder-container {
+				grid-template-columns: 1fr;
+			}
+		}
+
+		/* AI-помощник */
+		.ai-assistant {
+			border-left: 4px solid #2196f3;
+			margin-bottom: 20px;
+		}
+
+		/* Форматы экспорта */
+		.format-option {
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+			padding: 15px;
+			border: 2px solid #e9ecef;
+			border-radius: 10px;
+			cursor: pointer;
+			transition: all 0.3s;
+			text-align: center;
+		}
+
+		.format-option:hover {
+			border-color: #3498db;
+			background: #f8f9fa;
+		}
+
+		.format-option input[type="radio"]:checked + .format-icon {
+			transform: scale(1.2);
+		}
+
+		.format-icon {
+			font-size: 2em;
+			margin-bottom: 8px;
+			transition: transform 0.3s;
+		}
+
+		.format-name {
+			font-weight: bold;
+			margin-bottom: 5px;
+		}
+
+		/* Поля отчета */
+		.field-category {
+			background: white;
+			padding: 20px;
+			border-radius: 10px;
+			border: 2px solid #e9ecef;
+			transition: all 0.3s;
+		}
+
+		.field-category:hover {
+			border-color: #3498db;
+			box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+		}
+
+		.field-category h5 {
+			margin-top: 0;
+			color: #2c3e50;
+			padding-bottom: 10px;
+			border-bottom: 2px solid #f1f1f1;
+		}
+
+		.field-checkbox {
+			display: flex;
+			align-items: center;
+			gap: 10px;
+			margin: 8px 0;
+			padding: 8px;
+			cursor: pointer;
+			border-radius: 6px;
+			transition: background 0.2s;
+			user-select: none;
+		}
+
+		.field-checkbox:hover {
+			background: #f8f9fa;
+		}
+
+		.field-checkbox input[type="checkbox"]:checked {
+			accent-color: #3498db;
+		}
+
+		/* Фильтры оценок */
+		.grade-filter-option {
+			display: flex;
+			align-items: center;
+			gap: 8px;
+			padding: 8px 12px;
+			background: white;
+			border: 2px solid #e9ecef;
+			border-radius: 8px;
+			cursor: pointer;
+			transition: all 0.3s;
+		}
+
+		.grade-filter-option:hover {
+			border-color: #3498db;
+			transform: translateY(-2px);
+		}
+
+		.grade-filter-option input[type="checkbox"]:checked + .grade-badge {
+			transform: scale(1.2);
+			box-shadow: 0 0 10px rgba(0,0,0,0.2);
+		}
+
+		.grade-badge {
+			width: 30px;
+			height: 30px;
+			border-radius: 50%;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			color: white;
+			font-weight: bold;
+			transition: transform 0.3s;
+		}
+
+		/* Статистика отчета */
+		.stat-card {
+			background: white;
+			padding: 15px;
+			border-radius: 10px;
+			text-align: center;
+			border: 2px solid #e9ecef;
+			transition: all 0.3s;
+		}
+
+		.stat-card:hover {
+			border-color: #3498db;
+			transform: translateY(-3px);
+		}
+
+		.stat-value {
+			font-size: 1.8em;
+			font-weight: bold;
+			color: #2c3e50;
+			margin-bottom: 5px;
+		}
+
+		.stat-label {
+			color: #7f8c8d;
+			font-size: 0.9em;
+		}
+
+		/* Шаблоны */
+		.template-section {
+			margin-bottom: 30px;
+		}
+
+		.template-card {
+			background: white;
+			border: 2px solid #e9ecef;
+			border-radius: 12px;
+			padding: 20px;
+			display: flex;
+			align-items: center;
+			gap: 20px;
+			cursor: pointer;
+			transition: all 0.3s;
+			position: relative;
+			overflow: hidden;
+		}
+
+		.template-card:hover {
+			border-color: #3498db;
+			transform: translateY(-5px);
+			box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+		}
+
+		.template-card:active {
+			transform: translateY(-2px);
+		}
+
+		.template-icon {
+			font-size: 2.5em;
+			min-width: 60px;
+			text-align: center;
+		}
+
+		.template-info {
+			flex: 1;
+		}
+
+		.template-info h4 {
+			margin: 0 0 5px 0;
+			color: #2c3e50;
+		}
+
+		.template-info p {
+			margin: 0;
+			color: #7f8c8d;
+			font-size: 0.9em;
+			line-height: 1.4;
+		}
+
+		.template-meta {
+			display: flex;
+			gap: 10px;
+			margin-top: 10px;
+			font-size: 0.8em;
+		}
+
+		.template-time, .template-pages, .template-ai {
+			padding: 3px 8px;
+			border-radius: 12px;
+			background: #f8f9fa;
+		}
+
+		.template-ai {
+			background: #e3f2fd;
+			color: #2196f3;
+		}
+
+		/* AI-шаблоны */
+		.ai-template-btn {
+			background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+			color: white;
+			border: none;
+			border-radius: 10px;
+			padding: 20px;
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+			gap: 10px;
+			cursor: pointer;
+			transition: all 0.3s;
+		}
+
+		.ai-template-btn:hover {
+			transform: translateY(-3px);
+			box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+		}
+
+		.ai-template-icon {
+			font-size: 2em;
+		}
+
+		.ai-template-text {
+			font-weight: bold;
+		}
+
+		/* Предпросмотр */
+		.preview-mode-web .report-preview-content {
+			font-family: var(--preview-font, 'Arial');
+			line-height: 1.6;
+			color: #333;
+		}
+
+		.preview-mode-print .report-preview-content {
+			font-family: 'Times New Roman', serif;
+			line-height: 1.5;
+			color: #000;
+		}
+
+		.preview-mode-mobile .report-preview-content {
+			font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+			line-height: 1.4;
+			font-size: 16px;
+			max-width: 400px;
+			margin: 0 auto;
+		}
+
+		/* Анимации */
+		@keyframes fadeIn {
+			from { opacity: 0; transform: translateY(20px); }
+			to { opacity: 1; transform: translateY(0); }
+		}
+
+		.report-section {
+			animation: fadeIn 0.5s ease-out;
+		}
+
+		/* Прогресс-бар */
+		.generation-progress {
+			width: 100%;
+			height: 10px;
+			background: #eee;
+			border-radius: 5px;
+			overflow: hidden;
+			margin: 20px 0;
+		}
+
+		.generation-progress-fill {
+			height: 100%;
+			background: linear-gradient(90deg, #4CAF50, #8BC34A);
+			transition: width 0.3s;
+			border-radius: 5px;
+		}
+
+		/* QR-код */
+		.qr-code-container {
+			padding: 20px;
+			background: white;
+			border-radius: 10px;
+			display: inline-block;
+			box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+		}
+
+		/* Адаптивность */
+		@media (max-width: 768px) {
+			.format-grid {
+				grid-template-columns: repeat(2, 1fr);
+			}
+			
+			.field-selection-grid {
+				grid-template-columns: 1fr;
+			}
+			
+			.criteria-grid {
+				grid-template-columns: 1fr;
+			}
+			
+			.design-grid {
+				grid-template-columns: 1fr;
+			}
+			
+			.options-grid {
+				grid-template-columns: 1fr;
+			}
+			
+			.export-buttons {
+				justify-content: center;
+			}
+			
+			.export-buttons .btn {
+				flex: 1;
+				min-width: 120px;
+			}
+		}
+		/* Стили для отчета */
+		.report-section {
+			margin-bottom: 30px;
+			padding: 20px;
+			background: white;
+			border-radius: 8px;
+			border: 1px solid #e9ecef;
+		}
+
+		.report-table {
+			width: 100%;
+			border-collapse: collapse;
+			margin: 15px 0;
+		}
+
+		.report-table th {
+			background: #f8f9fa;
+			padding: 12px;
+			text-align: left;
+			border-bottom: 2px solid #dee2e6;
+			font-weight: 600;
+			color: #495057;
+		}
+
+		.report-table td {
+			padding: 10px 12px;
+			border-bottom: 1px solid #e9ecef;
+		}
+
+		.report-table tr:hover {
+			background: #f8f9fa;
+		}
+
+		/* Стили для шаблонов */
+		.template-card {
+			background: white;
+			border: 1px solid #e9ecef;
+			border-radius: 10px;
+			padding: 20px;
+			cursor: pointer;
+			transition: transform 0.2s, box-shadow 0.2s;
+			display: flex;
+			align-items: center;
+			gap: 15px;
+		}
+
+		.template-card:hover {
+			transform: translateY(-2px);
+			box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+		}
+
+		.template-icon {
+			font-size: 32px;
+			min-width: 50px;
+			text-align: center;
+		}
+
+		.template-info h4 {
+			margin: 0 0 5px 0;
+			color: #2c3e50;
+		}
+
+		.template-meta {
+			display: flex;
+			gap: 10px;
+			margin-top: 10px;
+			font-size: 12px;
+			color: #7f8c8d;
+		}
+
+		.template-meta span {
+			background: #f8f9fa;
+			padding: 3px 8px;
+			border-radius: 12px;
+		}
+
+		/* Стили для фильтров оценок */
+		.grade-filter-option {
+			display: flex;
+			align-items: center;
+			gap: 8px;
+			padding: 8px 12px;
+			background: #f8f9fa;
+			border-radius: 20px;
+			cursor: pointer;
+			transition: background 0.2s;
+		}
+
+		.grade-filter-option:hover {
+			background: #e9ecef;
+		}
+
+		.grade-badge {
+			width: 24px;
+			height: 24px;
+			border-radius: 50%;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			color: white;
+			font-weight: bold;
+			font-size: 12px;
+		}
+
+		.grade-label {
+			font-size: 13px;
+			color: #495057;
+		}
+
+		/* Стили для выбора формата */
+		.format-option {
+			text-align: center;
+			padding: 15px 10px;
+			border: 2px solid #e9ecef;
+			border-radius: 8px;
+			cursor: pointer;
+			transition: all 0.2s;
+		}
+
+		.format-option:hover {
+			border-color: #3498db;
+			background: #f8f9fa;
+		}
+
+		.format-option input[type="radio"]:checked + .format-icon {
+			color: #3498db;
+		}
+
+		.format-option input[type="radio"]:checked ~ .format-name {
+			color: #3498db;
+			font-weight: bold;
+		}
+
+		.format-icon {
+			font-size: 24px;
+			margin-bottom: 5px;
+		}
+
+		.format-name {
+			font-size: 14px;
+			font-weight: 500;
+			color: #495057;
+		}
+
+		/* Анимации */
+		@keyframes fadeIn {
+			from { opacity: 0; transform: translateY(10px); }
+			to { opacity: 1; transform: translateY(0); }
+		}
+
+		.report-preview-content {
+			animation: fadeIn 0.3s ease-out;
+		}
+
+		/* Адаптивность */
+		@media (max-width: 768px) {
+			.report-builder-container {
+				grid-template-columns: 1fr !important;
+			}
+			
+			.export-buttons {
+				flex-direction: column;
+			}
+			
+			.export-buttons button {
+				width: 100%;
+				margin-bottom: 5px;
+			}
+		}		
+		/* Стили для правильного отображения UTF-8 символов */
+		@font-face {
+			font-family: 'DejaVu Sans';
+			src: url('https://cdnjs.cloudflare.com/ajax/libs/dejavu-fonts/2.37/ttf/DejaVuSans.ttf') format('truetype');
+			font-weight: normal;
+			font-style: normal;
+		}
+
+		@font-face {
+			font-family: 'DejaVu Sans';
+			src: url('https://cdnjs.cloudflare.com/ajax/libs/dejavu-fonts/2.37/ttf/DejaVuSans-Bold.ttf') format('truetype');
+			font-weight: bold;
+			font-style: normal;
+		}
+
+		body {
+			font-family: 'DejaVu Sans', 'Arial Unicode MS', 'Arial', sans-serif;
+		}
+
+		/* Для PDF и печати */
+		@media print {
+			body {
+				font-family: 'DejaVu Sans', 'Arial Unicode MS', 'Arial', sans-serif !important;
+			}
+		}
+
+		/* Для сообщений об ошибках кодировки */
+		.encoding-warning {
+			background: #fff3cd;
+			border: 1px solid #ffeaa7;
+			border-radius: 5px;
+			padding: 10px;
+			margin: 10px 0;
+			font-size: 14px;
+		}
+
+		.encoding-warning strong {
+			color: #e74c3c;
+		}
+
+		.encoding-fix-btn {
+			background: #3498db;
+			color: white;
+			border: none;
+			padding: 5px 10px;
+			border-radius: 3px;
+			cursor: pointer;
+			margin-left: 10px;
+		}
+
+		.encoding-fix-btn:hover {
+			background: #2980b9;
+		}		
+    </style>
 </head>
 <body>
     <!-- Модальные окна -->
@@ -1619,77 +4311,8 @@
 		<span>Работа в офлайн-режиме</span>
 	  </div>
 	</div>
-	<div class="header-controls no-print" style="position: absolute; top: 20px; right: 20px;">
-		<div class="project-controls">
-			<button class="btn-icon" onclick="toggleProjectsSidebar()" title="Панель проектов">
-				<i class="fas fa-folder"></i>
-			</button>
-			<button class="btn-icon" onclick="createNewProject()" title="Новая работа">
-				<i class="fas fa-plus"></i>
-			</button>
-			<button class="btn-icon" onclick="showProjectsManager()" title="Управление работами">
-				<i class="fas fa-th"></i>
-			</button>
-		</div>
-	</div>
-
-	<style>
-		.header-controls {
-			z-index: 100;
-		}
-		
-		.project-controls {
-			display: flex;
-			gap: 10px;
-			background: rgba(255,255,255,0.1);
-			padding: 8px;
-			border-radius: 8px;
-			backdrop-filter: blur(10px);
-		}
-		
-		.project-controls .btn-icon {
-			background: rgba(255,255,255,0.2);
-			color: white;
-			border: none;
-			width: 36px;
-			height: 36px;
-			border-radius: 50%;
-			display: flex;
-			align-items: center;
-			justify-content: center;
-			cursor: pointer;
-			transition: all 0.3s;
-		}
-		
-		.project-controls .btn-icon:hover {
-			background: rgba(255,255,255,0.3);
-			transform: scale(1.1);
-		}
-	</style>
-	<script src="modules/errorHandler.js"></script>
-	<script src="modules/tableRenderer.js"></script>
-	<script src="modules/tests.js"></script>
-	<script src="modules/aigenerator.js"></script>
-    <script src="script.js"></script>
-	<script src="modules/report.js"></script>
-	<script src="modules/studreport.js"></script>
-	<script src="modules/projects.js"></script>
-	<script src="modules/projects-storage.js"></script>
-	<script src="modules/projects-ui.js"></script>
-	<script src="modules/projects-autosave.js"></script>
-	<script src="modules/projects-init.js"></script>
-
 	
-    <script>
-  
-		if (typeof checkFirstVisit === 'undefined') {
-			function checkFirstVisit() {
-				console.log('checkFirstVisit called');
-				// Просто логируем, чтобы избежать ошибки
-			}
-		}  
-  
-  
+	<script>
 		window.ErrorHandler = null;
 		window.TableRenderer = null;
 		window.TestRunner = null;	
@@ -1722,7 +4345,7 @@
 				criteriaScale: '2-5'
 			},
 			tasks: [],
-			students: {},
+			students: [],
 			results: [],
 			errors: [],
 			studentErrors: {}, // Будет хранить ошибки по studentId
@@ -1846,6 +4469,25 @@
             social: "Общественный",
             global: "Глобальный"
         };
+    </script>
+	
+	<script src="modules/errorHandler.js"></script>
+	<script src="modules/tableRenderer.js"></script>
+	<script src="modules/tests.js"></script>
+	<script src="modules/aigenerator.js"></script>
+    <script src="script.js"></script>
+	<script src="modules/report.js"></script>
+	<script src="modules/studreport.js"></script>
+	
+	
+	<!-- 1. Хранилище -->
+	<script src="modules/main-project-system.js"></script>
+
+	
+	
+    <script>
+  
+
 		// ==================== Визуализация =================================
 		
 		// В script.js добавьте:
@@ -4281,52 +6923,6 @@
 		// Инициализируем кнопку перезагрузки
 		setTimeout(addReloadButton, 1000);
 		
-		// В начало script.js добавляем
-		let projectManager = null;
-		let projectsUI = null;
-		let autoSaveManager = null;
-
-		// Инициализация при загрузке
-		document.addEventListener('DOMContentLoaded', async function() {
-			// Инициализируем менеджер проектов
-			projectManager = window.projectManager;
-			projectsUI = window.projectsUI;
-			autoSaveManager = window.autoSaveManager;
-			
-			// Загружаем проекты
-			await projectManager.init();
-			
-			// Инициализируем UI
-			projectsUI.init();
-			
-			// Инициализируем автосохранение
-			autoSaveManager.init();
-			
-			// Обновляем существующие функции для работы с проектами
-			
-			// Переопределяем saveData
-			const originalSaveData = window.saveData;
-			window.saveData = function() {
-				if (projectManager && projectManager.currentProjectId) {
-					projectManager.saveCurrentProject();
-				}
-				if (originalSaveData) originalSaveData();
-			};
-			
-			// Переопределяем scheduleAutoSave
-			window.scheduleAutoSave = function() {
-				if (autoSaveManager) {
-					autoSaveManager.markAsChanged();
-				}
-			};
-			
-			// Добавляем глобальные функции для доступа
-			window.createNewProject = () => projectsUI.createNewProject();
-			window.showProjectsManager = () => projectsUI.showProjectsManager();
-			window.toggleProjectsSidebar = () => projectsUI.toggleSidebar();
-			
-			console.log('🚀 Project management system initialized');
-		});
 		// ==================== PWA ФУНКЦИИ ====================
 
 		let deferredPrompt = null;
@@ -4795,14 +7391,38 @@
 			const file = event.target.files[0];
 			if (!file) return;
 			
-			if (projectManager) {
-				projectManager.importProjects([file]);
-			} else {
-				// Старый метод импорта
-				importFromFile(file);
-			}
+			console.log('📤 Начинаем импорт файла:', file.name);
 			
-			event.target.value = ''; // Сбрасываем input
+			const reader = new FileReader();
+			reader.onload = function(e) {
+				try {
+					const importedData = JSON.parse(e.target.result);
+					console.log('📥 Файл прочитан, структура:', {
+						metadata: importedData.metadata,
+						tasksCount: importedData.tasks?.length,
+						test: importedData.test
+					});
+					
+					if (!importedData.tasks || !Array.isArray(importedData.tasks)) {
+						throw new Error('Некорректная структура данных: задания отсутствуют или не являются массивом');
+					}
+					
+					// Валидация данных
+					const validatedData = validateImportedData(importedData);
+					
+					// Загружаем данные
+					loadImportedData(validatedData);
+					
+					// Сбрасываем input
+					event.target.value = '';
+					
+				} catch (error) {
+					console.error('❌ Ошибка при импорте:', error);
+					showNotification(`Ошибка импорта: ${error.message}`, 'error');
+				}
+			};
+			
+			reader.readAsText(file);
 		}
 
 		function validateImportedData(data) {
@@ -6495,11 +9115,57 @@
 					return false;
 				}
 				
-				// Сохраняем данные
-				localStorage.setItem('testAnalyticsData', JSON.stringify(appData));
+				// === 1. БЕЗОПАСНО ПОДГОТОВЛИВАЕМ ДАННЫЕ ДЛЯ СОХРАНЕНИЯ ===
+				const dataToSave = {
+					// Копируем основные данные
+					test: { ...appData.test },
+					tasks: appData.tasks ? [...appData.tasks] : [],
+					students: appData.students ? [...appData.students] : [],
+					psychologyFeatures: appData.psychologyFeatures ? [...appData.psychologyFeatures] : [],
+					templates: appData.templates ? { ...appData.templates } : {},
+					
+					// Специальная обработка results
+					results: appData.results ? 
+						appData.results.map(row => [...row]) : // Глубокая копия массива массивов
+						[],
+					
+					// Специальная обработка errors - преобразуем объект в массив для сохранения
+					errors: transformErrorsForStorage(appData.errors),
+					
+					// Сохраняем studentErrors если есть
+					studentErrors: appData.studentErrors ? { ...appData.studentErrors } : {},
+					
+					// Метаданные
+					_metadata: {
+						savedAt: new Date().toISOString(),
+						version: '2.0',
+						totalStudents: appData.students?.length || 0,
+						totalTasks: appData.tasks?.length || 0
+					}
+				};
 				
-				// Сохраняем текущее состояние для сравнения
-				localStorage.setItem('lastSavedState', JSON.stringify(appData));
+				// === 2. ПРОВЕРЯЕМ, ЧТО ДАННЫЕ МОЖНО СЕРИАЛИЗОВАТЬ ===
+				try {
+					const testString = JSON.stringify(dataToSave);
+					if (testString.length > 5 * 1024 * 1024) { // 5MB лимит
+						console.warn('⚠️ Данные слишком большие для localStorage');
+						return saveDataToIndexedDB(dataToSave);
+					}
+				} catch (stringifyError) {
+					console.warn('⚠️ Ошибка при проверке сериализации, используем безопасное сохранение');
+					return saveDataSafely(dataToSave);
+				}
+				
+				// === 3. СОХРАНЯЕМ В localStorage ===
+				localStorage.setItem('testAnalyticsData', JSON.stringify(dataToSave));
+				
+				// Сохраняем только метаданные для сравнения (чтобы не дублировать большие данные)
+				localStorage.setItem('lastSavedState', JSON.stringify({
+					timestamp: new Date().toISOString(),
+					studentCount: appData.students?.length || 0,
+					taskCount: appData.tasks?.length || 0,
+					resultsHash: generateDataHash(appData.results)
+				}));
 				
 				lastSaveTime = new Date();
 				
@@ -6511,30 +9177,55 @@
 				
 				console.log('💾 Данные сохранены:', {
 					время: lastSaveTime.toLocaleTimeString(),
-					размер: JSON.stringify(appData).length,
+					размер: JSON.stringify(dataToSave).length,
 					учащиеся: appData.students?.length || 0,
 					задания: appData.tasks?.length || 0
 				});
 				
-				// Создаем резервную копию если прошло больше 5 минут
-				const lastBackup = localStorage.getItem('lastBackupTime');
-				const fiveMinutesAgo = Date.now() - 5 * 60 * 1000;
-				
-				if (!lastBackup || parseInt(lastBackup) < fiveMinutesAgo) {
-					createBackup();
-					localStorage.setItem('lastBackupTime', Date.now().toString());
+				// === 4. СОХРАНЯЕМ В ProjectManager ЕСЛИ АКТИВЕН ===
+				if (window.projectManager && window.projectManager.currentProjectId) {
+					// Используем отложенное сохранение чтобы не блокировать интерфейс
+					setTimeout(() => {
+						try {
+							window.projectManager.saveCurrentProject().catch(error => {
+								console.warn('⚠️ Ошибка сохранения в ProjectManager:', error);
+							});
+						} catch (e) {
+							console.warn('⚠️ Исключение при сохранении в ProjectManager:', e);
+						}
+					}, 100);
 				}
 				
-				return true;
-			} catch (error) {
-				console.error('❌ Ошибка сохранения:', error);
+				// === 5. СОЗДАЕМ РЕЗЕРВНУЮ КОПИЮ ===
+				createBackupIfNeeded();
 				
-				// Логируем ошибку, но не вызываем errorHandler.safeExecute
+				return true;
+				
+			} catch (error) {
+				console.error('❌ Критическая ошибка сохранения:', error);
+				
+				// Пробуем экстренное сохранение
+				try {
+					if (emergencySave(appData)) {
+						console.log('✅ Данные сохранены в экстренном режиме');
+						updateSaveStatus('emergency_saved');
+						return true;
+					}
+				} catch (e) {
+					console.error('❌ Экстренное сохранение тоже не удалось:', e);
+				}
+				
+				// Логируем ошибку
 				if (window.errorHandler && typeof window.errorHandler.log === 'function') {
 					window.errorHandler.log({
 						type: 'SAVE_ERROR',
 						message: error.message,
-						data: { timestamp: new Date().toISOString() }
+						stack: error.stack,
+						data: { 
+							timestamp: new Date().toISOString(),
+							hasProjectManager: !!window.projectManager,
+							projectManagerActive: window.projectManager?.currentProjectId || false
+						}
 					});
 				}
 				
@@ -6543,17 +9234,240 @@
 			}
 		}
 
-		function saveAllData() {
-			// Полное сохранение с подтверждением
-			if (saveData()) {
-				showNotification('✅ Все данные сохранены!', 'success');
+		// ===== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ =====
+
+		/**
+		 * Преобразует объект ошибок в формат для хранения
+		 */
+		function transformErrorsForStorage(errors) {
+			if (!errors) return [];
+			
+			// Если errors уже массив, возвращаем его копию
+			if (Array.isArray(errors)) {
+				return errors.map(error => ({
+					...error,
+					// Удаляем циклические ссылки
+					parent: undefined,
+					__proto__: undefined
+				}));
+			}
+			
+			// Если errors объект, преобразуем в массив
+			const errorsArray = [];
+			Object.entries(errors).forEach(([key, value]) => {
+				if (Array.isArray(value)) {
+					value.forEach(error => {
+						if (error && typeof error === 'object') {
+							errorsArray.push({
+								...error,
+								studentId: key,
+								// Удаляем циклические ссылки
+								parent: undefined,
+								__proto__: undefined
+							});
+						}
+					});
+				} else if (value && typeof value === 'object') {
+					errorsArray.push({
+						...value,
+						studentId: key,
+						// Удаляем циклические ссылки
+						parent: undefined,
+						__proto__: undefined
+					});
+				}
+			});
+			
+			return errorsArray;
+		}
+
+		/**
+		 * Безопасное сохранение с обработкой ошибок сериализации
+		 */
+		function saveDataSafely(data) {
+			try {
+				// Пытаемся сохранить по частям
+				const partialData = {
+					test: data.test,
+					tasks: data.tasks,
+					students: data.students,
+					results: data.results,
+					errors: [], // Очищаем errors чтобы сохранить хоть что-то
+					psychologyFeatures: data.psychologyFeatures,
+					templates: data.templates,
+					_metadata: {
+						...data._metadata,
+						partialSave: true,
+						savedAt: new Date().toISOString()
+					}
+				};
+				
+				localStorage.setItem('testAnalyticsData', JSON.stringify(partialData));
+				console.log('⚠️ Данные частично сохранены (без ошибок)');
 				return true;
-			} else {
-				showNotification('❌ Ошибка сохранения данных', 'error');
+				
+			} catch (error) {
+				console.error('❌ Даже частичное сохранение не удалось:', error);
 				return false;
 			}
 		}
 
+		/**
+		 * Создает хэш данных для отслеживания изменений
+		 */
+		function generateDataHash(results) {
+			if (!results || !Array.isArray(results)) return 'empty';
+			
+			try {
+				// Простой хэш на основе суммы всех результатов
+				let hash = 0;
+				results.forEach(row => {
+					if (Array.isArray(row)) {
+						row.forEach(value => {
+							hash += Number(value) || 0;
+						});
+					}
+				});
+				return hash.toString(36);
+			} catch (e) {
+				return 'error';
+			}
+		}
+
+		/**
+		 * Создает резервную копию если нужно
+		 */
+		function createBackupIfNeeded() {
+			const lastBackup = localStorage.getItem('lastBackupTime');
+			const fiveMinutesAgo = Date.now() - 5 * 60 * 1000;
+			
+			if (!lastBackup || parseInt(lastBackup) < fiveMinutesAgo) {
+				// Отложенное создание бэкапа
+				setTimeout(() => {
+					try {
+						createBackup();
+						localStorage.setItem('lastBackupTime', Date.now().toString());
+					} catch (error) {
+						console.warn('⚠️ Не удалось создать резервную копию:', error);
+					}
+				}, 500);
+			}
+		}
+
+		/**
+		 * Экстренное сохранение минимальных данных
+		 */
+		function emergencySave(data) {
+			try {
+				const emergencyData = {
+					test: data.test ? { ...data.test } : {},
+					students: data.students ? [...data.students] : [],
+					tasks: data.tasks ? [...data.tasks] : [],
+					_emergency: true,
+					timestamp: new Date().toISOString()
+				};
+				
+				localStorage.setItem('testAnalyticsData_emergency', JSON.stringify(emergencyData));
+				localStorage.setItem('lastEmergencySave', new Date().toISOString());
+				
+				return true;
+			} catch (error) {
+				return false;
+			}
+		}
+
+		function saveAllData() {
+			// Показываем индикатор загрузки
+			updateSaveStatus('saving');
+			
+			// Отложенное выполнение чтобы не блокировать UI
+			setTimeout(() => {
+				if (saveData()) {
+					showNotification('✅ Все данные сохранены!', 'success');
+				} else {
+					showNotification('❌ Ошибка сохранения данных', 'error');
+					
+					// Пробуем сохранить хотя бы основные данные
+					setTimeout(() => {
+						if (emergencySave(appData)) {
+							showNotification('⚠️ Часть данных сохранена в экстренном режиме', 'warning');
+						}
+					}, 1000);
+				}
+			}, 50);
+			
+			return true; // Всегда возвращаем true чтобы не прерывать поток
+		}
+		// Добавьте в глобальную область видимости или в тот же файл
+
+		/**
+		 * Восстанавливает данные после экстренного сохранения
+		 */
+		function restoreFromEmergencySave() {
+			try {
+				const emergencyData = localStorage.getItem('testAnalyticsData_emergency');
+				if (emergencyData) {
+					const data = JSON.parse(emergencyData);
+					console.log('🔍 Найдены данные экстренного сохранения:', data);
+					
+					if (confirm('Найдены данные от предыдущего экстренного сохранения. Восстановить?')) {
+						Object.assign(appData, data);
+						console.log('✅ Данные восстановлены из экстренного сохранения');
+						return true;
+					}
+				}
+			} catch (error) {
+				console.warn('⚠️ Не удалось восстановить из экстренного сохранения:', error);
+			}
+			return false;
+		}
+
+		/**
+		 * Проверяет целостность сохраненных данных
+		 */
+		function checkDataIntegrity() {
+			try {
+				const saved = localStorage.getItem('testAnalyticsData');
+				if (!saved) return { valid: false, reason: 'Нет сохраненных данных' };
+				
+				const data = JSON.parse(saved);
+				
+				// Проверяем обязательные поля
+				if (!data.test || !data.students || !data.tasks) {
+					return { valid: false, reason: 'Отсутствуют обязательные поля' };
+				}
+				
+				// Проверяем соответствие размеров
+				if (data.results && data.students) {
+					if (data.results.length !== data.students.length) {
+						return { 
+							valid: false, 
+							reason: `Несоответствие размеров: students=${data.students.length}, results=${data.results.length}` 
+						};
+					}
+				}
+				
+				return { valid: true, size: saved.length, timestamp: data._metadata?.savedAt };
+				
+			} catch (error) {
+				return { valid: false, reason: `Ошибка парсинга: ${error.message}` };
+			}
+		}
+
+		// Автоматическая проверка при загрузке
+		document.addEventListener('DOMContentLoaded', function() {
+			setTimeout(() => {
+				const integrity = checkDataIntegrity();
+				console.log('🔍 Проверка целостности данных:', integrity);
+				
+				if (!integrity.valid) {
+					console.warn('⚠️ Проблемы с сохраненными данными:', integrity.reason);
+					
+					// Пробуем восстановить из экстренного сохранения
+					restoreFromEmergencySave();
+				}
+			}, 1000);
+		});
 		function updateSaveStatus(status) {
 			const indicator = document.getElementById('saveStatusIndicator');
 			if (!indicator) return;
@@ -6967,19 +9881,16 @@
 		}
 
 		// Проверяем при загрузке, нужно ли показывать туториал
-		<!-- function checkFirstVisit() { -->
-		  <!-- const tutorialCompleted = localStorage.getItem('tutorialCompleted'); -->
-		  <!-- if (!tutorialCompleted || tutorialCompleted === 'false') { -->
-			<!-- // Показываем с задержкой, чтобы страница успела загрузиться -->
-			<!-- setTimeout(() => { -->
-			  <!-- if (confirm('Хотите пройти краткий тур по системе? Это займет 2-3 минуты.')) { -->
-				<!-- showTutorial(); -->
-			  <!-- } else { -->
-				<!-- localStorage.setItem('tutorialCompleted', 'true'); -->
-			  <!-- } -->
-			<!-- }, 1000); -->
-		  <!-- } -->
-		<!-- } -->
+		function checkFirstVisit() {
+		  const tutorialCompleted = localStorage.getItem('tutorialCompleted');
+		  if (!tutorialCompleted || tutorialCompleted === 'false') {
+			// Показываем с задержкой, чтобы страница успела загрузиться
+			setTimeout(() => {
+				localStorage.setItem('tutorialCompleted', 'true');
+			  
+			}, 1000);
+		  }
+		}
 
 		// Быстрая справка по разделам
 		function showContextHelp(section) {
@@ -19855,14 +22766,43 @@
 		}
 
 		// ==================== ЕДИНАЯ СИСТЕМА ЭКСПОРТА/ИМПОРТА ====================
-		// Обновляем функцию экспорта
 		function exportAppData(format = 'json') {
-			if (projectManager && projectManager.currentProjectId) {
-				// Экспортируем текущий проект
-				projectManager.exportProject(projectManager.currentProjectId, format);
-			} else {
-				// Старый метод экспорта
-				exportToFormat(format);
+			try {
+				// Создаем копию данных
+				const exportData = {
+					version: '2.0',
+					timestamp: new Date().toISOString(),
+					appData: JSON.parse(JSON.stringify(appData)),
+					metadata: {
+						testCount: appData.tasks.length,
+						studentCount: appData.students.length,
+						errorCount: appData.errors.length,
+						avgScore: calculateAverageScore().toFixed(2)
+					}
+				};
+				
+				const dataStr = JSON.stringify(exportData, null, 2);
+				
+				if (format === 'json') {
+					// Создаем и скачиваем файл
+					const blob = new Blob([dataStr], { type: 'application/json' });
+					const url = URL.createObjectURL(blob);
+					const a = document.createElement('a');
+					a.href = url;
+					a.download = `анализ_${appData.test.subject || 'данные'}_${new Date().toISOString().slice(0, 10)}.json`;
+					a.click();
+					URL.revokeObjectURL(url);
+					
+					showNotification('Данные экспортированы в JSON', 'success');
+					return true;
+				}
+				
+				return false;
+				
+			} catch (error) {
+				console.error('Ошибка экспорта:', error);
+				showNotification('Ошибка экспорта данных', 'error');
+				return false;
 			}
 		}
 
