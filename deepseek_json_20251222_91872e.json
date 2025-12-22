@@ -1,0 +1,20 @@
+{
+  "name": "education-projects-system",
+  "version": "2.0.0",
+  "description": "Система управления проектами для образовательной аналитики",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "start": "live-server --open=index.html",
+    "build": "echo 'No build step needed for ES6 modules'",
+    "test": "echo 'Add test runner here'"
+  },
+  "keywords": [
+    "education",
+    "projects",
+    "analytics",
+    "management"
+  ],
+  "author": "Your Name",
+  "license": "MIT"
+}
