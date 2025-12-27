@@ -663,6 +663,17 @@ class ProjectManager {
             }
         });
     }
+	// Добавьте этот метод в класс ProjectManager
+	changeProjectStatus(projectId, newStatus) {
+		const project = this.projects.find(p => p.id === projectId);
+		if (project) {
+			project.status = newStatus;
+			project.updatedAt = new Date().toISOString();
+			this.saveProjects();
+			this.renderProjectsList();
+			showNotification(`Статус проекта изменен на "${this.getStatusText(newStatus)}"`, 'info');
+		}
+	}
 }
 
 // Глобальные утилиты
@@ -708,23 +719,65 @@ function loadTemplate(templateName) {
 function toggleSidebar() {
     const sidebar = document.getElementById('projectsSidebar');
     const mainContent = document.getElementById('mainContent');
+    const toggleBtn = document.getElementById('sidebarToggleBtn');
     
-    if (sidebar && mainContent) {
+    if (sidebar && mainContent && toggleBtn) {
+        const isCollapsing = !sidebar.classList.contains('collapsed');
+        
         sidebar.classList.toggle('collapsed');
         mainContent.classList.toggle('expanded');
         
-        // Сохраняем состояние
-        const isCollapsed = sidebar.classList.contains('collapsed');
-        localStorage.setItem('sidebar_collapsed', isCollapsed);
-        
         // Обновляем иконку
-        const icon = document.querySelector('.projects-sidebar .fa-chevron-left');
+        const icon = toggleBtn.querySelector('i');
         if (icon) {
-            icon.classList.toggle('fa-chevron-right', isCollapsed);
-            icon.classList.toggle('fa-chevron-left', !isCollapsed);
+            if (isCollapsing) {
+                // Если панель скрывается - меняем на стрелку вправо
+                icon.classList.remove('fa-chevron-left');
+                icon.classList.add('fa-chevron-right');
+                toggleBtn.title = 'Показать панель';
+            } else {
+                // Если панель показывается - меняем на стрелку влево
+                icon.classList.remove('fa-chevron-right');
+                icon.classList.add('fa-chevron-left');
+                toggleBtn.title = 'Скрыть панель';
+            }
+        }
+        
+        // Сохраняем состояние
+        localStorage.setItem('sidebar_collapsed', isCollapsing);
+        
+        // Создаем временную кнопку для показа панели, если она скрыта
+        if (isCollapsing) {
+            createSidebarToggleButton();
+        } else {
+            removeSidebarToggleButton();
         }
     }
 }
+
+function createSidebarToggleButton() {
+    // Удаляем существующую кнопку
+    removeSidebarToggleButton();
+    
+    // Создаем плавающую кнопку для показа панели
+    const toggleBtn = document.createElement('button');
+    toggleBtn.id = 'floatingSidebarToggle';
+    toggleBtn.className = 'floating-sidebar-toggle';
+    toggleBtn.innerHTML = '<i class="fas fa-chevron-right"></i>';
+    toggleBtn.title = 'Показать панель проектов';
+    toggleBtn.onclick = toggleSidebar;
+    
+    document.body.appendChild(toggleBtn);
+}
+
+function removeSidebarToggleButton() {
+    const existingBtn = document.getElementById('floatingSidebarToggle');
+    if (existingBtn) {
+        existingBtn.remove();
+    }
+}
+
+
 
 function showProjectContextMenu(event, projectId) {
     event.preventDefault();
@@ -732,6 +785,9 @@ function showProjectContextMenu(event, projectId) {
     // Удаляем существующее меню
     const existingMenu = document.querySelector('.context-menu');
     if (existingMenu) existingMenu.remove();
+    
+    const project = projectManager.projects.find(p => p.id === projectId);
+    if (!project) return;
     
     // Создаем новое меню
     const menu = document.createElement('div');
@@ -742,7 +798,7 @@ function showProjectContextMenu(event, projectId) {
     menu.style.borderRadius = '4px';
     menu.style.boxShadow = '0 2px 10px rgba(0,0,0,0.1)';
     menu.style.zIndex = '10000';
-    menu.style.minWidth = '180px';
+    menu.style.minWidth = '200px';
     menu.style.left = event.pageX + 'px';
     menu.style.top = event.pageY + 'px';
     
@@ -751,19 +807,51 @@ function showProjectContextMenu(event, projectId) {
              style="padding: 8px 12px; cursor: pointer; border-bottom: 1px solid #eee;">
             <i class="fas fa-folder-open me-2"></i> Открыть
         </div>
-        <div class="context-menu-item" onclick="projectManager.exportProject('${projectId}'); this.parentNode.remove()" 
-             style="padding: 8px 12px; cursor: pointer; border-bottom: 1px solid #eee;">
-            <i class="fas fa-download me-2"></i> Экспорт
+        <div class="context-menu-subheader" style="padding: 6px 12px; background: #f8f9fa; color: #6c757d; font-size: 11px; border-bottom: 1px solid #eee;">
+            Статус проекта
+        </div>
+        <div class="context-menu-item ${project.status === 'draft' ? 'active' : ''}" 
+             onclick="projectManager.changeProjectStatus('${projectId}', 'draft'); this.parentNode.remove()" 
+             style="padding: 6px 12px 6px 24px; cursor: pointer; border-bottom: 1px solid #eee;">
+            <i class="fas fa-edit me-2"></i> Черновик
+        </div>
+        <div class="context-menu-item ${project.status === 'active' ? 'active' : ''}" 
+             onclick="projectManager.changeProjectStatus('${projectId}', 'active'); this.parentNode.remove()" 
+             style="padding: 6px 12px 6px 24px; cursor: pointer; border-bottom: 1px solid #eee;">
+            <i class="fas fa-play me-2"></i> Активен
+        </div>
+        <div class="context-menu-item ${project.status === 'completed' ? 'active' : ''}" 
+             onclick="projectManager.changeProjectStatus('${projectId}', 'completed'); this.parentNode.remove()" 
+             style="padding: 6px 12px 6px 24px; cursor: pointer; border-bottom: 1px solid #eee;">
+            <i class="fas fa-check me-2"></i> Завершен
+        </div>
+        <div class="context-menu-item ${project.status === 'archived' ? 'active' : ''}" 
+             onclick="projectManager.changeProjectStatus('${projectId}', 'archived'); this.parentNode.remove()" 
+             style="padding: 6px 12px 6px 24px; cursor: pointer; border-bottom: 1px solid #eee;">
+            <i class="fas fa-archive me-2"></i> Архив
+        </div>
+        <div class="context-menu-subheader" style="padding: 6px 12px; background: #f8f9fa; color: #6c757d; font-size: 11px; border-bottom: 1px solid #eee;">
+            Управление
         </div>
         <div class="context-menu-item" onclick="renameProject('${projectId}'); this.parentNode.remove()" 
-             style="padding: 8px 12px; cursor: pointer; border-bottom: 1px solid #eee;">
+             style="padding: 6px 12px 6px 24px; cursor: pointer; border-bottom: 1px solid #eee;">
             <i class="fas fa-edit me-2"></i> Переименовать
         </div>
+        <div class="context-menu-item" onclick="projectManager.exportProject('${projectId}'); this.parentNode.remove()" 
+             style="padding: 6px 12px 6px 24px; cursor: pointer; border-bottom: 1px solid #eee;">
+            <i class="fas fa-download me-2"></i> Экспорт
+        </div>
         <div class="context-menu-item delete" onclick="projectManager.deleteProject('${projectId}'); this.parentNode.remove()" 
-             style="padding: 8px 12px; cursor: pointer; color: #dc3545;">
+             style="padding: 6px 12px 6px 24px; cursor: pointer; color: #dc3545;">
             <i class="fas fa-trash me-2"></i> Удалить
         </div>
     `;
+    
+    // Подсветка активного статуса
+    menu.querySelectorAll('.context-menu-item.active').forEach(item => {
+        item.style.background = '#e3f2fd';
+        item.style.fontWeight = 'bold';
+    });
     
     document.body.appendChild(menu);
     

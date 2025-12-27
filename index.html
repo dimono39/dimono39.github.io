@@ -2963,6 +2963,76 @@
 			margin-bottom: 15px;
 			opacity: 0.5;
 		}	
+		/* Плавающая кнопка показа панели */
+		.floating-sidebar-toggle {
+			position: fixed;
+			left: 10px;
+			top: 50%;
+			transform: translateY(-50%);
+			background: #2c3e50;
+			color: white;
+			border: none;
+			width: 36px;
+			height: 36px;
+			border-radius: 18px;
+			cursor: pointer;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			z-index: 999;
+			box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+			transition: all 0.3s ease;
+		}
+
+		.floating-sidebar-toggle:hover {
+			background: #3498db;
+			transform: translateY(-50%) scale(1.1);
+		}
+
+		/* Улучшенное контекстное меню */
+		.context-menu-item {
+			display: flex;
+			align-items: center;
+			transition: background-color 0.2s;
+		}
+
+		.context-menu-item:hover {
+			background-color: #f8f9fa;
+		}
+
+		.context-menu-item.delete:hover {
+			background-color: #ffeaea;
+		}
+
+		.context-menu-subheader {
+			font-weight: 600;
+			color: #495057;
+		}
+
+		/* Статусы проектов */
+		.status-draft {
+			background: rgba(241, 196, 15, 0.15);
+			color: #f39c12;
+			border: 1px solid rgba(241, 196, 15, 0.3);
+		}
+
+		.status-active {
+			background: rgba(46, 204, 113, 0.15);
+			color: #27ae60;
+			border: 1px solid rgba(46, 204, 113, 0.3);
+		}
+
+		.status-completed {
+			background: rgba(52, 152, 219, 0.15);
+			color: #2980b9;
+			border: 1px solid rgba(52, 152, 219, 0.3);
+		}
+
+		.status-archived {
+			background: rgba(149, 165, 166, 0.15);
+			color: #7f8c8d;
+			border: 1px solid rgba(149, 165, 166, 0.3);
+		}		
     </style>
 </head>
 <body>
@@ -2988,7 +3058,7 @@
 				<button class="btn-icon" onclick="exportProject()" title="Экспорт проекта">
 					<i class="fas fa-download"></i>
 				</button>
-				<button class="btn-icon" onclick="toggleSidebar()" title="Скрыть панель">
+				<button class="btn-icon" onclick="toggleSidebar()" title="Скрыть панель" id="sidebarToggleBtn">
 					<i class="fas fa-chevron-left"></i>
 				</button>
 			</div>
@@ -4767,23 +4837,31 @@
 	
 	
     <script>
+	
 		document.addEventListener('DOMContentLoaded', function() {
 			const isCollapsed = localStorage.getItem('sidebar_collapsed') === 'true';
 			const sidebar = document.getElementById('projectsSidebar');
 			const mainContent = document.getElementById('mainContent');
+			const toggleBtn = document.getElementById('sidebarToggleBtn');
 			
-			if (sidebar && mainContent && isCollapsed) {
-				sidebar.classList.add('collapsed');
-				mainContent.classList.add('expanded');
-				
-				// Обновляем иконку
-				const icon = document.querySelector('.projects-sidebar .fa-chevron-left');
-				if (icon) {
-					icon.classList.add('fa-chevron-right');
-					icon.classList.remove('fa-chevron-left');
+			if (sidebar && mainContent && toggleBtn) {
+				if (isCollapsed) {
+					sidebar.classList.add('collapsed');
+					mainContent.classList.add('expanded');
+					
+					// Обновляем иконку
+					const icon = toggleBtn.querySelector('i');
+					if (icon) {
+						icon.classList.add('fa-chevron-right');
+						icon.classList.remove('fa-chevron-left');
+						toggleBtn.title = 'Показать панель';
+					}
+					
+					// Создаем плавающую кнопку
+					createSidebarToggleButton();
 				}
 			}
-		});	
+		});
 	
 
 	<!-- Временно добавьте в index.html -->
