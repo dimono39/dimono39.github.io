@@ -3063,6 +3063,23 @@
 			color: #3498db !important;
 			transform: translateY(-2px);
 		}		
+		
+		@keyframes spin {
+			0% { transform: rotate(0deg); }
+			100% { transform: rotate(360deg); }
+		}
+
+		/* Плавное появление/исчезновение индикатора */
+		#sendingIndicator {
+			transition: opacity 0.3s ease;
+			opacity: 0;
+			pointer-events: none;
+		}
+
+		#sendingIndicator[style*="display: flex"] {
+			opacity: 1;
+			pointer-events: all;
+		}		
     </style>
 </head>
 <body>
@@ -3996,16 +4013,26 @@
 							</form>
 							
 							<!-- Индикатор отправки -->
-							<div id="sendingIndicator" style="display: none; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(255,255,255,0.9); border-radius: 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 100;">
+							<div id="sendingIndicator" 
+								 style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(255,255,255,0.95); border-radius: 20px; display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 1000;">
+								
 								<div class="telegram-loader" style="width: 80px; height: 80px; margin-bottom: 20px; position: relative;">
 									<div style="position: absolute; width: 100%; height: 100%; border: 8px solid #e0e0e0; border-top: 8px solid #0088cc; border-radius: 50%; animation: spin 1s linear infinite;"></div>
 									<div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 30px; color: #0088cc;">
 										<i class="fab fa-telegram-plane"></i>
 									</div>
 								</div>
+								
 								<h3 style="color: #2c3e50; margin-bottom: 10px;">Отправка в Telegram...</h3>
 								<p style="color: #7f8c8d; text-align: center;">Ваше сообщение летит к автору</p>
+								
+								<!-- Кнопка отмены (на случай зависания) -->
+								<button onclick="hideSendingIndicator()" 
+										style="margin-top: 20px; padding: 8px 20px; background: #f8f9fa; color: #7f8c8d; border: 2px solid #ddd; border-radius: 8px; cursor: pointer; font-size: 14px;">
+									Отменить
+								</button>
 							</div>
+
 						</div>
 						
 						<!-- Правая колонка: Информация и статус -->
@@ -5759,7 +5786,41 @@ ${message}
 			}
 		}
 
+		// ======================
+		// ФУНКЦИИ ДЛЯ ИНДИКАТОРА
+		// ======================
 
+		// Показать индикатор
+		function showSendingIndicator() {
+			const indicator = document.getElementById('sendingIndicator');
+			if (indicator) {
+				indicator.style.display = 'flex';
+				console.log('📊 Индикатор показан');
+			} else {
+				console.error('❌ Индикатор не найден!');
+			}
+		}
+
+		// Скрыть индикатор
+		function hideSendingIndicator() {
+			const indicator = document.getElementById('sendingIndicator');
+			if (indicator) {
+				indicator.style.display = 'none';
+				console.log('📊 Индикатор скрыт');
+			}
+		}
+
+		// Принудительное скрытие через 10 секунд (на всякий случай)
+		function forceHideIndicator() {
+			setTimeout(() => {
+				const indicator = document.getElementById('sendingIndicator');
+				if (indicator && indicator.style.display !== 'none') {
+					console.warn('⚠️ Принудительно скрываю индикатор (таймаут 10с)');
+					hideSendingIndicator();
+					showNotification('Индикатор скрыт принудительно', 'warning');
+				}
+			}, 10000); // 10 секунд
+		}
 
 
 	
