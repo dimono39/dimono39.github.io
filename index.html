@@ -3033,6 +3033,36 @@
 			color: #7f8c8d;
 			border: 1px solid rgba(149, 165, 166, 0.3);
 		}		
+		@keyframes fadeIn {
+			from { opacity: 0; transform: translateY(20px); }
+			to { opacity: 1; transform: translateY(0); }
+		}
+		
+		@keyframes spin {
+			0% { transform: rotate(0deg); }
+			100% { transform: rotate(360deg); }
+		}
+		
+		.history-item:hover {
+			transform: translateY(-5px);
+			box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+		}
+		
+		.type-content:hover, .priority-content:hover {
+			transform: translateY(-5px) !important;
+			box-shadow: 0 10px 20px rgba(0,0,0,0.1) !important;
+		}
+		
+		.btn-telegram:hover {
+			transform: translateY(-3px);
+			box-shadow: 0 10px 25px rgba(0, 136, 204, 0.5) !important;
+		}
+		
+		.btn-outline:hover {
+			border-color: #3498db !important;
+			color: #3498db !important;
+			transform: translateY(-2px);
+		}		
     </style>
 </head>
 <body>
@@ -3118,6 +3148,7 @@
 				<button class="tab-btn" onclick="showTab('recommendations')">💡 Рекомендации</button>
 				<button class="tab-btn" onclick="showTab('export')">💾 Экспорт</button>
 				<button class="tab-btn" onclick="showTab('reports')">📄 Генератор отчетов</button>
+				<button class="tab-btn" onclick="showTab('feedback')">💬 Обратная связь</button>
 				
 			</div>
 			
@@ -3809,6 +3840,294 @@
 				<div class="chart-container">
 					<h3>📋 Предпросмотр отчета</h3>
 					<div id="reportPreview"></div>
+				</div>
+			</div>
+
+			<!-- Вкладка обратной связи с Telegram -->
+			<div id="feedback" class="tab-content">
+				<div class="feedback-container" style="max-width: 1200px; margin: 0 auto;">
+					
+					<!-- Заголовок с анимацией -->
+					<div class="feedback-header" style="text-align: center; margin-bottom: 40px; animation: fadeIn 0.8s ease;">
+						<h1 style="color: #2c3e50; margin-bottom: 15px; font-size: 2.5em;">💬 Связь с автором</h1>
+						<p style="color: #7f8c8d; font-size: 1.1em; max-width: 800px; margin: 0 auto 30px;">
+							Ваши идеи и замечания помогают сделать систему лучше! Сообщения приходят прямо в Telegram
+						</p>
+						<div class="telegram-badge" style="display: inline-flex; align-items: center; gap: 10px; background: linear-gradient(135deg, #0088cc, #34b7f1); color: white; padding: 12px 25px; border-radius: 50px; font-weight: bold; box-shadow: 0 5px 15px rgba(0, 136, 204, 0.3);">
+							<i class="fab fa-telegram-plane" style="font-size: 1.5em;"></i>
+							<span>Сообщения приходят в Telegram-бот</span>
+						</div>
+					</div>
+					
+					<div class="feedback-main" style="display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-bottom: 50px;">
+						
+						<!-- Левая колонка: Форма обратной связи -->
+						<div class="feedback-form-card" style="background: white; border-radius: 20px; padding: 35px; box-shadow: 0 10px 40px rgba(0,0,0,0.08); position: relative; overflow: hidden;">
+							<!-- Декоративный элемент -->
+							<div class="form-decoration" style="position: absolute; top: 0; right: 0; width: 150px; height: 150px; background: linear-gradient(135deg, #667eea, #764ba2); border-radius: 0 20px 0 100px; opacity: 0.1;"></div>
+							
+							<h2 style="color: #2c3e50; margin-bottom: 25px; font-size: 1.8em; position: relative;">📝 Форма обратной связи</h2>
+							
+							<form id="feedbackForm" onsubmit="sendToTelegram(event)">
+								<!-- Имя пользователя -->
+								<div class="form-group" style="margin-bottom: 25px;">
+									<label style="display: block; margin-bottom: 10px; font-weight: 600; color: #34495e;">
+										<i class="fas fa-user-circle me-2"></i>Ваше имя (необязательно)
+									</label>
+									<input type="text" id="feedbackName" 
+										   class="form-input" 
+										   placeholder="Как к вам обращаться?" 
+										   style="width: 100%; padding: 15px; border: 2px solid #e9ecef; border-radius: 12px; font-size: 16px; transition: all 0.3s; background: #f8f9fa;">
+									<div class="input-focus-line" style="height: 2px; background: #3498db; width: 0; transition: width 0.3s; margin-top: 5px;"></div>
+								</div>
+								
+								<!-- Тип обращения -->
+								<div class="form-group" style="margin-bottom: 25px;">
+									<label style="display: block; margin-bottom: 10px; font-weight: 600; color: #34495e;">
+										<i class="fas fa-tag me-2"></i>Тип обращения
+									</label>
+									<div class="type-selector" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;">
+										<label class="type-option" data-type="suggestion">
+											<input type="radio" name="feedbackType" value="suggestion" hidden>
+											<div class="type-content" style="padding: 18px; background: #e8f4fc; border: 2px solid #d6eaf8; border-radius: 12px; text-align: center; cursor: pointer; transition: all 0.3s;">
+												<div style="font-size: 24px; margin-bottom: 10px;">💡</div>
+												<div style="font-weight: 600; color: #2980b9;">Предложение</div>
+											</div>
+										</label>
+										<label class="type-option" data-type="bug">
+											<input type="radio" name="feedbackType" value="bug" hidden>
+											<div class="type-content" style="padding: 18px; background: #fdedec; border: 2px solid #fadbd8; border-radius: 12px; text-align: center; cursor: pointer; transition: all 0.3s;">
+												<div style="font-size: 24px; margin-bottom: 10px;">🐛</div>
+												<div style="font-weight: 600; color: #e74c3c;">Ошибка</div>
+											</div>
+										</label>
+										<label class="type-option" data-type="feature">
+											<input type="radio" name="feedbackType" value="feature" hidden>
+											<div class="type-content" style="padding: 18px; background: #f0ebf9; border: 2px solid #e8e0f7; border-radius: 12px; text-align: center; cursor: pointer; transition: all 0.3s;">
+												<div style="font-size: 24px; margin-bottom: 10px;">✨</div>
+												<div style="font-weight: 600; color: #8e44ad;">Функция</div>
+											</div>
+										</label>
+										<label class="type-option" data-type="question">
+											<input type="radio" name="feedbackType" value="question" hidden>
+											<div class="type-content" style="padding: 18px; background: #fff8e1; border: 2px solid #ffecb3; border-radius: 12px; text-align: center; cursor: pointer; transition: all 0.3s;">
+												<div style="font-size: 24px; margin-bottom: 10px;">❓</div>
+												<div style="font-weight: 600; color: #f39c12;">Вопрос</div>
+											</div>
+										</label>
+									</div>
+								</div>
+								
+								<!-- Сообщение -->
+								<div class="form-group" style="margin-bottom: 25px;">
+									<label style="display: block; margin-bottom: 10px; font-weight: 600; color: #34495e;" class="required">
+										<i class="fas fa-comment-dots me-2"></i>Ваше сообщение
+									</label>
+									<textarea id="feedbackMessage" 
+											  rows="6" 
+											  class="form-textarea" 
+											  placeholder="Опишите подробно ваше предложение, замечание или вопрос..."
+											  required
+											  style="width: 100%; padding: 15px; border: 2px solid #e9ecef; border-radius: 12px; font-size: 16px; transition: all 0.3s; background: #f8f9fa; resize: vertical;"></textarea>
+									<div class="textarea-counter" style="text-align: right; margin-top: 5px; font-size: 13px; color: #7f8c8d;">
+										<span id="charCount">0</span>/1000 символов
+									</div>
+								</div>
+								
+								<!-- Приоритет -->
+								<div class="form-group" style="margin-bottom: 30px;">
+									<label style="display: block; margin-bottom: 10px; font-weight: 600; color: #34495e;">
+										<i class="fas fa-flag me-2"></i>Приоритет обращения
+									</label>
+									<div class="priority-selector" style="display: flex; gap: 15px;">
+										<label class="priority-option" data-priority="low">
+											<input type="radio" name="priority" value="low" checked hidden>
+											<div class="priority-content" style="flex: 1; padding: 18px; background: #e8f6f3; border: 2px solid #2ecc71; border-radius: 12px; text-align: center; cursor: pointer; transition: all 0.3s;">
+												<div style="font-size: 20px; margin-bottom: 8px;">🟢</div>
+												<div style="font-weight: 600; color: #27ae60;">Низкий</div>
+												<div style="font-size: 13px; color: #7f8c8d; margin-top: 5px;">Не срочно</div>
+											</div>
+										</label>
+										<label class="priority-option" data-priority="medium">
+											<input type="radio" name="priority" value="medium" hidden>
+											<div class="priority-content" style="flex: 1; padding: 18px; background: #fef9e7; border: 2px solid #f1c40f; border-radius: 12px; text-align: center; cursor: pointer; transition: all 0.3s;">
+												<div style="font-size: 20px; margin-bottom: 8px;">🟡</div>
+												<div style="font-weight: 600; color: #f39c12;">Средний</div>
+												<div style="font-size: 13px; color: #7f8c8d; margin-top: 5px;">В течение дня</div>
+											</div>
+										</label>
+										<label class="priority-option" data-priority="high">
+											<input type="radio" name="priority" value="high" hidden>
+											<div class="priority-content" style="flex: 1; padding: 18px; background: #fdedec; border: 2px solid #e74c3c; border-radius: 12px; text-align: center; cursor: pointer; transition: all 0.3s;">
+												<div style="font-size: 20px; margin-bottom: 8px;">🔴</div>
+												<div style="font-weight: 600; color: #e74c3c;">Высокий</div>
+												<div style="font-size: 13px; color: #7f8c8d; margin-top: 5px;">Срочно / Критично</div>
+											</div>
+										</label>
+									</div>
+								</div>
+								
+								<!-- Конфиденциальность -->
+								<div class="form-group" style="margin-bottom: 35px;">
+									<label class="privacy-toggle" style="display: flex; align-items: center; gap: 15px; padding: 20px; background: #f8f9fa; border-radius: 12px; cursor: pointer;">
+										<div class="toggle-switch" style="position: relative; width: 60px; height: 30px; background: #ddd; border-radius: 15px; transition: all 0.3s;">
+											<div class="toggle-circle" style="position: absolute; top: 3px; left: 3px; width: 24px; height: 24px; background: white; border-radius: 50%; transition: all 0.3s;"></div>
+										</div>
+										<input type="checkbox" id="allowContact" checked hidden>
+										<div>
+											<div style="font-weight: 600; color: #2c3e50;">Разрешить обратную связь</div>
+											<div style="font-size: 14px; color: #7f8c8d; margin-top: 5px;">Я разрешаю связаться со мной для уточнения деталей</div>
+										</div>
+									</label>
+								</div>
+								
+								<!-- Кнопки отправки -->
+								<div style="display: flex; gap: 20px;">
+									<button type="submit" class="btn btn-telegram" 
+											style="flex: 1; padding: 18px; background: linear-gradient(135deg, #0088cc, #34b7f1); color: white; border: none; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 12px; transition: all 0.3s; box-shadow: 0 5px 15px rgba(0, 136, 204, 0.4);">
+										<i class="fab fa-telegram-plane"></i>
+										Отправить в Telegram
+									</button>
+									<button type="button" class="btn btn-outline" onclick="clearFeedbackForm()"
+											style="padding: 18px 30px; background: white; color: #7f8c8d; border: 2px solid #ddd; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.3s;">
+										Очистить
+									</button>
+								</div>
+							</form>
+							
+							<!-- Индикатор отправки -->
+							<div id="sendingIndicator" style="display: none; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(255,255,255,0.9); border-radius: 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 100;">
+								<div class="telegram-loader" style="width: 80px; height: 80px; margin-bottom: 20px; position: relative;">
+									<div style="position: absolute; width: 100%; height: 100%; border: 8px solid #e0e0e0; border-top: 8px solid #0088cc; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+									<div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 30px; color: #0088cc;">
+										<i class="fab fa-telegram-plane"></i>
+									</div>
+								</div>
+								<h3 style="color: #2c3e50; margin-bottom: 10px;">Отправка в Telegram...</h3>
+								<p style="color: #7f8c8d; text-align: center;">Ваше сообщение летит к автору</p>
+							</div>
+						</div>
+						
+						<!-- Правая колонка: Информация и статус -->
+						<div class="feedback-info-card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 20px; padding: 35px; position: relative; overflow: hidden;">
+							<!-- Декоративные элементы -->
+							<div style="position: absolute; top: -50px; right: -50px; width: 200px; height: 200px; background: rgba(255,255,255,0.1); border-radius: 50%;"></div>
+							<div style="position: absolute; bottom: -30px; left: -30px; width: 150px; height: 150px; background: rgba(255,255,255,0.05); border-radius: 50%;"></div>
+							
+							<div style="position: relative; z-index: 2;">
+								<h2 style="color: white; margin-bottom: 25px; font-size: 1.8em;">
+									<i class="fas fa-info-circle me-2"></i>Как это работает?
+								</h2>
+								
+								<div class="process-steps" style="margin-bottom: 40px;">
+									<div class="process-step" style="display: flex; align-items: flex-start; gap: 20px; margin-bottom: 25px; padding: 20px; background: rgba(255,255,255,0.1); border-radius: 15px;">
+										<div class="step-number" style="width: 40px; height: 40px; background: white; color: #667eea; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 18px; flex-shrink: 0;">
+											1
+										</div>
+										<div>
+											<h4 style="color: white; margin-bottom: 8px;">Вы заполняете форму</h4>
+											<p style="color: rgba(255,255,255,0.9); font-size: 14px; line-height: 1.5;">
+												Подробно описываете идею, ошибку или вопрос
+											</p>
+										</div>
+									</div>
+									
+									<div class="process-step" style="display: flex; align-items: flex-start; gap: 20px; margin-bottom: 25px; padding: 20px; background: rgba(255,255,255,0.1); border-radius: 15px;">
+										<div class="step-number" style="width: 40px; height: 40px; background: white; color: #667eea; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 18px; flex-shrink: 0;">
+											2
+										</div>
+										<div>
+											<h4 style="color: white; margin-bottom: 8px;">Сообщение улетает в Telegram</h4>
+											<p style="color: rgba(255,255,255,0.9); font-size: 14px; line-height: 1.5;">
+												Данные отправляются напрямую в бот через API
+											</p>
+										</div>
+									</div>
+									
+									<div class="process-step" style="display: flex; align-items: flex-start; gap: 20px; padding: 20px; background: rgba(255,255,255,0.1); border-radius: 15px;">
+										<div class="step-number" style="width: 40px; height: 40px; background: white; color: #667eea; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 18px; flex-shrink: 0;">
+											3
+										</div>
+										<div>
+											<h4 style="color: white; margin-bottom: 8px;">Автор получает уведомление</h4>
+											<p style="color: rgba(255,255,255,0.9); font-size: 14px; line-height: 1.5;">
+												Сообщение приходит прямо в чат с ботом
+											</p>
+										</div>
+									</div>
+								</div>
+								
+								<!-- Статистика отправки -->
+								<div class="feedback-stats" style="background: rgba(255,255,255,0.15); padding: 25px; border-radius: 15px; margin-bottom: 30px;">
+									<h4 style="color: white; margin-bottom: 20px; text-align: center;">
+										<i class="fas fa-chart-line me-2"></i>Статистика обращений
+									</h4>
+									<div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px;">
+										<div style="text-align: center;">
+											<div id="sentCount" style="font-size: 2.5em; font-weight: bold; color: #f1c40f; margin-bottom: 5px;">0</div>
+											<div style="font-size: 14px; color: rgba(255,255,255,0.9);">Отправлено</div>
+										</div>
+										<div style="text-align: center;">
+											<div id="responseTime" style="font-size: 2.5em; font-weight: bold; color: #2ecc71; margin-bottom: 5px;">1-2</div>
+											<div style="font-size: 14px; color: rgba(255,255,255,0.9);">Дня на ответ</div>
+										</div>
+									</div>
+								</div>
+								
+								<!-- Контактная информация -->
+								<div class="contact-info" style="text-align: center;">
+									<p style="color: rgba(255,255,255,0.9); margin-bottom: 15px; font-size: 14px;">
+										<i class="fas fa-clock me-2"></i>Ответ обычно приходит в течение 1-2 рабочих дней
+									</p>
+									<div class="contact-badges" style="display: flex; justify-content: center; gap: 10px; flex-wrap: wrap;">
+										<div style="background: rgba(255,255,255,0.2); padding: 10px 20px; border-radius: 25px; font-size: 14px;">
+											<i class="fas fa-envelope me-2"></i>your.email@example.com
+										</div>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+					
+					<!-- История сообщений -->
+					<div class="feedback-history" style="background: white; border-radius: 20px; padding: 35px; box-shadow: 0 10px 40px rgba(0,0,0,0.08); margin-bottom: 30px;">
+						<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
+							<h2 style="color: #2c3e50; font-size: 1.8em;">
+								<i class="fas fa-history me-2"></i>История ваших обращений
+							</h2>
+							<div style="display: flex; gap: 10px;">
+								<button class="btn btn-sm" onclick="exportFeedbackHistory()"
+										style="padding: 10px 20px; background: #f8f9fa; color: #34495e; border: 2px solid #ddd; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.3s; display: flex; align-items: center; gap: 8px;">
+									<i class="fas fa-download"></i> Экспорт
+								</button>
+								<button class="btn btn-sm" onclick="clearAllFeedback()"
+										style="padding: 10px 20px; background: #fef9e7; color: #f39c12; border: 2px solid #f1c40f; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.3s; display: flex; align-items: center; gap: 8px;">
+									<i class="fas fa-trash"></i> Очистить все
+								</button>
+							</div>
+						</div>
+						
+						<div id="feedbackHistoryList" style="max-height: 400px; overflow-y: auto; padding-right: 10px;">
+							<!-- Сюда будет загружаться история -->
+							<div class="empty-history" style="text-align: center; padding: 60px 20px; color: #bdc3c7;">
+								<div style="font-size: 4em; margin-bottom: 20px;">📭</div>
+								<h3 style="color: #95a5a6; margin-bottom: 10px;">История пуста</h3>
+								<p>Здесь будут отображаться ваши отправленные сообщения</p>
+							</div>
+						</div>
+					</div>
+					
+					<!-- Футер с полезной информацией -->
+					<div class="feedback-footer" style="text-align: center; padding: 30px; color: #7f8c8d; font-size: 14px;">
+						<p style="margin-bottom: 15px;">
+							💡 <strong>Совет:</strong> Для сообщений об ошибках прикладывайте скриншоты в описании
+						</p>
+						<p>
+							<i class="fas fa-heart me-1" style="color: #e74c3c;"></i>
+							Спасибо, что помогаете делать систему лучше!
+						</p>
+					</div>
+					
 				</div>
 			</div>
 			
@@ -4830,6 +5149,7 @@
 	<script src="modules/report.js"></script>
 	<script src="modules/studreport.js"></script>
 	<script src="modules/project-manager.js"></script>
+	<script src="modules/dataImportExport.js"></script>
 	
 	<!-- 1. Хранилище -->
 
@@ -4837,6 +5157,592 @@
 	
 	
     <script>
+	
+		// ============================
+		// ОБРАТНАЯ СВЯЗЬ В TELEGRAM dimono39_bot
+		// ============================
+
+		// Настройки Telegram (ЗАМЕНИТЕ НА СВОИ!)
+		const TELEGRAM_BOT_TOKEN = '8466560666:AAFzgcHA0lEAqPsUswsDgWdGijcEyYJbYBc'; // Пример: '6285051364:AAH7lJ3mKmK6s8Q0...'
+		const TELEGRAM_CHAT_ID = '8466560666';    // Пример: '123456789'
+
+		// Инициализация при загрузке страницы
+		document.addEventListener('DOMContentLoaded', function() {
+			// Инициализация счетчика символов
+			const messageTextarea = document.getElementById('feedbackMessage');
+			if (messageTextarea) {
+				messageTextarea.addEventListener('input', function() {
+					const charCount = this.value.length;
+					document.getElementById('charCount').textContent = charCount;
+					
+					// Изменение цвета при превышении лимита
+					const counter = document.querySelector('.textarea-counter');
+					if (charCount > 1000) {
+						counter.style.color = '#e74c3c';
+					} else {
+						counter.style.color = '#7f8c8d';
+					}
+				});
+			}
+			
+			// Инициализация выбора типа
+			document.querySelectorAll('.type-option').forEach(option => {
+				option.addEventListener('click', function() {
+					const radio = this.querySelector('input[type="radio"]');
+					if (radio) {
+						radio.checked = true;
+						
+						// Сбрасываем стили у всех
+						document.querySelectorAll('.type-content').forEach(content => {
+							content.style.background = '';
+							content.style.transform = '';
+							content.style.boxShadow = '';
+						});
+						
+						// Устанавливаем стили для выбранного
+						const selectedContent = this.querySelector('.type-content');
+						selectedContent.style.background = getTypeBackground(radio.value);
+						selectedContent.style.transform = 'translateY(-5px)';
+						selectedContent.style.boxShadow = '0 10px 20px rgba(0,0,0,0.1)';
+					}
+				});
+			});
+			
+			// Инициализация выбора приоритета
+			document.querySelectorAll('.priority-option').forEach(option => {
+				option.addEventListener('click', function() {
+					const radio = this.querySelector('input[type="radio"]');
+					if (radio) {
+						radio.checked = true;
+						
+						// Сбрасываем стили у всех
+						document.querySelectorAll('.priority-content').forEach(content => {
+							content.style.transform = '';
+							content.style.boxShadow = '';
+						});
+						
+						// Устанавливаем стили для выбранного
+						const selectedContent = this.querySelector('.priority-content');
+						selectedContent.style.transform = 'translateY(-5px)';
+						selectedContent.style.boxShadow = '0 10px 20px rgba(0,0,0,0.1)';
+					}
+				});
+			});
+			
+			// Инициализация переключателя конфиденциальности
+			const privacyToggle = document.querySelector('.privacy-toggle');
+			if (privacyToggle) {
+				privacyToggle.addEventListener('click', function() {
+					const toggleSwitch = this.querySelector('.toggle-switch');
+					const toggleCircle = this.querySelector('.toggle-circle');
+					const checkbox = this.querySelector('input[type="checkbox"]');
+					
+					checkbox.checked = !checkbox.checked;
+					
+					if (checkbox.checked) {
+						toggleSwitch.style.background = '#27ae60';
+						toggleCircle.style.left = '33px';
+					} else {
+						toggleSwitch.style.background = '#ddd';
+						toggleCircle.style.left = '3px';
+					}
+				});
+			}
+			
+			// Загружаем историю
+			loadFeedbackHistory();
+			updateStats();
+			
+			// Анимация фокуса для полей ввода
+			const inputs = document.querySelectorAll('.form-input, .form-textarea');
+			inputs.forEach(input => {
+				input.addEventListener('focus', function() {
+					this.style.borderColor = '#3498db';
+					this.style.background = 'white';
+					this.parentElement.querySelector('.input-focus-line').style.width = '100%';
+				});
+				
+				input.addEventListener('blur', function() {
+					if (!this.value) {
+						this.style.borderColor = '#e9ecef';
+						this.style.background = '#f8f9fa';
+						this.parentElement.querySelector('.input-focus-line').style.width = '0';
+					}
+				});
+			});
+		});
+
+		// Функция отправки в Telegram
+		async function sendToTelegram(event) {
+			event.preventDefault();
+			
+			// Показываем индикатор отправки
+			const indicator = document.getElementById('sendingIndicator');
+			indicator.style.display = 'flex';
+			
+			// Собираем данные формы
+			const name = document.getElementById('feedbackName').value.trim() || 'Анонимный пользователь';
+			const message = document.getElementById('feedbackMessage').value.trim();
+			const type = document.querySelector('input[name="feedbackType"]:checked')?.value || 'other';
+			const priority = document.querySelector('input[name="priority"]:checked')?.value || 'low';
+			const allowContact = document.getElementById('allowContact').checked;
+			
+			// Валидация
+			if (!message) {
+				showNotification('Пожалуйста, введите сообщение', 'error');
+				indicator.style.display = 'none';
+				return;
+			}
+			
+			if (message.length > 1000) {
+				showNotification('Сообщение слишком длинное (максимум 1000 символов)', 'error');
+				indicator.style.display = 'none';
+				return;
+			}
+			
+			if (!TELEGRAM_BOT_TOKEN || TELEGRAM_BOT_TOKEN === 'ВАШ_ТОКЕН_БОТА') {
+				showNotification('Ошибка: не настроен Telegram бот. Сообщение сохранено локально.', 'error');
+				saveFeedbackToStorage({
+					id: 'fb_' + Date.now(),
+					timestamp: new Date().toISOString(),
+					name: name,
+					type: type,
+					message: message,
+					priority: priority,
+					status: 'saved_locally'
+				});
+				indicator.style.display = 'none';
+				loadFeedbackHistory();
+				updateStats();
+				return;
+			}
+			
+			// Формируем сообщение для Telegram
+			const telegramMessage = `
+		📬 *НОВОЕ ОБРАЩЕНИЕ С САЙТА*
+
+		📌 *Тип:* ${getTypeText(type)}
+		🚨 *Приоритет:* ${getPriorityText(priority)}
+		👤 *От:* ${name}
+		📞 *Контакты:* ${allowContact ? 'Разрешены ✅' : 'Не разрешены ❌'}
+
+		💬 *Сообщение:*
+		${message}
+
+		⏰ *Отправлено:* ${new Date().toLocaleString('ru-RU')}
+			`.trim();
+			
+			try {
+				// Отправляем запрос к Telegram API
+				const apiUrl = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
+				
+				const response = await fetch(apiUrl, {
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json',
+					},
+					body: JSON.stringify({
+						chat_id: TELEGRAM_CHAT_ID,
+						text: telegramMessage,
+						parse_mode: 'Markdown',
+						disable_web_page_preview: true
+					})
+				});
+				
+				const result = await response.json();
+				
+				// Скрываем индикатор
+				indicator.style.display = 'none';
+				
+				if (result.ok) {
+					// Успешная отправка
+					showNotification('✅ Сообщение отправлено в Telegram!', 'success');
+					
+					// Сохраняем в локальную историю
+					saveFeedbackToStorage({
+						id: 'fb_' + Date.now(),
+						timestamp: new Date().toISOString(),
+						name: name,
+						type: type,
+						message: message,
+						priority: priority,
+						status: 'sent_to_telegram'
+					});
+					
+					// Очищаем форму
+					clearFeedbackForm();
+					
+					// Обновляем UI
+					loadFeedbackHistory();
+					updateStats();
+					
+					// Анимация успеха
+					const sendButton = document.querySelector('.btn-telegram');
+					sendButton.innerHTML = '<i class="fas fa-check"></i> Отправлено!';
+					sendButton.style.background = 'linear-gradient(135deg, #27ae60, #2ecc71)';
+					
+					setTimeout(() => {
+						sendButton.innerHTML = '<i class="fab fa-telegram-plane"></i> Отправить в Telegram';
+						sendButton.style.background = 'linear-gradient(135deg, #0088cc, #34b7f1)';
+					}, 3000);
+					
+				} else {
+					throw new Error(result.description || 'Неизвестная ошибка Telegram API');
+				}
+				
+			} catch (error) {
+				indicator.style.display = 'none';
+				console.error('Ошибка отправки в Telegram:', error);
+				
+				// Сохраняем локально при ошибке
+				saveFeedbackToStorage({
+					id: 'fb_' + Date.now(),
+					timestamp: new Date().toISOString(),
+					name: name,
+					type: type,
+					message: message,
+					priority: priority,
+					status: 'failed_to_send'
+				});
+				
+				showNotification('⚠️ Не удалось отправить в Telegram. Сообщение сохранено локально.', 'warning');
+				loadFeedbackHistory();
+				updateStats();
+			}
+		}
+
+		// Вспомогательные функции
+		function getTypeText(type) {
+			const types = {
+				'suggestion': '💡 Предложение',
+				'bug': '🐛 Ошибка',
+				'feature': '✨ Новая функция',
+				'question': '❓ Вопрос',
+				'other': '📝 Другое'
+			};
+			return types[type] || types.other;
+		}
+
+		function getPriorityText(priority) {
+			const priorities = {
+				'low': '🟢 Низкий',
+				'medium': '🟡 Средний',
+				'high': '🔴 Высокий'
+			};
+			return priorities[priority] || priorities.low;
+		}
+
+		function getTypeBackground(type) {
+			const backgrounds = {
+				'suggestion': '#e8f4fc',
+				'bug': '#fdedec',
+				'feature': '#f0ebf9',
+				'question': '#fff8e1',
+				'other': '#f8f9fa'
+			};
+			return backgrounds[type] || backgrounds.other;
+		}
+
+		function saveFeedbackToStorage(feedback) {
+			try {
+				let feedbackHistory = JSON.parse(localStorage.getItem('feedbackHistory')) || [];
+				feedbackHistory.unshift(feedback); // Добавляем в начало
+				
+				// Ограничиваем историю 50 сообщениями
+				if (feedbackHistory.length > 50) {
+					feedbackHistory = feedbackHistory.slice(0, 50);
+				}
+				
+				localStorage.setItem('feedbackHistory', JSON.stringify(feedbackHistory));
+				return true;
+			} catch (error) {
+				console.error('Ошибка сохранения в историю:', error);
+				return false;
+			}
+		}
+
+		function loadFeedbackHistory() {
+			try {
+				const feedbackHistory = JSON.parse(localStorage.getItem('feedbackHistory')) || [];
+				const container = document.getElementById('feedbackHistoryList');
+				
+				if (!container) return;
+				
+				if (feedbackHistory.length === 0) {
+					container.innerHTML = `
+						<div class="empty-history" style="text-align: center; padding: 60px 20px; color: #bdc3c7;">
+							<div style="font-size: 4em; margin-bottom: 20px;">📭</div>
+							<h3 style="color: #95a5a6; margin-bottom: 10px;">История пуста</h3>
+							<p>Здесь будут отображаться ваши отправленные сообщения</p>
+						</div>
+					`;
+					return;
+				}
+				
+				container.innerHTML = feedbackHistory.map((item, index) => `
+					<div class="history-item" style="padding: 20px; margin-bottom: 15px; background: #f8f9fa; border-radius: 15px; border-left: 4px solid ${getStatusColor(item.status)}; transition: all 0.3s; cursor: pointer;" onclick="showFeedbackDetails(${index})">
+						<div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px;">
+							<div style="display: flex; align-items: center; gap: 12px;">
+								<div style="width: 40px; height: 40px; background: ${getTypeBackground(item.type)}; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px;">
+									${item.type === 'suggestion' ? '💡' : item.type === 'bug' ? '🐛' : item.type === 'feature' ? '✨' : '❓'}
+								</div>
+								<div>
+									<div style="font-weight: 600; color: #2c3e50;">${item.name}</div>
+									<div style="font-size: 14px; color: #7f8c8d;">${getTypeText(item.type)} • ${getPriorityText(item.priority)}</div>
+								</div>
+							</div>
+							<div style="text-align: right;">
+								<div style="font-size: 12px; color: #95a5a6;">${new Date(item.timestamp).toLocaleDateString('ru-RU')}</div>
+								<div style="font-size: 11px; padding: 3px 8px; background: ${getStatusColor(item.status)}; color: white; border-radius: 10px; margin-top: 5px;">
+									${getStatusText(item.status)}
+								</div>
+							</div>
+						</div>
+						<div style="color: #34495e; font-size: 14px; line-height: 1.5; max-height: 60px; overflow: hidden; text-overflow: ellipsis;">
+							${item.message.substring(0, 150)}${item.message.length > 150 ? '...' : ''}
+						</div>
+					</div>
+				`).join('');
+				
+			} catch (error) {
+				console.error('Ошибка загрузки истории:', error);
+			}
+		}
+
+		function getStatusColor(status) {
+			switch(status) {
+				case 'sent_to_telegram': return '#27ae60';
+				case 'saved_locally': return '#3498db';
+				case 'failed_to_send': return '#e74c3c';
+				default: return '#95a5a6';
+			}
+		}
+
+		function getStatusText(status) {
+			switch(status) {
+				case 'sent_to_telegram': return 'Отправлено';
+				case 'saved_locally': return 'Сохранено';
+				case 'failed_to_send': return 'Ошибка';
+				default: return 'Неизвестно';
+			}
+		}
+
+		function updateStats() {
+			try {
+				const feedbackHistory = JSON.parse(localStorage.getItem('feedbackHistory')) || [];
+				const sentCount = feedbackHistory.filter(item => item.status === 'sent_to_telegram').length;
+				
+				document.getElementById('sentCount').textContent = sentCount;
+			} catch (error) {
+				console.error('Ошибка обновления статистики:', error);
+			}
+		}
+
+		function clearFeedbackForm() {
+			if (confirm('Очистить форму обратной связи?')) {
+				document.getElementById('feedbackForm').reset();
+				document.getElementById('charCount').textContent = '0';
+				
+				// Сброс стилей выбора типа
+				document.querySelectorAll('.type-content').forEach(content => {
+					content.style.background = '';
+					content.style.transform = '';
+					content.style.boxShadow = '';
+				});
+				
+				// Сброс стилей выбора приоритета
+				document.querySelectorAll('.priority-content').forEach(content => {
+					content.style.transform = '';
+					content.style.boxShadow = '';
+				});
+				
+				showNotification('Форма очищена', 'info');
+			}
+		}
+
+		function clearAllFeedback() {
+			if (confirm('Вы уверены, что хотите удалить всю историю обращений?')) {
+				localStorage.removeItem('feedbackHistory');
+				loadFeedbackHistory();
+				updateStats();
+				showNotification('История очищена', 'info');
+			}
+		}
+
+		function exportFeedbackHistory() {
+			try {
+				const feedbackHistory = JSON.parse(localStorage.getItem('feedbackHistory')) || [];
+				
+				if (feedbackHistory.length === 0) {
+					showNotification('Нет данных для экспорта', 'warning');
+					return;
+				}
+				
+				const dataStr = JSON.stringify(feedbackHistory, null, 2);
+				const dataBlob = new Blob([dataStr], { type: 'application/json' });
+				const url = URL.createObjectURL(dataBlob);
+				
+				const link = document.createElement('a');
+				link.href = url;
+				link.download = `feedback_history_${new Date().toISOString().split('T')[0]}.json`;
+				document.body.appendChild(link);
+				link.click();
+				document.body.removeChild(link);
+				URL.revokeObjectURL(url);
+				
+				showNotification('История экспортирована в JSON', 'success');
+			} catch (error) {
+				console.error('Ошибка экспорта:', error);
+				showNotification('Ошибка экспорта', 'error');
+			}
+		}
+
+		function showFeedbackDetails(index) {
+			try {
+				const feedbackHistory = JSON.parse(localStorage.getItem('feedbackHistory')) || [];
+				const item = feedbackHistory[index];
+				
+				if (!item) return;
+				
+				const modalContent = `
+					<div style="max-width: 600px; padding: 30px;">
+						<h2 style="color: #2c3e50; margin-bottom: 25px; border-bottom: 2px solid #3498db; padding-bottom: 10px;">
+							<i class="fas fa-info-circle me-2"></i>Детали обращения
+						</h2>
+						
+						<div style="margin-bottom: 25px;">
+							<div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-bottom: 20px;">
+								<div style="background: #f8f9fa; padding: 15px; border-radius: 10px;">
+									<div style="font-size: 12px; color: #7f8c8d; margin-bottom: 5px;">Отправитель</div>
+									<div style="font-weight: 600; color: #2c3e50;">${item.name}</div>
+								</div>
+								<div style="background: #f8f9fa; padding: 15px; border-radius: 10px;">
+									<div style="font-size: 12px; color: #7f8c8d; margin-bottom: 5px;">Дата</div>
+									<div style="font-weight: 600; color: #2c3e50;">${new Date(item.timestamp).toLocaleString('ru-RU')}</div>
+								</div>
+							</div>
+							
+							<div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-bottom: 20px;">
+								<div style="background: ${getTypeBackground(item.type)}; padding: 15px; border-radius: 10px;">
+									<div style="font-size: 12px; color: #7f8c8d; margin-bottom: 5px;">Тип</div>
+									<div style="font-weight: 600; color: #2c3e50;">${getTypeText(item.type)}</div>
+								</div>
+								<div style="background: ${item.priority === 'high' ? '#fdedec' : item.priority === 'medium' ? '#fff8e1' : '#e8f6f3'}; padding: 15px; border-radius: 10px;">
+									<div style="font-size: 12px; color: #7f8c8d; margin-bottom: 5px;">Приоритет</div>
+									<div style="font-weight: 600; color: #2c3e50;">${getPriorityText(item.priority)}</div>
+								</div>
+							</div>
+							
+							<div style="background: #f8f9fa; padding: 20px; border-radius: 10px; margin-bottom: 20px;">
+								<div style="font-size: 12px; color: #7f8c8d; margin-bottom: 10px;">Сообщение</div>
+								<div style="color: #34495e; line-height: 1.6; white-space: pre-wrap;">${item.message}</div>
+							</div>
+							
+							<div style="display: flex; align-items: center; justify-content: space-between; padding: 15px; background: ${getStatusColor(item.status)}; color: white; border-radius: 10px;">
+								<div>
+									<div style="font-size: 12px; opacity: 0.9;">Статус</div>
+									<div style="font-weight: 600;">${getStatusText(item.status)}</div>
+								</div>
+								<div style="font-size: 24px;">
+									${item.status === 'sent_to_telegram' ? '✅' : item.status === 'failed_to_send' ? '❌' : '💾'}
+								</div>
+							</div>
+						</div>
+						
+						<div style="display: flex; gap: 15px;">
+							<button onclick="closeModal()" class="btn" style="flex: 1; padding: 15px; background: #f8f9fa; color: #34495e; border: 2px solid #ddd; border-radius: 10px; font-weight: 600; cursor: pointer;">
+								Закрыть
+							</button>
+							<button onclick="deleteFeedback(${index})" class="btn" style="flex: 1; padding: 15px; background: #fdedec; color: #e74c3c; border: 2px solid #fadbd8; border-radius: 10px; font-weight: 600; cursor: pointer;">
+								<i class="fas fa-trash me-2"></i> Удалить
+							</button>
+						</div>
+					</div>
+				`;
+				
+				showModal('📄 Детали обращения', modalContent);
+				
+			} catch (error) {
+				console.error('Ошибка показа деталей:', error);
+			}
+		}
+
+		function deleteFeedback(index) {
+			if (confirm('Удалить это обращение из истории?')) {
+				try {
+					const feedbackHistory = JSON.parse(localStorage.getItem('feedbackHistory')) || [];
+					feedbackHistory.splice(index, 1);
+					localStorage.setItem('feedbackHistory', JSON.stringify(feedbackHistory));
+					
+					closeModal();
+					loadFeedbackHistory();
+					updateStats();
+					showNotification('Обращение удалено', 'success');
+				} catch (error) {
+					console.error('Ошибка удаления:', error);
+					showNotification('Ошибка удаления', 'error');
+				}
+			}
+		}
+
+
+
+
+	
+// После загрузки страницы или при создании данных
+function initializeImportExport() {
+  // Получаем ваши данные
+  const appData = window.appData || getAppDataFromStorage();
+  
+  // Инициализируем модуль
+  window.importExportModule = new DataImportExport({
+    appData: appData, // передаем ваши данные
+    debug: true,      // режим отладки
+    useXLSX: true,    // использовать XLSX формат
+    autoInitUI: true, // автоматически создать интерфейс
+    
+    // Обработчик импортированных данных
+    onImport: (importedData) => {
+      console.log('📥 Данные импортированы:', importedData);
+      
+      // Обновляем ваши данные
+      window.appData = {
+        ...window.appData,
+        students: importedData.students,
+        results: importedData.results,
+        tasks: importedData.tasks || window.appData.tasks
+      };
+      
+      // Сохраняем в localStorage
+      localStorage.setItem('appData', JSON.stringify(window.appData));
+      
+      // Обновляем UI вашего приложения
+      if (typeof updateUI === 'function') {
+        updateUI();
+      }
+      
+      // Запускаем анализ
+      if (typeof runAnalysis === 'function') {
+        runAnalysis();
+      }
+    },
+    
+    // Обработчик экспорта
+    onExport: (exportData) => {
+      console.log('📤 Данные экспортированы:', exportData);
+    }
+  });
+  
+  console.log('✅ Модуль импорта/экспорта инициализирован');
+  return window.importExportModule;
+}
+
+// Вызываем инициализацию после загрузки
+document.addEventListener('DOMContentLoaded', () => {
+  setTimeout(initializeImportExport, 1000);
+});
+
+	
 	
 		document.addEventListener('DOMContentLoaded', function() {
 			const isCollapsed = localStorage.getItem('sidebar_collapsed') === 'true';
