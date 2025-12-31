@@ -3858,6 +3858,18 @@
 					<h3>📋 Предпросмотр отчета</h3>
 					<div id="reportPreview"></div>
 				</div>
+				
+				<div class="dev-tools" style="position: fixed; bottom: 10px; left: 10px; z-index: 9999;">
+					<button onclick="forceRefresh()" 
+							style="background: #34495e; color: white; border: none; padding: 8px 12px; border-radius: 5px; font-size: 12px; cursor: pointer;">
+						🔄 Dev: Обновить кеш
+					</button>
+					<button onclick="showDebugInfo()" 
+							style="background: #2c3e50; color: white; border: none; padding: 8px 12px; border-radius: 5px; font-size: 12px; cursor: pointer; margin-left: 5px;">
+						🐛 Debug Info
+					</button>
+				</div>				
+				
 			</div>
 
 			<!-- Вкладка обратной связи с Telegram -->
@@ -5184,6 +5196,48 @@
 	
 	
     <script>
+	
+	
+		// функции для очистки КЕШа
+		function forceRefresh() {
+			// Очищаем все кеши
+			localStorage.removeItem('app_version');
+			
+			// Очищаем кеш браузера
+			if (window.caches) {
+				caches.keys().then(keys => {
+					keys.forEach(key => caches.delete(key));
+				});
+			}
+			
+			// Принудительная перезагрузка
+			location.reload(true);
+			showNotification('Кеш очищен, перезагружаю...', 'info');
+		}
+
+		function showDebugInfo() {
+			console.group('🐛 Debug Information');
+			console.log('URL:', window.location.href);
+			console.log('Версия:', localStorage.getItem('app_version') || 'нет');
+			console.log('Все модули загружены:', checkAllModules());
+			console.log('Service Worker:', navigator.serviceWorker?.controller?.state);
+			console.groupEnd();
+			
+			showNotification('Информация в консоли (F12)', 'info');
+		}
+
+		function checkAllModules() {
+			const modules = [
+				'TableRenderer', 'ErrorHandler', 'TestRunner',
+				'sendToTelegram', 'createNewProject', 'showTab'
+			];
+			
+			return modules.every(name => {
+				const exists = name in window || typeof window[name] === 'function';
+				if (!exists) console.error(`Missing: ${name}`);
+				return exists;
+			});
+		}	
 	
 		// ============================
 		// ОБРАТНАЯ СВЯЗЬ В TELEGRAM dimono39_bot
