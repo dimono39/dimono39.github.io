@@ -3080,6 +3080,158 @@
 			opacity: 1;
 			pointer-events: all;
 		}		
+		/* Стили для расширенных графиков */
+		.advanced-visualizations {
+			background: white;
+			border-radius: 15px;
+			padding: 25px;
+			margin-top: 30px;
+			box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+		}
+
+		.chart-grid {
+			display: grid;
+			grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+			gap: 25px;
+			margin: 25px 0;
+		}
+
+		.cluster-card {
+			background: white;
+			border: 2px solid #3498db;
+			border-radius: 10px;
+			padding: 20px;
+			margin: 10px 0;
+			transition: transform 0.3s;
+		}
+
+		.cluster-card:hover {
+			transform: translateY(-5px);
+			box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+		}
+
+		.cluster-card h4 {
+			margin-top: 0;
+			color: #2c3e50;
+			padding-bottom: 10px;
+			border-bottom: 2px solid #eee;
+		}
+
+		.stat-card {
+			background: white;
+			padding: 15px;
+			border-radius: 8px;
+			text-align: center;
+			box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+			border-left: 4px solid #3498db;
+		}
+
+		.stat-value {
+			font-size: 2em;
+			font-weight: bold;
+			margin: 10px 0;
+		}
+
+		.stat-label {
+			color: #7f8c8d;
+			font-size: 0.9em;
+		}
+
+		/* Стили для таблиц анализа */
+		.irt-table {
+			width: 100%;
+			border-collapse: collapse;
+			font-size: 13px;
+		}
+
+		.irt-table th {
+			background: #34495e;
+			color: white;
+			padding: 10px;
+			text-align: left;
+		}
+
+		.irt-table td {
+			padding: 8px 10px;
+			border-bottom: 1px solid #eee;
+		}
+
+		.irt-table tr:hover {
+			background: #f8f9fa;
+		}
+
+		/* Анимация загрузки */
+		.loading-analysis {
+			text-align: center;
+			padding: 40px;
+		}
+
+		.loading-dots {
+			display: inline-block;
+			position: relative;
+			width: 80px;
+			height: 80px;
+		}
+
+		.loading-dots div {
+			position: absolute;
+			top: 33px;
+			width: 13px;
+			height: 13px;
+			border-radius: 50%;
+			background: #3498db;
+			animation-timing-function: cubic-bezier(0, 1, 1, 0);
+		}
+
+		.loading-dots div:nth-child(1) {
+			left: 8px;
+			animation: loading-dots1 0.6s infinite;
+		}
+
+		.loading-dots div:nth-child(2) {
+			left: 8px;
+			animation: loading-dots2 0.6s infinite;
+		}
+
+		.loading-dots div:nth-child(3) {
+			left: 32px;
+			animation: loading-dots2 0.6s infinite;
+		}
+
+		.loading-dots div:nth-child(4) {
+			left: 56px;
+			animation: loading-dots3 0.6s infinite;
+		}
+
+		@keyframes loading-dots1 {
+			0% { transform: scale(0); }
+			100% { transform: scale(1); }
+		}
+
+		@keyframes loading-dots2 {
+			0% { transform: translate(0, 0); }
+			100% { transform: translate(24px, 0); }
+		}
+
+		@keyframes loading-dots3 {
+			0% { transform: scale(1); }
+			100% { transform: scale(0); }
+		}
+
+		/* Адаптивность */
+		@media (max-width: 768px) {
+			.chart-grid {
+				grid-template-columns: 1fr;
+			}
+			
+			.advanced-visualizations {
+				padding: 15px;
+			}
+			
+			.cluster-card {
+				padding: 15px;
+			}
+		}		
     </style>
 </head>
 <body>
@@ -3751,6 +3903,8 @@
 				<div id="specializedAnalysis"></div>
 				
 				<div id="smartRecommendationsContainer"></div>
+				
+				<!-- НОВЫЕ ГРАФИКИ ДОБАВЛЯЮТСЯ ЗДЕСЬ АВТОМАТИЧЕСКИ -->
 			</div>
 
 			<!-- Вкладка визуализации -->
@@ -5178,6 +5332,7 @@
             social: "Общественный",
             global: "Глобальный"
         };
+		let advancedAnalytics = null;
     </script>
 	
 	<script src="modules/errorHandler.js"></script>
@@ -5189,14 +5344,14 @@
 	<script src="modules/studreport.js"></script>
 	<script src="modules/project-manager.js"></script>
 	<script src="modules/dataImportExport.js"></script>
-	
+	<script src="modules/advanced-analytics.js"></script>
 	<!-- 1. Хранилище -->
 
 
 	
 	
     <script>
-	
+		
 	
 		// функции для очистки КЕШа
 		function forceRefresh() {
@@ -5238,6 +5393,9 @@
 				return exists;
 			});
 		}	
+
+
+
 	
 		// ============================
 		// ОБРАТНАЯ СВЯЗЬ В TELEGRAM dimono39_bot
@@ -16500,7 +16658,7 @@ document.addEventListener('DOMContentLoaded', () => {
 		}
 
 		// Обновляем обработчик показа вкладки
-		function showTab(tabId) {
+		function showTab1(tabId) {
 			document.querySelectorAll('.tab-content').forEach(tab => {
 				tab.classList.remove('active');
 			});
@@ -17895,6 +18053,29 @@ document.addEventListener('DOMContentLoaded', () => {
 			} else if (tabName === 'export') {
 				updateReportPreview();
 			}
+			if (tabName === 'analytics') {
+				// Даем время для рендеринга DOM
+				setTimeout(() => {
+					if (!advancedAnalytics) {
+						advancedAnalytics = new AdvancedAnalytics().init();
+						window.advancedAnalytics = advancedAnalytics; // Делаем глобально доступным
+					} else {
+						advancedAnalytics.initCharts(); // Перерисовываем графики
+					}
+					
+					// Показываем сетку графиков
+					const grid = document.getElementById('advancedChartsGrid');
+					if (grid) {
+						grid.style.display = 'grid';
+					}
+				}, 300);
+			} else if (advancedAnalytics) {
+				// Скрываем сетку графиков при переключении вкладок
+				const grid = document.getElementById('advancedChartsGrid');
+				if (grid) {
+					grid.style.display = 'none';
+				}
+			}			
 			
         }
 		function useTemplate(encodedData, fileName) {
