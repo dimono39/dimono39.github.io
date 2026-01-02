@@ -7119,6 +7119,225 @@ class AdvancedAnalytics {
 		const style = document.createElement('style');
 		style.id = styleId;
 		style.textContent = `
+			/* Стили для группового анализа */
+			.group-analysis-grid {
+				display: grid;
+				grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+				gap: 20px;
+				margin: 20px 0;
+			}
+			
+			.group-analysis-card {
+				background: white;
+				border-radius: 12px;
+				padding: 20px;
+				border-left: 4px solid;
+				box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+				transition: transform 0.3s;
+			}
+			
+			.group-analysis-card:hover {
+				transform: translateY(-5px);
+			}
+			
+			.group-header {
+				display: flex;
+				align-items: center;
+				gap: 15px;
+				margin-bottom: 15px;
+			}
+			
+			.group-icon {
+				width: 50px;
+				height: 50px;
+				border-radius: 12px;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				font-size: 24px;
+			}
+			
+			.group-title h5 {
+				margin: 0;
+				color: #2c3e50;
+			}
+			
+			.group-count {
+				font-size: 12px;
+				color: #7f8c8d;
+			}
+			
+			.group-stats {
+				display: grid;
+				grid-template-columns: 1fr 1fr;
+				gap: 10px;
+				margin: 15px 0;
+			}
+			
+			.group-stat {
+				text-align: center;
+			}
+			
+			.stat-label {
+				font-size: 11px;
+				color: #7f8c8d;
+				margin-bottom: 3px;
+			}
+			
+			.stat-value {
+				font-size: 18px;
+				font-weight: bold;
+			}
+			
+			.group-description {
+				font-size: 13px;
+				color: #495057;
+				margin: 10px 0;
+				line-height: 1.4;
+			}
+			
+			.group-students {
+				margin-top: 15px;
+				padding-top: 15px;
+				border-top: 1px solid #e9ecef;
+			}
+			
+			.students-label {
+				font-size: 12px;
+				color: #7f8c8d;
+				margin-bottom: 8px;
+			}
+			
+			.students-list {
+				display: flex;
+				flex-wrap: wrap;
+				gap: 5px;
+			}
+			
+			.student-tag {
+				background: #e9ecef;
+				padding: 3px 8px;
+				border-radius: 12px;
+				font-size: 11px;
+				color: #495057;
+			}
+			
+			.more-tag {
+				background: #3498db;
+				color: white;
+				padding: 3px 8px;
+				border-radius: 12px;
+				font-size: 11px;
+			}
+			
+			.no-students {
+				text-align: center;
+				color: #7f8c8d;
+				font-style: italic;
+				padding: 10px;
+				font-size: 13px;
+			}
+			
+			/* Стили для статистических карточек */
+			.statistics-grid {
+				display: grid;
+				grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+				gap: 20px;
+				margin: 20px 0;
+			}
+			
+			.statistic-card {
+				background: white;
+				border-radius: 12px;
+				padding: 20px;
+				display: flex;
+				gap: 15px;
+				align-items: center;
+				box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+			}
+			
+			.statistic-icon {
+				width: 50px;
+				height: 50px;
+				border-radius: 12px;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				font-size: 24px;
+				flex-shrink: 0;
+			}
+			
+			.statistic-value {
+				font-size: 24px;
+				font-weight: bold;
+				margin-bottom: 5px;
+			}
+			
+			.statistic-label {
+				font-size: 14px;
+				color: #495057;
+				font-weight: 500;
+				margin-bottom: 3px;
+			}
+			
+			.statistic-description {
+				font-size: 11px;
+				color: #7f8c8d;
+			}
+			
+			/* Стили для распределения по группам в обзоре */
+			.distribution-details {
+				margin-top: 15px;
+				display: flex;
+				flex-direction: column;
+				gap: 8px;
+			}
+			
+			.group-detail {
+				display: flex;
+				align-items: center;
+				gap: 10px;
+				font-size: 13px;
+			}
+			
+			.group-dot {
+				width: 12px;
+				height: 12px;
+				border-radius: 50%;
+			}
+			
+			.group-name {
+				flex: 1;
+				color: #495057;
+			}
+			
+			.group-count {
+				color: #7f8c8d;
+				font-weight: 500;
+			}
+			
+			/* Стили для отсутствия данных */
+			.no-data {
+				text-align: center;
+				padding: 40px;
+				color: #7f8c8d;
+				font-style: italic;
+			}
+			
+			/* Адаптивность */
+			@media (max-width: 768px) {
+				.group-analysis-grid {
+					grid-template-columns: 1fr;
+				}
+				
+				.statistics-grid {
+					grid-template-columns: repeat(2, 1fr);
+				}
+				
+				.visualization-row {
+					grid-template-columns: 1fr;
+				}
+			}
 			/* Стили для бейджей уровней */
 			.level-badge {
 				display: inline-block;
@@ -7294,11 +7513,11 @@ class AdvancedAnalytics {
 				.level-card {
 					margin-bottom: 15px;
 				}
-			}
+			}			
 		`;
 
 		document.head.appendChild(style);
-	}
+	}	
 	
 	// Добавим метод для отладки
 	debugCharts() {
