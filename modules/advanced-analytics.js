@@ -6359,11 +6359,71 @@ class AdvancedAnalytics {
 								</div>
 							</div>
 							
-							<!-- ... остальная часть формы ... -->
+							<div class="form-group">
+								<label for="taskType">Тип задания:</label>
+								<select id="taskType" class="form-control">
+									<option value="multiple-choice" ${task.type === 'multiple-choice' ? 'selected' : ''}>Выбор ответа</option>
+									<option value="short-answer" ${task.type === 'short-answer' ? 'selected' : ''}>Краткий ответ</option>
+									<option value="essay" ${task.type === 'essay' ? 'selected' : ''}>Развернутый ответ</option>
+									<option value="matching" ${task.type === 'matching' ? 'selected' : ''}>Сопоставление</option>
+									<option value="true-false" ${task.type === 'true-false' ? 'selected' : ''}>Верно/Неверно</option>
+									<option value="calculation" ${task.type === 'calculation' ? 'selected' : ''}>Расчетная задача</option>
+								</select>
+							</div>
+							
+							<div class="form-group">
+								<label for="taskCompetence">Компетенция:</label>
+								<select id="taskCompetence" class="form-control">
+									<option value="Знание" ${task.competence === 'Знание' ? 'selected' : ''}>Знание</option>
+									<option value="Понимание" ${task.competence === 'Понимание' ? 'selected' : ''}>Понимание</option>
+									<option value="Применение" ${task.competence === 'Применение' ? 'selected' : ''}>Применение</option>
+									<option value="Анализ" ${task.competence === 'Анализ' ? 'selected' : ''}>Анализ</option>
+									<option value="Синтез" ${task.competence === 'Синтез' ? 'selected' : ''}>Синтез</option>
+								</select>
+							</div>
+							
+							<div class="form-group">
+								<label for="taskDescription">Описание задания:</label>
+								<textarea id="taskDescription" rows="4" class="form-control">${task.description || ''}</textarea>
+							</div>
+							
+							<div class="analysis-section">
+								<h4><i class="fas fa-chart-bar"></i> Анализ задания</h4>
+								<div class="task-stats">
+									<div class="task-stat">
+										<div class="stat-label">Сложность:</div>
+										<div class="stat-value ${this.getDifficultyClass(task.difficulty || 0.5)}">
+											${((task.difficulty || 0.5) * 100).toFixed(1)}%
+										</div>
+									</div>
+									<div class="task-stat">
+										<div class="stat-label">Дискриминативность:</div>
+										<div class="stat-value ${this.getDiscriminationClass(task.discrimination || 0.5)}">
+											${((task.discrimination || 0.5) * 100).toFixed(1)}%
+										</div>
+									</div>
+									<div class="task-stat">
+										<div class="stat-label">Выполняемость:</div>
+										<div class="stat-value">
+											${this.calculateTaskCompletionRate(taskIndex).toFixed(1)}%
+										</div>
+									</div>
+								</div>
+							</div>
 						</form>
 					</div>
 					
-					<!-- ... остальная часть модального окна ... -->
+					<div class="task-modal-footer">
+						<button class="btn btn-primary" onclick="window.advancedAnalytics.saveTaskChanges(${taskIndex})">
+							<i class="fas fa-save"></i> Сохранить изменения
+						</button>
+						<button class="btn btn-info" onclick="window.advancedAnalytics.analyzeTask(${taskIndex})">
+							<i class="fas fa-chart-bar"></i> Детальный анализ
+						</button>
+						<button class="btn btn-outline" onclick="this.closest('#taskEditModal').remove()">
+							Отмена
+						</button>
+					</div>
 				</div>
 			</div>
 		`;
@@ -6386,6 +6446,43 @@ class AdvancedAnalytics {
 	}
 
 	// Реализация метода saveTaskChanges
+	saveTaskChanges(taskIndex) {
+		const form = document.getElementById('taskEditForm');
+		if (!form) return;
+		
+		const levelSelect = document.getElementById('taskLevel');
+		const selectedLevel = parseInt(levelSelect.value);
+		
+		// Ограничиваем уровень 1-4
+		const finalLevel = Math.min(Math.max(selectedLevel, 1), 4);
+		
+		const updatedTask = {
+			...appData.tasks[taskIndex],
+			title: document.getElementById('taskTitle').value,
+			level: finalLevel,
+			maxScore: parseFloat(document.getElementById('taskMaxScore').value),
+			type: document.getElementById('taskType').value,
+			competence: this.getCompetenceByLevel(finalLevel),
+			description: document.getElementById('taskDescription').value
+		};
+		
+		// Обновляем данные
+		appData.tasks[taskIndex] = updatedTask;
+		
+		// Сохраняем изменения
+		this.saveAppDataChanges();
+		
+		// Закрываем модальное окно
+		const modal = document.getElementById('taskEditModal');
+		if (modal) modal.remove();
+		
+		showNotification('Задание успешно обновлено', 'success');
+		
+		// Обновляем интерфейс
+		if (window.refreshTaskList) {
+			window.refreshTaskList();
+		}
+	}
 	saveTaskChanges(taskIndex) {
 		const form = document.getElementById('taskEditForm');
 		if (!form) return;
