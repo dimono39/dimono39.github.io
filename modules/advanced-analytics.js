@@ -1193,163 +1193,257 @@ class AdvancedAnalytics {
 	}
 
 	createDetailedAnalysisModal(data) {
+		showNotification('🔍 Загрузка подробного анализа...', 'info');
+		
+		// Собираем все данные для подробного анализа
+		const detailedData = this.collectDetailedData();
+		
+		// Сначала загружаем необходимые библиотеки
+		Promise.all([
+			this.loadBoxPlotLibrary(),
+			new Promise(resolve => setTimeout(resolve, 300)) // Небольшая задержка
+		]).then(() => {
+			// Создаем красивое модальное окно для подробного анализа
+			this.createDetailedModalContent(detailedData);
+			
+			// Показываем анимацию загрузки
+			setTimeout(() => {
+				showNotification('✅ Подробный анализ готов', 'success');
+			}, 800);
+		}).catch(error => {
+			console.error('Ошибка при загрузке библиотек:', error);
+			// Все равно показываем модальное окно, но без BoxPlot
+			showNotification('Некоторые компоненты не загрузились, но анализ доступен', 'warning');
+			this.createDetailedModalContent(detailedData);
+		});
+	}
+
+	// Вспомогательный метод для создания содержимого модального окна
+	createDetailedModalContent(data) {
 		// Удаляем существующее модальное окно, если есть
 		const existingModal = document.getElementById('detailedAnalysisModal');
 		if (existingModal) {
 			existingModal.remove();
 		}
-		// Динамически загружаем библиотеку boxplot если её нет
-		this.loadBoxPlotLibrary().then(() => {
-			// Продолжаем создание модального окна
-			const modal = document.createElement('div');
-			modal.id = 'detailedAnalysisModal';
-			modal.innerHTML = `
-				<div class="detailed-analysis-modal-overlay" onclick="window.advancedAnalytics.closeDetailedAnalysis()">
-					<div class="detailed-analysis-modal-content" onclick="event.stopPropagation()">
-						<!-- Заголовок с анимацией -->
-						<div class="modal-header animated fadeIn">
-							<h2 class="modal-title">
-								<i class="fas fa-chart-line"></i> 
-								Детальный анализ: ${data.meta.testName}
-							</h2>
-							<div class="modal-subtitle">
-								<span class="badge badge-primary">
-									<i class="fas fa-users"></i> ${data.meta.studentCount} учащихся
-								</span>
-								<span class="badge badge-success">
-									<i class="fas fa-tasks"></i> ${data.meta.taskCount} заданий
-								</span>
-								<span class="badge badge-info">
-									<i class="fas fa-calendar"></i> ${data.meta.date}
-								</span>
-							</div>
-							<button class="modal-close-btn" onclick="window.advancedAnalytics.closeDetailedAnalysis()">
-								<i class="fas fa-times"></i>
+		
+		// Создаем модальное окно
+		const modal = document.createElement('div');
+		modal.id = 'detailedAnalysisModal';
+		modal.innerHTML = `
+			<div class="modal-overlay" onclick="window.advancedAnalytics.closeDetailedAnalysis()">
+				<div class="modal-content" onclick="event.stopPropagation()">
+					<!-- Заголовок с анимацией -->
+					<div class="modal-header animated fadeIn">
+						<h2 class="modal-title">
+							<i class="fas fa-chart-line"></i> 
+							Детальный анализ: ${data.meta.testName}
+						</h2>
+						<div class="modal-subtitle">
+							<span class="badge badge-primary">
+								<i class="fas fa-users"></i> ${data.meta.studentCount} учащихся
+							</span>
+							<span class="badge badge-success">
+								<i class="fas fa-tasks"></i> ${data.meta.taskCount} заданий
+							</span>
+							<span class="badge badge-info">
+								<i class="fas fa-calendar"></i> ${data.meta.date}
+							</span>
+						</div>
+						<button class="modal-close-btn" onclick="window.advancedAnalytics.closeDetailedAnalysis()">
+							<i class="fas fa-times"></i>
+						</button>
+					</div>
+					
+					<!-- Навигация по разделам -->
+					<div class="modal-nav animated fadeInUp" style="animation-delay: 0.1s;">
+						<div class="nav-tabs">
+							<button class="nav-tab active" data-tab="overview">
+								<i class="fas fa-home"></i> Обзор
+							</button>
+							<button class="nav-tab" data-tab="students">
+								<i class="fas fa-user-graduate"></i> Учащиеся
+							</button>
+							<button class="nav-tab" data-tab="tasks">
+								<i class="fas fa-tasks"></i> Задания
+							</button>
+							<button class="nav-tab" data-tab="distribution">
+								<i class="fas fa-chart-bar"></i> Распределение
+							</button>
+							<button class="nav-tab" data-tab="errors">
+								<i class="fas fa-exclamation-triangle"></i> Ошибки
+							</button>
+							<button class="nav-tab" data-tab="recommendations">
+								<i class="fas fa-lightbulb"></i> Рекомендации
 							</button>
 						</div>
-						
-						<!-- Навигация по разделам -->
-						<div class="modal-nav animated fadeInUp" style="animation-delay: 0.1s;">
-							<div class="nav-tabs">
-								<button class="nav-tab active" data-tab="overview">
-									<i class="fas fa-home"></i> Обзор
-								</button>
-								<button class="nav-tab" data-tab="students">
-									<i class="fas fa-user-graduate"></i> Учащиеся
-								</button>
-								<button class="nav-tab" data-tab="tasks">
-									<i class="fas fa-tasks"></i> Задания
-								</button>
-								<button class="nav-tab" data-tab="distribution">
-									<i class="fas fa-chart-bar"></i> Распределение
-								</button>
-								<button class="nav-tab" data-tab="errors">
-									<i class="fas fa-exclamation-triangle"></i> Ошибки
-								</button>
-								<button class="nav-tab" data-tab="recommendations">
-									<i class="fas fa-lightbulb"></i> Рекомендации
-								</button>
-							</div>
+					</div>
+					
+					<!-- Содержимое модального окна -->
+					<div class="modal-body">
+						<!-- Обзор -->
+						<div class="tab-content active" id="overviewTab">
+							${this.renderOverviewTab(data)}
 						</div>
 						
-						<!-- Содержимое модального окна -->
-						<div class="modal-body">
-							<!-- Обзор -->
-							<div class="tab-content active" id="overviewTab">
-								${this.renderOverviewTab(data)}
-							</div>
-							
-							<!-- Анализ учащихся -->
-							<div class="tab-content" id="studentsTab">
-								${this.renderStudentsTab(data)}
-							</div>
-							
-							<!-- Анализ заданий -->
-							<div class="tab-content" id="tasksTab">
-								${this.renderTasksTab(data)}
-							</div>
-							
-							<!-- Распределение -->
-							<div class="tab-content" id="distributionTab">
-								${this.renderDistributionTab(data)}
-							</div>
-							
-							<!-- Анализ ошибок -->
-							<div class="tab-content" id="errorsTab">
-								${this.renderErrorsTab(data)}
-							</div>
-							
-							<!-- Рекомендации -->
-							<div class="tab-content" id="recommendationsTab">
-								${this.renderRecommendationsTab(data)}
-							</div>
+						<!-- Анализ учащихся -->
+						<div class="tab-content" id="studentsTab">
+							${this.renderStudentsTab(data)}
 						</div>
 						
-						<!-- Футер модального окна -->
-						<div class="modal-footer">
-							<div class="export-options">
-								<button class="btn btn-sm btn-outline" onclick="window.advancedAnalytics.exportDetailedReport()">
-									<i class="fas fa-file-pdf"></i> Экспорт в PDF
-								</button>
-								<button class="btn btn-sm btn-outline" onclick="window.advancedAnalytics.exportDetailedCSV()">
-									<i class="fas fa-file-csv"></i> Экспорт в CSV
-								</button>
-								<button class="btn btn-sm btn-outline" onclick="window.advancedAnalytics.printDetailedReport()">
-									<i class="fas fa-print"></i> Печать
-								</button>
-							</div>
-							<div class="timestamp">
-								<small>
-									<i class="far fa-clock"></i> 
-									Сгенерировано: ${data.timestamp}
-								</small>
-							</div>
+						<!-- Анализ заданий -->
+						<div class="tab-content" id="tasksTab">
+							${this.renderTasksTab(data)}
+						</div>
+						
+						<!-- Распределение -->
+						<div class="tab-content" id="distributionTab">
+							${this.renderDistributionTab(data)}
+						</div>
+						
+						<!-- Анализ ошибок -->
+						<div class="tab-content" id="errorsTab">
+							${this.renderErrorsTab(data)}
+						</div>
+						
+						<!-- Рекомендации -->
+						<div class="tab-content" id="recommendationsTab">
+							${this.renderRecommendationsTab(data)}
+						</div>
+					</div>
+					
+					<!-- Футер модального окна -->
+					<div class="modal-footer">
+						<div class="export-options">
+							<button class="btn btn-sm btn-outline" onclick="window.advancedAnalytics.exportDetailedReport()">
+								<i class="fas fa-file-pdf"></i> Экспорт в PDF
+							</button>
+							<button class="btn btn-sm btn-outline" onclick="window.advancedAnalytics.exportDetailedCSV()">
+								<i class="fas fa-file-csv"></i> Экспорт в CSV
+							</button>
+							<button class="btn btn-sm btn-outline" onclick="window.advancedAnalytics.printDetailedReport()">
+								<i class="fas fa-print"></i> Печать
+							</button>
+						</div>
+						<div class="timestamp">
+							<small>
+								<i class="far fa-clock"></i> 
+								Сгенерировано: ${data.timestamp}
+							</small>
 						</div>
 					</div>
 				</div>
-			`;
-			
-			document.body.appendChild(modal);
-			
-			// Добавляем стили
-			this.addDetailedAnalysisStyles();
-			this.addCorrectionStyles();
-			this.addMissingStyles();
-			 // Добавляем стили для графиков
-			this.addChartStyles();
-			// Инициализируем навигацию
-			setTimeout(() => {
-				this.initTabNavigation();
-				this.initChartsInModal(data);
-			}, 100);
-		});			
+			</div>
+		`;
+		
+		document.body.appendChild(modal);
+		
+		// Добавляем стили
+		this.addDetailedAnalysisStyles();
+		this.addMissingStyles();
+		this.addChartStyles();
+		
+		// Инициализируем навигацию и графики
+		setTimeout(() => {
+			this.initTabNavigation();
+			this.initChartsInModal(data);
+		}, 100);
 	}
 
 	// Метод для загрузки библиотеки boxplot
 	loadBoxPlotLibrary() {
 		return new Promise((resolve, reject) => {
 			// Проверяем, не загружена ли уже библиотека
-			if (typeof Chart.controllers.boxplot !== 'undefined') {
+			if (typeof Chart.controllers.boxplot !== 'undefined' || window.BoxPlot) {
+				console.log('✅ Библиотека BoxPlot уже загружена');
 				resolve();
 				return;
 			}
 			
-			// Загружаем библиотеку
+			// Пробуем загрузить новую версию
 			const script = document.createElement('script');
-			script.src = 'https://cdn.jsdelivr.net/npm/chartjs-chart-boxplot@3.6.0/dist/chartjs-chart-boxplot.min.js';
+			script.src = 'https://cdn.jsdelivr.net/npm/chartjs-chart-box-and-violin-plot@4.0.0/build/Chart.BoxPlot.min.js';
 			script.onload = () => {
-				console.log('✅ Библиотека boxplot загружена');
+				console.log('✅ Библиотека BoxPlot v4.0.0 загружена');
+				
+				// Регистрируем контроллер для новой версии
+				if (window.BoxPlot && BoxPlot.BoxPlotController && BoxPlot.BoxAndWiskers) {
+					try {
+						Chart.register(BoxPlot.BoxPlotController, BoxPlot.BoxAndWiskers);
+						console.log('✅ BoxPlot контроллер зарегистрирован');
+					} catch (e) {
+						console.warn('⚠️ Не удалось зарегистрировать BoxPlot:', e);
+					}
+				}
 				resolve();
 			};
-			script.onerror = () => {
-				console.warn('⚠️ Не удалось загрузить библиотеку boxplot, используем fallback');
-				resolve(); // Все равно продолжаем
+			script.onerror = (error) => {
+				console.warn('⚠️ Не удалось загрузить библиотеку boxplot:', error);
+				// Пробуем старую версию как fallback
+				this.loadBoxPlotFallback().then(resolve).catch(resolve);
 			};
 			
 			document.head.appendChild(script);
 		});
 	}
 
+	// 2. Fallback для старой версии
+	loadBoxPlotFallback() {
+		return new Promise((resolve, reject) => {
+			const script = document.createElement('script');
+			script.src = 'https://cdn.jsdelivr.net/npm/chartjs-chart-boxplot@3.6.0/dist/chartjs-chart-boxplot.min.js';
+			script.onload = () => {
+				console.log('✅ Старая версия BoxPlot загружена');
+				resolve();
+			};
+			script.onerror = () => {
+				console.warn('⚠️ Не удалось загрузить ни одну версию BoxPlot');
+				resolve(); // Все равно продолжаем
+			};
+			document.head.appendChild(script);
+		});
+	}
+
+	// Инициализация навигации по вкладкам
+	initTabNavigation() {
+		const tabs = document.querySelectorAll('.nav-tab');
+		const tabContents = document.querySelectorAll('.tab-content');
+		
+		tabs.forEach(tab => {
+			tab.addEventListener('click', () => {
+				const tabId = tab.getAttribute('data-tab');
+				
+				// Обновляем активные вкладки
+				tabs.forEach(t => t.classList.remove('active'));
+				tabContents.forEach(content => content.classList.remove('active'));
+				
+				tab.classList.add('active');
+				document.getElementById(`${tabId}Tab`).classList.add('active');
+				
+				// Добавляем анимацию при переключении
+				document.getElementById(`${tabId}Tab`).classList.add('animated', 'fadeIn');
+				
+				// Обновляем графики при переключении вкладок
+				setTimeout(() => {
+					this.updateChartsForTab(tabId);
+				}, 50);
+			});
+		});
+	}
+	updateChartsForTab(tabId) {
+		// Здесь можно обновлять графики при переключении вкладок
+		// Например, если графики были скрыты или изменились размеры
+		setTimeout(() => {
+			const charts = Chart.instances || [];
+			charts.forEach(chart => {
+				try {
+					chart.resize();
+					chart.update('none'); // Обновляем без анимации
+				} catch (e) {
+					console.log('Ошибка обновления графика:', e);
+				}
+			});
+		}, 100);
+	}
 	// Рендеринг вкладки "Обзор"
 	renderOverviewTab(data) {
 		// Сортируем студентов по убыванию среднего балла
@@ -1872,6 +1966,7 @@ class AdvancedAnalytics {
 	}
 
 	// Добавим метод для создания box plot
+	// 3. Обновим метод createBoxPlotDistribution для работы с разными версиями
 	createBoxPlotDistribution(data) {
 		const ctx = document.getElementById('boxPlotDistribution');
 		if (!ctx || !data.studentStats) return;
@@ -1898,32 +1993,54 @@ class AdvancedAnalytics {
 		// Выбросы
 		const outliers = sortedScores.filter(score => score < min || score > max);
 		
-		// Если библиотека boxplot загружена, используем её
-		if (typeof Chart.controllers.boxplot !== 'undefined') {
-			// Подготавливаем данные для box plot
-			const boxplotData = [[min, q1, median, q3, max]];
-			
-			// Добавляем выбросы как отдельный датасет
-			const outlierData = outliers.map(outlier => ({
-				x: 0, // Позиция по x
-				y: outlier
-			}));
+		// Проверяем, какая версия библиотеки доступна
+		const hasNewBoxPlot = window.BoxPlot && BoxPlot.BoxPlotController;
+		const hasOldBoxPlot = typeof Chart.controllers.boxplot !== 'undefined';
+		
+		if (hasNewBoxPlot) {
+			// Используем новую версию библиотеки
+			this.createBoxPlotNewVersion(ctx, scores, min, q1, median, q3, max, outliers);
+		} else if (hasOldBoxPlot) {
+			// Используем старую версию
+			this.createBoxPlotOldVersion(ctx, scores, min, q1, median, q3, max, outliers);
+		} else {
+			// Fallback: используем кастомную реализацию
+			this.createBoxPlotFallback(ctx, scores, min, q1, median, q3, max, outliers);
+		}
+		
+		// Добавим статистику под графиком
+		this.addBoxPlotStats(ctx.parentElement, min, q1, median, q3, max, iqr, outliers.length);
+	}
+
+	// 4. Реализация для новой версии библиотеки
+	createBoxPlotNewVersion(ctx, scores, min, q1, median, q3, max, outliers) {
+		try {
+			// Подготавливаем данные в формате, который ожидает новая библиотека
+			const boxplotData = [{
+				label: 'Распределение баллов',
+				data: [{
+					min: min,
+					q1: q1,
+					median: median,
+					q3: q3,
+					max: max
+				}],
+				outliers: outliers.length > 0 ? outliers : undefined
+			}];
 			
 			new Chart(ctx, {
 				type: 'boxplot',
 				data: {
-					labels: ['Распределение баллов'],
-					datasets: [
-						{
-							label: 'Box Plot',
-							data: boxplotData,
-							backgroundColor: 'rgba(54, 162, 235, 0.5)',
-							borderColor: 'rgb(54, 162, 235)',
-							borderWidth: 2,
-							outlierColor: 'rgb(255, 99, 132)',
-							outlierRadius: 5
-						}
-					]
+					labels: ['Баллы'],
+					datasets: [{
+						label: 'Box Plot',
+						data: boxplotData.map(d => d.data[0]),
+						backgroundColor: 'rgba(54, 162, 235, 0.5)',
+						borderColor: 'rgb(54, 162, 235)',
+						borderWidth: 2,
+						outlierColor: 'rgb(255, 99, 132)',
+						outlierRadius: 5
+					}]
 				},
 				options: {
 					responsive: true,
@@ -1936,12 +2053,62 @@ class AdvancedAnalytics {
 								display: true,
 								text: 'Баллы (%)'
 							}
-						},
-						x: {
-							display: true,
+						}
+					},
+					plugins: {
+						tooltip: {
+							callbacks: {
+								label: function(context) {
+									const point = context.raw;
+									return [
+										`Min: ${point.min.toFixed(1)}%`,
+										`Q1: ${point.q1.toFixed(1)}%`,
+										`Median: ${point.median.toFixed(1)}%`,
+										`Q3: ${point.q3.toFixed(1)}%`,
+										`Max: ${point.max.toFixed(1)}%`
+									];
+								}
+							}
+						}
+					}
+				}
+			});
+		} catch (error) {
+			console.error('Ошибка при создании BoxPlot (новая версия):', error);
+			this.createBoxPlotFallback(ctx, scores, min, q1, median, q3, max, outliers);
+		}
+	}
+
+	// 5. Реализация для старой версии библиотеки
+	createBoxPlotOldVersion(ctx, scores, min, q1, median, q3, max, outliers) {
+		try {
+			// Подготавливаем данные для старой версии
+			const boxplotData = [[min, q1, median, q3, max]];
+			
+			new Chart(ctx, {
+				type: 'boxplot',
+				data: {
+					labels: ['Распределение баллов'],
+					datasets: [{
+						label: 'Box Plot',
+						data: boxplotData,
+						backgroundColor: 'rgba(54, 162, 235, 0.5)',
+						borderColor: 'rgb(54, 162, 235)',
+						borderWidth: 2,
+						outlierColor: 'rgb(255, 99, 132)',
+						outlierRadius: 5
+					}]
+				},
+				options: {
+					responsive: true,
+					maintainAspectRatio: false,
+					scales: {
+						y: {
+							beginAtZero: true,
+							max: 100,
 							title: {
 								display: true,
-								text: ''
+								text: 'Баллы (%)'
 							}
 						}
 					},
@@ -1949,48 +2116,93 @@ class AdvancedAnalytics {
 						tooltip: {
 							callbacks: {
 								label: function(context) {
-									if (context.datasetIndex === 0) {
-										const stats = context.raw;
-										return [
-											`Min: ${stats[0].toFixed(1)}%`,
-											`Q1: ${stats[1].toFixed(1)}%`,
-											`Median: ${stats[2].toFixed(1)}%`,
-											`Q3: ${stats[3].toFixed(1)}%`,
-											`Max: ${stats[4].toFixed(1)}%`
-										];
-									}
+									const stats = context.raw;
+									return [
+										`Min: ${stats[0].toFixed(1)}%`,
+										`Q1: ${stats[1].toFixed(1)}%`,
+										`Median: ${stats[2].toFixed(1)}%`,
+										`Q3: ${stats[3].toFixed(1)}%`,
+										`Max: ${stats[4].toFixed(1)}%`
+									];
 								}
 							}
 						}
 					}
 				}
 			});
-			
-			// Если есть выбросы, добавляем scatter plot поверх
-			if (outliers.length > 0) {
-				setTimeout(() => {
-					const scatterCtx = ctx;
-					const scatterChart = Chart.getChart(scatterCtx);
-					if (scatterChart) {
-						scatterChart.data.datasets.push({
-							type: 'scatter',
-							label: 'Выбросы',
-							data: outlierData,
-							backgroundColor: 'rgb(255, 99, 132)',
-							pointRadius: 6,
-							showLine: false
-						});
-						scatterChart.update();
-					}
-				}, 100);
-			}
-		} else {
-			// Fallback: используем старую реализацию
+		} catch (error) {
+			console.error('Ошибка при создании BoxPlot (старая версия):', error);
 			this.createBoxPlotFallback(ctx, scores, min, q1, median, q3, max, outliers);
 		}
-		
-		// Добавим статистику под графиком
-		this.addBoxPlotStats(ctx.parentElement, min, q1, median, q3, max, iqr, outliers.length);
+	}
+
+	// 6. Fallback реализация (оставляем существующую)
+	createBoxPlotFallback(ctx, scores, min, q1, median, q3, max, outliers) {
+		// Используем комбинированный график
+		new Chart(ctx, {
+			type: 'bar',
+			data: {
+				labels: ['Распределение'],
+				datasets: [
+					{
+						label: 'Диапазон',
+						data: [max - min],
+						backgroundColor: 'rgba(54, 162, 235, 0.5)',
+						borderColor: 'rgb(54, 162, 235)',
+						borderWidth: 1
+					},
+					{
+						label: 'Межквартильный размах',
+						data: [q3 - q1],
+						backgroundColor: 'rgba(75, 192, 192, 0.5)',
+						borderColor: 'rgb(75, 192, 192)',
+						borderWidth: 1
+					},
+					{
+						label: 'Медиана',
+						data: [median],
+						type: 'line',
+						fill: false,
+						borderColor: 'rgb(255, 99, 132)',
+						borderWidth: 3,
+						pointRadius: 6
+					}
+				]
+			},
+			options: {
+				responsive: true,
+				maintainAspectRatio: false,
+				scales: {
+					y: {
+						beginAtZero: true,
+						max: 100,
+						title: {
+							display: true,
+							text: 'Баллы (%)'
+						}
+					},
+					x: {
+						display: false
+					}
+				},
+				plugins: {
+					tooltip: {
+						callbacks: {
+							label: function(context) {
+								const datasetIndex = context.datasetIndex;
+								if (datasetIndex === 0) {
+									return `Диапазон: ${min.toFixed(1)}% - ${max.toFixed(1)}%`;
+								} else if (datasetIndex === 1) {
+									return `Межквартильный размах: ${q1.toFixed(1)}% - ${q3.toFixed(1)}%`;
+								} else {
+									return `Медиана: ${median.toFixed(1)}%`;
+								}
+							}
+						}
+					}
+				}
+			}
+		});
 	}
 
 	// Fallback метод для box plot
@@ -3020,37 +3232,437 @@ class AdvancedAnalytics {
 				transition: all 0.3s !important;
 				z-index: 100001 !important; /* Над всем */
 			}			
+			/* Анимации */
+			@keyframes fadeIn {
+				from { opacity: 0; }
+				to { opacity: 1; }
+			}
+			
+			@keyframes fadeInUp {
+				from { opacity: 0; transform: translateY(20px); }
+				to { opacity: 1; transform: translateY(0); }
+			}
+			
+			.animated {
+				animation-duration: 0.5s;
+				animation-fill-mode: both;
+			}
+			
+			.fadeIn { animation-name: fadeIn; }
+			.fadeInUp { animation-name: fadeInUp; }
+			
+			/* Модальное окно */
+			.modal-overlay {
+				position: fixed !important;
+				top: 0 !important;
+				left: 0 !important;
+				right: 0 !important;
+				bottom: 0 !important;
+				background: rgba(0, 0, 0, 0.85) !important;
+				display: flex !important;
+				align-items: center !important;
+				justify-content: center !important;
+				z-index: 99999 !important;
+				padding: 20px !important;
+				backdrop-filter: blur(5px) !important;
+			}
+			
+			.modal-content {
+				background: white !important;
+				border-radius: 20px !important;
+				width: 95% !important;
+				max-width: 1400px !important;
+				max-height: 95vh !important;
+				display: flex !important;
+				flex-direction: column !important;
+				box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5) !important;
+				overflow: hidden !important;
+			}
+			
+			.modal-header {
+				background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+				color: white;
+				padding: 25px 30px;
+				position: relative;
+			}
+			
+			.modal-title {
+				margin: 0;
+				font-size: 24px;
+				display: flex;
+				align-items: center;
+				gap: 10px;
+			}
+			
+			.modal-subtitle {
+				display: flex;
+				gap: 10px;
+				margin-top: 10px;
+				flex-wrap: wrap;
+			}
+			
+			.badge {
+				padding: 6px 12px;
+				border-radius: 20px;
+				font-size: 12px;
+				font-weight: 500;
+				display: inline-flex;
+				align-items: center;
+				gap: 5px;
+			}
+			
+			.badge-primary {
+				background: rgba(255, 255, 255, 0.2);
+				color: white;
+			}
+			
+			.badge-success {
+				background: rgba(39, 174, 96, 0.8);
+				color: white;
+			}
+			
+			.badge-info {
+				background: rgba(52, 152, 219, 0.8);
+				color: white;
+			}
+			
+			.modal-close-btn {
+				position: absolute;
+				top: 20px;
+				right: 20px;
+				background: rgba(255, 255, 255, 0.2);
+				border: none;
+				color: white;
+				width: 40px;
+				height: 40px;
+				border-radius: 50%;
+				cursor: pointer;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				transition: all 0.3s;
+				z-index: 100001;
+			}
+			
+			.modal-close-btn:hover {
+				background: rgba(255, 255, 255, 0.3);
+				transform: rotate(90deg);
+			}
+			
+			/* Навигация */
+			.modal-nav {
+				background: #f8f9fa;
+				padding: 0 30px;
+				border-bottom: 1px solid #e9ecef;
+				flex-shrink: 0;
+			}
+			
+			.nav-tabs {
+				display: flex;
+				gap: 2px;
+				overflow-x: auto;
+				padding: 0;
+				margin: 0;
+			}
+			
+			.nav-tab {
+				padding: 15px 20px;
+				background: none;
+				border: none;
+				border-bottom: 3px solid transparent;
+				color: #6c757d;
+				cursor: pointer;
+				display: flex;
+				align-items: center;
+				gap: 8px;
+				white-space: nowrap;
+				transition: all 0.3s;
+				font-size: 14px;
+				font-weight: 500;
+			}
+			
+			.nav-tab:hover {
+				color: #495057;
+				background: #e9ecef;
+			}
+			
+			.nav-tab.active {
+				color: #3498db;
+				border-bottom-color: #3498db;
+				background: #e8f4fc;
+				font-weight: 600;
+			}
+			
+			/* Тело модального окна */
+			.modal-body {
+				flex: 1;
+				overflow-y: auto;
+				padding: 0 !important;
+				position: relative;
+			}
+			
+			.tab-content {
+				display: none;
+				padding: 25px 30px;
+				animation: fadeIn 0.3s ease-in-out;
+			}
+			
+			.tab-content.active {
+				display: block;
+			}
+			
+			/* Прокрутка */
+			.modal-body::-webkit-scrollbar {
+				width: 8px;
+			}
+			
+			.modal-body::-webkit-scrollbar-track {
+				background: #f1f1f1;
+				border-radius: 4px;
+			}
+			
+			.modal-body::-webkit-scrollbar-thumb {
+				background: #c1c1c1;
+				border-radius: 4px;
+			}
+			
+			.modal-body::-webkit-scrollbar-thumb:hover {
+				background: #a8a8a8;
+			}
+			
+			/* Футер */
+			.modal-footer {
+				padding: 20px 30px;
+				background: #f8f9fa;
+				border-top: 1px solid #e9ecef;
+				display: flex;
+				justify-content: space-between;
+				align-items: center;
+				flex-shrink: 0;
+			}
+			
+			.export-options {
+				display: flex;
+				gap: 10px;
+			}
+			
+			.timestamp {
+				color: #7f8c8d;
+				font-size: 13px;
+			}
+			
+			.btn {
+				padding: 8px 16px;
+				border-radius: 8px;
+				border: 1px solid #dee2e6;
+				cursor: pointer;
+				font-size: 14px;
+				font-weight: 500;
+				transition: all 0.3s;
+				display: inline-flex;
+				align-items: center;
+				gap: 6px;
+			}
+			
+			.btn-sm {
+				padding: 6px 12px;
+				font-size: 13px;
+			}
+			
+			.btn-outline {
+				background: transparent;
+				color: #6c757d;
+			}
+			
+			.btn-outline:hover {
+				background: #6c757d;
+				color: white;
+			}
+			
+			/* Карточки метрик */
+			.metric-cards-grid {
+				display: grid;
+				grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+				gap: 20px;
+				margin-bottom: 30px;
+			}
+			
+			.metric-card {
+				background: white;
+				border-radius: 15px;
+				padding: 20px;
+				display: flex;
+				align-items: center;
+				gap: 20px;
+				box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+				transition: transform 0.3s;
+			}
+			
+			.metric-card:hover {
+				transform: translateY(-5px);
+			}
+			
+			.metric-card.primary {
+				border-left: 5px solid #3498db;
+			}
+			
+			.metric-card.success {
+				border-left: 5px solid #27ae60;
+			}
+			
+			.metric-card.warning {
+				border-left: 5px solid #f39c12;
+			}
+			
+			.metric-card.danger {
+				border-left: 5px solid #e74c3c;
+			}
+			
+			.metric-icon {
+				width: 60px;
+				height: 60px;
+				border-radius: 12px;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				font-size: 24px;
+				color: white;
+			}
+			
+			.metric-card.primary .metric-icon {
+				background: linear-gradient(135deg, #3498db, #2980b9);
+			}
+			
+			.metric-card.success .metric-icon {
+				background: linear-gradient(135deg, #27ae60, #229954);
+			}
+			
+			.metric-card.warning .metric-icon {
+				background: linear-gradient(135deg, #f39c12, #e67e22);
+			}
+			
+			.metric-card.danger .metric-icon {
+				background: linear-gradient(135deg, #e74c3c, #c0392b);
+			}
+			
+			.metric-value {
+				font-size: 28px;
+				font-weight: bold;
+				margin-bottom: 5px;
+			}
+			
+			.metric-label {
+				color: #7f8c8d;
+				font-size: 14px;
+			}
+			
+			/* Сетки и ряды */
+			.visualization-row {
+				display: grid;
+				grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+				gap: 20px;
+				margin: 30px 0;
+			}
+			
+			.viz-card {
+				background: white;
+				border-radius: 15px;
+				padding: 20px;
+				box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+			}
+			
+			.viz-card.wide {
+				grid-column: 1 / -1;
+			}
+			
+			.chart-container {
+				height: 300px;
+				position: relative;
+				margin-top: 15px;
+			}
+			
+			/* Адаптивность */
+			@media (max-width: 1200px) {
+				.visualization-row {
+					grid-template-columns: 1fr;
+				}
+				
+				.viz-card {
+					margin-bottom: 20px;
+				}
+			}
+			
+			@media (max-width: 768px) {
+				.modal-content {
+					width: 98% !important;
+					max-height: 98vh !important;
+				}
+				
+				.modal-header {
+					padding: 15px 20px;
+				}
+				
+				.modal-title {
+					font-size: 20px;
+				}
+				
+				.nav-tabs {
+					flex-wrap: wrap;
+					justify-content: center;
+				}
+				
+				.nav-tab {
+					padding: 10px 15px;
+					font-size: 13px;
+				}
+				
+				.metric-cards-grid {
+					grid-template-columns: repeat(2, 1fr);
+					gap: 15px;
+				}
+				
+				.modal-body {
+					padding: 15px !important;
+				}
+				
+				.tab-content {
+					padding: 15px !important;
+				}
+			}
+			
+			@media (max-width: 480px) {
+				.metric-cards-grid {
+					grid-template-columns: 1fr;
+				}
+				
+				.modal-footer {
+					flex-direction: column;
+					gap: 15px;
+					align-items: stretch;
+				}
+				
+				.export-options {
+					justify-content: center;
+				}
+				
+				.timestamp {
+					text-align: center;
+				}
+			}			
 		`;
 
 		document.head.appendChild(style);
 	}
 
-	// Инициализация навигации по вкладкам
-	initTabNavigation() {
-		const tabs = document.querySelectorAll('.nav-tab');
-		const tabContents = document.querySelectorAll('.tab-content');
-		
-		tabs.forEach(tab => {
-			tab.addEventListener('click', () => {
-				const tabId = tab.getAttribute('data-tab');
-				
-				// Обновляем активные вкладки
-				tabs.forEach(t => t.classList.remove('active'));
-				tabContents.forEach(content => content.classList.remove('active'));
-				
-				tab.classList.add('active');
-				document.getElementById(`${tabId}Tab`).classList.add('active');
-				
-				// Добавляем анимацию при переключении
-				document.getElementById(`${tabId}Tab`).classList.add('animated', 'fadeIn');
-			});
-		});
-	}
+
 
 	// Инициализация графиков в модальном окне
 	initChartsInModal(data) {
-		setTimeout(() => {
+		setTimeout(async () => {
 			console.log('Инициализация графиков в модальном окне...');
+			
+			// Проверяем доступность BoxPlot
+			const boxPlotAvailable = await this.checkBoxPlotAvailability();
 			
 			// Создаем все графики с проверкой на существование canvas
 			const chartsToCreate = [
@@ -3061,29 +3673,96 @@ class AdvancedAnalytics {
 				{ id: 'taskScatterPlot', method: 'createTaskScatterPlot', data: data },
 				{ id: 'scoreHistogram', method: 'createScoreHistogram', data: data },
 				{ id: 'normalDistributionChart', method: 'createNormalDistributionChart', data: data },
-				{ id: 'boxPlotDistribution', method: 'createBoxPlotDistribution', data: data },
+				{ id: 'progressMonitoringChart', method: 'createProgressMonitoringChart', data: data },
 				{ id: 'errorByTaskChart', method: 'createErrorByTaskChart', data: data.errorAnalysis },
-				{ id: 'errorTypesChart', method: 'createErrorTypesChart', data: data.errorAnalysis },
-				{ id: 'progressMonitoringChart', method: 'createProgressMonitoringChart', data: data }
+				{ id: 'errorTypesChart', method: 'createErrorTypesChart', data: data.errorAnalysis }
 			];
+			
+			// Добавляем BoxPlot только если он доступен
+			if (boxPlotAvailable) {
+				chartsToCreate.splice(7, 0, { 
+					id: 'boxPlotDistribution', 
+					method: 'createBoxPlotDistribution', 
+					data: data 
+				});
+			} else {
+				// Если BoxPlot не доступен, добавляем сообщение
+				const boxPlotContainer = document.getElementById('boxPlotDistribution');
+				if (boxPlotContainer && boxPlotContainer.parentElement) {
+					boxPlotContainer.parentElement.innerHTML = `
+						<div class="no-data" style="text-align: center; padding: 40px;">
+							<i class="fas fa-chart-bar fa-3x" style="color: #ddd; margin-bottom: 15px;"></i>
+							<p>Box plot недоступен</p>
+							<p style="font-size: 12px; color: #999;">Используется упрощенная версия</p>
+						</div>
+					`;
+				}
+			}
 			
 			chartsToCreate.forEach(chart => {
 				try {
 					const element = document.getElementById(chart.id);
-					if (element) {
+					if (element && element.tagName === 'CANVAS') {
 						this[chart.method](chart.data);
 						console.log(`✅ График ${chart.id} создан`);
+					} else if (element) {
+						console.log(`⚠️ Элемент ${chart.id} найден, но не является canvas`);
 					} else {
 						console.log(`⚠️ Canvas ${chart.id} не найден`);
 					}
 				} catch (error) {
 					console.error(`❌ Ошибка создания графика ${chart.id}:`, error);
+					// Для BoxPlot пробуем fallback
+					if (chart.id === 'boxPlotDistribution') {
+						const scores = data.studentStats?.map(s => s.averageScore) || [];
+						if (scores.length > 0) {
+							const sortedScores = [...scores].sort((a, b) => a - b);
+							const n = sortedScores.length;
+							const q1 = sortedScores[Math.floor(n * 0.25)];
+							const median = sortedScores[Math.floor(n * 0.5)];
+							const q3 = sortedScores[Math.floor(n * 0.75)];
+							const iqr = q3 - q1;
+							const min = Math.max(sortedScores[0], q1 - 1.5 * iqr);
+							const max = Math.min(sortedScores[n - 1], q3 + 1.5 * iqr);
+							const outliers = sortedScores.filter(score => score < min || score > max);
+							
+							this.createBoxPlotFallback(
+								element,
+								scores,
+								min, q1, median, q3, max, outliers
+							);
+						}
+					}
 				}
 			});
+			
+			// Отладка
 			this.debugCharts();
-		}, 500); // Увеличиваем задержку для гарантированной загрузки DOM
+		}, 500);
 	}
-
+	
+	// Проверка доступности BoxPlot
+	checkBoxPlotAvailability() {
+		return new Promise((resolve) => {
+			const checkInterval = setInterval(() => {
+				const hasNewBoxPlot = window.BoxPlot && BoxPlot.BoxPlotController;
+				const hasOldBoxPlot = typeof Chart.controllers.boxplot !== 'undefined';
+				
+				if (hasNewBoxPlot || hasOldBoxPlot) {
+					clearInterval(checkInterval);
+					console.log('✅ BoxPlot доступен:', hasNewBoxPlot ? 'Новая версия' : 'Старая версия');
+					resolve(true);
+				}
+			}, 100);
+			
+			// Таймаут 5 секунд
+			setTimeout(() => {
+				clearInterval(checkInterval);
+				console.warn('⚠️ BoxPlot не загрузился за отведенное время');
+				resolve(false);
+			}, 5000);
+		});
+	}
 	// Добавим метод addChartStyles
 	addChartStyles() {
 		const styleId = 'chart-fixes-styles';
@@ -7620,7 +8299,6 @@ class AdvancedAnalytics {
 	debugCharts() {
 		console.group('Отладка графиков');
 		
-		// Проверяем наличие всех canvas элементов
 		const canvasIds = [
 			'overviewDistributionChart',
 			'studentScoresChart',
