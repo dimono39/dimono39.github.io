@@ -8884,224 +8884,2195 @@ class AdvancedAnalytics {
 	exportComprehensiveAnalysisToWord() {
 		showNotification('📝 Подготовка комплексного отчета...', 'info');
 		
-		// Создаем структуру архива
-		const zip = new JSZip();
-		const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-		const baseFolderName = `анализ_${timestamp}`;
-		
-		// Собираем все данные для экспорта
-		const allData = this.collectDetailedData();
-		const comprehensiveAnalysis = this.performComprehensiveAnalysis();
-		
-		// 1. Главный отчет в Word
-		const mainReportContent = this.generateMainWordReport(allData, comprehensiveAnalysis);
-		zip.file(`${baseFolderName}/Комплексный_анализ_результатов.docx`, mainReportContent);
-		
-		// 2. Детальные отчеты по вкладкам
-		const tabReports = this.generateTabReports(allData);
-		Object.entries(tabReports).forEach(([tabName, content]) => {
-			const fileName = this.sanitizeFileName(`Детальный_анализ_${tabName}.docx`);
-			zip.file(`${baseFolderName}/детальный_анализ/${fileName}`, content);
-		});
-		
-		// 3. Отчеты по каждому учащемуся
-		if (appData.students && appData.students.length > 0) {
-			const studentsFolder = zip.folder(`${baseFolderName}/анализ_учащихся`);
+		// Сначала инициализируем библиотеки
+		this.initializeExportLibraries().then(() => {
+			// Проверяем доступность docx после загрузки
+			if (typeof window.docx === 'undefined') {
+				console.warn('⚠️ Библиотека docx не загрузилась, используем альтернативный экспорт');
+				this.exportComprehensiveAnalysisFallback();
+				return;
+			}
 			
-			appData.students.forEach((studentName, studentIndex) => {
-				const studentData = this.collectStudentDataForExport(studentIndex);
-				const studentReport = this.generateStudentWordReport(studentName, studentData);
-				const fileName = this.sanitizeFileName(`${studentName}_анализ.docx`);
-				studentsFolder.file(fileName, studentReport);
-				
-				// Также создаем Excel файл с детальными результатами
-				const studentExcel = this.generateStudentExcelReport(studentName, studentData);
-				const excelName = this.sanitizeFileName(`${studentName}_результаты.xlsx`);
-				studentsFolder.file(excelName, studentExcel);
-			});
-		}
-		
-		// 4. Графики в отдельной папке
-		const chartsFolder = zip.folder(`${baseFolderName}/графики`);
-		const chartPromises = this.exportAllChartsToImages(chartsFolder);
-		
-		// 5. Сводные таблицы в Excel
-		const summaryExcel = this.generateSummaryExcelReport(allData);
-		zip.file(`${baseFolderName}/сводные_таблицы.xlsx`, summaryExcel);
-		
-		// 6. JSON файл с сырыми данными
-		const rawData = JSON.stringify(allData, null, 2);
-		zip.file(`${baseFolderName}/исходные_данные.json`, rawData);
-		
-		// Ждем завершения всех асинхронных операций
-		Promise.all(chartPromises).then(() => {
-			// Генерируем и скачиваем архив
-			zip.generateAsync({type: "blob"})
-				.then(function(content) {
-					const downloadUrl = URL.createObjectURL(content);
-					const a = document.createElement("a");
-					a.href = downloadUrl;
-					a.download = `${baseFolderName}.zip`;
-					document.body.appendChild(a);
-					a.click();
-					document.body.removeChild(a);
-					URL.revokeObjectURL(downloadUrl);
-					
-					showNotification('✅ Комплексный отчет экспортирован в ZIP архив', 'success');
-				})
-				.catch(error => {
-					console.error('Ошибка создания архива:', error);
-					showNotification('❌ Ошибка при создании архива', 'error');
-				});
+			// Продолжаем с созданием архива
+			this.createComprehensiveArchive();
+			
+		}).catch(error => {
+			console.error('Ошибка инициализации библиотек:', error);
+			showNotification('Не удалось загрузить библиотеки экспорта', 'error');
+			this.exportComprehensiveAnalysisFallback();
 		});
 	}
 
-	// Генерация главного Word отчета
-	generateMainWordReport(allData, comprehensiveAnalysis) {
-		// Используем библиотеку docx для создания Word документа
-		const { Document, Paragraph, TextRun, Table, TableRow, TableCell, WidthType, 
-				HeadingLevel, Packer, ImageRun, AlignmentType, BorderStyle } = window.docx;
+	// Создание комплексного архива
+	createComprehensiveArchive() {
+		showNotification('📦 Создание комплексного архива...', 'info');
 		
-		// Создаем документ
-		const doc = new Document({
-			sections: [{
-				properties: {},
-				children: [
-					// Титульная страница
-					new Paragraph({
-						text: "КОМПЛЕКСНЫЙ АНАЛИЗ РЕЗУЛЬТАТОВ ТЕСТИРОВАНИЯ",
-						heading: HeadingLevel.TITLE,
-						alignment: AlignmentType.CENTER,
-						spacing: { after: 400 }
-					}),
-					
-					new Paragraph({
-						text: allData.meta.testName || "Тестирование",
-						heading: HeadingLevel.HEADING_1,
-						alignment: AlignmentType.CENTER,
-						spacing: { after: 300 }
-					}),
-					
-					new Paragraph({
-						text: `Дата проведения: ${allData.meta.date || new Date().toLocaleDateString()}`,
-						alignment: AlignmentType.CENTER,
-						spacing: { after: 200 }
-					}),
-					
-					new Paragraph({
-						text: `Класс/группа: ${allData.meta.class || "Не указано"}`,
-						alignment: AlignmentType.CENTER,
-						spacing: { after: 200 }
-					}),
-					
-					new Paragraph({
-						text: `Тема: ${allData.meta.theme || "Не указана"}`,
-						alignment: AlignmentType.CENTER,
-						spacing: { after: 400 }
-					}),
-					
-					new Paragraph({
-						text: `Общее количество учащихся: ${allData.meta.studentCount}`,
-						alignment: AlignmentType.CENTER,
-						spacing: { after: 200 }
-					}),
-					
-					new Paragraph({
-						text: `Количество заданий: ${allData.meta.taskCount}`,
-						alignment: AlignmentType.CENTER,
-						spacing: { after: 400 }
-					}),
-					
-					// Разделитель
-					new Paragraph({
-						text: "________________________________________________________________________",
-						alignment: AlignmentType.CENTER,
-						spacing: { after: 400 }
-					}),
-					
-					// Сводная информация
-					new Paragraph({
-						text: "СВОДНАЯ ИНФОРМАЦИЯ",
-						heading: HeadingLevel.HEADING_1,
-						spacing: { before: 400, after: 200 }
-					}),
-					
-					// Сводная таблица
-					...this.createSummaryTableForWord(allData, comprehensiveAnalysis),
-					
-					// Анализ надежности
-					new Paragraph({
-						text: "АНАЛИЗ НАДЕЖНОСТИ ТЕСТА",
-						heading: HeadingLevel.HEADING_1,
-						spacing: { before: 400, after: 200 }
-					}),
-					
-					...this.createReliabilityAnalysisForWord(comprehensiveAnalysis.reliability),
-					
-					// Распределение учащихся
-					new Paragraph({
-						text: "РАСПРЕДЕЛЕНИЕ УЧАЩИХСЯ ПО УРОВНЯМ",
-						heading: HeadingLevel.HEADING_1,
-						spacing: { before: 400, after: 200 }
-					}),
-					
-					...this.createDistributionAnalysisForWord(allData),
-					
-					// Анализ заданий
-					new Paragraph({
-						text: "АНАЛИЗ ЗАДАНИЙ",
-						heading: HeadingLevel.HEADING_1,
-						spacing: { before: 400, after: 200 }
-					}),
-					
-					...this.createTasksAnalysisForWord(allData),
-					
-					// Рекомендации
-					new Paragraph({
-						text: "РЕКОМЕНДАЦИИ",
-						heading: HeadingLevel.HEADING_1,
-						spacing: { before: 400, after: 200 }
-					}),
-					
-					...this.createRecommendationsForWord(comprehensiveAnalysis.recommendations),
-					
-					// Заключение
-					new Paragraph({
-						text: "ЗАКЛЮЧЕНИЕ",
-						heading: HeadingLevel.HEADING_1,
-						spacing: { before: 400, after: 200 }
-					}),
-					
-					new Paragraph({
-						text: this.generateConclusion(allData),
-						spacing: { after: 400 }
-					}),
-					
-					// Подпись
-					new Paragraph({
-						text: "________________________________________________________________________",
-						alignment: AlignmentType.CENTER,
-						spacing: { before: 400 }
-					}),
-					
-					new Paragraph({
-						text: "Дата формирования отчета: " + new Date().toLocaleDateString(),
-						alignment: AlignmentType.RIGHT,
-						spacing: { before: 200 }
-					}),
-					
-					new Paragraph({
-						text: "Аналитическая система: Advanced Analytics Module",
-						alignment: AlignmentType.RIGHT,
-						spacing: { after: 400 }
+		this.initializeExportLibraries().then(() => {
+			try {
+				if (typeof JSZip === 'undefined') {
+					throw new Error('JSZip не загружен');
+				}
+				
+				const zip = new JSZip();
+				const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+				const baseFolderName = `анализ_${timestamp}`;
+				
+				// Собираем данные
+				const allData = this.collectDetailedData();
+				const comprehensiveAnalysis = this.performComprehensiveAnalysis();
+				
+				// 1. Главный Word отчет
+				const mainReportPromise = Promise.resolve()
+					.then(() => this.generateMainWordReport(allData, comprehensiveAnalysis))
+					.then(blob => {
+						if (blob) {
+							zip.file(`${baseFolderName}/Комплексный_анализ_результатов.docx`, blob);
+							console.log('✅ Главный Word отчет добавлен');
+						}
 					})
-				]
-			}]
+					.catch(error => {
+						console.warn('Не удалось создать Word отчет:', error);
+					});
+				
+				// 2. Графики
+				const chartsPromise = Promise.resolve()
+					.then(() => {
+						const chartsFolder = zip.folder(`${baseFolderName}/графики`);
+						return this.exportAllChartsToImages(chartsFolder);
+					})
+					.then(() => {
+						console.log('✅ Графики экспортированы');
+					})
+					.catch(error => {
+						console.warn('Не удалось экспортировать графики:', error);
+					});
+				
+				// 3. HTML отчет (запасной вариант)
+				const htmlReportPromise = Promise.resolve()
+					.then(() => {
+						const htmlBlob = this.generateEnhancedHTMLReport(allData, comprehensiveAnalysis);
+						zip.file(`${baseFolderName}/аналитический_отчет.html`, htmlBlob);
+						console.log('✅ HTML отчет добавлен');
+					});
+				
+				// 4. Данные в JSON
+				const jsonPromise = Promise.resolve()
+					.then(() => {
+						const rawData = JSON.stringify(allData, null, 2);
+						zip.file(`${baseFolderName}/исходные_данные.json`, rawData);
+						console.log('✅ JSON данные добавлены');
+					});
+				
+				// 5. README файл
+				const readmePromise = Promise.resolve()
+					.then(() => {
+						const readmeContent = this.generateReadmeContent(allData);
+						zip.file(`${baseFolderName}/README.txt`, readmeContent);
+					});
+				
+				// Ждем завершения всех операций
+				Promise.all([mainReportPromise, chartsPromise, htmlReportPromise, jsonPromise, readmePromise])
+					.then(() => {
+						console.log('✅ Все компоненты архива готовы');
+						
+						// Генерируем и скачиваем архив
+						return zip.generateAsync({ 
+							type: "blob",
+							compression: "DEFLATE",
+							compressionOptions: { level: 6 }
+						});
+					})
+					.then((content) => {
+						this.downloadBlob(content, `${baseFolderName}.zip`);
+						showNotification('✅ Комплексный архив создан и скачан', 'success');
+					})
+					.catch(error => {
+						console.error('Ошибка создания архива:', error);
+						showNotification('Ошибка при создании архива', 'error');
+						
+						// Пробуем простой экспорт
+						this.exportToWord();
+					});
+					
+			} catch (error) {
+				console.error('Критическая ошибка:', error);
+				showNotification('Не удалось создать архив', 'error');
+				this.exportEnhancedHTMLReport(allData, comprehensiveAnalysis);
+			}
+		}).catch(error => {
+			console.error('Ошибка инициализации библиотек:', error);
+			showNotification('Используется упрощенный экспорт', 'warning');
+			
+			const allData = this.collectDetailedData();
+			const comprehensiveAnalysis = this.performComprehensiveAnalysis();
+			this.exportEnhancedHTMLReport(allData, comprehensiveAnalysis);
+		});
+	}
+
+	// Генерация README файла
+	generateReadmeContent(allData) {
+    return `АРХИВ АНАЛИТИЧЕСКИХ МАТЕРИАЛОВ
+====================================
+
+📅 Дата создания: ${new Date().toLocaleString()}
+🎯 Тест: ${allData.meta.testName || 'Не указан'}
+📚 Тема: ${allData.meta.theme || 'Не указана'}
+👥 Учащихся: ${allData.meta.studentCount}
+📝 Заданий: ${allData.meta.taskCount}
+
+📁 СОДЕРЖАНИЕ АРХИВА:
+---------------------
+1. Комплексный_анализ_результатов.docx
+   - Полный аналитический отчет в формате Word
+   - Содержит все таблицы и анализ
+
+2. аналитический_отчет.html
+   - Интерактивная версия отчета для просмотра в браузере
+   - Стилизованный дизайн с анимациями
+
+3. графики/
+   - Все диаграммы и графики в формате PNG
+   - Высокое качество для печати
+
+4. исходные_данные.json
+   - Сырые данные анализа в JSON формате
+   - Может быть использован для дальнейшей обработки
+
+📊 КРАТКАЯ СВОДКА:
+------------------
+• Средний балл класса: ${this.calculateOverallAverage(allData.studentStats).toFixed(1)}%
+• Отличников: ${allData.studentStats.filter(s => s.averageScore >= 85).length}
+• Требуют внимания: ${allData.studentStats.filter(s => s.averageScore < 50).length}
+• Проблемных заданий: ${allData.taskStats.filter(t => t.difficulty > 0.7 || t.discrimination < 0.3).length}
+
+🔧 ДОПОЛНИТЕЛЬНАЯ ИНФОРМАЦИЯ:
+-----------------------------
+• Отчет сгенерирован системой Advanced Analytics v2.0
+• Для вопросов и предложений обращайтесь к разработчикам
+• Рекомендуется использовать отчет для планирования учебного процесса
+
+📌 ВАЖНО:
+---------
+• Сохраните этот архив для отслеживания динамики
+• Используйте данные для корректировки учебных планов
+• Регулярно проводите анализ для мониторинга прогресса
+
+© Система Advanced Analytics • ${new Date().getFullYear()}`;
+	}
+
+	// Метод для экспорта улучшенного HTML отчета
+	exportEnhancedHTMLReport(allData, comprehensiveAnalysis) {
+		const htmlBlob = this.generateEnhancedHTMLReport(allData, comprehensiveAnalysis);
+		this.downloadBlob(htmlBlob, `аналитический_отчет_${new Date().toISOString().split('T')[0]}.html`);
+		showNotification('✅ HTML отчет экспортирован', 'success');
+}
+
+	// Генерация главного Word отчета
+	// ОБНОВЛЕННЫЙ МЕТОД generateMainWordReport (с проверками)
+	generateMainWordReport(allData, comprehensiveAnalysis) {
+		try {
+			// Проверяем доступность docx
+			if (typeof window.docx === 'undefined') {
+				console.warn('Библиотека docx недоступна');
+				return this.generateEnhancedHTMLReport(allData, comprehensiveAnalysis);
+			}
+			
+			const { Document, Paragraph, TextRun, Table, TableRow, TableCell, 
+					Packer, HeadingLevel, AlignmentType, WidthType, BorderStyle } = window.docx;
+			
+			// Создаем стилизованный документ
+			const doc = new Document({
+				styles: {
+					paragraphStyles: [
+						{
+							id: "Title",
+							name: "Title",
+							basedOn: "Normal",
+							next: "Normal",
+							run: {
+								size: 48,
+								bold: true,
+								color: "2C3E50",
+							},
+							paragraph: {
+								spacing: { after: 300 },
+								alignment: AlignmentType.CENTER,
+							},
+						},
+						{
+							id: "Heading1",
+							name: "Heading 1",
+							basedOn: "Normal",
+							next: "Normal",
+							run: {
+								size: 32,
+								bold: true,
+								color: "3498DB",
+							},
+							paragraph: {
+								spacing: { before: 240, after: 120 },
+							},
+						},
+						{
+							id: "Heading2",
+							name: "Heading 2",
+							basedOn: "Normal",
+							next: "Normal",
+							run: {
+								size: 28,
+								bold: true,
+								color: "2C3E50",
+							},
+							paragraph: {
+								spacing: { before: 200, after: 100 },
+							},
+						},
+						{
+							id: "Normal",
+							name: "Normal",
+							basedOn: "Normal",
+							next: "Normal",
+							run: {
+								size: 24,
+							},
+							paragraph: {
+								spacing: { line: 276 },
+							},
+						},
+					],
+				},
+				sections: [
+					{
+						properties: {
+							page: {
+								margin: {
+									top: 1000,
+									right: 1000,
+									bottom: 1000,
+									left: 1000,
+								},
+							},
+						},
+						children: [
+							// ТИТУЛЬНАЯ СТРАНИЦА
+							new Paragraph({
+								text: "📊 КОМПЛЕКСНЫЙ АНАЛИЗ РЕЗУЛЬТАТОВ ТЕСТИРОВАНИЯ",
+								style: "Title",
+							}),
+							
+							new Paragraph({
+								text: "Аналитический отчет",
+								style: "Heading1",
+								alignment: AlignmentType.CENTER,
+							}),
+							
+							new Paragraph({
+								text: "\n",
+							}),
+							
+							// ИНФОРМАЦИЯ О ТЕСТЕ
+							this.createTestInfoTable(allData),
+							
+							new Paragraph({
+								text: "\n",
+							}),
+							
+							// ДАТА ГЕНЕРАЦИИ
+							new Paragraph({
+								children: [
+									new TextRun({
+										text: "Дата формирования отчета: ",
+										bold: true,
+									}),
+									new TextRun(new Date().toLocaleDateString('ru-RU', {
+										year: 'numeric',
+										month: 'long',
+										day: 'numeric',
+										hour: '2-digit',
+										minute: '2-digit'
+									})),
+								],
+								alignment: AlignmentType.RIGHT,
+							}),
+							
+							new Paragraph({
+								text: "\n\n\n",
+							}),
+							
+							// РАЗДЕЛИТЕЛЬ
+							new Paragraph({
+								text: "▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬",
+								alignment: AlignmentType.CENTER,
+							}),
+							
+							// СВОДНАЯ СТАТИСТИКА
+							new Paragraph({
+								text: "📈 СВОДНАЯ СТАТИСТИКА",
+								style: "Heading1",
+							}),
+							
+							...this.createSummaryStatsSection(allData, comprehensiveAnalysis),
+							
+							// АНАЛИЗ НАДЕЖНОСТИ
+							new Paragraph({
+								text: "🛡️ АНАЛИЗ НАДЕЖНОСТИ ТЕСТА",
+								style: "Heading1",
+							}),
+							
+							...this.createReliabilitySection(comprehensiveAnalysis.reliability),
+							
+							// РАСПРЕДЕЛЕНИЕ УЧАЩИХСЯ
+							new Paragraph({
+								text: "👥 РАСПРЕДЕЛЕНИЕ УЧАЩИХСЯ",
+								style: "Heading1",
+							}),
+							
+							...this.createDistributionSection(allData),
+							
+							// АНАЛИЗ ЗАДАНИЙ
+							new Paragraph({
+								text: "📝 АНАЛИЗ ЗАДАНИЙ",
+								style: "Heading1",
+							}),
+							
+							...this.createTasksAnalysisSection(allData),
+							
+							// РЕКОМЕНДАЦИИ
+							new Paragraph({
+								text: "💡 РЕКОМЕНДАЦИИ И ПЛАН ДЕЙСТВИЙ",
+								style: "Heading1",
+							}),
+							
+							...this.createRecommendationsSection(comprehensiveAnalysis.recommendations, allData),
+							
+							// ЗАКЛЮЧЕНИЕ
+							new Paragraph({
+								text: "📋 ЗАКЛЮЧЕНИЕ",
+								style: "Heading1",
+							}),
+							
+							new Paragraph({
+								text: this.generateDetailedConclusion(allData, comprehensiveAnalysis),
+							}),
+							
+							// ПОДПИСЬ
+							new Paragraph({
+								text: "\n\n\n",
+							}),
+							
+							new Paragraph({
+								text: "▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬",
+								alignment: AlignmentType.CENTER,
+							}),
+							
+							new Paragraph({
+								children: [
+									new TextRun({
+										text: "Сформировано системой Advanced Analytics v2.0",
+										italics: true,
+										color: "7F8C8D",
+									}),
+								],
+								alignment: AlignmentType.CENTER,
+							}),
+							
+							new Paragraph({
+								children: [
+									new TextRun({
+										text: "Для получения дополнительной информации обращайтесь к разработчикам системы",
+										size: 20,
+										color: "95A5A6",
+									}),
+								],
+								alignment: AlignmentType.CENTER,
+							}),
+						],
+					},
+				],
+			});
+			
+			return Packer.toBlob(doc);
+			
+		} catch (error) {
+			console.error('Ошибка создания Word документа:', error);
+			return this.generateEnhancedHTMLReport(allData, comprehensiveAnalysis);
+		}
+	}
+
+	// Создание таблицы с информацией о тесте
+	createTestInfoTable(allData) {
+		const { Table, TableRow, TableCell, Paragraph, TextRun, WidthType, BorderStyle } = window.docx;
+		
+		return new Table({
+			width: { size: 100, type: WidthType.PERCENTAGE },
+			borders: {
+				top: { style: BorderStyle.SINGLE, size: 3, color: "3498DB" },
+				bottom: { style: BorderStyle.SINGLE, size: 3, color: "3498DB" },
+				left: { style: BorderStyle.SINGLE, size: 3, color: "3498DB" },
+				right: { style: BorderStyle.SINGLE, size: 3, color: "3498DB" },
+			},
+			rows: [
+				new TableRow({
+					children: [
+						new TableCell({
+							width: { size: 50, type: WidthType.PERCENTAGE },
+							children: [
+								new Paragraph({
+									children: [
+										new TextRun({
+											text: "📚 Название теста:",
+											bold: true,
+											color: "2C3E50",
+										}),
+									],
+								}),
+								new Paragraph(allData.meta.testName || "Не указано"),
+							],
+							shading: { fill: "F8F9FA" },
+						}),
+						new TableCell({
+							width: { size: 50, type: WidthType.PERCENTAGE },
+							children: [
+								new Paragraph({
+									children: [
+										new TextRun({
+											text: "🎯 Тема:",
+											bold: true,
+											color: "2C3E50",
+										}),
+									],
+								}),
+								new Paragraph(allData.meta.theme || "Не указана"),
+							],
+							shading: { fill: "F8F9FA" },
+						}),
+					],
+				}),
+				new TableRow({
+					children: [
+						new TableCell({
+							children: [
+								new Paragraph({
+									children: [
+										new TextRun({
+											text: "👥 Количество учащихся:",
+											bold: true,
+											color: "2C3E50",
+										}),
+									],
+								}),
+								new Paragraph({
+									children: [
+										new TextRun({
+											text: allData.meta.studentCount.toString(),
+											bold: true,
+											color: "3498DB",
+											size: 28,
+										}),
+									],
+									alignment: AlignmentType.CENTER,
+								}),
+							],
+						}),
+						new TableCell({
+							children: [
+								new Paragraph({
+									children: [
+										new TextRun({
+											text: "📝 Количество заданий:",
+											bold: true,
+											color: "2C3E50",
+										}),
+									],
+								}),
+								new Paragraph({
+									children: [
+										new TextRun({
+											text: allData.meta.taskCount.toString(),
+											bold: true,
+											color: "3498DB",
+											size: 28,
+										}),
+									],
+									alignment: AlignmentType.CENTER,
+								}),
+							],
+						}),
+					],
+				}),
+				new TableRow({
+					children: [
+						new TableCell({
+							children: [
+								new Paragraph({
+									children: [
+										new TextRun({
+											text: "🏫 Класс/Группа:",
+											bold: true,
+											color: "2C3E50",
+										}),
+									],
+								}),
+								new Paragraph(allData.meta.class || "Не указано"),
+							],
+						}),
+						new TableCell({
+							children: [
+								new Paragraph({
+									children: [
+										new TextRun({
+											text: "📅 Дата проведения:",
+											bold: true,
+											color: "2C3E50",
+										}),
+									],
+								}),
+								new Paragraph(allData.meta.date || new Date().toLocaleDateString()),
+							],
+						}),
+					],
+				}),
+			],
+		});
+	}
+
+	// Создание секции сводной статистики
+	createSummaryStatsSection(allData, comprehensiveAnalysis) {
+		const { Paragraph, TextRun, Table, TableRow, TableCell } = window.docx;
+		const sections = [];
+		
+		// Карточки статистики
+		const statsCards = [
+			{
+				label: "Средний балл класса",
+				value: `${this.calculateOverallAverage(allData.studentStats).toFixed(1)}%`,
+				color: "3498DB",
+				icon: "📊"
+			},
+			{
+				label: "Надежность теста (α)",
+				value: comprehensiveAnalysis.reliability.alpha.toFixed(3),
+				color: "27AE60",
+				icon: "🛡️"
+			},
+			{
+				label: "Отличники",
+				value: comprehensiveAnalysis.clusters.excellent.count.toString(),
+				color: "F39C12",
+				icon: "🏆"
+			},
+			{
+				label: "Требуют внимания",
+				value: comprehensiveAnalysis.clusters.weak.count.toString(),
+				color: "E74C3C",
+				icon: "⚠️"
+			},
+		];
+		
+		// Таблица с карточками статистики
+		const tableRows = [];
+		for (let i = 0; i < statsCards.length; i += 2) {
+			const rowCells = [];
+			
+			// Первая карточка в ряду
+			rowCells.push(
+				new TableCell({
+					width: { size: 50, type: WidthType.PERCENTAGE },
+					children: [
+						new Paragraph({
+							children: [
+								new TextRun({
+									text: `${statsCards[i].icon} ${statsCards[i].label}`,
+									bold: true,
+									size: 22,
+								}),
+							],
+						}),
+						new Paragraph({
+							children: [
+								new TextRun({
+									text: statsCards[i].value,
+									bold: true,
+									size: 36,
+									color: statsCards[i].color,
+								}),
+							],
+							alignment: AlignmentType.CENTER,
+						}),
+					],
+					margins: { top: 100, bottom: 100, left: 100, right: 100 },
+					shading: { fill: "FFFFFF" },
+				})
+			);
+			
+			// Вторая карточка в ряду (если есть)
+			if (i + 1 < statsCards.length) {
+				rowCells.push(
+					new TableCell({
+						width: { size: 50, type: WidthType.PERCENTAGE },
+						children: [
+							new Paragraph({
+								children: [
+									new TextRun({
+										text: `${statsCards[i + 1].icon} ${statsCards[i + 1].label}`,
+										bold: true,
+										size: 22,
+									}),
+								],
+							}),
+							new Paragraph({
+								children: [
+									new TextRun({
+										text: statsCards[i + 1].value,
+										bold: true,
+										size: 36,
+										color: statsCards[i + 1].color,
+									}),
+								],
+								alignment: AlignmentType.CENTER,
+							}),
+						],
+						margins: { top: 100, bottom: 100, left: 100, right: 100 },
+						shading: { fill: "FFFFFF" },
+					})
+				);
+			}
+			
+			tableRows.push(new TableRow({ children: rowCells }));
+		}
+		
+		sections.push(
+			new Table({
+				rows: tableRows,
+				width: { size: 100, type: WidthType.PERCENTAGE },
+			}),
+			
+			new Paragraph({ text: "\n" }),
+			
+			// Дополнительная информация
+			new Paragraph({
+				children: [
+					new TextRun({
+						text: "📌 Дополнительные показатели:",
+						bold: true,
+						size: 24,
+					}),
+				],
+			}),
+			
+			new Paragraph({
+				children: [
+					new TextRun({
+						text: `• Стандартное отклонение: `,
+						bold: true,
+					}),
+					new TextRun(`${allData.distribution.stdDev.toFixed(1)}%`),
+					new TextRun({
+						text: ` (${this.interpretStdDev(allData.distribution.stdDev)})`,
+						italics: true,
+					}),
+				],
+			}),
+			
+			new Paragraph({
+				children: [
+					new TextRun({
+						text: `• Асимметрия распределения: `,
+						bold: true,
+					}),
+					new TextRun(`${allData.distribution.skewness.toFixed(3)}`),
+					new TextRun({
+						text: ` (${this.interpretSkewness(allData.distribution.skewness)})`,
+						italics: true,
+					}),
+				],
+			}),
+			
+			new Paragraph({
+				children: [
+					new TextRun({
+						text: `• Коэффициент вариации: `,
+						bold: true,
+					}),
+					new TextRun(`${(allData.distribution.stdDev / allData.distribution.mean * 100).toFixed(1)}%`),
+				],
+			}),
+			
+			new Paragraph({ text: "\n" }),
+		);
+		
+		return sections;
+	}
+
+	// Интерпретация стандартного отклонения
+	interpretStdDev(stdDev) {
+		if (stdDev < 10) return "небольшой разброс";
+		if (stdDev < 20) return "умеренный разброс";
+		return "значительный разброс";
+	}
+
+	// Интерпретация асимметрии
+	interpretSkewness(skewness) {
+		if (skewness > 0.5) return "смещение влево";
+		if (skewness < -0.5) return "смещение вправо";
+		return "симметричное распределение";
+	}
+
+	// Секция анализа надежности
+	createReliabilitySection(reliability) {
+		const { Paragraph, TextRun, Table, TableRow, TableCell } = window.docx;
+		const sections = [];
+		
+		// Определяем цвет и иконку в зависимости от значения
+		let reliabilityIcon, reliabilityColor;
+		if (reliability.alpha >= 0.8) {
+			reliabilityIcon = "✅";
+			reliabilityColor = "27AE60";
+		} else if (reliability.alpha >= 0.7) {
+			reliabilityIcon = "⚠️";
+			reliabilityColor = "F39C12";
+		} else {
+			reliabilityIcon = "❌";
+			reliabilityColor = "E74C3C";
+		}
+		
+		sections.push(
+			new Table({
+				width: { size: 100, type: WidthType.PERCENTAGE },
+				rows: [
+					new TableRow({
+						children: [
+							new TableCell({
+								width: { size: 30, type: WidthType.PERCENTAGE },
+								children: [
+									new Paragraph({
+										children: [
+											new TextRun({
+												text: `${reliabilityIcon} Коэффициент α Кронбаха`,
+												bold: true,
+												size: 24,
+											}),
+										],
+										alignment: AlignmentType.CENTER,
+									}),
+								],
+								shading: { fill: "F8F9FA" },
+							}),
+							new TableCell({
+								width: { size: 70, type: WidthType.PERCENTAGE },
+								children: [
+									new Paragraph({
+										children: [
+											new TextRun({
+												text: reliability.description,
+											}),
+										],
+									}),
+									new Paragraph({
+										children: [
+											new TextRun({
+												text: "Рекомендация: ",
+												bold: true,
+											}),
+											new TextRun(reliability.recommendation),
+										],
+									}),
+								],
+							}),
+						],
+					}),
+				],
+			}),
+			
+			new Paragraph({ text: "\n" }),
+			
+			// Шкала надежности
+			new Paragraph({
+				children: [
+					new TextRun({
+						text: "📊 Шкала оценки надежности теста:",
+						bold: true,
+					}),
+				],
+			}),
+			
+			this.createReliabilityScaleTable(reliability.alpha),
+			
+			new Paragraph({ text: "\n" }),
+		);
+		
+		return sections;
+	}
+
+	// Таблица шкалы надежности
+	createReliabilityScaleTable(alpha) {
+		const { Table, TableRow, TableCell, Paragraph, TextRun } = window.docx;
+		
+		const scaleData = [
+			{ range: "α ≥ 0.90", label: "Отличная", color: "27AE60", description: "Высшая степень надежности" },
+			{ range: "0.80 ≤ α < 0.90", label: "Хорошая", color: "3498DB", description: "Достаточно для итогового контроля" },
+			{ range: "0.70 ≤ α < 0.80", label: "Приемлемая", color: "F39C12", description: "Достаточно для учебного контроля" },
+			{ range: "0.60 ≤ α < 0.70", label: "Сомнительная", color: "E67E22", description: "Требуется пересмотр теста" },
+			{ range: "α < 0.60", label: "Низкая", color: "E74C3C", description: "Неприемлемая надежность" },
+		];
+		
+		const rows = scaleData.map(item => {
+			const isCurrent = alpha >= parseFloat(item.range.split("α")[0]) || 
+							 (item.range.includes("≤") && alpha >= 0.70 && alpha < 0.80) ||
+							 (item.range.includes("< 0.60") && alpha < 0.60);
+			
+			return new TableRow({
+				children: [
+					new TableCell({
+						children: [
+							new Paragraph({
+								children: [
+									new TextRun({
+										text: item.range,
+										bold: true,
+										color: item.color,
+									}),
+								],
+							}),
+						],
+						shading: isCurrent ? { fill: "FFF3CD" } : undefined,
+					}),
+					new TableCell({
+						children: [
+							new Paragraph({
+								children: [
+									new TextRun({
+										text: item.label,
+										bold: true,
+										color: item.color,
+									}),
+								],
+							}),
+						],
+						shading: isCurrent ? { fill: "FFF3CD" } : undefined,
+					}),
+					new TableCell({
+						children: [new Paragraph(item.description)],
+						shading: isCurrent ? { fill: "FFF3CD" } : undefined,
+					}),
+				],
+			});
 		});
 		
-		// Возвращаем документ как Blob
-		return Packer.toBlob(doc);
+		// Добавляем заголовки
+		rows.unshift(
+			new TableRow({
+				children: [
+					new TableCell({
+						children: [new Paragraph("Диапазон")],
+						shading: { fill: "2C3E50" },
+					}),
+					new TableCell({
+						children: [new Paragraph("Оценка")],
+						shading: { fill: "2C3E50" },
+					}),
+					new TableCell({
+						children: [new Paragraph("Интерпретация")],
+						shading: { fill: "2C3E50" },
+					}),
+				],
+			})
+		);
+		
+		return new Table({ rows });
 	}
+
+	// Секция распределения учащихся
+	createDistributionSection(allData) {
+		const { Paragraph, TextRun, Table, TableRow, TableCell } = window.docx;
+		const sections = [];
+		
+		const studentGroups = this.createStudentGroups(allData.studentStats);
+		
+		sections.push(
+			new Paragraph({
+				children: [
+					new TextRun({
+						text: "📊 Распределение учащихся по уровням подготовки:",
+						bold: true,
+					}),
+				],
+			}),
+			
+			new Paragraph({ text: "\n" }),
+		);
+		
+		// Таблица распределения
+		const distributionRows = [
+			new TableRow({
+				children: [
+					new TableCell({
+						children: [new Paragraph("Уровень")],
+						shading: { fill: "34495E" },
+					}),
+					new TableCell({
+						children: [new Paragraph("Критерий")],
+						shading: { fill: "34495E" },
+					}),
+					new TableCell({
+						children: [new Paragraph("Количество")],
+						shading: { fill: "34495E" },
+					}),
+					new TableCell({
+						children: [new Paragraph("Процент")],
+						shading: { fill: "34495E" },
+					}),
+					new TableCell({
+						children: [new Paragraph("Средний балл")],
+						shading: { fill: "34495E" },
+					}),
+				],
+			}),
+		];
+		
+		studentGroups.forEach(group => {
+			distributionRows.push(
+				new TableRow({
+					children: [
+						new TableCell({
+							children: [new Paragraph(group.name)],
+							shading: { fill: `${group.color}20` },
+						}),
+						new TableCell({
+							children: [new Paragraph(`${group.min}% - ${group.max}%`)],
+						}),
+						new TableCell({
+							children: [new Paragraph(group.count.toString())],
+						}),
+						new TableCell({
+							children: [new Paragraph(`${group.percentage}%`)],
+						}),
+						new TableCell({
+							children: [new Paragraph(this.calculateGroupAverageScore(allData.studentStats, group))],
+						}),
+					],
+				})
+			);
+		});
+		
+		sections.push(
+			new Table({ rows: distributionRows }),
+			
+			new Paragraph({ text: "\n" }),
+			
+			// Анализ распределения
+			new Paragraph({
+				children: [
+					new TextRun({
+						text: "📈 Анализ распределения:",
+						bold: true,
+					}),
+				],
+			}),
+			
+			new Paragraph(this.interpretDistribution(allData.distribution)),
+			
+			new Paragraph({ text: "\n" }),
+			
+			// Рекомендации по распределению
+			new Paragraph({
+				children: [
+					new TextRun({
+						text: "🎯 Рекомендации по работе с группами:",
+						bold: true,
+					}),
+				],
+			}),
+			
+			...this.createGroupRecommendations(studentGroups),
+			
+			new Paragraph({ text: "\n" }),
+		);
+		
+		return sections;
+	}
+
+	// Рекомендации по группам
+	createGroupRecommendations(groups) {
+		const { Paragraph, TextRun } = window.docx;
+		const recommendations = [];
+		
+		groups.forEach(group => {
+			if (group.count > 0) {
+				let recommendation = "";
+				
+				switch(group.name) {
+					case 'Отлично (5)':
+						recommendation = `Для ${group.count} учащихся группы "Отлично": предлагать углубленные задания, участие в олимпиадах, исследовательские проекты.`;
+						break;
+					case 'Хорошо (4)':
+						recommendation = `Для ${group.count} учащихся группы "Хорошо": работа над устранением пробелов, развитие аналитических навыков.`;
+						break;
+					case 'Удовлетворительно (3)':
+						recommendation = `Для ${group.count} учащихся группы "Удовлетворительно": дополнительная практика, индивидуальные консультации, повторение материала.`;
+						break;
+					case 'Неудовлетворительно (2)':
+						recommendation = `Для ${group.count} учащихся группы "Неудовлетворительно": интенсивная коррекционная работа, индивидуальный подход, дополнительные занятия.`;
+						break;
+				}
+				
+				recommendations.push(
+					new Paragraph({
+						children: [
+							new TextRun({
+								text: `• ${recommendation}`,
+							}),
+						],
+						indent: { left: 400 },
+					})
+				);
+			}
+		});
+		
+		return recommendations;
+	}
+
+	// Секция анализа заданий
+	createTasksAnalysisSection(allData) {
+		const { Paragraph, TextRun, Table, TableRow, TableCell } = window.docx;
+		const sections = [];
+		
+		const problematicTasks = allData.taskStats.filter(task => 
+			task.difficulty > 0.7 || task.discrimination < 0.3 || task.completionRate < 50
+		);
+		
+		sections.push(
+			new Paragraph({
+				children: [
+					new TextRun({
+						text: `Всего заданий: ${allData.meta.taskCount}`,
+						bold: true,
+					}),
+				],
+			}),
+			
+			new Paragraph({
+				children: [
+					new TextRun({
+						text: `Проблемных заданий: ${problematicTasks.length} `,
+						bold: true,
+						color: problematicTasks.length > 0 ? "E74C3C" : "27AE60",
+					}),
+					new TextRun({
+						text: `(${((problematicTasks.length / allData.meta.taskCount) * 100).toFixed(1)}%)`,
+						italics: true,
+					}),
+				],
+			}),
+			
+			new Paragraph({ text: "\n" }),
+		);
+		
+		if (problematicTasks.length > 0) {
+			sections.push(
+				new Paragraph({
+					children: [
+						new TextRun({
+							text: "⚠️ Задания, требующие внимания:",
+							bold: true,
+							color: "E74C3C",
+						}),
+					],
+				}),
+				
+				new Paragraph({ text: "\n" }),
+			);
+			
+			// Таблица проблемных заданий
+			const taskRows = [
+				new TableRow({
+					children: [
+						new TableCell({ children: [new Paragraph("№")] }),
+						new TableCell({ children: [new Paragraph("Задание")] }),
+						new TableCell({ children: [new Paragraph("Сложность")] }),
+						new TableCell({ children: [new Paragraph("Дискриминативность")] }),
+						new TableCell({ children: [new Paragraph("Выполняемость")] }),
+						new TableCell({ children: [new Paragraph("Проблема")] }),
+					],
+				}),
+			];
+			
+			problematicTasks.forEach(task => {
+				let problems = [];
+				if (task.difficulty > 0.7) problems.push("Сложное");
+				if (task.discrimination < 0.3) problems.push("Низкая дискриминативность");
+				if (task.completionRate < 50) problems.push("Низкая выполнимость");
+				
+				taskRows.push(
+					new TableRow({
+						children: [
+							new TableCell({ children: [new Paragraph(task.number.toString())] }),
+							new TableCell({ 
+								children: [new Paragraph(task.title.substring(0, 30) + (task.title.length > 30 ? "..." : ""))] 
+							}),
+							new TableCell({ 
+								children: [new Paragraph({
+									children: [
+										new TextRun({
+											text: `${(task.difficulty * 100).toFixed(1)}%`,
+											color: task.difficulty > 0.7 ? "E74C3C" : "27AE60",
+										}),
+									],
+								})] 
+							}),
+							new TableCell({ 
+								children: [new Paragraph({
+									children: [
+										new TextRun({
+											text: `${(task.discrimination * 100).toFixed(1)}%`,
+											color: task.discrimination < 0.3 ? "E74C3C" : "27AE60",
+										}),
+									],
+								})] 
+							}),
+							new TableCell({ 
+								children: [new Paragraph({
+									children: [
+										new TextRun({
+											text: `${task.completionRate.toFixed(1)}%`,
+											color: task.completionRate < 50 ? "E74C3C" : "27AE60",
+										}),
+									],
+								})] 
+							}),
+							new TableCell({ children: [new Paragraph(problems.join(", "))] }),
+						],
+					})
+				);
+			});
+			
+			sections.push(
+				new Table({ rows: taskRows }),
+				
+				new Paragraph({ text: "\n" }),
+				
+				new Paragraph({
+					children: [
+						new TextRun({
+							text: "🔧 Рекомендации по улучшению заданий:",
+							bold: true,
+						}),
+					],
+				}),
+				
+				new Paragraph("• Для заданий с высокой сложностью: упростить формулировки, добавить подсказки"),
+				new Paragraph("• Для заданий с низкой дискриминативностью: пересмотреть варианты ответов"),
+				new Paragraph("• Для заданий с низкой выполнимостью: проверить время выполнения, разделить на части"),
+				
+				new Paragraph({ text: "\n" }),
+			);
+		} else {
+			sections.push(
+				new Paragraph({
+					children: [
+						new TextRun({
+							text: "✅ Все задания имеют хорошие показатели сложности и дискриминативности.",
+							color: "27AE60",
+						}),
+					],
+				}),
+				
+				new Paragraph({ text: "\n" }),
+			);
+		}
+		
+		// Анализ по уровням
+		sections.push(
+			new Paragraph({
+				children: [
+					new TextRun({
+						text: "📊 Распределение заданий по уровням сложности:",
+						bold: true,
+					}),
+				],
+			}),
+			
+			new Paragraph({ text: "\n" }),
+			
+			...this.createTaskLevelsAnalysis(allData.taskStats),
+			
+			new Paragraph({ text: "\n" }),
+		);
+		
+		return sections;
+	}
+
+	// Анализ заданий по уровням
+	createTaskLevelsAnalysis(taskStats) {
+		const { Paragraph, TextRun, Table, TableRow, TableCell } = window.docx;
+		const sections = [];
+		
+		// Группируем задания по уровням
+		const levels = {
+			1: { name: 'Базовый', count: 0, avgDifficulty: 0, avgDiscrimination: 0 },
+			2: { name: 'Применение', count: 0, avgDifficulty: 0, avgDiscrimination: 0 },
+			3: { name: 'Анализ', count: 0, avgDifficulty: 0, avgDiscrimination: 0 },
+			4: { name: 'Творчество', count: 0, avgDifficulty: 0, avgDiscrimination: 0 }
+		};
+		
+		taskStats.forEach(task => {
+			const level = Math.min(Math.max(task.level || 1, 1), 4);
+			if (levels[level]) {
+				levels[level].count++;
+				levels[level].avgDifficulty += task.difficulty || 0;
+				levels[level].avgDiscrimination += task.discrimination || 0;
+			}
+		});
+		
+		// Таблица уровней
+		const levelRows = [
+			new TableRow({
+				children: [
+					new TableCell({ children: [new Paragraph("Уровень")] }),
+					new TableCell({ children: [new Paragraph("Количество")] }),
+					new TableCell({ children: [new Paragraph("Средняя сложность")] }),
+					new TableCell({ children: [new Paragraph("Средняя дискриминативность")] }),
+					new TableCell({ children: [new Paragraph("Рекомендация")] }),
+				],
+			}),
+		];
+		
+		Object.entries(levels).forEach(([levelNum, level]) => {
+			if (level.count > 0) {
+				level.avgDifficulty = (level.avgDifficulty / level.count * 100).toFixed(1);
+				level.avgDiscrimination = (level.avgDiscrimination / level.count * 100).toFixed(1);
+				
+				let recommendation = "";
+				if (parseFloat(level.avgDifficulty) > 70) {
+					recommendation = "Упростить задания";
+				} else if (parseFloat(level.avgDiscrimination) < 30) {
+					recommendation = "Улучшить дифференциацию";
+				} else {
+					recommendation = "Оптимальный уровень";
+				}
+				
+				levelRows.push(
+					new TableRow({
+						children: [
+							new TableCell({ children: [new Paragraph(`${level.name} (${levelNum})`)] }),
+							new TableCell({ children: [new Paragraph(level.count.toString())] }),
+							new TableCell({ 
+								children: [new Paragraph({
+									children: [
+										new TextRun({
+											text: `${level.avgDifficulty}%`,
+											color: parseFloat(level.avgDifficulty) > 70 ? "E74C3C" : "27AE60",
+										}),
+									],
+								})] 
+							}),
+							new TableCell({ 
+								children: [new Paragraph({
+									children: [
+										new TextRun({
+											text: `${level.avgDiscrimination}%`,
+											color: parseFloat(level.avgDiscrimination) < 30 ? "E74C3C" : "27AE60",
+										}),
+									],
+								})] 
+							}),
+							new TableCell({ children: [new Paragraph(recommendation)] }),
+						],
+					})
+				);
+			}
+		});
+		
+		sections.push(
+			new Table({ rows: levelRows }),
+			new Paragraph({ text: "\n" })
+		);
+		
+		return sections;
+	}
+
+	// Секция рекомендаций
+	createRecommendationsSection(recommendations, allData) {
+		const { Paragraph, TextRun, Table, TableRow, TableCell } = window.docx;
+		const sections = [];
+		
+		sections.push(
+			new Paragraph({
+				children: [
+					new TextRun({
+						text: "На основе проведенного анализа сформулированы следующие рекомендации:",
+						bold: true,
+					}),
+				],
+			}),
+			
+			new Paragraph({ text: "\n" }),
+		);
+		
+		// Основные рекомендации
+		recommendations.forEach((rec, index) => {
+			sections.push(
+				new Paragraph({
+					children: [
+						new TextRun({
+							text: `${index + 1}. `,
+							bold: true,
+							color: "3498DB",
+						}),
+						new TextRun(rec),
+					],
+					spacing: { after: 100 },
+				})
+			);
+		});
+		
+		sections.push(
+			new Paragraph({ text: "\n" }),
+			
+			new Paragraph({
+				children: [
+					new TextRun({
+						text: "📅 Примерный план действий на ближайший месяц:",
+						bold: true,
+					}),
+				],
+			}),
+			
+			new Paragraph({ text: "\n" }),
+			
+			...this.createActionPlan(allData),
+			
+			new Paragraph({ text: "\n" }),
+		);
+		
+		return sections;
+	}
+
+	// План действий
+	createActionPlan(allData) {
+		const { Paragraph, TextRun } = window.docx;
+		const actions = [];
+		
+		const actionSteps = [
+			{
+				period: "Неделя 1",
+				actions: [
+					"Индивидуальные беседы с учащимися, показавшими низкие результаты",
+					"Анализ ошибок и выявление типичных проблем",
+					"Коррекция наиболее проблемных заданий"
+				]
+			},
+			{
+				period: "Неделя 2",
+				actions: [
+					"Проведение дополнительных занятий для отстающих учащихся",
+					"Разработка дифференцированных заданий",
+					"Работа над развитием компетенций"
+				]
+			},
+			{
+				period: "Неделя 3",
+				actions: [
+					"Проведение тренировочного теста",
+					"Анализ прогресса учащихся",
+					"Коррекция учебного плана"
+				]
+			},
+			{
+				period: "Неделя 4",
+				actions: [
+					"Контрольный тест для оценки эффективности",
+					"Подведение итогов коррекционной работы",
+					"Планирование дальнейшей работы"
+				]
+			}
+		];
+		
+		actionSteps.forEach(step => {
+			actions.push(
+				new Paragraph({
+					children: [
+						new TextRun({
+							text: `${step.period}: `,
+							bold: true,
+							color: "2C3E50",
+						}),
+					],
+				})
+			);
+			
+			step.actions.forEach(action => {
+				actions.push(
+					new Paragraph({
+						children: [
+							new TextRun({
+								text: `  • ${action}`,
+							}),
+						],
+						indent: { left: 400 },
+					})
+				);
+			});
+			
+			actions.push(new Paragraph({ text: "\n" }));
+		});
+		
+		return actions;
+	}
+
+	// Детальное заключение
+	generateDetailedConclusion(allData, comprehensiveAnalysis) {
+		const averageScore = this.calculateOverallAverage(allData.studentStats);
+		const weakStudents = allData.studentStats.filter(s => s.averageScore < 50).length;
+		const problematicTasks = allData.taskStats.filter(t => t.difficulty > 0.7 || t.discrimination < 0.3).length;
+		const studentGroups = this.createStudentGroups(allData.studentStats);
+		
+		let conclusion = "Проведенный комплексный анализ результатов тестирования позволяет сделать следующие выводы:\n\n";
+		
+		// Общая оценка
+		conclusion += "1. ОБЩАЯ ОЦЕНКА РЕЗУЛЬТАТОВ:\n";
+		conclusion += `   • Средний балл класса составляет ${averageScore.toFixed(1)}%, что свидетельствует о ${averageScore >= 85 ? "высоком" : averageScore >= 70 ? "хорошем" : averageScore >= 50 ? "удовлетворительном" : "неудовлетворительном"} уровне подготовки.\n`;
+		conclusion += `   • Распределение учащихся по группам: ${studentGroups.map(g => `${g.name} - ${g.count} чел. (${g.percentage}%)`).join(', ')}.\n`;
+		conclusion += `   • Количество учащихся, требующих особого внимания: ${weakStudents} (${((weakStudents / allData.meta.studentCount) * 100).toFixed(1)}%).\n\n`;
+		
+		// Качество теста
+		conclusion += "2. КАЧЕСТВО ТЕСТОВОГО ИНСТРУМЕНТА:\n";
+		conclusion += `   • Надежность теста (α Кронбаха): ${comprehensiveAnalysis.reliability.alpha.toFixed(3)} - ${comprehensiveAnalysis.reliability.interpretation}.\n`;
+		conclusion += `   • Проблемных заданий: ${problematicTasks} из ${allData.meta.taskCount} (${((problematicTasks / allData.meta.taskCount) * 100).toFixed(1)}%).\n`;
+		conclusion += `   • Качество заданий: ${problematicTasks === 0 ? "все задания соответствуют критериям качества" : "требуется коррекция проблемных заданий"}.\n\n`;
+		
+		// Рекомендации
+		conclusion += "3. ПЕРСПЕКТИВЫ РАЗВИТИЯ:\n";
+		conclusion += "   • Для улучшения результатов рекомендуется последовательная реализация предложенных рекомендаций.\n";
+		conclusion += "   • Ключевой акцент следует сделать на дифференцированный подход к обучению.\n";
+		conclusion += "   • Важно обеспечить регулярный мониторинг прогресса учащихся.\n\n";
+		
+		// Прогноз
+		conclusion += "4. ПРОГНОЗИРУЕМЫЕ РЕЗУЛЬТАТЫ:\n";
+		conclusion += `   • При реализации рекомендаций ожидается повышение среднего балла на 10-15% в течение месяца.\n`;
+		conclusion += `   • Количество учащихся с низкими результатами может сократиться на 30-50%.\n`;
+		conclusion += "   • Улучшится качество тестового инструмента и объективность оценки.\n";
+		
+		return conclusion;
+	}
+
+	// Альтернативный HTML отчет (если docx не доступен)
+	generateEnhancedHTMLReport(allData, comprehensiveAnalysis) {
+		const timestamp = new Date().toLocaleString();
+		
+		const html = `<!DOCTYPE html>
+	<html lang="ru">
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<title>Аналитический отчет</title>
+		<style>
+			@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+			
+			* {
+				margin: 0;
+				padding: 0;
+				box-sizing: border-box;
+			}
+			
+			body {
+				font-family: 'Inter', sans-serif;
+				line-height: 1.6;
+				color: #2C3E50;
+				background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+				min-height: 100vh;
+				padding: 20px;
+			}
+			
+			.report-container {
+				max-width: 1200px;
+				margin: 0 auto;
+				background: white;
+				border-radius: 20px;
+				box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+				overflow: hidden;
+			}
+			
+			.report-header {
+				background: linear-gradient(135deg, #2C3E50, #34495E);
+				color: white;
+				padding: 40px;
+				text-align: center;
+				position: relative;
+				overflow: hidden;
+			}
+			
+			.report-header::before {
+				content: '';
+				position: absolute;
+				top: -50%;
+				left: -50%;
+				right: -50%;
+				bottom: -50%;
+				background: radial-gradient(circle, rgba(255,255,255,0.1) 1px, transparent 1px);
+				background-size: 50px 50px;
+				animation: float 20s linear infinite;
+			}
+			
+			@keyframes float {
+				0% { transform: rotate(0deg); }
+				100% { transform: rotate(360deg); }
+			}
+			
+			.report-title {
+				font-size: 42px;
+				font-weight: 700;
+				margin-bottom: 10px;
+				position: relative;
+				z-index: 1;
+			}
+			
+			.report-subtitle {
+				font-size: 24px;
+				opacity: 0.9;
+				margin-bottom: 30px;
+				position: relative;
+				z-index: 1;
+			}
+			
+			.test-info {
+				display: grid;
+				grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+				gap: 20px;
+				margin-top: 30px;
+				position: relative;
+				z-index: 1;
+			}
+			
+			.info-card {
+				background: rgba(255,255,255,0.1);
+				backdrop-filter: blur(10px);
+				border-radius: 15px;
+				padding: 20px;
+				text-align: center;
+				border: 1px solid rgba(255,255,255,0.2);
+			}
+			
+			.info-value {
+				font-size: 32px;
+				font-weight: 700;
+				margin-bottom: 5px;
+			}
+			
+			.info-label {
+				font-size: 14px;
+				opacity: 0.8;
+				text-transform: uppercase;
+				letter-spacing: 1px;
+			}
+			
+			.report-body {
+				padding: 40px;
+			}
+			
+			.section {
+				margin-bottom: 50px;
+				padding-bottom: 30px;
+				border-bottom: 2px solid #F8F9FA;
+			}
+			
+			.section:last-child {
+				border-bottom: none;
+			}
+			
+			.section-title {
+				font-size: 28px;
+				font-weight: 600;
+				color: #2C3E50;
+				margin-bottom: 25px;
+				display: flex;
+				align-items: center;
+				gap: 10px;
+			}
+			
+			.section-title::after {
+				content: '';
+				flex: 1;
+				height: 2px;
+				background: linear-gradient(90deg, #3498DB, transparent);
+			}
+			
+			.stats-grid {
+				display: grid;
+				grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+				gap: 20px;
+				margin-bottom: 30px;
+			}
+			
+			.stat-card {
+				background: #F8F9FA;
+				border-radius: 15px;
+				padding: 25px;
+				text-align: center;
+				transition: transform 0.3s, box-shadow 0.3s;
+				border: 2px solid transparent;
+			}
+			
+			.stat-card:hover {
+				transform: translateY(-5px);
+				box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+			}
+			
+			.stat-card.excellent { border-color: #27AE60; }
+			.stat-card.good { border-color: #3498DB; }
+			.stat-card.warning { border-color: #F39C12; }
+			.stat-card.danger { border-color: #E74C3C; }
+			
+			.stat-icon {
+				font-size: 32px;
+				margin-bottom: 15px;
+			}
+			
+			.stat-value {
+				font-size: 36px;
+				font-weight: 700;
+				margin-bottom: 5px;
+			}
+			
+			.stat-label {
+				font-size: 14px;
+				color: #7F8C8D;
+				text-transform: uppercase;
+				letter-spacing: 1px;
+			}
+			
+			table {
+				width: 100%;
+				border-collapse: collapse;
+				margin: 20px 0;
+				background: white;
+				border-radius: 10px;
+				overflow: hidden;
+				box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+			}
+			
+			th {
+				background: #34495E;
+				color: white;
+				padding: 15px;
+				text-align: left;
+				font-weight: 600;
+			}
+			
+			td {
+				padding: 12px 15px;
+				border-bottom: 1px solid #F8F9FA;
+			}
+			
+			tr:hover {
+				background: #F8F9FA;
+			}
+			
+			.recommendation-item {
+				background: #E8F4FC;
+				border-radius: 10px;
+				padding: 20px;
+				margin-bottom: 15px;
+				display: flex;
+				align-items: flex-start;
+				gap: 15px;
+			}
+			
+			.recommendation-number {
+				background: #3498DB;
+				color: white;
+				width: 30px;
+				height: 30px;
+				border-radius: 50%;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				font-weight: 700;
+				flex-shrink: 0;
+			}
+			
+			.conclusion {
+				background: linear-gradient(135deg, #F8F9FA, #E9ECEF);
+				border-radius: 15px;
+				padding: 30px;
+				margin-top: 30px;
+				border-left: 5px solid #3498DB;
+			}
+			
+			.conclusion-title {
+				font-size: 24px;
+				font-weight: 600;
+				margin-bottom: 20px;
+				color: #2C3E50;
+			}
+			
+			.report-footer {
+				background: #F8F9FA;
+				padding: 30px 40px;
+				text-align: center;
+				border-top: 1px solid #E9ECEF;
+			}
+			
+			.footer-text {
+				color: #7F8C8D;
+				font-size: 14px;
+			}
+			
+			@media print {
+				body {
+					background: white;
+					padding: 0;
+				}
+				
+				.report-container {
+					box-shadow: none;
+					border-radius: 0;
+				}
+				
+				.report-header {
+					background: #2C3E50;
+					color: white;
+				}
+				
+				.stat-card:hover {
+					transform: none;
+					box-shadow: none;
+				}
+			}
+			
+			@media (max-width: 768px) {
+				.report-title {
+					font-size: 32px;
+				}
+				
+				.report-subtitle {
+					font-size: 20px;
+				}
+				
+				.stats-grid {
+					grid-template-columns: 1fr;
+				}
+				
+				.test-info {
+					grid-template-columns: 1fr;
+				}
+				
+				.report-body {
+					padding: 20px;
+				}
+			}
+		</style>
+	</head>
+	<body>
+		<div class="report-container">
+			<!-- Заголовок -->
+			<header class="report-header">
+				<h1 class="report-title">📊 Аналитический отчет</h1>
+				<p class="report-subtitle">Комплексный анализ результатов тестирования</p>
+				
+				<div class="test-info">
+					<div class="info-card">
+						<div class="info-value">${allData.meta.testName || 'Не указан'}</div>
+						<div class="info-label">Тест</div>
+					</div>
+					<div class="info-card">
+						<div class="info-value">${allData.meta.studentCount}</div>
+						<div class="info-label">Учащихся</div>
+					</div>
+					<div class="info-card">
+						<div class="info-value">${allData.meta.taskCount}</div>
+						<div class="info-label">Заданий</div>
+					</div>
+					<div class="info-card">
+						<div class="info-value">${allData.meta.date || new Date().toLocaleDateString()}</div>
+						<div class="info-label">Дата</div>
+					</div>
+				</div>
+			</header>
+			
+			<!-- Основное содержимое -->
+			<main class="report-body">
+				<!-- Сводная статистика -->
+				<section class="section">
+					<h2 class="section-title">📈 Сводная статистика</h2>
+					
+					<div class="stats-grid">
+						<div class="stat-card excellent">
+							<div class="stat-icon">📊</div>
+							<div class="stat-value">${this.calculateOverallAverage(allData.studentStats).toFixed(1)}%</div>
+							<div class="stat-label">Средний балл</div>
+						</div>
+						
+						<div class="stat-card ${comprehensiveAnalysis.reliability.alpha >= 0.8 ? 'excellent' : comprehensiveAnalysis.reliability.alpha >= 0.7 ? 'good' : 'warning'}">
+							<div class="stat-icon">🛡️</div>
+							<div class="stat-value">${comprehensiveAnalysis.reliability.alpha.toFixed(3)}</div>
+							<div class="stat-label">Надежность теста</div>
+						</div>
+						
+						<div class="stat-card good">
+							<div class="stat-icon">🏆</div>
+							<div class="stat-value">${comprehensiveAnalysis.clusters.excellent.count}</div>
+							<div class="stat-label">Отличники</div>
+						</div>
+						
+						<div class="stat-card ${comprehensiveAnalysis.clusters.weak.count > 0 ? 'danger' : 'excellent'}">
+							<div class="stat-icon">⚠️</div>
+							<div class="stat-value">${comprehensiveAnalysis.clusters.weak.count}</div>
+							<div class="stat-label">Требуют внимания</div>
+						</div>
+					</div>
+				</section>
+				
+				<!-- Распределение учащихся -->
+				<section class="section">
+					<h2 class="section-title">👥 Распределение учащихся</h2>
+					
+					<table>
+						<thead>
+							<tr>
+								<th>Уровень</th>
+								<th>Критерий</th>
+								<th>Количество</th>
+								<th>Процент</th>
+								<th>Средний балл</th>
+							</tr>
+						</thead>
+						<tbody>
+							${(() => {
+								const groups = this.createStudentGroups(allData.studentStats);
+								return groups.map(group => `
+									<tr>
+										<td><strong>${group.name}</strong></td>
+										<td>${group.min}% - ${group.max}%</td>
+										<td>${group.count}</td>
+										<td>${group.percentage}%</td>
+										<td>${this.calculateGroupAverageScore(allData.studentStats, group)}</td>
+									</tr>
+								`).join('');
+							})()}
+						</tbody>
+					</table>
+				</section>
+				
+				<!-- Анализ заданий -->
+				<section class="section">
+					<h2 class="section-title">📝 Анализ заданий</h2>
+					
+					${(() => {
+						const problematicTasks = allData.taskStats.filter(task => 
+							task.difficulty > 0.7 || task.discrimination < 0.3 || task.completionRate < 50
+						);
+						
+						if (problematicTasks.length > 0) {
+							return `
+								<p><strong>Проблемных заданий: ${problematicTasks.length} из ${allData.meta.taskCount} (${((problematicTasks.length / allData.meta.taskCount) * 100).toFixed(1)}%)</strong></p>
+								<table>
+									<thead>
+										<tr>
+											<th>Задание</th>
+											<th>Сложность</th>
+											<th>Дискриминативность</th>
+											<th>Выполняемость</th>
+											<th>Проблема</th>
+										</tr>
+									</thead>
+									<tbody>
+										${problematicTasks.map(task => {
+											let problems = [];
+											if (task.difficulty > 0.7) problems.push("Сложное");
+											if (task.discrimination < 0.3) problems.push("Низкая дискриминативность");
+											if (task.completionRate < 50) problems.push("Низкая выполнимость");
+											
+											return `
+												<tr>
+													<td>${task.title}</td>
+													<td style="color: ${task.difficulty > 0.7 ? '#E74C3C' : '#27AE60'}">${(task.difficulty * 100).toFixed(1)}%</td>
+													<td style="color: ${task.discrimination < 0.3 ? '#E74C3C' : '#27AE60'}">${(task.discrimination * 100).toFixed(1)}%</td>
+													<td style="color: ${task.completionRate < 50 ? '#E74C3C' : '#27AE60'}">${task.completionRate.toFixed(1)}%</td>
+													<td>${problems.join(', ')}</td>
+												</tr>
+											`;
+										}).join('')}
+									</tbody>
+								</table>
+							`;
+						} else {
+							return '<p style="color: #27AE60; font-weight: 600;">✅ Все задания имеют хорошие показатели сложности и дискриминативности.</p>';
+						}
+					})()}
+				</section>
+				
+				<!-- Рекомендации -->
+				<section class="section">
+					<h2 class="section-title">💡 Рекомендации</h2>
+					
+					${comprehensiveAnalysis.recommendations.map((rec, index) => `
+						<div class="recommendation-item">
+							<div class="recommendation-number">${index + 1}</div>
+							<div>${rec}</div>
+						</div>
+					`).join('')}
+				</section>
+				
+				<!-- Заключение -->
+				<section class="section">
+					<div class="conclusion">
+						<h3 class="conclusion-title">📋 Заключение</h3>
+						<p>${this.generateDetailedConclusion(allData, comprehensiveAnalysis).replace(/\n/g, '<br>')}</p>
+					</div>
+				</section>
+			</main>
+			
+			<!-- Подвал -->
+			<footer class="report-footer">
+				<p class="footer-text">Сформировано системой Advanced Analytics • ${timestamp}</p>
+				<p class="footer-text">Для получения дополнительной информации обращайтесь к разработчикам системы</p>
+			</footer>
+		</div>
+		
+		<script>
+			// Добавляем интерактивность
+			document.addEventListener('DOMContentLoaded', function() {
+				// Анимация карточек
+				const cards = document.querySelectorAll('.stat-card');
+				cards.forEach(card => {
+					card.addEventListener('mouseenter', function() {
+						this.style.transform = 'translateY(-5px)';
+						this.style.boxShadow = '0 10px 30px rgba(0,0,0,0.1)';
+					});
+					
+					card.addEventListener('mouseleave', function() {
+						this.style.transform = '';
+						this.style.boxShadow = '';
+					});
+				});
+				
+				// Печать отчета
+				const printButton = document.createElement('button');
+				printButton.innerHTML = '🖨️ Печать отчета';
+				printButton.style.cssText = `
+					position: fixed;
+					bottom: 20px;
+					right: 20px;
+					background: #3498DB;
+					color: white;
+					border: none;
+					padding: 12px 24px;
+					border-radius: 25px;
+					font-family: 'Inter', sans-serif;
+					font-weight: 600;
+					cursor: pointer;
+					box-shadow: 0 5px 15px rgba(52, 152, 219, 0.3);
+					z-index: 1000;
+					transition: all 0.3s;
+				`;
+				
+				printButton.addEventListener('mouseenter', () => {
+					printButton.style.transform = 'translateY(-2px)';
+					printButton.style.boxShadow = '0 8px 20px rgba(52, 152, 219, 0.4)';
+				});
+				
+				printButton.addEventListener('mouseleave', () => {
+					printButton.style.transform = '';
+					printButton.style.boxShadow = '0 5px 15px rgba(52, 152, 219, 0.3)';
+				});
+				
+				printButton.addEventListener('click', () => {
+					window.print();
+				});
+				
+				document.body.appendChild(printButton);
+				
+				// Анимация появления элементов
+				const sections = document.querySelectorAll('.section');
+				sections.forEach((section, index) => {
+					setTimeout(() => {
+						section.style.opacity = '0';
+						section.style.transform = 'translateY(20px)';
+						section.style.transition = 'opacity 0.5s, transform 0.5s';
+						
+						setTimeout(() => {
+							section.style.opacity = '1';
+							section.style.transform = 'translateY(0)';
+						}, 50);
+					}, index * 200);
+				});
+			});
+		</script>
+	</body>
+	</html>`;
+		
+		return new Blob([html], { type: 'text/html' });
+	}	
+	
+	
+// Альтернатива: простой Word отчет
+generateSimpleWordReport(allData, comprehensiveAnalysis) {
+    try {
+        // Создаем простой текстовый документ
+        let content = `КОМПЛЕКСНЫЙ АНАЛИЗ РЕЗУЛЬТАТОВ ТЕСТИРОВАНИЯ\n`;
+        content += '='.repeat(60) + '\n\n';
+        
+        content += `Тест: ${allData.meta.testName || 'Не указан'}\n`;
+        content += `Тема: ${allData.meta.theme || 'Не указана'}\n`;
+        content += `Дата: ${allData.meta.date || new Date().toLocaleDateString()}\n`;
+        content += `Класс: ${allData.meta.class || 'Не указан'}\n`;
+        content += `Учащихся: ${allData.meta.studentCount}\n`;
+        content += `Заданий: ${allData.meta.taskCount}\n\n`;
+        
+        content += 'СВОДНАЯ СТАТИСТИКА:\n';
+        content += '-'.repeat(30) + '\n';
+        content += `Средний балл: ${this.calculateOverallAverage(allData.studentStats).toFixed(1)}%\n`;
+        content += `Надежность теста (α): ${comprehensiveAnalysis.reliability.alpha.toFixed(3)}\n`;
+        content += `Отличники: ${comprehensiveAnalysis.clusters.excellent.count}\n`;
+        content += `Требуют внимания: ${comprehensiveAnalysis.clusters.weak.count}\n\n`;
+        
+        content += 'РЕКОМЕНДАЦИИ:\n';
+        content += '-'.repeat(30) + '\n';
+        comprehensiveAnalysis.recommendations.forEach((rec, index) => {
+            content += `${index + 1}. ${rec}\n`;
+        });
+        
+        content += '\n' + '='.repeat(60) + '\n';
+        content += `Сгенерировано: ${new Date().toLocaleString()}\n`;
+        
+        return new Blob([content], { type: 'application/msword' });
+        
+    } catch (error) {
+        console.error('Ошибка создания простого отчета:', error);
+        return null;
+    }
+}
+
+// Упрощенное содержимое для Word
+createSimpleContentForWord(allData, comprehensiveAnalysis) {
+    const paragraphs = [];
+    
+    if (window.docx.Paragraph) {
+        paragraphs.push(
+            new window.docx.Paragraph({
+                text: `Тест: ${allData.meta.testName || 'Не указан'}`,
+                spacing: { after: 200 }
+            }),
+            
+            new window.docx.Paragraph({
+                text: `Тема: ${allData.meta.theme || 'Не указана'}`,
+                spacing: { after: 200 }
+            }),
+            
+            new window.docx.Paragraph({
+                text: `Дата: ${allData.meta.date || new Date().toLocaleDateString()}`,
+                spacing: { after: 200 }
+            }),
+            
+            new window.docx.Paragraph({
+                text: '='.repeat(60),
+                spacing: { after: 400 }
+            })
+        );
+    }
+    
+    return paragraphs;
+}
+
+// Fallback для комплексного экспорта
+exportComprehensiveAnalysisFallback() {
+    showNotification('Используется упрощенный экспорт', 'warning');
+    
+    // Создаем простой HTML отчет
+    const allData = this.collectDetailedData();
+    const comprehensiveAnalysis = this.performComprehensiveAnalysis();
+    
+    const htmlContent = `
+        <!DOCTYPE html>
+        <html lang="ru">
+        <head>
+            <meta charset="UTF-8">
+            <title>Аналитический отчет</title>
+            <style>
+                body { font-family: Arial, sans-serif; padding: 30px; }
+                h1, h2, h3 { color: #2c3e50; }
+                .section { margin-bottom: 30px; padding: 20px; border: 1px solid #ddd; border-radius: 10px; }
+                table { width: 100%; border-collapse: collapse; margin: 15px 0; }
+                th, td { padding: 10px; border: 1px solid #ddd; text-align: left; }
+                th { background: #f8f9fa; }
+                .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; }
+                .stat-card { background: #f8f9fa; padding: 15px; border-radius: 8px; text-align: center; }
+                .stat-value { font-size: 24px; font-weight: bold; }
+                .stat-label { color: #7f8c8d; font-size: 14px; }
+            </style>
+        </head>
+        <body>
+            <h1>📊 Аналитический отчет</h1>
+            <p><strong>Дата:</strong> ${new Date().toLocaleString()}</p>
+            
+            <div class="section">
+                <h2>Основная информация</h2>
+                <p><strong>Тест:</strong> ${allData.meta.testName || 'Не указан'}</p>
+                <p><strong>Тема:</strong> ${allData.meta.theme || 'Не указана'}</p>
+                <p><strong>Учащихся:</strong> ${allData.meta.studentCount}</p>
+                <p><strong>Заданий:</strong> ${allData.meta.taskCount}</p>
+            </div>
+            
+            <div class="section">
+                <h2>Сводная статистика</h2>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-value">${this.calculateOverallAverage(allData.studentStats).toFixed(1)}%</div>
+                        <div class="stat-label">Средний балл</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">${comprehensiveAnalysis.reliability.alpha.toFixed(3)}</div>
+                        <div class="stat-label">Надежность теста</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">${comprehensiveAnalysis.clusters.excellent.count}</div>
+                        <div class="stat-label">Отличники</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">${comprehensiveAnalysis.clusters.weak.count}</div>
+                        <div class="stat-label">Требуют внимания</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="section">
+                <h2>Рекомендации</h2>
+                <ul>
+                    ${comprehensiveAnalysis.recommendations.map(rec => `<li>${rec}</li>`).join('')}
+                </ul>
+            </div>
+        </body>
+        </html>
+    `;
+    
+    this.downloadBlob(new Blob([htmlContent], { type: 'text/html' }), 'аналитический_отчет.html');
+}
+
+// Вспомогательный метод для скачивания Blob
+downloadBlob(blob, filename) {
+    try {
+        // Пробуем использовать FileSaver.js
+        if (typeof window.saveAs !== 'undefined') {
+            window.saveAs(blob, filename);
+        } else {
+            // Fallback метод
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+    } catch (error) {
+        console.error('Ошибка скачивания файла:', error);
+        showNotification('Ошибка при скачивании файла', 'error');
+    }
+}
+
+
 
 	// Создание сводной таблицы для Word
 	createSummaryTableForWord(allData, comprehensiveAnalysis) {
@@ -10147,52 +12118,92 @@ class AdvancedAnalytics {
 	}
 
 	// Экспорт всех графиков как изображений
-	exportAllChartsToImages(chartsFolder) {
-		const promises = [];
-		const charts = Chart.instances || [];
-		
-		charts.forEach((chart, index) => {
-			const promise = new Promise((resolve) => {
-				try {
-					const canvas = chart.canvas;
-					const imageData = canvas.toDataURL('image/png');
-					const base64Data = imageData.replace(/^data:image\/png;base64,/, '');
-					
-					const chartName = canvas.id || `chart_${index + 1}`;
-					chartsFolder.file(`${chartName}.png`, base64Data, { base64: true });
-					
-					resolve();
-				} catch (error) {
-					console.error(`Ошибка экспорта графика ${index}:`, error);
-					resolve();
+	exportAllChartsToImages(folder) {
+		return new Promise((resolve) => {
+			console.log('🖼️ Экспорт графиков...');
+			
+			const chartsToExport = [];
+			const allCanvases = document.querySelectorAll('canvas');
+			
+			// Собираем все canvas элементы
+			allCanvases.forEach((canvas, index) => {
+				if (canvas.width > 10 && canvas.height > 10) { // Проверяем, что canvas не пустой
+					chartsToExport.push({
+						canvas: canvas,
+						id: canvas.id || `chart_${index}`,
+						name: canvas.closest('.chart-container') ? 
+							  canvas.closest('.chart-container').querySelector('h4')?.textContent || 
+							  canvas.closest('.viz-card')?.querySelector('h4')?.textContent || 
+							  `График ${index + 1}` : 
+							  `График ${index + 1}`
+					});
 				}
 			});
 			
-			promises.push(promise);
-		});
-		
-		// Экспорт дополнительных графиков из модальных окон
-		const additionalCanvases = document.querySelectorAll('canvas:not([id*="Modal"])');
-		additionalCanvases.forEach((canvas, index) => {
-			const promise = new Promise((resolve) => {
-				try {
-					const imageData = canvas.toDataURL('image/png');
-					const base64Data = imageData.replace(/^data:image\/png;base64,/, '');
-					
-					const chartName = `additional_chart_${index + 1}.png`;
-					chartsFolder.file(chartName, base64Data, { base64: true });
-					
-					resolve();
-				} catch (error) {
-					console.error('Ошибка экспорта дополнительного графика:', error);
-					resolve();
-				}
+			console.log(`Найдено ${chartsToExport.length} графиков для экспорта`);
+			
+			if (chartsToExport.length === 0) {
+				resolve();
+				return;
+			}
+			
+			let exportedCount = 0;
+			const totalCharts = Math.min(chartsToExport.length, 30); // Ограничиваем
+			
+			chartsToExport.slice(0, totalCharts).forEach((chartData, index) => {
+				setTimeout(() => {
+					try {
+						const canvas = chartData.canvas;
+						
+						// Создаем временный canvas для лучшего качества
+						const tempCanvas = document.createElement('canvas');
+						const ctx = tempCanvas.getContext('2d');
+						
+						// Увеличиваем размер для лучшего качества
+						const scale = 2;
+						tempCanvas.width = canvas.width * scale;
+						tempCanvas.height = canvas.height * scale;
+						
+						// Устанавливаем белый фон
+						ctx.fillStyle = 'white';
+						ctx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+						
+						// Копируем оригинальный график
+						ctx.drawImage(canvas, 0, 0, tempCanvas.width, tempCanvas.height);
+						
+						// Конвертируем в base64
+						const imageData = tempCanvas.toDataURL('image/png', 1.0);
+						const base64Data = imageData.replace(/^data:image\/png;base64,/, '');
+						
+						// Сохраняем
+						const fileName = this.sanitizeFileName(`${chartData.name}.png`);
+						folder.file(`графики/${fileName}`, base64Data, { base64: true });
+						
+						exportedCount++;
+						console.log(`✅ Экспортирован график: ${chartData.name} (${exportedCount}/${totalCharts})`);
+						
+						if (exportedCount === totalCharts) {
+							console.log(`✅ Все графики экспортированы: ${exportedCount} из ${totalCharts}`);
+							resolve();
+						}
+						
+					} catch (error) {
+						console.warn(`❌ Ошибка экспорта графика ${chartData.name}:`, error);
+						exportedCount++;
+						
+						if (exportedCount === totalCharts) {
+							resolve();
+						}
+					}
+				}, index * 100); // Задержка для предотвращения блокировки
 			});
 			
-			promises.push(promise);
+			// Таймаут на случай проблем
+			setTimeout(() => {
+				console.log(`⏱️ Таймаут экспорта графиков, экспортировано: ${exportedCount}`);
+				resolve();
+			}, 30000);
 		});
-		
-		return promises;
 	}
 
 	// Генерация сводного Excel отчета
@@ -10400,51 +12411,97 @@ class AdvancedAnalytics {
 	// Инициализация библиотек для экспорта
 	initializeExportLibraries() {
 		return new Promise((resolve, reject) => {
-			const libraries = [];
+			console.log('🔄 Инициализация библиотек для экспорта...');
 			
-			// Проверяем наличие JSZip
-			if (typeof JSZip === 'undefined') {
-				libraries.push(
-					this.loadScript('https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js')
+			// Проверяем, какие библиотеки уже загружены
+			const loadedLibraries = {
+				jszip: typeof JSZip !== 'undefined',
+				docx: typeof window.docx !== 'undefined',
+				exceljs: typeof window.ExcelJS !== 'undefined',
+				filesaver: typeof window.saveAs !== 'undefined'
+			};
+			
+			console.log('Загруженные библиотеки:', loadedLibraries);
+			
+			const librariesToLoad = [];
+			
+			// JSZip
+			if (!loadedLibraries.jszip) {
+				librariesToLoad.push(
+					this.loadScriptWithFallback(
+						'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js',
+						'JSZip'
+					)
 				);
 			}
 			
-			// Проверяем наличие docx
-			if (typeof window.docx === 'undefined') {
-				libraries.push(
-					this.loadScript('https://cdnjs.cloudflare.com/ajax/libs/docx/7.7.0/docx.min.js')
+			// docx
+			if (!loadedLibraries.docx) {
+				librariesToLoad.push(
+					this.loadScriptWithFallback(
+						'https://cdnjs.cloudflare.com/ajax/libs/docx/7.7.0/docx.min.js',
+						'docx'
+					)
 				);
 			}
 			
-			// Проверяем наличие ExcelJS
-			if (typeof window.ExcelJS === 'undefined') {
-				libraries.push(
-					this.loadScript('https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js')
+			// ExcelJS
+			if (!loadedLibraries.exceljs) {
+				librariesToLoad.push(
+					this.loadScriptWithFallback(
+						'https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js',
+						'ExcelJS'
+					)
 				);
 			}
 			
-			// Проверяем наличие FileSaver
-			if (typeof window.saveAs === 'undefined') {
-				libraries.push(
-					this.loadScript('https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js')
+			// FileSaver
+			if (!loadedLibraries.filesaver) {
+				librariesToLoad.push(
+					this.loadScriptWithFallback(
+						'https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js',
+						'FileSaver'
+					)
 				);
 			}
 			
-			if (libraries.length === 0) {
+			if (librariesToLoad.length === 0) {
+				console.log('✅ Все библиотеки уже загружены');
 				resolve();
 				return;
 			}
 			
-			Promise.all(libraries)
-				.then(() => {
-					console.log('✅ Все библиотеки для экспорта загружены');
-					resolve();
-				})
-				.catch(error => {
-					console.error('❌ Ошибка загрузки библиотек:', error);
-					showNotification('Не удалось загрузить библиотеки для экспорта', 'error');
-					reject(error);
-				});
+			let loadedCount = 0;
+			const totalToLoad = librariesToLoad.length;
+			
+			// Создаем обработчики для каждой библиотеки
+			librariesToLoad.forEach(promise => {
+				promise
+					.then(() => {
+						loadedCount++;
+						console.log(`✅ Загружена библиотека (${loadedCount}/${totalToLoad})`);
+						
+						if (loadedCount === totalToLoad) {
+							console.log('✅ Все библиотеки успешно загружены');
+							resolve();
+						}
+					})
+					.catch(error => {
+						console.warn(`⚠️ Не удалось загрузить библиотеку:`, error);
+						loadedCount++;
+						
+						if (loadedCount === totalToLoad) {
+							console.warn('⚠️ Некоторые библиотеки не загрузились, продолжаем с доступными');
+							resolve(); // Разрешаем промис даже с ошибками
+						}
+					});
+			});
+			
+			// Таймаут на случай проблем с загрузкой
+			setTimeout(() => {
+				console.warn('⚠️ Таймаут загрузки библиотек');
+				resolve(); // Все равно продолжаем
+			}, 10000);
 		});
 	}
 
@@ -10456,6 +12513,203 @@ class AdvancedAnalytics {
 			script.onload = () => resolve();
 			script.onerror = () => reject(new Error(`Не удалось загрузить скрипт: ${src}`));
 			document.head.appendChild(script);
+		});
+	}
+
+	loadScriptWithFallback(src, libraryName) {
+		return new Promise((resolve, reject) => {
+			console.log(`📦 Загрузка библиотеки ${libraryName}...`);
+			
+			// Проверяем, не загружается ли уже эта библиотека
+			if (document.querySelector(`script[src="${src}"]`)) {
+				console.log(`📦 Библиотека ${libraryName} уже загружается`);
+				// Ждем, пока загрузится
+				const checkInterval = setInterval(() => {
+					if ((libraryName === 'docx' && window.docx) ||
+						(libraryName === 'JSZip' && JSZip) ||
+						(libraryName === 'ExcelJS' && window.ExcelJS) ||
+						(libraryName === 'FileSaver' && window.saveAs)) {
+						clearInterval(checkInterval);
+						console.log(`✅ Библиотека ${libraryName} загрузилась`);
+						resolve();
+					}
+				}, 500);
+				
+				setTimeout(() => {
+					clearInterval(checkInterval);
+					console.warn(`⚠️ Таймаут проверки библиотеки ${libraryName}`);
+					resolve(); // Все равно разрешаем
+				}, 5000);
+				
+				return;
+			}
+			
+			const script = document.createElement('script');
+			script.src = src;
+			script.async = true;
+			
+			script.onload = () => {
+				console.log(`✅ Библиотека ${libraryName} загружена`);
+				
+				// Даем время на инициализацию
+				setTimeout(() => {
+					// Проверяем, что библиотека действительно доступна
+					const isLoaded = (libraryName === 'docx' && window.docx) ||
+								   (libraryName === 'JSZip' && JSZip) ||
+								   (libraryName === 'ExcelJS' && window.ExcelJS) ||
+								   (libraryName === 'FileSaver' && window.saveAs);
+					
+					if (isLoaded) {
+						resolve();
+					} else {
+						console.warn(`⚠️ Библиотека ${libraryName} загрузилась, но не инициализирована`);
+						// Пробуем fallback
+						this.tryLibraryFallback(libraryName).then(resolve).catch(reject);
+					}
+				}, 1000);
+			};
+			
+			script.onerror = (error) => {
+				console.error(`❌ Ошибка загрузки библиотеки ${libraryName}:`, error);
+				// Пробуем альтернативный источник
+				this.loadScriptFallback(libraryName).then(resolve).catch(reject);
+			};
+			
+			document.head.appendChild(script);
+		});
+	}
+
+	// Альтернативные источники для библиотек
+	loadScriptFallback(libraryName) {
+		return new Promise((resolve, reject) => {
+			console.log(`🔄 Пробуем альтернативный источник для ${libraryName}...`);
+			
+			let fallbackSrc;
+			switch (libraryName) {
+				case 'JSZip':
+					fallbackSrc = 'https://unpkg.com/jszip@3.10.1/dist/jszip.min.js';
+					break;
+				case 'docx':
+					fallbackSrc = 'https://unpkg.com/docx@7.7.0/build/index.js';
+					break;
+				case 'ExcelJS':
+					fallbackSrc = 'https://unpkg.com/exceljs@4.4.0/dist/exceljs.min.js';
+					break;
+				case 'FileSaver':
+					fallbackSrc = 'https://unpkg.com/file-saver@2.0.5/dist/FileSaver.min.js';
+					break;
+				default:
+					reject(new Error(`Нет fallback для ${libraryName}`));
+					return;
+			}
+			
+			const script = document.createElement('script');
+			script.src = fallbackSrc;
+			script.async = true;
+			
+			script.onload = () => {
+				console.log(`✅ Библиотека ${libraryName} загружена из fallback`);
+				setTimeout(() => resolve(), 500);
+			};
+			
+			script.onerror = () => {
+				console.error(`❌ Ошибка загрузки fallback для ${libraryName}`);
+				reject(new Error(`Не удалось загрузить ${libraryName}`));
+			};
+			
+			document.head.appendChild(script);
+		});
+	}
+
+	// Попытка локальной инициализации библиотеки
+	tryLibraryFallback(libraryName) {
+		return new Promise((resolve) => {
+			console.log(`🔄 Пробуем локальную инициализацию ${libraryName}...`);
+			
+			switch (libraryName) {
+				case 'docx':
+					// Пробуем создать минимальную реализацию docx
+					if (!window.docx) {
+						window.docx = {
+							Document: class {
+								constructor(options) {
+									this.sections = options.sections || [];
+								}
+							},
+							Paragraph: class {
+								constructor(options) {
+									this.text = options.text || '';
+									this.heading = options.heading;
+									this.alignment = options.alignment;
+								}
+							},
+							TextRun: class {
+								constructor(options) {
+									this.text = options.text || '';
+									this.bold = options.bold;
+								}
+							},
+							Table: class {
+								constructor(options) {
+									this.rows = options.rows || [];
+								}
+							},
+							TableRow: class {
+								constructor(options) {
+									this.children = options.children || [];
+								}
+							},
+							TableCell: class {
+								constructor(options) {
+									this.children = options.children || [];
+								}
+							},
+							Packer: {
+								toBlob: async function(doc) {
+									console.warn('⚠️ Используется упрощенная версия docx');
+									// Создаем простой текстовый документ
+									let content = '';
+									if (doc.sections && doc.sections[0] && doc.sections[0].children) {
+										doc.sections[0].children.forEach(child => {
+											if (child.text) {
+												content += child.text + '\n';
+											}
+										});
+									}
+									return new Blob([content], { type: 'text/plain' });
+								}
+							}
+						};
+						console.log('✅ Создана упрощенная версия docx');
+					}
+					break;
+					
+				case 'JSZip':
+					if (!window.JSZip) {
+						console.warn('⚠️ JSZip недоступен, используем альтернативу');
+						// Простая реализация архивации
+						window.JSZip = class {
+							constructor() {
+								this.files = {};
+							}
+							
+							file(name, content, options) {
+								this.files[name] = { content, options };
+							}
+							
+							folder(name) {
+								return this; // Упрощенная реализация
+							}
+							
+							generateAsync(options) {
+								return Promise.resolve(new Blob([JSON.stringify(this.files)], { type: 'application/zip' }));
+							}
+						};
+					}
+					break;
+			}
+			
+			setTimeout(() => resolve(), 100);
 		});
 	}
 
@@ -10660,20 +12914,21 @@ class AdvancedAnalytics {
 	exportToWord() {
 		showNotification('📝 Подготовка Word документа...', 'info');
 		
-		const allData = this.collectDetailedData();
-		const comprehensiveAnalysis = this.performComprehensiveAnalysis();
-		
-		this.generateMainWordReport(allData, comprehensiveAnalysis).then(blob => {
-			const url = URL.createObjectURL(blob);
-			const a = document.createElement('a');
-			a.href = url;
-			a.download = `анализ_результатов_${new Date().toISOString().split('T')[0]}.docx`;
-			document.body.appendChild(a);
-			a.click();
-			document.body.removeChild(a);
-			URL.revokeObjectURL(url);
+		this.initializeExportLibraries().then(() => {
+			const allData = this.collectDetailedData();
+			const comprehensiveAnalysis = this.performComprehensiveAnalysis();
 			
-			showNotification('✅ Word документ экспортирован', 'success');
+			const reportBlob = this.generateMainWordReport(allData, comprehensiveAnalysis);
+			
+			if (reportBlob) {
+				this.downloadBlob(reportBlob, `анализ_результатов_${new Date().toISOString().split('T')[0]}.docx`);
+				showNotification('✅ Word документ экспортирован', 'success');
+			} else {
+				showNotification('Не удалось создать Word документ', 'error');
+				this.exportAnalysisReportFallback();
+			}
+		}).catch(() => {
+			this.exportAnalysisReportFallback();
 		});
 	}
 
