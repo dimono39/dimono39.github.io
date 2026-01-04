@@ -9,7 +9,7 @@ class AdvancedAnalytics {
             timeline: null,
             correlation: null
         };
-        
+
         // Инициализируем пустые данные, если appData не существует
         if (typeof appData === 'undefined') {
             console.warn('appData не определен, создаем пустую структуру');
@@ -20,25 +20,25 @@ class AdvancedAnalytics {
                 test: {}
             };
         }
-		
-		// Регистрируем кастомный BoxPlot на всякий случай
-		setTimeout(() => this.registerCustomBoxPlot(), 1000);
-		// Добавляем глобальные обработчики
-		setTimeout(() => this.addGlobalEventListeners(), 1000);		
+
+        // Регистрируем кастомный BoxPlot на всякий случай
+        //setTimeout(() => this.registerCustomBoxPlot(), 1000);
+        // Добавляем глобальные обработчики
+        setTimeout(() => this.addGlobalEventListeners(), 1000);
     }
 
     // Инициализация расширенной аналитики
     init() {
         console.log('🔄 Инициализация расширенной аналитики...');
-        
+
         // Создаем контейнеры только если их нет
         this.createContainers();
-        
+
         // Инициализируем графики после небольшой задержки
         setTimeout(() => {
             this.initCharts();
         }, 500);
-        
+
         return this;
     }
 
@@ -115,27 +115,27 @@ class AdvancedAnalytics {
 
         // Добавляем в конец вкладки аналитики
         analyticsTab.appendChild(section);
-        
+
         // Добавляем CSS стили
         this.addStyles();
-        
+
         console.log('✅ Контейнеры расширенной аналитики созданы');
     }
 
-	// 10. Добавим метод showCorrelationAnalysis()
-	showCorrelationAnalysis() {
-		// Сначала уничтожаем существующий график если он есть
-		const ctx = document.getElementById('correlationChart');
-		if (ctx) {
-			const existingChart = Chart.getChart(ctx);
-			if (existingChart) {
-				existingChart.destroy();
-			}
-		}
-		
-		const correlationData = this.calculateCorrelationData();
-		
-		const html = `
+    // 10. Добавим метод showCorrelationAnalysis()
+    showCorrelationAnalysis() {
+        // Сначала уничтожаем существующий график если он есть
+        const ctx = document.getElementById('correlationChart');
+        if (ctx) {
+            const existingChart = Chart.getChart(ctx);
+            if (existingChart) {
+                existingChart.destroy();
+            }
+        }
+
+        const correlationData = this.calculateCorrelationData();
+
+        const html = `
 			<div class="analytics-card">
 				<h4><i class="fas fa-project-diagram"></i> Корреляционный анализ заданий</h4>
 				
@@ -174,167 +174,166 @@ class AdvancedAnalytics {
 				</div>
 			</div>
 		`;
-		
-		this.showResults(html);
-		
-		// Создаем график после добавления HTML
-		setTimeout(() => {
-			const modalCtx = document.getElementById('correlationChartModal');
-			if (modalCtx) {
-				const existingModalChart = Chart.getChart(modalCtx);
-				if (existingModalChart) {
-					existingModalChart.destroy();
-				}
-				
-				try {
-					// Пробуем heatmap для модального окна
-					new Chart(modalCtx, {
-						type: 'scatter', // Используем scatter для простоты
-						data: {
-							datasets: [{
-								label: 'Корреляции',
-								data: this.prepareCorrelationScatterData(correlationData),
-								backgroundColor: 'rgba(52, 152, 219, 0.7)'
-							}]
-						},
-						options: {
-							responsive: true,
-							maintainAspectRatio: false
-						}
-					});
-				} catch (error) {
-					console.warn('Не удалось создать график в модальном окне:', error);
-				}
-			}
-		}, 100);
-	}
 
-	// 6. Вспомогательный метод для подготовки данных scatter plot
-	prepareCorrelationScatterData(correlationData) {
-		const data = [];
-		const labels = correlationData.labels;
-		
-		for (let i = 0; i < labels.length; i++) {
-			for (let j = i + 1; j < labels.length; j++) {
-				const correlation = correlationData.data[i * labels.length + j];
-				if (!isNaN(correlation)) {
-					data.push({
-						x: i,
-						y: j,
-						r: Math.abs(correlation) * 20,
-						correlation: correlation
-					});
-				}
-			}
-		}
-		
-		return data;
-	}
+        this.showResults(html);
 
+        // Создаем график после добавления HTML
+        setTimeout(() => {
+            const modalCtx = document.getElementById('correlationChartModal');
+            if (modalCtx) {
+                const existingModalChart = Chart.getChart(modalCtx);
+                if (existingModalChart) {
+                    existingModalChart.destroy();
+                }
 
-	// 11. Вспомогательные методы для корреляционного анализа
-	calculateAverageCorrelation(correlationMatrix) {
-		const validCorrelations = correlationMatrix.filter(value => 
-			!isNaN(value) && Math.abs(value) < 0.999 // Исключаем диагональ
-		);
-		if (validCorrelations.length === 0) return 0;
-		const sum = validCorrelations.reduce((a, b) => a + b, 0);
-		return sum / validCorrelations.length;
-	}
+                try {
+                    // Пробуем heatmap для модального окна
+                    new Chart(modalCtx, {
+                        type: 'scatter', // Используем scatter для простоты
+                        data: {
+                            datasets: [{
+                                    label: 'Корреляции',
+                                    data: this.prepareCorrelationScatterData(correlationData),
+                                    backgroundColor: 'rgba(52, 152, 219, 0.7)'
+                                }
+                            ]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false
+                        }
+                    });
+                } catch (error) {
+                    console.warn('Не удалось создать график в модальном окне:', error);
+                }
+            }
+        }, 100);
+    }
 
-	countStrongCorrelations(correlationMatrix) {
-		return correlationMatrix.filter(value => 
-			!isNaN(value) && Math.abs(value) >= 0.7 && Math.abs(value) < 0.999
-		).length;
-	}
+    // 6. Вспомогательный метод для подготовки данных scatter plot
+    prepareCorrelationScatterData(correlationData) {
+        const data = [];
+        const labels = correlationData.labels;
 
-	countNegativeCorrelations(correlationMatrix) {
-		return correlationMatrix.filter(value => 
-			!isNaN(value) && value < -0.1 && Math.abs(value) < 0.999
-		).length;
-	}
+        for (let i = 0; i < labels.length; i++) {
+            for (let j = i + 1; j < labels.length; j++) {
+                const correlation = correlationData.data[i * labels.length + j];
+                if (!isNaN(correlation)) {
+                    data.push({
+                        x: i,
+                        y: j,
+                        r: Math.abs(correlation) * 20,
+                        correlation: correlation
+                    });
+                }
+            }
+        }
 
-	interpretCorrelations(correlationData) {
-		const avgCorrelation = this.calculateAverageCorrelation(correlationData.data);
-		const strongCorrelations = this.countStrongCorrelations(correlationData.data);
-		
-		let interpretation = '';
-		
-		if (avgCorrelation > 0.5) {
-			interpretation = 'Высокая внутренняя согласованность теста. Задания хорошо коррелируют между собой, что указывает на измерение схожих компетенций.';
-		} else if (avgCorrelation > 0.3) {
-			interpretation = 'Умеренная внутренняя согласованность. Тест измеряет комплекс компетенций с некоторой степенью связанности.';
-		} else if (avgCorrelation > 0.1) {
-			interpretation = 'Низкая внутренняя согласованность. Возможно, задания измеряют разные аспекты или требуют разных навыков.';
-		} else {
-			interpretation = 'Очень низкая внутренняя согласованность. Рассмотрите возможность пересмотра структуры теста.';
-		}
-		
-		if (strongCorrelations > 0) {
-			interpretation += ` Найдено ${strongCorrelations} сильных корреляций, что может указывать на избыточность некоторых заданий.`;
-		}
-		
-		return interpretation;
-	}
+        return data;
+    }
 
-	// 8. Обновим метод destroyCharts для корректного уничтожения
-	destroyCharts() {
-		console.log('Уничтожение всех графиков...');
-		
-		Object.entries(this.charts).forEach(([name, chart]) => {
-			if (chart) {
-				try {
-					chart.destroy();
-					console.log(`✅ График ${name} уничтожен`);
-				} catch (e) {
-					console.warn(`⚠️ Ошибка при уничтожении графика ${name}:`, e);
-				}
-			}
-		});
-		
-		// Также уничтожаем все графики на canvas элементах
-		const canvasElements = document.querySelectorAll('canvas');
-		canvasElements.forEach(canvas => {
-			const chart = Chart.getChart(canvas);
-			if (chart) {
-				try {
-					chart.destroy();
-				} catch (e) {
-					// Игнорируем ошибки при уничтожении
-				}
-			}
-		});
-		
-		// Сбрасываем все ссылки
-		this.charts = {
-			radar: null,
-			boxPlot: null,
-			valueAdded: null,
-			timeline: null,
-			correlation: null
-		};
-		
-		console.log('✅ Все графики уничтожены');
-	}
+    // 11. Вспомогательные методы для корреляционного анализа
+    calculateAverageCorrelation(correlationMatrix) {
+        const validCorrelations = correlationMatrix.filter(value =>
+                !isNaN(value) && Math.abs(value) < 0.999 // Исключаем диагональ
+            );
+        if (validCorrelations.length === 0)
+            return 0;
+        const sum = validCorrelations.reduce((a, b) => a + b, 0);
+        return sum / validCorrelations.length;
+    }
 
-	// 9. Добавим метод для безопасного обновления графиков
-	updateCharts() {
-		console.log('Обновление графиков...');
-		
-		// Сначала уничтожаем все графики
-		this.destroyCharts();
-		
-		// Затем создаем заново
-		setTimeout(() => {
-			this.initCharts();
-		}, 100);
-	}
+    countStrongCorrelations(correlationMatrix) {
+        return correlationMatrix.filter(value =>
+            !isNaN(value) && Math.abs(value) >= 0.7 && Math.abs(value) < 0.999).length;
+    }
 
+    countNegativeCorrelations(correlationMatrix) {
+        return correlationMatrix.filter(value =>
+            !isNaN(value) && value < -0.1 && Math.abs(value) < 0.999).length;
+    }
+
+    interpretCorrelations(correlationData) {
+        const avgCorrelation = this.calculateAverageCorrelation(correlationData.data);
+        const strongCorrelations = this.countStrongCorrelations(correlationData.data);
+
+        let interpretation = '';
+
+        if (avgCorrelation > 0.5) {
+            interpretation = 'Высокая внутренняя согласованность теста. Задания хорошо коррелируют между собой, что указывает на измерение схожих компетенций.';
+        } else if (avgCorrelation > 0.3) {
+            interpretation = 'Умеренная внутренняя согласованность. Тест измеряет комплекс компетенций с некоторой степенью связанности.';
+        } else if (avgCorrelation > 0.1) {
+            interpretation = 'Низкая внутренняя согласованность. Возможно, задания измеряют разные аспекты или требуют разных навыков.';
+        } else {
+            interpretation = 'Очень низкая внутренняя согласованность. Рассмотрите возможность пересмотра структуры теста.';
+        }
+
+        if (strongCorrelations > 0) {
+            interpretation += ` Найдено ${strongCorrelations} сильных корреляций, что может указывать на избыточность некоторых заданий.`;
+        }
+
+        return interpretation;
+    }
+
+    // 8. Обновим метод destroyCharts для корректного уничтожения
+    destroyCharts() {
+        console.log('Уничтожение всех графиков...');
+
+        Object.entries(this.charts).forEach(([name, chart]) => {
+            if (chart) {
+                try {
+                    chart.destroy();
+                    console.log(`✅ График ${name} уничтожен`);
+                } catch (e) {
+                    console.warn(`⚠️ Ошибка при уничтожении графика ${name}:`, e);
+                }
+            }
+        });
+
+        // Также уничтожаем все графики на canvas элементах
+        const canvasElements = document.querySelectorAll('canvas');
+        canvasElements.forEach(canvas => {
+            const chart = Chart.getChart(canvas);
+            if (chart) {
+                try {
+                    chart.destroy();
+                } catch (e) {
+                    // Игнорируем ошибки при уничтожении
+                }
+            }
+        });
+
+        // Сбрасываем все ссылки
+        this.charts = {
+            radar: null,
+            boxPlot: null,
+            valueAdded: null,
+            timeline: null,
+            correlation: null
+        };
+
+        console.log('✅ Все графики уничтожены');
+    }
+
+    // 9. Добавим метод для безопасного обновления графиков
+    updateCharts() {
+        console.log('Обновление графиков...');
+
+        // Сначала уничтожаем все графики
+        this.destroyCharts();
+
+        // Затем создаем заново
+        setTimeout(() => {
+            this.initCharts();
+        }, 100);
+    }
 
     // Добавление CSS стилей
     addStyles() {
         const styleId = 'advanced-analytics-styles';
-        if (document.getElementById(styleId)) return;
+        if (document.getElementById(styleId))
+            return;
 
         const style = document.createElement('style');
         style.id = styleId;
@@ -416,346 +415,349 @@ class AdvancedAnalytics {
                 tasksCount: appData?.tasks?.length,
                 results: appData?.results?.length
             });
-            
-			// Список графиков для создания
-			const chartsToCreate = [
-				{ id: 'competenceRadar', method: 'createCompetenceRadar' },
-				{ id: 'boxPlotChart', method: 'createBoxPlot' },
-				{ id: 'valueAddedChart', method: 'createValueAddedChart' },
-				{ id: 'correlationChart', method: 'createCorrelationChart' }
-			];
-			
-			chartsToCreate.forEach(chart => {
-				try {
-					const element = document.getElementById(chart.id);
-					if (element && element.tagName === 'CANVAS') {
-						// Проверяем, есть ли уже график на этом canvas
-						const existingChart = Chart.getChart(element);
-						if (existingChart) {
-							console.log(`Уничтожаем существующий график ${chart.id}`);
-							existingChart.destroy();
-						}
-						
-						// Создаем новый график
-						this[chart.method]();
-						console.log(`✅ График ${chart.id} создан`);
-					} else if (element) {
-						console.log(`⚠️ Элемент ${chart.id} найден, но не является canvas`);
-					} else {
-						console.log(`⚠️ Canvas ${chart.id} не найден`);
-					}
-				} catch (error) {
-					console.error(`❌ Ошибка создания графика ${chart.id}:`, error);
-				}
-			});
+
+            // Список графиков для создания
+            const chartsToCreate = [{
+                    id: 'competenceRadar',
+                    method: 'createCompetenceRadar'
+                }, {
+                    id: 'boxPlotChart',
+                    method: 'createBoxPlot'
+                }, {
+                    id: 'valueAddedChart',
+                    method: 'createValueAddedChart'
+                }, {
+                    id: 'correlationChart',
+                    method: 'createCorrelationChart'
+                }
+            ];
+
+            chartsToCreate.forEach(chart => {
+                try {
+                    const element = document.getElementById(chart.id);
+                    if (element && element.tagName === 'CANVAS') {
+                        // Проверяем, есть ли уже график на этом canvas
+                        const existingChart = Chart.getChart(element);
+                        if (existingChart) {
+                            console.log(`Уничтожаем существующий график ${chart.id}`);
+                            existingChart.destroy();
+                        }
+
+                        // Создаем новый график
+                        this[chart.method]();
+                        console.log(`✅ График ${chart.id} создан`);
+                    } else if (element) {
+                        console.log(`⚠️ Элемент ${chart.id} найден, но не является canvas`);
+                    } else {
+                        console.log(`⚠️ Canvas ${chart.id} не найден`);
+                    }
+                } catch (error) {
+                    console.error(`❌ Ошибка создания графика ${chart.id}:`, error);
+                }
+            });
             console.log('✅ Графики инициализированы');
         } catch (error) {
             console.error('❌ Ошибка инициализации графиков:', error);
         }
     }
 
-	createCorrelationChart() {
-		const ctx = document.getElementById('correlationChart');
-		if (!ctx) {
-			console.warn('Canvas correlationChart не найден');
-			return;
-		}
-		
-		// Проверяем, есть ли уже график на этом canvas
-		const existingChart = Chart.getChart(ctx);
-		if (existingChart) {
-			console.log('Уничтожаем существующий график корреляций');
-			existingChart.destroy();
-		}
-		
-		// Получаем данные для корреляционного анализа
-		const correlationData = this.calculateCorrelationData();
-		
-		if (this.charts.correlation) {
-			this.charts.correlation.destroy();
-		}
-		
-		try {
-			// Пробуем создать heatmap, если поддерживается
-			this.charts.correlation = this.createHeatmapChart(ctx, correlationData);
-		} catch (error) {
-			console.log('Heatmap не поддерживается, используем scatter plot', error);
-			// Создаем scatter plot как fallback
-			this.charts.correlation = this.createCorrelationScatterPlot(ctx, correlationData);
-		}
-	}
+    createCorrelationChart() {
+        const ctx = document.getElementById('correlationChart');
+        if (!ctx) {
+            console.warn('Canvas correlationChart не найден');
+            return;
+        }
 
-	// 2. Вынесем создание heatmap в отдельный метод
-	createHeatmapChart(ctx, correlationData) {
-		// Регистрируем heatmap если еще не зарегистрирован
-		if (Chart.controllers.heatmap === undefined) {
-			this.registerHeatmapChart();
-		}
-		
-		return new Chart(ctx, {
-			type: 'heatmap',
-			data: {
-				labels: correlationData.labels,
-				datasets: [{
-					label: 'Корреляция между заданиями',
-					data: correlationData.data.map((value, index) => {
-						const row = Math.floor(index / correlationData.labels.length);
-						const col = index % correlationData.labels.length;
-						return {
-							x: col,
-							y: row,
-							value: value
-						};
-					}),
-					backgroundColor: function(context) {
-						const value = context.raw.value;
-						return getColorForCorrelation(value);
-					}
-				}]
-			},
-			options: {
-				responsive: true,
-				plugins: {
-					legend: {
-						display: false
-					},
-					tooltip: {
-						callbacks: {
-							title: function(context) {
-								const data = context[0].raw;
-								return `${correlationData.labels[data.y]} ↔ ${correlationData.labels[data.x]}`;
-							},
-							label: function(context) {
-								const value = context.raw.value;
-								return `Корреляция: ${value.toFixed(3)}`;
-							}
-						}
-					}
-				},
-				scales: {
-					x: {
-						title: {
-							display: true,
-							text: 'Задания'
-						},
-						ticks: {
-							callback: function(value, index) {
-								return correlationData.labels[index];
-							}
-						}
-					},
-					y: {
-						title: {
-							display: true,
-							text: 'Задания'
-						},
-						ticks: {
-							callback: function(value, index) {
-								return correlationData.labels[index];
-							}
-						}
-					}
-				}
-			}
-		});
-	}
+        // Проверяем, есть ли уже график на этом canvas
+        const existingChart = Chart.getChart(ctx);
+        if (existingChart) {
+            console.log('Уничтожаем существующий график корреляций');
+            existingChart.destroy();
+        }
 
-	// 3. Метод для регистрации heatmap типа
-	registerHeatmapChart() {
-		// Простая реализация heatmap через матрицу точек
-		Chart.register({
-			id: 'heatmap',
-			beforeDraw: function(chart) {
-				// Логика отрисовки heatmap
-			}
-		});
-	}
+        // Получаем данные для корреляционного анализа
+        const correlationData = this.calculateCorrelationData();
 
+        if (this.charts.correlation) {
+            this.charts.correlation.destroy();
+        }
 
+        try {
+            // Пробуем создать heatmap, если поддерживается
+            this.charts.correlation = this.createHeatmapChart(ctx, correlationData);
+        } catch (error) {
+            console.log('Heatmap не поддерживается, используем scatter plot', error);
+            // Создаем scatter plot как fallback
+            this.charts.correlation = this.createCorrelationScatterPlot(ctx, correlationData);
+        }
+    }
 
-	// 4. Альтернативная реализация через scatter plot
-	// 4. Обновим метод createCorrelationScatterPlot
-	createCorrelationScatterPlot(ctx, correlationData) {
-		// Проверяем, есть ли уже график на этом canvas
-		const existingChart = Chart.getChart(ctx);
-		if (existingChart && existingChart.id !== 'correlation') {
-			existingChart.destroy();
-		}
-		
-		// Преобразуем данные матрицы корреляции в точечные данные
-		const scatterData = [];
-		
-		for (let i = 0; i < correlationData.labels.length; i++) {
-			for (let j = i + 1; j < correlationData.labels.length; j++) {
-				const correlation = correlationData.data[i * correlationData.labels.length + j];
-				if (!isNaN(correlation)) {
-					scatterData.push({
-						x: i + 1, // Номер первого задания
-						y: j + 1, // Номер второго задания
-						r: Math.abs(correlation) * 15 + 5, // Размер точки
-						correlation: correlation
-					});
-				}
-			}
-		}
-		
-		return new Chart(ctx, {
-			type: 'scatter',
-			data: {
-				datasets: [{
-					label: 'Корреляция между заданиями',
-					data: scatterData,
-					backgroundColor: scatterData.map(point => 
-						getColorForCorrelation(point.correlation)
-					),
-					pointRadius: scatterData.map(point => point.r)
-				}]
-			},
-			options: {
-				responsive: true,
-				plugins: {
-					tooltip: {
-						callbacks: {
-							label: function(context) {
-								const point = context.raw;
-								const task1 = correlationData.labels[Math.round(point.x) - 1];
-								const task2 = correlationData.labels[Math.round(point.y) - 1];
-								return [
-									`${task1} ↔ ${task2}`,
-									`Корреляция: ${point.correlation.toFixed(3)}`,
-									`Размер: ${Math.abs(point.correlation).toFixed(2)}`
-								];
-							}
-						}
-					}
-				},
-				scales: {
-					x: {
-						title: {
-							display: true,
-							text: 'Задание (номер)'
-						},
-						min: 0,
-						max: correlationData.labels.length + 1,
-						ticks: {
-							callback: function(value) {
-								if (value >= 1 && value <= correlationData.labels.length) {
-									return `З-${value}`;
-								}
-								return '';
-							}
-						}
-					},
-					y: {
-						title: {
-							display: true,
-							text: 'Задание (номер)'
-						},
-						min: 0,
-						max: correlationData.labels.length + 1,
-						ticks: {
-							callback: function(value) {
-								if (value >= 1 && value <= correlationData.labels.length) {
-									return `З-${value}`;
-								}
-								return '';
-							}
-						}
-					}
-				}
-			}
-		});
-	}
+    // 2. Вынесем создание heatmap в отдельный метод
+    createHeatmapChart(ctx, correlationData) {
+        // Регистрируем heatmap если еще не зарегистрирован
+        if (Chart.controllers.heatmap === undefined) {
+            this.registerHeatmapChart();
+        }
 
-	// 5. Метод для расчета корреляционных данных
-	calculateCorrelationData() {
-		if (!appData.tasks || !appData.students || !appData.results) {
-			return {
-				labels: [],
-				data: []
-			};
-		}
-		
-		const taskCount = appData.tasks.length;
-		const studentCount = appData.students.length;
-		
-		// Подготавливаем матрицу баллов [студент][задание]
-		const scoresMatrix = [];
-		for (let studentIndex = 0; studentIndex < studentCount; studentIndex++) {
-			const studentScores = [];
-			for (let taskIndex = 0; taskIndex < taskCount; taskIndex++) {
-				const score = this.getStudentScore(studentIndex, taskIndex);
-				const maxScore = appData.tasks[taskIndex]?.maxScore || 1;
-				const percentage = maxScore > 0 ? (score / maxScore) * 100 : 0;
-				studentScores.push(percentage);
-			}
-			scoresMatrix.push(studentScores);
-		}
-		
-		// Рассчитываем корреляционную матрицу
-		const correlationMatrix = [];
-		const labels = [];
-		
-		for (let i = 0; i < taskCount; i++) {
-			labels.push(`З-${i + 1}`);
-		}
-		
-		for (let i = 0; i < taskCount; i++) {
-			for (let j = 0; j < taskCount; j++) {
-				if (i === j) {
-					correlationMatrix.push(1); // Корреляция с собой = 1
-				} else {
-					const scoresI = scoresMatrix.map(row => row[i]);
-					const scoresJ = scoresMatrix.map(row => row[j]);
-					const correlation = this.calculatePearsonCorrelation(scoresI, scoresJ);
-					correlationMatrix.push(correlation);
-				}
-			}
-		}
-		
-		return {
-			labels: labels,
-			data: correlationMatrix
-		};
-	}
+        return new Chart(ctx, {
+            type: 'heatmap',
+            data: {
+                labels: correlationData.labels,
+                datasets: [{
+                        label: 'Корреляция между заданиями',
+                        data: correlationData.data.map((value, index) => {
+                            const row = Math.floor(index / correlationData.labels.length);
+                            const col = index % correlationData.labels.length;
+                            return {
+                                x: col,
+                                y: row,
+                                value: value
+                            };
+                        }),
+                        backgroundColor: function (context) {
+                            const value = context.raw.value;
+                            return getColorForCorrelation(value);
+                        }
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        callbacks: {
+                            title: function (context) {
+                                const data = context[0].raw;
+                                return `${correlationData.labels[data.y]} ↔ ${correlationData.labels[data.x]}`;
+                            },
+                            label: function (context) {
+                                const value = context.raw.value;
+                                return `Корреляция: ${value.toFixed(3)}`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Задания'
+                        },
+                        ticks: {
+                            callback: function (value, index) {
+                                return correlationData.labels[index];
+                            }
+                        }
+                    },
+                    y: {
+                        title: {
+                            display: true,
+                            text: 'Задания'
+                        },
+                        ticks: {
+                            callback: function (value, index) {
+                                return correlationData.labels[index];
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
 
-	// 6. Метод для расчета коэффициента корреляции Пирсона
-	calculatePearsonCorrelation(x, y) {
-		const n = x.length;
-		
-		// Проверяем, что массивы одинаковой длины и не пустые
-		if (n !== y.length || n === 0) {
-			return 0;
-		}
-		
-		// Рассчитываем средние значения
-		const meanX = x.reduce((sum, val) => sum + val, 0) / n;
-		const meanY = y.reduce((sum, val) => sum + val, 0) / n;
-		
-		// Рассчитываем числитель и знаменатель
-		let numerator = 0;
-		let denominatorX = 0;
-		let denominatorY = 0;
-		
-		for (let i = 0; i < n; i++) {
-			const diffX = x[i] - meanX;
-			const diffY = y[i] - meanY;
-			
-			numerator += diffX * diffY;
-			denominatorX += diffX * diffX;
-			denominatorY += diffY * diffY;
-		}
-		
-		// Проверяем деление на ноль
-		if (denominatorX === 0 || denominatorY === 0) {
-			return 0;
-		}
-		
-		return numerator / Math.sqrt(denominatorX * denominatorY);
-	}
+    // 3. Метод для регистрации heatmap типа
+    registerHeatmapChart() {
+        // Простая реализация heatmap через матрицу точек
+        Chart.register({
+            id: 'heatmap',
+            beforeDraw: function (chart) {
+                // Логика отрисовки heatmap
+            }
+        });
+    }
 
+    // 4. Обновим метод createCorrelationScatterPlot
+    createCorrelationScatterPlot(ctx, correlationData) {
+        // Проверяем, есть ли уже график на этом canvas
+        const existingChart = Chart.getChart(ctx);
+        if (existingChart && existingChart.id !== 'correlation') {
+            existingChart.destroy();
+        }
 
+        // Преобразуем данные матрицы корреляции в точечные данные
+        const scatterData = [];
 
+        for (let i = 0; i < correlationData.labels.length; i++) {
+            for (let j = i + 1; j < correlationData.labels.length; j++) {
+                const correlation = correlationData.data[i * correlationData.labels.length + j];
+                if (!isNaN(correlation)) {
+                    scatterData.push({
+                        x: i + 1, // Номер первого задания
+                        y: j + 1, // Номер второго задания
+                        r: Math.abs(correlation) * 15 + 5, // Размер точки
+                        correlation: correlation
+                    });
+                }
+            }
+        }
+
+        return new Chart(ctx, {
+            type: 'scatter',
+            data: {
+                datasets: [{
+                        label: 'Корреляция между заданиями',
+                        data: scatterData,
+                        backgroundColor: scatterData.map(point =>
+                            getColorForCorrelation(point.correlation)),
+                        pointRadius: scatterData.map(point => point.r)
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    tooltip: {
+                        callbacks: {
+                            label: function (context) {
+                                const point = context.raw;
+                                const task1 = correlationData.labels[Math.round(point.x) - 1];
+                                const task2 = correlationData.labels[Math.round(point.y) - 1];
+                                return [
+                                    `${task1} ↔ ${task2}`, 
+                                    `Корреляция: ${point.correlation.toFixed(3)}`, 
+`Размер: ${Math.abs(point.correlation).toFixed(2)}`
+                                ];
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Задание (номер)'
+                        },
+                        min: 0,
+                        max: correlationData.labels.length + 1,
+                        ticks: {
+                            callback: function (value) {
+                                if (value >= 1 && value <= correlationData.labels.length) {
+                                    return `З-${value}`;
+                                }
+                                return '';
+                            }
+                        }
+                    },
+                    y: {
+                        title: {
+                            display: true,
+                            text: 'Задание (номер)'
+                        },
+                        min: 0,
+                        max: correlationData.labels.length + 1,
+                        ticks: {
+                            callback: function (value) {
+                                if (value >= 1 && value <= correlationData.labels.length) {
+                                    return `З-${value}`;
+                                }
+                                return '';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // 5. Метод для расчета корреляционных данных
+    calculateCorrelationData() {
+        if (!appData.tasks || !appData.students || !appData.results) {
+            return {
+                labels: [],
+                data: []
+            };
+        }
+
+        const taskCount = appData.tasks.length;
+        const studentCount = appData.students.length;
+
+        // Подготавливаем матрицу баллов [студент][задание]
+        const scoresMatrix = [];
+        for (let studentIndex = 0; studentIndex < studentCount; studentIndex++) {
+            const studentScores = [];
+            for (let taskIndex = 0; taskIndex < taskCount; taskIndex++) {
+                const score = this.getStudentScore(studentIndex, taskIndex);
+                const maxScore = appData.tasks[taskIndex]?.maxScore || 1;
+                const percentage = maxScore > 0 ? (score / maxScore) * 100 : 0;
+                studentScores.push(percentage);
+            }
+            scoresMatrix.push(studentScores);
+        }
+
+        // Рассчитываем корреляционную матрицу
+        const correlationMatrix = [];
+        const labels = [];
+
+        for (let i = 0; i < taskCount; i++) {
+            labels.push(`З-${i + 1}`);
+        }
+
+        for (let i = 0; i < taskCount; i++) {
+            for (let j = 0; j < taskCount; j++) {
+                if (i === j) {
+                    correlationMatrix.push(1); // Корреляция с собой = 1
+                } else {
+                    const scoresI = scoresMatrix.map(row => row[i]);
+                    const scoresJ = scoresMatrix.map(row => row[j]);
+                    const correlation = this.calculatePearsonCorrelation(scoresI, scoresJ);
+                    correlationMatrix.push(correlation);
+                }
+            }
+        }
+
+        return {
+            labels: labels,
+            data: correlationMatrix
+        };
+    }
+
+    // 6. Метод для расчета коэффициента корреляции Пирсона
+    calculatePearsonCorrelation(x, y) {
+        const n = x.length;
+
+        // Проверяем, что массивы одинаковой длины и не пустые
+        if (n !== y.length || n === 0) {
+            return 0;
+        }
+
+        // Рассчитываем средние значения
+        const meanX = x.reduce((sum, val) => sum + val, 0) / n;
+        const meanY = y.reduce((sum, val) => sum + val, 0) / n;
+
+        // Рассчитываем числитель и знаменатель
+        let numerator = 0;
+        let denominatorX = 0;
+        let denominatorY = 0;
+
+        for (let i = 0; i < n; i++) {
+            const diffX = x[i] - meanX;
+            const diffY = y[i] - meanY;
+
+            numerator += diffX * diffY;
+            denominatorX += diffX * diffX;
+            denominatorY += diffY * diffY;
+        }
+
+        // Проверяем деление на ноль
+        if (denominatorX === 0 || denominatorY === 0) {
+            return 0;
+        }
+
+        return numerator / Math.sqrt(denominatorX * denominatorY);
+    }
 
     // ==================== ВСПОМОГАТЕЛЬНЫЕ МЕТОДЫ ====================
 
@@ -765,12 +767,12 @@ class AdvancedAnalytics {
             if (!appData.results || !appData.results[studentIndex]) {
                 return 0;
             }
-            
+
             const resultRow = appData.results[studentIndex];
             if (Array.isArray(resultRow) && resultRow[taskIndex] !== undefined) {
                 return parseFloat(resultRow[taskIndex]) || 0;
             }
-            
+
             return 0;
         } catch (error) {
             console.error('Ошибка получения балла:', error);
@@ -783,7 +785,7 @@ class AdvancedAnalytics {
         if (!appData.students || !appData.students[studentIndex]) {
             return `Студент ${studentIndex + 1}`;
         }
-        
+
         const name = appData.students[studentIndex];
         if (typeof name === 'string') {
             const parts = name.split(' ');
@@ -792,92 +794,97 @@ class AdvancedAnalytics {
             }
             return name;
         }
-        
+
         return `Студент ${studentIndex + 1}`;
     }
 
     // Расчет среднего значения
     calculateAverage(values) {
-        if (!values || values.length === 0) return 0;
+        if (!values || values.length === 0)
+            return 0;
         const sum = values.reduce((a, b) => a + b, 0);
         return sum / values.length;
     }
 
     // ==================== ГРАФИКИ ====================
 
-	createCompetenceRadar() {
-		const ctx = document.getElementById('competenceRadar');
-		if (!ctx) return;
-		
-		const data = this.analyzeCompetences();
-		
-		if (this.charts.radar) {
-			this.charts.radar.destroy();
-		}
-		
-		this.charts.radar = new Chart(ctx, {
-			type: 'radar',
-			data: {
-				labels: data.labels,
-				datasets: [{
-					label: 'Средний по классу',
-					data: data.averages,
-					backgroundColor: 'rgba(54, 162, 235, 0.2)',
-					borderColor: 'rgb(54, 162, 235)',
-					pointBackgroundColor: 'rgb(54, 162, 235)',
-					pointRadius: 4
-				}]
-			},
-			options: {
-				responsive: true,
-				scales: {
-					r: {
-						beginAtZero: true,
-						max: 100,
-						ticks: {
-							stepSize: 20,
-							backdropColor: 'transparent'
-						}
-					}
-				},
-				plugins: {
-					legend: {
-						position: 'top'
-					}
-				}
-			}
-		});
-	}
+    createCompetenceRadar() {
+        const ctx = document.getElementById('competenceRadar');
+        if (!ctx)
+            return;
+
+        const data = this.analyzeCompetences();
+
+        if (this.charts.radar) {
+            this.charts.radar.destroy();
+        }
+
+        this.charts.radar = new Chart(ctx, {
+            type: 'radar',
+            data: {
+                labels: data.labels,
+                datasets: [{
+                        label: 'Средний по классу',
+                        data: data.averages,
+                        backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                        borderColor: 'rgb(54, 162, 235)',
+                        pointBackgroundColor: 'rgb(54, 162, 235)',
+                        pointRadius: 4
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    r: {
+                        beginAtZero: true,
+                        max: 100,
+                        ticks: {
+                            stepSize: 20,
+                            backdropColor: 'transparent'
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        position: 'top'
+                    }
+                }
+            }
+        });
+    }
 
     createBoxPlot() {
         const ctx = document.getElementById('boxPlotChart');
-        if (!ctx) return;
-        
+        if (!ctx)
+            return;
+
         const taskData = this.getTaskPerformanceData();
-        
+
         if (this.charts.boxPlot) {
             this.charts.boxPlot.destroy();
         }
-        
+
         this.charts.boxPlot = new Chart(ctx, {
             type: 'bar',
             data: {
                 labels: taskData.labels,
                 datasets: [{
-                    label: 'Средний балл',
-                    data: taskData.averages,
-                    backgroundColor: 'rgba(255, 99, 132, 0.5)',
-                    borderColor: 'rgb(255, 99, 132)',
-                    borderWidth: 1
-                }, {
-                    label: 'Максимум',
-                    data: taskData.maximums,
-                    backgroundColor: 'rgba(75, 192, 192, 0.5)',
-                    borderColor: 'rgb(75, 192, 192)',
-                    borderWidth: 1,
-                    type: 'line',
-                    fill: false
-                }]
+                        label: 'Средний балл',
+                        data: taskData.averages,
+                        backgroundColor: 'rgba(255, 99, 132, 0.5)',
+                        borderColor: 'rgb(255, 99, 132)',
+                        borderWidth: 1
+                    }, {
+                        label: 'Максимум',
+                        data: taskData.maximums,
+                        backgroundColor: 'rgba(75, 192, 192, 0.5)',
+                        borderColor: 'rgb(75, 192, 192)',
+                        borderWidth: 1,
+                        type: 'line',
+                        fill: false
+                    }
+                ]
             },
             options: {
                 responsive: true,
@@ -893,38 +900,39 @@ class AdvancedAnalytics {
 
     createValueAddedChart() {
         const ctx = document.getElementById('valueAddedChart');
-        if (!ctx) return;
-        
+        if (!ctx)
+            return;
+
         const data = this.calculateValueAddedData();
-        
+
         if (this.charts.valueAdded) {
             this.charts.valueAdded.destroy();
         }
-        
+
         this.charts.valueAdded = new Chart(ctx, {
             type: 'scatter',
             data: {
                 datasets: [{
-                    label: 'Учащиеся',
-                    data: data.points,
-                    backgroundColor: data.points.map(p => 
-                        p.actual > p.expected ? 'rgba(75, 192, 192, 0.7)' : 'rgba(255, 99, 132, 0.7)'
-                    ),
-                    pointRadius: 6
-                }]
+                        label: 'Учащиеся',
+                        data: data.points,
+                        backgroundColor: data.points.map(p =>
+                            p.actual > p.expected ? 'rgba(75, 192, 192, 0.7)' : 'rgba(255, 99, 132, 0.7)'),
+                        pointRadius: 6
+                    }
+                ]
             },
             options: {
                 responsive: true,
                 plugins: {
                     tooltip: {
                         callbacks: {
-                            label: function(context) {
+                            label: function (context) {
                                 const point = context.raw;
                                 return [
-                                    `Ученик: ${point.label}`,
-                                    `Ожидаемо: ${point.expected.toFixed(1)}%`,
-                                    `Фактически: ${point.actual.toFixed(1)}%`,
-                                    `Разница: ${(point.actual - point.expected).toFixed(1)}%`
+                                    `Ученик: ${point.label}`, 
+                                    `Ожидаемо: ${point.expected.toFixed(1)}%`, 
+                                    `Фактически: ${point.actual.toFixed(1)}%`, 
+`Разница: ${(point.actual - point.expected).toFixed(1)}%`
                                 ];
                             }
                         }
@@ -954,68 +962,71 @@ class AdvancedAnalytics {
 
     // ==================== АНАЛИТИЧЕСКИЕ ФУНКЦИИ ====================
 
-	analyzeCompetences() {
-		// Проверка наличия данных
-		if (!appData || !Array.isArray(appData.tasks) || !Array.isArray(appData.students)) {
-			console.error('Некорректная структура данных для анализа компетенций');
-			return { labels: [], averages: [] };
-		}
-		
-		// Используем 4 уровня вместо 5
-		const competences = {
-			'Базовый': [],
-			'Применение': [],
-			'Анализ': [],
-			'Творчество': []
-		};
-		
-		// Для каждого задания
-		appData.tasks.forEach((task, taskIndex) => {
-			const level = task.level || 1;
-			// Ограничиваем уровень 1-4
-			const adjustedLevel = Math.min(Math.max(level, 1), 4);
-			const competence = this.getCompetenceByLevel(adjustedLevel);
-			const maxScore = task.maxScore || 1;
-			
-			// Для каждого студента
-			appData.students.forEach((studentName, studentIndex) => {
-				// Получаем балл студента за задание
-				const score = this.getStudentScore(studentIndex, taskIndex);
-				const percentage = maxScore > 0 ? (score / maxScore) * 100 : 0;
-				
-				if (competences[competence]) {
-					competences[competence].push(percentage);
-				}
-			});
-		});
-		
-		// Рассчитываем средние
-		const result = {
-			labels: Object.keys(competences),
-			averages: []
-		};
-		
-		Object.values(competences).forEach(values => {
-			if (values.length === 0) {
-				result.averages.push(0);
-			} else {
-				const avg = this.calculateAverage(values);
-				result.averages.push(isNaN(avg) ? 0 : avg);
-			}
-		});
-		
-		return result;
-	}
+    analyzeCompetences() {
+        // Проверка наличия данных
+        if (!appData || !Array.isArray(appData.tasks) || !Array.isArray(appData.students)) {
+            console.error('Некорректная структура данных для анализа компетенций');
+            return {
+                labels: [],
+                averages: []
+            };
+        }
 
-	getCompetenceByLevel(level) {
-		const map = {
-			1: 'Базовый',
-			2: 'Применение', 
-			3: 'Анализ',
-			4: 'Творчество'
-		};
-		return map[level] || 'Базовый';
-	}
+        // Используем 4 уровня вместо 5
+        const competences = {
+            'Базовый': [],
+            'Применение': [],
+            'Анализ': [],
+            'Творчество': []
+        };
+
+        // Для каждого задания
+        appData.tasks.forEach((task, taskIndex) => {
+            const level = task.level || 1;
+            // Ограничиваем уровень 1-4
+            const adjustedLevel = Math.min(Math.max(level, 1), 4);
+            const competence = this.getCompetenceByLevel(adjustedLevel);
+            const maxScore = task.maxScore || 1;
+
+            // Для каждого студента
+            appData.students.forEach((studentName, studentIndex) => {
+                // Получаем балл студента за задание
+                const score = this.getStudentScore(studentIndex, taskIndex);
+                const percentage = maxScore > 0 ? (score / maxScore) * 100 : 0;
+
+                if (competences[competence]) {
+                    competences[competence].push(percentage);
+                }
+            });
+        });
+
+        // Рассчитываем средние
+        const result = {
+            labels: Object.keys(competences),
+            averages: []
+        };
+
+        Object.values(competences).forEach(values => {
+            if (values.length === 0) {
+                result.averages.push(0);
+            } else {
+                const avg = this.calculateAverage(values);
+                result.averages.push(isNaN(avg) ? 0 : avg);
+            }
+        });
+
+        return result;
+    }
+
+    getCompetenceByLevel(level) {
+        const map = {
+            1: 'Базовый',
+            2: 'Применение',
+            3: 'Анализ',
+            4: 'Творчество'
+        };
+        return map[level] || 'Базовый';
+    }
 
     getTaskPerformanceData() {
         const result = {
@@ -1024,29 +1035,29 @@ class AdvancedAnalytics {
             maximums: [],
             minimums: []
         };
-        
+
         if (!appData.tasks || appData.tasks.length === 0) {
             return result;
         }
-        
+
         appData.tasks.forEach((task, index) => {
             result.labels.push(`З-${index + 1}`);
-            
+
             let total = 0;
             let max = 0;
             let min = 100;
-            
+
             appData.students.forEach((studentName, studentIndex) => {
                 const taskId = task.id || index;
                 const score = this.getStudentScore(studentIndex, index);
                 const maxScore = task.maxScore || 1;
                 const percentage = maxScore > 0 ? (score / maxScore) * 100 : 0;
-                
+
                 total += percentage;
                 max = Math.max(max, percentage);
                 min = Math.min(min, percentage);
             });
-            
+
             if (appData.students.length > 0) {
                 result.averages.push(total / appData.students.length);
                 result.maximums.push(max);
@@ -1057,39 +1068,41 @@ class AdvancedAnalytics {
                 result.minimums.push(0);
             }
         });
-        
+
         return result;
     }
 
     calculateValueAddedData() {
         const points = [];
-        
+
         if (!appData.students || appData.students.length === 0) {
-            return { points };
+            return {
+                points
+            };
         }
-        
+
         // Для каждого студента
         appData.students.forEach((studentName, studentIndex) => {
             let totalActual = 0;
             let maxPossible = 0;
-            
+
             // Считаем общий балл студента
             appData.tasks.forEach((task, taskIndex) => {
                 const score = this.getStudentScore(studentIndex, taskIndex);
                 const maxScore = task.maxScore || 1;
-                
+
                 totalActual += score;
                 maxPossible += maxScore;
             });
-            
+
             const actualPercentage = maxPossible > 0 ? (totalActual / maxPossible) * 100 : 0;
-            
+
             // Имя студента
             const label = this.getStudentName(studentIndex);
-            
+
             // Ожидаемый результат (базовая модель)
             const expectedPercentage = 50 + (Math.random() * 20 - 10);
-            
+
             points.push({
                 x: expectedPercentage,
                 y: actualPercentage,
@@ -1098,17 +1111,19 @@ class AdvancedAnalytics {
                 label: label
             });
         });
-        
-        return { points };
+
+        return {
+            points
+        };
     }
 
     // ==================== ОСНОВНЫЕ ИНТЕРФЕЙСЫ ====================
 
     runComprehensiveAnalysis() {
         showNotification('🔄 Запуск комплексного анализа...', 'info');
-        
+
         const results = this.performComprehensiveAnalysis();
-        
+
         const html = `
             <div class="analytics-card">
                 <h4><i class="fas fa-chart-bar"></i> Комплексный анализ результатов</h4>
@@ -1163,17 +1178,17 @@ class AdvancedAnalytics {
                 </div>
             </div>
         `;
-        
+
         this.showResults(html);
         showNotification('✅ Комплексный анализ завершен', 'success');
     }
 
     showReliabilityReport() {
         const reliability = this.calculateReliability();
-        
+
         const html = `
-            <div class="analytics-card ${reliability.interpretation === 'Высокая' ? 'success' : 
-                                        reliability.interpretation === 'Удовлетворительная' ? 'warning' : 'danger'}">
+            <div class="analytics-card ${reliability.interpretation === 'Высокая' ? 'success' :
+            reliability.interpretation === 'Удовлетворительная' ? 'warning' : 'danger'}">
                 <h4><i class="fas fa-shield-alt"></i> Анализ надежности теста</h4>
                 
                 <div style="text-align: center; margin: 20px 0;">
@@ -1194,13 +1209,13 @@ class AdvancedAnalytics {
                 </div>
             </div>
         `;
-        
+
         this.showResults(html);
     }
 
     showIRTanalysis() {
         const analysis = this.performIRTanalysis();
-        
+
         let tableRows = '';
         analysis.items.forEach((item, index) => {
             tableRows += `
@@ -1216,7 +1231,7 @@ class AdvancedAnalytics {
                 </tr>
             `;
         });
-        
+
         const html = `
             <div class="analytics-card">
                 <h4><i class="fas fa-tasks"></i> IRT анализ заданий</h4>
@@ -1241,13 +1256,13 @@ class AdvancedAnalytics {
                 <p><strong>Проблемные задания:</strong> ${analysis.problematicCount} из ${analysis.items.length}</p>
             </div>
         `;
-        
+
         this.showResults(html);
     }
 
     showClusterAnalysis() {
         const clusters = this.performClusterAnalysis();
-        
+
         let clusterCards = '';
         clusters.forEach((cluster, index) => {
             if (cluster.students.length > 0) {
@@ -1261,14 +1276,13 @@ class AdvancedAnalytics {
                         <p><strong>Характеристика:</strong> ${cluster.profile}</p>
                         <div style="max-height: 100px; overflow-y: auto; font-size: 12px; margin-top: 10px;">
                             ${cluster.students.map(s => 
-                                `<div style="padding: 2px 0; border-bottom: 1px dashed rgba(0,0,0,0.1);">${s.name}</div>`
-                            ).join('')}
+                    `<div style="padding: 2px 0; border-bottom: 1px dashed rgba(0,0,0,0.1);">${s.name}</div>`).join('')}
                         </div>
                     </div>
                 `;
             }
         });
-        
+
         const html = `
             <div class="analytics-card">
                 <h4><i class="fas fa-object-group"></i> Кластерный анализ учащихся</h4>
@@ -1280,7 +1294,7 @@ class AdvancedAnalytics {
                 <p><i class="fas fa-lightbulb"></i> <strong>Рекомендации:</strong> Разработать дифференцированные задания для каждой группы</p>
             </div>
         `;
-        
+
         this.showResults(html);
     }
 
@@ -1288,9 +1302,9 @@ class AdvancedAnalytics {
         const data = this.calculateValueAddedData();
         const improved = data.points.filter(p => p.actual > p.expected).length;
         const declined = data.points.filter(p => p.actual < p.expected).length;
-        const avgDifference = data.points.length > 0 ? 
+        const avgDifference = data.points.length > 0 ?
             data.points.reduce((sum, p) => sum + (p.actual - p.expected), 0) / data.points.length : 0;
-        
+
         const html = `
             <div class="analytics-card">
                 <h4><i class="fas fa-chart-line"></i> Value-Added анализ</h4>
@@ -1318,18 +1332,18 @@ class AdvancedAnalytics {
                     </div>
                 </div>
                 
-                <p><strong>Интерпретация:</strong> ${avgDifference >= 0 ? 
-                    'Обучение показывает положительную эффективность' : 
-                    'Требуется анализ причин снижения результатов'}</p>
+                <p><strong>Интерпретация:</strong> ${avgDifference >= 0 ?
+            'Обучение показывает положительную эффективность' :
+            'Требуется анализ причин снижения результатов'}</p>
                 
                 <div style="height: 300px; margin-top: 20px;">
                     <canvas id="detailedValueAddedChart"></canvas>
                 </div>
             </div>
         `;
-        
+
         this.showResults(html);
-        
+
         // Создаем подробный график
         setTimeout(() => {
             this.createDetailedValueAddedChart(data);
@@ -1350,9 +1364,12 @@ class AdvancedAnalytics {
     calculateReliability() {
         // Упрощенный расчет альфа Кронбаха
         const alpha = 0.7 + Math.random() * 0.2; // Пример
-        
-        let interpretation, color, description, recommendation;
-        
+
+        let interpretation,
+        color,
+        description,
+        recommendation;
+
         if (alpha >= 0.8) {
             interpretation = 'Высокая';
             color = '#27ae60';
@@ -1369,17 +1386,31 @@ class AdvancedAnalytics {
             description = 'Требуется пересмотр структуры теста';
             recommendation = 'Необходимо переработать задания или увеличить их количество';
         }
-        
-        return { alpha, interpretation, color, description, recommendation };
+
+        return {
+            alpha,
+            interpretation,
+            color,
+            description,
+            recommendation
+        };
     }
 
     getClusterStats() {
         const clusters = this.performClusterAnalysis();
         return {
-            excellent: { count: clusters[0]?.students.length || 0 },
-            good: { count: clusters[1]?.students.length || 0 },
-            average: { count: clusters[2]?.students.length || 0 },
-            weak: { count: clusters[3]?.students.length || 0 }
+            excellent: {
+                count: clusters[0]?.students.length || 0
+            },
+            good: {
+                count: clusters[1]?.students.length || 0
+            },
+            average: {
+                count: clusters[2]?.students.length || 0
+            },
+            weak: {
+                count: clusters[3]?.students.length || 0
+            }
         };
     }
 
@@ -1396,59 +1427,63 @@ class AdvancedAnalytics {
         if (!appData.students || appData.students.length === 0) {
             return [];
         }
-        
+
         // Сначала считаем баллы всех студентов
         const studentScores = appData.students.map((studentName, studentIndex) => {
             let totalScore = 0;
             let maxPossible = 0;
-            
+
             appData.tasks.forEach((task, taskIndex) => {
                 const score = this.getStudentScore(studentIndex, taskIndex);
                 const maxScore = task.maxScore || 1;
-                
+
                 totalScore += score;
                 maxPossible += maxScore;
             });
-            
+
             const percentage = maxPossible > 0 ? (totalScore / maxPossible) * 100 : 0;
-            
+
             return {
                 name: studentName,
                 index: studentIndex,
                 percentage: percentage
             };
         });
-        
+
         // Сортируем по убыванию баллов
         studentScores.sort((a, b) => b.percentage - a.percentage);
-        
+
         const total = studentScores.length;
         const excellentCount = Math.ceil(total * 0.2);
         const goodCount = Math.ceil(total * 0.3);
         const averageCount = Math.ceil(total * 0.3);
-        
-        return [
-            {
+
+        return [{
                 name: 'Отличники',
-                students: studentScores.slice(0, excellentCount).map(s => ({ name: s.name })),
+                students: studentScores.slice(0, excellentCount).map(s => ({
+                        name: s.name
+                    })),
                 averageScore: this.calculateAverage(studentScores.slice(0, excellentCount).map(s => s.percentage)),
                 profile: 'Высокие стабильные результаты по всем заданиям'
-            },
-            {
+            }, {
                 name: 'Хорошисты',
-                students: studentScores.slice(excellentCount, excellentCount + goodCount).map(s => ({ name: s.name })),
+                students: studentScores.slice(excellentCount, excellentCount + goodCount).map(s => ({
+                        name: s.name
+                    })),
                 averageScore: this.calculateAverage(studentScores.slice(excellentCount, excellentCount + goodCount).map(s => s.percentage)),
                 profile: 'Хорошие результаты, возможны улучшения в сложных заданиях'
-            },
-            {
+            }, {
                 name: 'Стабильные средние',
-                students: studentScores.slice(excellentCount + goodCount, excellentCount + goodCount + averageCount).map(s => ({ name: s.name })),
+                students: studentScores.slice(excellentCount + goodCount, excellentCount + goodCount + averageCount).map(s => ({
+                        name: s.name
+                    })),
                 averageScore: this.calculateAverage(studentScores.slice(excellentCount + goodCount, excellentCount + goodCount + averageCount).map(s => s.percentage)),
                 profile: 'Средние результаты, высокая стабильность'
-            },
-            {
+            }, {
                 name: 'Требуют внимания',
-                students: studentScores.slice(excellentCount + goodCount + averageCount).map(s => ({ name: s.name })),
+                students: studentScores.slice(excellentCount + goodCount + averageCount).map(s => ({
+                        name: s.name
+                    })),
                 averageScore: this.calculateAverage(studentScores.slice(excellentCount + goodCount + averageCount).map(s => s.percentage)),
                 profile: 'Низкие результаты, требуется коррекция и дополнительные занятия'
             }
@@ -1457,13 +1492,17 @@ class AdvancedAnalytics {
 
     performIRTanalysis() {
         if (!appData.tasks || appData.tasks.length === 0) {
-            return { items: [], summary: 'Нет данных', problematicCount: 0 };
+            return {
+                items: [],
+                summary: 'Нет данных',
+                problematicCount: 0
+            };
         }
-        
+
         const items = appData.tasks.map((task, index) => {
             const difficulty = Math.random() * 0.8; // 0-1
             const discrimination = 0.3 + Math.random() * 0.4; // 0.3-0.7
-            
+
             let recommendation;
             if (difficulty > 0.7) {
                 recommendation = 'Слишком сложное';
@@ -1474,7 +1513,7 @@ class AdvancedAnalytics {
             } else {
                 recommendation = 'Хорошее задание';
             }
-            
+
             return {
                 task: `Задание ${index + 1}`,
                 difficulty,
@@ -1482,13 +1521,12 @@ class AdvancedAnalytics {
                 recommendation
             };
         });
-        
-        const problematicCount = items.filter(item => 
-            item.difficulty > 0.7 || 
-            item.difficulty < 0.3 || 
-            item.discrimination < 0.3
-        ).length;
-        
+
+        const problematicCount = items.filter(item =>
+                item.difficulty > 0.7 ||
+                item.difficulty < 0.3 ||
+                item.discrimination < 0.3).length;
+
         return {
             items,
             summary: `${problematicCount} проблемных заданий из ${items.length}`,
@@ -1498,25 +1536,25 @@ class AdvancedAnalytics {
 
     generateRecommendations() {
         const recommendations = [];
-        
+
         if (!appData.students || appData.students.length === 0) {
             recommendations.push('Загрузите данные учащихся для анализа');
             return recommendations;
         }
-        
+
         // На основе анализа данных
         recommendations.push('Провести дополнительные занятия для учащихся с низкими результатами');
         recommendations.push('Разработать дифференцированные задания для разных групп учащихся');
         recommendations.push('Проанализировать сложность заданий с низкой дискриминативностью');
-        
+
         if (appData.students.length > 20) {
             recommendations.push('Организовать групповую работу для взаимопомощи');
         }
-        
+
         if (appData.tasks.length < 10) {
             recommendations.push('Рекомендуется увеличить количество заданий для повышения надежности теста');
         }
-        
+
         return recommendations;
     }
 
@@ -1527,19 +1565,20 @@ class AdvancedAnalytics {
 
     createDetailedValueAddedChart(data) {
         const ctx = document.getElementById('detailedValueAddedChart');
-        if (!ctx || !data.points || data.points.length === 0) return;
-        
+        if (!ctx || !data.points || data.points.length === 0)
+            return;
+
         new Chart(ctx, {
             type: 'scatter',
             data: {
                 datasets: [{
-                    label: 'Учащиеся',
-                    data: data.points,
-                    backgroundColor: data.points.map(p => 
-                        p.actual > p.expected ? 'rgba(75, 192, 192, 0.7)' : 'rgba(255, 99, 132, 0.7)'
-                    ),
-                    pointRadius: 6
-                }]
+                        label: 'Учащиеся',
+                        data: data.points,
+                        backgroundColor: data.points.map(p =>
+                            p.actual > p.expected ? 'rgba(75, 192, 192, 0.7)' : 'rgba(255, 99, 132, 0.7)'),
+                        pointRadius: 6
+                    }
+                ]
             },
             options: {
                 responsive: true,
@@ -1547,7 +1586,7 @@ class AdvancedAnalytics {
                 plugins: {
                     tooltip: {
                         callbacks: {
-                            label: function(context) {
+                            label: function (context) {
                                 const point = context.raw;
                                 return `${point.label}: ${point.actual.toFixed(1)}% (ожидалось: ${point.expected.toFixed(1)}%)`;
                             }
@@ -1580,7 +1619,7 @@ class AdvancedAnalytics {
         const container = document.getElementById('advancedResultsContainer');
         if (container) {
             container.innerHTML = html;
-            
+
             // Показываем сетку графиков
             const grid = document.getElementById('advancedChartsGrid');
             if (grid) {
@@ -1598,8 +1637,10 @@ class AdvancedAnalytics {
 
     exportAnalysisReports() {
         const report = this.generateReport();
-        
-        const blob = new Blob([report], { type: 'text/html' });
+
+        const blob = new Blob([report], {
+            type: 'text/html'
+        });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
@@ -1608,13 +1649,13 @@ class AdvancedAnalytics {
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
-        
+
         showNotification('📄 Отчет экспортирован', 'success');
     }
 
     generateReport() {
         const analysis = this.performComprehensiveAnalysis();
-        
+
         return `
             <!DOCTYPE html>
             <html lang="ru">
@@ -1684,101 +1725,101 @@ class AdvancedAnalytics {
         `;
     }
 
-	showDetailedAnalysis() {
-		showNotification('🔍 Загрузка подробного анализа...', 'info');
-		
-		// Собираем все данные для подробного анализа
-		const data = this.collectDetailedData();
-		
-		// Создаем красивое модальное окно для подробного анализа
-		this.createDetailedAnalysisModal(data);
-		
-		// Показываем анимацию загрузки
-		setTimeout(() => {
-			showNotification('✅ Подробный анализ готов', 'success');
-		}, 800);
-	}
+    showDetailedAnalysis() {
+        showNotification('🔍 Загрузка подробного анализа...', 'info');
 
-	collectDetailedData() {
-		// Собираем все возможные данные для анализа
-		const studentCount = appData.students?.length || 0;
-		const taskCount = appData.tasks?.length || 0;
-		
-		// Расчет статистики по студентам
-		const studentStats = this.calculateStudentStatistics();
-		
-		// Расчет статистики по заданиям
-		const taskStats = this.calculateTaskStatistics();
-		
-		// Анализ распределения баллов
-		const distribution = this.calculateScoreDistribution();
-		
-		// Анализ ошибок с гарантированным получением данных
-		const errorAnalysis = this.analyzeErrors();
-		
-		// Временные метрики (если есть)
-		const timeMetrics = this.analyzeTimeMetrics();
-		
-		// Психологические особенности (если есть)
-		const psychology = false;//this.analyzePsychologicalAspects();
-		
-		return {
-			meta: {
-				testName: appData.test?.subject || 'Тест',
-				theme: appData.test?.theme || 'Тема не указана',
-				date: appData.test?.testDate || 'Дата не указана',
-				class: appData.test?.class || 'Класс не указан',
-				studentCount,
-				taskCount
-			},
-			studentStats,
-			taskStats,
-			distribution,
-			errorAnalysis,
-			timeMetrics,
-			psychology,
-			timestamp: new Date().toLocaleString()
-		};
-	}
+        // Собираем все данные для подробного анализа
+        const data = this.collectDetailedData();
 
-	createDetailedAnalysisModal(data) {
-		showNotification('🔍 Загрузка подробного анализа...', 'info');
-		
-		// Собираем все данные для подробного анализа
-		const detailedData = this.collectDetailedData();
-		
-		// Сначала загружаем необходимые библиотеки
-		Promise.all([
-			this.loadBoxPlotLibrary(),
-			new Promise(resolve => setTimeout(resolve, 300)) // Небольшая задержка
-		]).then(() => {
-			// Создаем красивое модальное окно для подробного анализа
-			this.createDetailedModalContent(detailedData);
-			
-			// Показываем анимацию загрузки
-			setTimeout(() => {
-				showNotification('✅ Подробный анализ готов', 'success');
-			}, 800);
-		}).catch(error => {
-			console.error('Ошибка при загрузке библиотек:', error);
-			// Все равно показываем модальное окно, но без BoxPlot
-			showNotification('Некоторые компоненты не загрузились, но анализ доступен', 'warning');
-			this.createDetailedModalContent(detailedData);
-		});
-	}
+        // Создаем красивое модальное окно для подробного анализа
+        this.createDetailedAnalysisModal(data);
 
-	// Вспомогательный метод для создания содержимого модального окна
-	createDetailedModalContent(data) {
-		// Удаляем существующее модальное окно, если есть
-		const existingModal = document.getElementById('detailedAnalysisModal');
-		if (existingModal) {
-			existingModal.remove();
-		}
-		
-		// Создаем модальное окно
-		const modal = document.createElement('div');
-		modal.id = 'detailedAnalysisModal';
-		modal.innerHTML = `
+        // Показываем анимацию загрузки
+        setTimeout(() => {
+            showNotification('✅ Подробный анализ готов', 'success');
+        }, 800);
+    }
+
+    collectDetailedData() {
+        // Собираем все возможные данные для анализа
+        const studentCount = appData.students?.length || 0;
+        const taskCount = appData.tasks?.length || 0;
+
+        // Расчет статистики по студентам
+        const studentStats = this.calculateStudentStatistics();
+
+        // Расчет статистики по заданиям
+        const taskStats = this.calculateTaskStatistics();
+
+        // Анализ распределения баллов
+        const distribution = this.calculateScoreDistribution();
+
+        // Анализ ошибок с гарантированным получением данных
+        const errorAnalysis = this.analyzeErrors();
+
+        // Временные метрики (если есть)
+        const timeMetrics = this.analyzeTimeMetrics();
+
+        // Психологические особенности (если есть)
+        const psychology = false; //this.analyzePsychologicalAspects();
+
+        return {
+            meta: {
+                testName: appData.test?.subject || 'Тест',
+                theme: appData.test?.theme || 'Тема не указана',
+                date: appData.test?.testDate || 'Дата не указана',
+                class: appData.test?.class || 'Класс не указан',
+                studentCount,
+                taskCount
+            },
+            studentStats,
+            taskStats,
+            distribution,
+            errorAnalysis,
+            timeMetrics,
+            psychology,
+            timestamp: new Date().toLocaleString()
+        };
+    }
+
+    createDetailedAnalysisModal(data) {
+        showNotification('🔍 Загрузка подробного анализа...', 'info');
+
+        // Собираем все данные для подробного анализа
+        const detailedData = this.collectDetailedData();
+
+        // Сначала загружаем необходимые библиотеки
+        Promise.all([
+                this.loadBoxPlotLibrary(),
+                new Promise(resolve => setTimeout(resolve, 300)) // Небольшая задержка
+            ]).then(() => {
+            // Создаем красивое модальное окно для подробного анализа
+            this.createDetailedModalContent(detailedData);
+
+            // Показываем анимацию загрузки
+            setTimeout(() => {
+                showNotification('✅ Подробный анализ готов', 'success');
+            }, 800);
+        }).catch(error => {
+            console.error('Ошибка при загрузке библиотек:', error);
+            // Все равно показываем модальное окно, но без BoxPlot
+            showNotification('Некоторые компоненты не загрузились, но анализ доступен', 'warning');
+            this.createDetailedModalContent(detailedData);
+        });
+    }
+
+    // Вспомогательный метод для создания содержимого модального окна
+    createDetailedModalContent(data) {
+        // Удаляем существующее модальное окно, если есть
+        const existingModal = document.getElementById('detailedAnalysisModal');
+        if (existingModal) {
+            existingModal.remove();
+        }
+
+        // Создаем модальное окно
+        const modal = document.createElement('div');
+        modal.id = 'detailedAnalysisModal';
+        modal.innerHTML = `
 			<div class="modal-overlay" onclick="window.advancedAnalytics.closeDetailedAnalysis()">
 				<div class="modal-content" onclick="event.stopPropagation()">
 					<!-- Заголовок с анимацией -->
@@ -1883,129 +1924,129 @@ class AdvancedAnalytics {
 				</div>
 			</div>
 		`;
-		
-		document.body.appendChild(modal);
-		
-		// Добавляем стили
-		this.addDetailedAnalysisStyles();
-		this.addMissingStyles();
-		this.addChartStyles();
-		
-		// Инициализируем навигацию и графики
-		setTimeout(() => {
-			this.initTabNavigation();
-			this.initChartsInModal(data);
-		}, 100);
-	}
 
-	// Метод для загрузки библиотеки boxplot
-	loadBoxPlotLibrary() {
-		return new Promise((resolve, reject) => {
-			// Проверяем, не загружена ли уже библиотека
-			if (typeof Chart.controllers.boxplot !== 'undefined' || window.BoxPlot) {
-				console.log('✅ Библиотека BoxPlot уже загружена');
-				resolve();
-				return;
-			}
-			
-			// Пробуем загрузить новую версию
-			const script = document.createElement('script');
-			script.src = 'https://cdn.jsdelivr.net/npm/chartjs-chart-box-and-violin-plot@4.0.0/build/Chart.BoxPlot.min.js';
-			script.onload = () => {
-				console.log('✅ Библиотека BoxPlot v4.0.0 загружена');
-				
-				// Регистрируем контроллер для новой версии
-				if (window.BoxPlot && BoxPlot.BoxPlotController && BoxPlot.BoxAndWiskers) {
-					try {
-						Chart.register(BoxPlot.BoxPlotController, BoxPlot.BoxAndWiskers);
-						console.log('✅ BoxPlot контроллер зарегистрирован');
-					} catch (e) {
-						console.warn('⚠️ Не удалось зарегистрировать BoxPlot:', e);
-					}
-				}
-				resolve();
-			};
-			script.onerror = (error) => {
-				console.warn('⚠️ Не удалось загрузить библиотеку boxplot:', error);
-				// Пробуем старую версию как fallback
-				this.loadBoxPlotFallback().then(resolve).catch(resolve);
-			};
-			
-			document.head.appendChild(script);
-		});
-	}
+        document.body.appendChild(modal);
 
-	// 2. Fallback для старой версии
-	loadBoxPlotFallback() {
-		return new Promise((resolve, reject) => {
-			const script = document.createElement('script');
-			script.src = 'https://cdn.jsdelivr.net/npm/chartjs-chart-boxplot@3.6.0/dist/chartjs-chart-boxplot.min.js';
-			script.onload = () => {
-				console.log('✅ Старая версия BoxPlot загружена');
-				resolve();
-			};
-			script.onerror = () => {
-				console.warn('⚠️ Не удалось загрузить ни одну версию BoxPlot');
-				resolve(); // Все равно продолжаем
-			};
-			document.head.appendChild(script);
-		});
-	}
+        // Добавляем стили
+        this.addDetailedAnalysisStyles();
+        this.addMissingStyles();
+        this.addChartStyles();
 
-	// Инициализация навигации по вкладкам
-	initTabNavigation() {
-		const tabs = document.querySelectorAll('.nav-tab');
-		const tabContents = document.querySelectorAll('.tab-content');
-		
-		tabs.forEach(tab => {
-			tab.addEventListener('click', () => {
-				const tabId = tab.getAttribute('data-tab');
-				
-				// Обновляем активные вкладки
-				tabs.forEach(t => t.classList.remove('active'));
-				tabContents.forEach(content => content.classList.remove('active'));
-				
-				tab.classList.add('active');
-				document.getElementById(`${tabId}Tab`).classList.add('active');
-				
-				// Добавляем анимацию при переключении
-				document.getElementById(`${tabId}Tab`).classList.add('animated', 'fadeIn');
-				
-				// Обновляем графики при переключении вкладок
-				setTimeout(() => {
-					this.updateChartsForTab(tabId);
-				}, 50);
-			});
-		});
-	}
-	updateChartsForTab(tabId) {
-		// Здесь можно обновлять графики при переключении вкладок
-		// Например, если графики были скрыты или изменились размеры
-		setTimeout(() => {
-			const charts = Chart.instances || [];
-			charts.forEach(chart => {
-				try {
-					chart.resize();
-					chart.update('none'); // Обновляем без анимации
-				} catch (e) {
-					console.log('Ошибка обновления графика:', e);
-				}
-			});
-		}, 100);
-	}
-	// Рендеринг вкладки "Обзор"
-	renderOverviewTab(data) {
-		// Сортируем студентов по убыванию среднего балла
-		const sortedStudents = [...data.studentStats].sort((a, b) => b.averageScore - a.averageScore);
-		const topStudents = sortedStudents.slice(0, Math.min(3, sortedStudents.length));
-		const bottomStudents = sortedStudents.slice(-3).reverse(); // Берем последних 3 и разворачиваем
-		
-		const problematicTasks = data.taskStats.filter(task => task.difficulty > 0.7 || task.discrimination < 0.3);
-		
-		// Создаем группы с правильными критериями
-		const studentGroups = this.createStudentGroups(data.studentStats);
-		
-		return `
+        // Инициализируем навигацию и графики
+        setTimeout(() => {
+            this.initTabNavigation();
+            this.initChartsInModal(data);
+        }, 100);
+    }
+
+    // Метод для загрузки библиотеки boxplot
+    loadBoxPlotLibrary() {
+        return new Promise((resolve, reject) => {
+            // Проверяем, не загружена ли уже библиотека
+            if (typeof Chart.controllers.boxplot !== 'undefined' || window.BoxPlot) {
+                console.log('✅ Библиотека BoxPlot уже загружена');
+                resolve();
+                return;
+            }
+
+            // Пробуем загрузить новую версию
+            const script = document.createElement('script');
+            script.src = 'https://cdn.jsdelivr.net/npm/chartjs-chart-box-and-violin-plot@4.0.0/build/Chart.BoxPlot.min.js';
+            script.onload = () => {
+                console.log('✅ Библиотека BoxPlot v4.0.0 загружена');
+
+                // Регистрируем контроллер для новой версии
+                if (window.BoxPlot && BoxPlot.BoxPlotController && BoxPlot.BoxAndWiskers) {
+                    try {
+                        Chart.register(BoxPlot.BoxPlotController, BoxPlot.BoxAndWiskers);
+                        console.log('✅ BoxPlot контроллер зарегистрирован');
+                    } catch (e) {
+                        console.warn('⚠️ Не удалось зарегистрировать BoxPlot:', e);
+                    }
+                }
+                resolve();
+            };
+            script.onerror = (error) => {
+                console.warn('⚠️ Не удалось загрузить библиотеку boxplot:', error);
+                // Пробуем старую версию как fallback
+                this.loadBoxPlotFallback().then(resolve).catch(resolve);
+            };
+
+            document.head.appendChild(script);
+        });
+    }
+
+    // 2. Fallback для старой версии
+    loadBoxPlotFallback() {
+        return new Promise((resolve, reject) => {
+            const script = document.createElement('script');
+            script.src = 'https://cdn.jsdelivr.net/npm/chartjs-chart-boxplot@3.6.0/dist/chartjs-chart-boxplot.min.js';
+            script.onload = () => {
+                console.log('✅ Старая версия BoxPlot загружена');
+                resolve();
+            };
+            script.onerror = () => {
+                console.warn('⚠️ Не удалось загрузить ни одну версию BoxPlot');
+                resolve(); // Все равно продолжаем
+            };
+            document.head.appendChild(script);
+        });
+    }
+
+    // Инициализация навигации по вкладкам
+    initTabNavigation() {
+        const tabs = document.querySelectorAll('.nav-tab');
+        const tabContents = document.querySelectorAll('.tab-content');
+
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                const tabId = tab.getAttribute('data-tab');
+
+                // Обновляем активные вкладки
+                tabs.forEach(t => t.classList.remove('active'));
+                tabContents.forEach(content => content.classList.remove('active'));
+
+                tab.classList.add('active');
+                document.getElementById(`${tabId}Tab`).classList.add('active');
+
+                // Добавляем анимацию при переключении
+                document.getElementById(`${tabId}Tab`).classList.add('animated', 'fadeIn');
+
+                // Обновляем графики при переключении вкладок
+                setTimeout(() => {
+                    this.updateChartsForTab(tabId);
+                }, 50);
+            });
+        });
+    }
+    updateChartsForTab(tabId) {
+        // Здесь можно обновлять графики при переключении вкладок
+        // Например, если графики были скрыты или изменились размеры
+        setTimeout(() => {
+            const charts = Chart.instances || [];
+            charts.forEach(chart => {
+                try {
+                    chart.resize();
+                    chart.update('none'); // Обновляем без анимации
+                } catch (e) {
+                    console.log('Ошибка обновления графика:', e);
+                }
+            });
+        }, 100);
+    }
+    // Рендеринг вкладки "Обзор"
+    renderOverviewTab(data) {
+        // Сортируем студентов по убыванию среднего балла
+        const sortedStudents = [...data.studentStats].sort((a, b) => b.averageScore - a.averageScore);
+        const topStudents = sortedStudents.slice(0, Math.min(3, sortedStudents.length));
+        const bottomStudents = sortedStudents.slice(-3).reverse(); // Берем последних 3 и разворачиваем
+
+        const problematicTasks = data.taskStats.filter(task => task.difficulty > 0.7 || task.discrimination < 0.3);
+
+        // Создаем группы с правильными критериями
+        const studentGroups = this.createStudentGroups(data.studentStats);
+
+        return `
 			<div class="overview-grid">
 				<!-- Основные метрики -->
 				<div class="metric-cards-grid">
@@ -2056,13 +2097,13 @@ class AdvancedAnalytics {
 						<h4><i class="fas fa-trophy"></i> Топ-3 учащихся</h4>
 						<div class="top-students-list">
 							${topStudents.map((student, index) => {
-								// Форматируем имя студента
-								const nameParts = student.name.split(' ');
-								const displayName = nameParts.length >= 2 
-									? `${nameParts[0]} ${nameParts[1].charAt(0)}.` 
-									: student.name;
-								
-								return `
+            // Форматируем имя студента
+            const nameParts = student.name.split(' ');
+            const displayName = nameParts.length >= 2
+                 ? `${nameParts[0]} ${nameParts[1].charAt(0)}.`
+                 : student.name;
+
+            return `
 									<div class="top-student-item animated fadeInRight" style="animation-delay: ${0.2 + index * 0.1}s;">
 										<div class="student-rank rank-${index + 1}">
 											${index + 1}
@@ -2076,7 +2117,7 @@ class AdvancedAnalytics {
 										</div>
 									</div>
 								`;
-							}).join('')}
+        }).join('')}
 						</div>
 					</div>
 					
@@ -2117,13 +2158,13 @@ class AdvancedAnalytics {
 				</div>
 			</div>
 		`;
-	}
+    }
 
-	// Рендеринг вкладки "Учащиеся"
-	renderStudentsTab(data) {
-		const sortedStudents = [...data.studentStats].sort((a, b) => b.averageScore - a.averageScore);
-		
-		return `
+    // Рендеринг вкладки "Учащиеся"
+    renderStudentsTab(data) {
+        const sortedStudents = [...data.studentStats].sort((a, b) => b.averageScore - a.averageScore);
+
+        return `
 			<div class="students-analysis">
 				<!-- Таблица студентов -->
 				<div class="analysis-section">
@@ -2212,51 +2253,67 @@ class AdvancedAnalytics {
 				</div>
 			</div>
 		`;
-	}
+    }
 
-	// Добавим метод для создания групп студентов
-	createStudentGroups(studentStats) {
-		if (!studentStats || studentStats.length === 0) return [];
-		
-		// Правильное распределение по группам (по пятибалльной системе)
-		const groups = [
-			{ name: 'Отлично (5)', min: 85, max: 100, color: '#27ae60' },
-			{ name: 'Хорошо (4)', min: 70, max: 85, color: '#3498db' },
-			{ name: 'Удовлетворительно (3)', min: 50, max: 70, color: '#f39c12' },
-			{ name: 'Неудовлетворительно (2)', min: 0, max: 50, color: '#e74c3c' }
-		];
-		
-		return groups.map(group => {
-			const count = studentStats.filter(s => 
-				s.averageScore >= group.min && s.averageScore < (group.name === 'Отлично (5)' ? 101 : group.max)
-			).length;
-			
-			return {
-				...group,
-				count,
-				percentage: ((count / studentStats.length) * 100).toFixed(1)
-			};
-		}).filter(group => group.count > 0);
-	}
+    // Добавим метод для создания групп студентов
+    createStudentGroups(studentStats) {
+        if (!studentStats || studentStats.length === 0)
+            return [];
 
-	// Рендеринг вкладки "Задания"
-	renderTasksTab(data) {
-		// Получаем названия заданий из appData.tasks
-		const tasksWithTitles = data.taskStats.map((task, index) => {
-			const originalTask = appData.tasks?.[index] || {};
-			// Получаем уровень и ограничиваем его 1-4
-			const level = Math.min(Math.max(originalTask.level || 1, 1), 4);
-			
-			return {
-				...task,
-				title: originalTask.title || task.title || `Задание ${task.number}`,
-				description: originalTask.description || '',
-				level: level,
-				competence: originalTask.competence || this.getCompetenceByLevel(level)
-			};
-		});
-		
-		return `
+        // Правильное распределение по группам (по пятибалльной системе)
+        const groups = [{
+                name: 'Отлично (5)',
+                min: 85,
+                max: 100,
+                color: '#27ae60'
+            }, {
+                name: 'Хорошо (4)',
+                min: 70,
+                max: 85,
+                color: '#3498db'
+            }, {
+                name: 'Удовлетворительно (3)',
+                min: 50,
+                max: 70,
+                color: '#f39c12'
+            }, {
+                name: 'Неудовлетворительно (2)',
+                min: 0,
+                max: 50,
+                color: '#e74c3c'
+            }
+        ];
+
+        return groups.map(group => {
+            const count = studentStats.filter(s =>
+                    s.averageScore >= group.min && s.averageScore < (group.name === 'Отлично (5)' ? 101 : group.max)).length;
+
+            return {
+                ...group,
+                count,
+                percentage: ((count / studentStats.length) * 100).toFixed(1)
+            };
+        }).filter(group => group.count > 0);
+    }
+
+    // Рендеринг вкладки "Задания"
+    renderTasksTab(data) {
+        // Получаем названия заданий из appData.tasks
+        const tasksWithTitles = data.taskStats.map((task, index) => {
+            const originalTask = appData.tasks?.[index] || {};
+            // Получаем уровень и ограничиваем его 1-4
+            const level = Math.min(Math.max(originalTask.level || 1, 1), 4);
+
+            return {
+                ...task,
+                title: originalTask.title || task.title || `Задание ${task.number}`,
+                description: originalTask.description || '',
+                level: level,
+                competence: originalTask.competence || this.getCompetenceByLevel(level)
+            };
+        });
+
+        return `
 			<div class="tasks-analysis">
 				<!-- Таблица заданий -->
 				<div class="analysis-section">
@@ -2357,36 +2414,56 @@ class AdvancedAnalytics {
 				</div>
 			</div>
 		`;
-	}
+    }
 
-	// 5. Добавим метод для отображения распределения по уровням
-	renderLevelsDistribution(tasks) {
-		// Группируем задания по уровням
-		const levels = {
-			1: { name: 'Базовый', count: 0, avgDifficulty: 0, avgDiscrimination: 0 },
-			2: { name: 'Применение', count: 0, avgDifficulty: 0, avgDiscrimination: 0 },
-			3: { name: 'Анализ', count: 0, avgDifficulty: 0, avgDiscrimination: 0 },
-			4: { name: 'Творчество', count: 0, avgDifficulty: 0, avgDiscrimination: 0 }
-		};
-		
-		tasks.forEach(task => {
-			const level = Math.min(Math.max(task.level || 1, 1), 4);
-			if (levels[level]) {
-				levels[level].count++;
-				levels[level].avgDifficulty += task.difficulty || 0;
-				levels[level].avgDiscrimination += task.discrimination || 0;
-			}
-		});
-		
-		// Рассчитываем средние
-		Object.values(levels).forEach(level => {
-			if (level.count > 0) {
-				level.avgDifficulty = (level.avgDifficulty / level.count * 100).toFixed(1);
-				level.avgDiscrimination = (level.avgDiscrimination / level.count * 100).toFixed(1);
-			}
-		});
-		
-		return `
+    // 5. Добавим метод для отображения распределения по уровням
+    renderLevelsDistribution(tasks) {
+        // Группируем задания по уровням
+        const levels = {
+            1: {
+                name: 'Базовый',
+                count: 0,
+                avgDifficulty: 0,
+                avgDiscrimination: 0
+            },
+            2: {
+                name: 'Применение',
+                count: 0,
+                avgDifficulty: 0,
+                avgDiscrimination: 0
+            },
+            3: {
+                name: 'Анализ',
+                count: 0,
+                avgDifficulty: 0,
+                avgDiscrimination: 0
+            },
+            4: {
+                name: 'Творчество',
+                count: 0,
+                avgDifficulty: 0,
+                avgDiscrimination: 0
+            }
+        };
+
+        tasks.forEach(task => {
+            const level = Math.min(Math.max(task.level || 1, 1), 4);
+            if (levels[level]) {
+                levels[level].count++;
+                levels[level].avgDifficulty += task.difficulty || 0;
+                levels[level].avgDiscrimination += task.discrimination || 0;
+            }
+        });
+
+        // Рассчитываем средние
+        Object.values(levels).forEach(level => {
+            if (level.count > 0) {
+                level.avgDifficulty = (level.avgDifficulty / level.count * 100).toFixed(1);
+                level.avgDiscrimination = (level.avgDiscrimination / level.count * 100).toFixed(1);
+            }
+        });
+
+        return `
 			<div class="levels-grid">
 				${Object.entries(levels).map(([levelNum, level]) => `
 					<div class="level-card level-${levelNum}">
@@ -2409,425 +2486,371 @@ class AdvancedAnalytics {
 				`).join('')}
 			</div>
 		`;
-	}
+    }
 
-	// Добавим метод для создания нормального распределения
-	createNormalDistributionChart(data) {
-		const ctx = document.getElementById('normalDistributionChart');
-		if (!ctx || !data.distribution || !data.studentStats) return;
-		
-		const scores = data.studentStats.map(s => s.averageScore);
-		
-		if (scores.length === 0) {
-			ctx.parentElement.innerHTML = '<p class="no-data">Нет данных для построения графика</p>';
-			return;
-		}
-		
-		// Рассчитываем гистограмму
-		const histogram = this.createHistogram(scores, 15);
-		
-		// Рассчитываем нормальное распределение
-		const mean = data.distribution.mean;
-		const stdDev = data.distribution.stdDev;
-		const normalDistribution = histogram.bins.map(bin => {
-			const x = (bin.min + bin.max) / 2;
-			return this.normalPDF(x, mean, stdDev) * scores.length * (bin.max - bin.min);
-		});
-		
-		new Chart(ctx, {
-			type: 'line',
-			data: {
-				labels: histogram.labels,
-				datasets: [
-					{
-						label: 'Фактическое распределение',
-						data: histogram.counts,
-						backgroundColor: 'rgba(54, 162, 235, 0.2)',
-						borderColor: 'rgb(54, 162, 235)',
-						borderWidth: 2,
-						fill: true
-					},
-					{
-						label: 'Нормальное распределение',
-						data: normalDistribution,
-						borderColor: 'rgb(255, 99, 132)',
-						borderWidth: 2,
-						fill: false,
-						pointRadius: 0
-					}
-				]
-			},
-			options: {
-				responsive: true,
-				maintainAspectRatio: false,
-				scales: {
-					y: {
-						beginAtZero: true,
-						title: {
-							display: true,
-							text: 'Количество учащихся'
-						}
-					},
-					x: {
-						title: {
-							display: true,
-							text: 'Баллы (%)'
-						}
-					}
-				}
-			}
-		});
-	}
+    // Добавим метод для создания нормального распределения
+    createNormalDistributionChart(data) {
+        const ctx = document.getElementById('normalDistributionChart');
+        if (!ctx || !data.distribution || !data.studentStats)
+            return;
 
-	// Метод для создания гистограммы
-	createHistogram(data, binsCount) {
-		const min = Math.min(...data);
-		const max = Math.max(...data);
-		const binWidth = (max - min) / binsCount;
-		
-		const bins = [];
-		const labels = [];
-		
-		for (let i = 0; i < binsCount; i++) {
-			const binMin = min + i * binWidth;
-			const binMax = min + (i + 1) * binWidth;
-			bins.push({ min: binMin, max: binMax, count: 0 });
-			labels.push(`${binMin.toFixed(0)}-${binMax.toFixed(0)}`);
-		}
-		
-		data.forEach(value => {
-			const binIndex = Math.min(Math.floor((value - min) / binWidth), binsCount - 1);
-			bins[binIndex].count++;
-		});
-		
-		return {
-			bins,
-			labels,
-			counts: bins.map(bin => bin.count)
-		};
-	}
+        const scores = data.studentStats.map(s => s.averageScore);
 
-	// Функция плотности нормального распределения
-	normalPDF(x, mean, stdDev) {
-		const variance = stdDev * stdDev;
-		const exponent = -Math.pow(x - mean, 2) / (2 * variance);
-		return (1 / Math.sqrt(2 * Math.PI * variance)) * Math.exp(exponent);
-	}
+        if (scores.length === 0) {
+            ctx.parentElement.innerHTML = '<p class="no-data">Нет данных для построения графика</p>';
+            return;
+        }
 
-	// Добавим метод для создания box plot
-	// 3. Обновим метод createBoxPlotDistribution для работы с разными версиями
-	createBoxPlotDistribution(data) {
-		const ctx = document.getElementById('boxPlotDistribution');
-		if (!ctx || !data.studentStats) return;
-		
-		const scores = data.studentStats.map(s => s.averageScore);
-		
-		if (scores.length === 0) {
-			ctx.parentElement.innerHTML = '<p class="no-data">Нет данных для построения графика</p>';
-			return;
-		}
-		
-		// Сортируем для расчета статистик
-		const sortedScores = [...scores].sort((a, b) => a - b);
-		const n = sortedScores.length;
-		
-		// Расчет статистик для box plot
-		const q1 = sortedScores[Math.floor(n * 0.25)];
-		const median = sortedScores[Math.floor(n * 0.5)];
-		const q3 = sortedScores[Math.floor(n * 0.75)];
-		const iqr = q3 - q1;
-		const min = Math.max(sortedScores[0], q1 - 1.5 * iqr);
-		const max = Math.min(sortedScores[n - 1], q3 + 1.5 * iqr);
-		
-		// Выбросы
-		const outliers = sortedScores.filter(score => score < min || score > max);
-		
-		// Проверяем, какая версия библиотеки доступна
-		const hasNewBoxPlot = window.BoxPlot && BoxPlot.BoxPlotController;
-		const hasOldBoxPlot = typeof Chart.controllers.boxplot !== 'undefined';
-		
-		if (hasNewBoxPlot) {
-			// Используем новую версию библиотеки
-			this.createBoxPlotNewVersion(ctx, scores, min, q1, median, q3, max, outliers);
-		} else if (hasOldBoxPlot) {
-			// Используем старую версию
-			this.createBoxPlotOldVersion(ctx, scores, min, q1, median, q3, max, outliers);
-		} else {
-			// Fallback: используем кастомную реализацию
-			this.createBoxPlotFallback(ctx, scores, min, q1, median, q3, max, outliers);
-		}
-		
-		// Добавим статистику под графиком
-		this.addBoxPlotStats(ctx.parentElement, min, q1, median, q3, max, iqr, outliers.length);
-	}
+        // Рассчитываем гистограмму
+        const histogram = this.createHistogram(scores, 15);
 
-	// 4. Реализация для новой версии библиотеки
-	createBoxPlotNewVersion(ctx, scores, min, q1, median, q3, max, outliers) {
-		try {
-			// Подготавливаем данные в формате, который ожидает новая библиотека
-			const boxplotData = [{
-				label: 'Распределение баллов',
-				data: [{
-					min: min,
-					q1: q1,
-					median: median,
-					q3: q3,
-					max: max
-				}],
-				outliers: outliers.length > 0 ? outliers : undefined
-			}];
-			
-			new Chart(ctx, {
-				type: 'boxplot',
-				data: {
-					labels: ['Баллы'],
-					datasets: [{
-						label: 'Box Plot',
-						data: boxplotData.map(d => d.data[0]),
-						backgroundColor: 'rgba(54, 162, 235, 0.5)',
-						borderColor: 'rgb(54, 162, 235)',
-						borderWidth: 2,
-						outlierColor: 'rgb(255, 99, 132)',
-						outlierRadius: 5
-					}]
-				},
-				options: {
-					responsive: true,
-					maintainAspectRatio: false,
-					scales: {
-						y: {
-							beginAtZero: true,
-							max: 100,
-							title: {
-								display: true,
-								text: 'Баллы (%)'
-							}
-						}
-					},
-					plugins: {
-						tooltip: {
-							callbacks: {
-								label: function(context) {
-									const point = context.raw;
-									return [
-										`Min: ${point.min.toFixed(1)}%`,
-										`Q1: ${point.q1.toFixed(1)}%`,
-										`Median: ${point.median.toFixed(1)}%`,
-										`Q3: ${point.q3.toFixed(1)}%`,
-										`Max: ${point.max.toFixed(1)}%`
-									];
-								}
-							}
-						}
-					}
-				}
-			});
-		} catch (error) {
-			console.error('Ошибка при создании BoxPlot (новая версия):', error);
-			this.createBoxPlotFallback(ctx, scores, min, q1, median, q3, max, outliers);
-		}
-	}
+        // Рассчитываем нормальное распределение
+        const mean = data.distribution.mean;
+        const stdDev = data.distribution.stdDev;
+        const normalDistribution = histogram.bins.map(bin => {
+            const x = (bin.min + bin.max) / 2;
+            return this.normalPDF(x, mean, stdDev) * scores.length * (bin.max - bin.min);
+        });
 
-	// 5. Реализация для старой версии библиотеки
-	createBoxPlotOldVersion(ctx, scores, min, q1, median, q3, max, outliers) {
-		try {
-			// Подготавливаем данные для старой версии
-			const boxplotData = [[min, q1, median, q3, max]];
-			
-			new Chart(ctx, {
-				type: 'boxplot',
-				data: {
-					labels: ['Распределение баллов'],
-					datasets: [{
-						label: 'Box Plot',
-						data: boxplotData,
-						backgroundColor: 'rgba(54, 162, 235, 0.5)',
-						borderColor: 'rgb(54, 162, 235)',
-						borderWidth: 2,
-						outlierColor: 'rgb(255, 99, 132)',
-						outlierRadius: 5
-					}]
-				},
-				options: {
-					responsive: true,
-					maintainAspectRatio: false,
-					scales: {
-						y: {
-							beginAtZero: true,
-							max: 100,
-							title: {
-								display: true,
-								text: 'Баллы (%)'
-							}
-						}
-					},
-					plugins: {
-						tooltip: {
-							callbacks: {
-								label: function(context) {
-									const stats = context.raw;
-									return [
-										`Min: ${stats[0].toFixed(1)}%`,
-										`Q1: ${stats[1].toFixed(1)}%`,
-										`Median: ${stats[2].toFixed(1)}%`,
-										`Q3: ${stats[3].toFixed(1)}%`,
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: histogram.labels,
+                datasets: [{
+                        label: 'Фактическое распределение',
+                        data: histogram.counts,
+                        backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                        borderColor: 'rgb(54, 162, 235)',
+                        borderWidth: 2,
+                        fill: true
+                    }, {
+                        label: 'Нормальное распределение',
+                        data: normalDistribution,
+                        borderColor: 'rgb(255, 99, 132)',
+                        borderWidth: 2,
+                        fill: false,
+                        pointRadius: 0
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Количество учащихся'
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Баллы (%)'
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // Метод для создания гистограммы
+    createHistogram(data, binsCount) {
+        const min = Math.min(...data);
+        const max = Math.max(...data);
+        const binWidth = (max - min) / binsCount;
+
+        const bins = [];
+        const labels = [];
+
+        for (let i = 0; i < binsCount; i++) {
+            const binMin = min + i * binWidth;
+            const binMax = min + (i + 1) * binWidth;
+            bins.push({
+                min: binMin,
+                max: binMax,
+                count: 0
+            });
+            labels.push(`${binMin.toFixed(0)}-${binMax.toFixed(0)}`);
+        }
+
+        data.forEach(value => {
+            const binIndex = Math.min(Math.floor((value - min) / binWidth), binsCount - 1);
+            bins[binIndex].count++;
+        });
+
+        return {
+            bins,
+            labels,
+            counts: bins.map(bin => bin.count)
+        };
+    }
+
+    // Функция плотности нормального распределения
+    normalPDF(x, mean, stdDev) {
+        const variance = stdDev * stdDev;
+        const exponent = -Math.pow(x - mean, 2) / (2 * variance);
+        return (1 / Math.sqrt(2 * Math.PI * variance)) * Math.exp(exponent);
+    }
+
+    // Добавим метод для создания box plot
+    // 3. Обновим метод createBoxPlotDistribution для работы с разными версиями
+    createBoxPlotDistribution(data) {
+        const ctx = document.getElementById('boxPlotDistribution');
+        if (!ctx || !data.studentStats)
+            return;
+
+        const scores = data.studentStats.map(s => s.averageScore);
+
+        if (scores.length === 0) {
+            ctx.parentElement.innerHTML = '<p class="no-data">Нет данных для построения графика</p>';
+            return;
+        }
+
+        // Сортируем для расчета статистик
+        const sortedScores = [...scores].sort((a, b) => a - b);
+        const n = sortedScores.length;
+
+        // Расчет статистик для box plot
+        const q1 = sortedScores[Math.floor(n * 0.25)];
+        const median = sortedScores[Math.floor(n * 0.5)];
+        const q3 = sortedScores[Math.floor(n * 0.75)];
+        const iqr = q3 - q1;
+        const min = Math.max(sortedScores[0], q1 - 1.5 * iqr);
+        const max = Math.min(sortedScores[n - 1], q3 + 1.5 * iqr);
+
+        // Выбросы
+        const outliers = sortedScores.filter(score => score < min || score > max);
+
+        // Проверяем, какая версия библиотеки доступна
+        const hasNewBoxPlot = window.BoxPlot && BoxPlot.BoxPlotController;
+        const hasOldBoxPlot = typeof Chart.controllers.boxplot !== 'undefined';
+
+        if (hasNewBoxPlot) {
+            // Используем новую версию библиотеки
+            this.createBoxPlotNewVersion(ctx, scores, min, q1, median, q3, max, outliers);
+        } else if (hasOldBoxPlot) {
+            // Используем старую версию
+            this.createBoxPlotOldVersion(ctx, scores, min, q1, median, q3, max, outliers);
+        } else {
+            // Fallback: используем кастомную реализацию
+            this.createBoxPlotFallback(ctx, scores, min, q1, median, q3, max, outliers);
+        }
+
+        // Добавим статистику под графиком
+        this.addBoxPlotStats(ctx.parentElement, min, q1, median, q3, max, iqr, outliers.length);
+    }
+
+    // 4. Реализация для новой версии библиотеки
+    createBoxPlotNewVersion(ctx, scores, min, q1, median, q3, max, outliers) {
+        try {
+            // Подготавливаем данные в формате, который ожидает новая библиотека
+            const boxplotData = [{
+                    label: 'Распределение баллов',
+                    data: [{
+                            min: min,
+                            q1: q1,
+                            median: median,
+                            q3: q3,
+                            max: max
+                        }
+                    ],
+                    outliers: outliers.length > 0 ? outliers : undefined
+                }
+            ];
+
+            new Chart(ctx, {
+                type: 'boxplot',
+                data: {
+                    labels: ['Баллы'],
+                    datasets: [{
+                            label: 'Box Plot',
+                            data: boxplotData.map(d => d.data[0]),
+                            backgroundColor: 'rgba(54, 162, 235, 0.5)',
+                            borderColor: 'rgb(54, 162, 235)',
+                            borderWidth: 2,
+                            outlierColor: 'rgb(255, 99, 132)',
+                            outlierRadius: 5
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            title: {
+                                display: true,
+                                text: 'Баллы (%)'
+                            }
+                        }
+                    },
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: function (context) {
+                                    const point = context.raw;
+                                    return [
+                                        `Min: ${point.min.toFixed(1)}%`, 
+                                        `Q1: ${point.q1.toFixed(1)}%`, 
+                                        `Median: ${point.median.toFixed(1)}%`, 
+                                        `Q3: ${point.q3.toFixed(1)}%`, 
+`Max: ${point.max.toFixed(1)}%`
+                                    ];
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        } catch (error) {
+            console.error('Ошибка при создании BoxPlot (новая версия):', error);
+            this.createBoxPlotFallback(ctx, scores, min, q1, median, q3, max, outliers);
+        }
+    }
+
+    // 5. Реализация для старой версии библиотеки
+    createBoxPlotOldVersion(ctx, scores, min, q1, median, q3, max, outliers) {
+        try {
+            // Подготавливаем данные для старой версии
+            const boxplotData = [[min, q1, median, q3, max]];
+
+            new Chart(ctx, {
+                type: 'boxplot',
+                data: {
+                    labels: ['Распределение баллов'],
+                    datasets: [{
+                            label: 'Box Plot',
+                            data: boxplotData,
+                            backgroundColor: 'rgba(54, 162, 235, 0.5)',
+                            borderColor: 'rgb(54, 162, 235)',
+                            borderWidth: 2,
+                            outlierColor: 'rgb(255, 99, 132)',
+                            outlierRadius: 5
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            title: {
+                                display: true,
+                                text: 'Баллы (%)'
+                            }
+                        }
+                    },
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: function (context) {
+                                    const stats = context.raw;
+                                    return [
+                                        `Min: ${stats[0].toFixed(1)}%`, 
+                                        `Q1: ${stats[1].toFixed(1)}%`, 
+                                        `Median: ${stats[2].toFixed(1)}%`, 
+                                        `Q3: ${stats[3].toFixed(1)}%`, 
 										`Max: ${stats[4].toFixed(1)}%`
-									];
-								}
-							}
-						}
-					}
-				}
-			});
-		} catch (error) {
-			console.error('Ошибка при создании BoxPlot (старая версия):', error);
-			this.createBoxPlotFallback(ctx, scores, min, q1, median, q3, max, outliers);
-		}
+                                    ];
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        } catch (error) {
+            console.error('Ошибка при создании BoxPlot (старая версия):', error);
+            this.createBoxPlotFallback(ctx, scores, min, q1, median, q3, max, outliers);
+        }
+    }
+
+	getColorForCorrelation(value) {
+		if (value >= 0.7) return 'rgba(46, 204, 113, 0.8)';    // Зелёный
+		if (value >= 0.3) return 'rgba(52, 152, 219, 0.8)';    // Синий
+		if (value >= 0.1) return 'rgba(241, 196, 15, 0.8)';    // Жёлтый
+		if (value >= -0.1) return 'rgba(149, 165, 166, 0.8)';  // Серый
+		return 'rgba(231, 76, 60, 0.8)';                       // Красный (отрицательная)
 	}
 
-	// 6. Fallback реализация (оставляем существующую)
-	createBoxPlotFallback(ctx, scores, min, q1, median, q3, max, outliers) {
-		// Используем комбинированный график
-		new Chart(ctx, {
-			type: 'bar',
-			data: {
-				labels: ['Распределение'],
-				datasets: [
-					{
-						label: 'Диапазон',
-						data: [max - min],
-						backgroundColor: 'rgba(54, 162, 235, 0.5)',
-						borderColor: 'rgb(54, 162, 235)',
-						borderWidth: 1
-					},
-					{
-						label: 'Межквартильный размах',
-						data: [q3 - q1],
-						backgroundColor: 'rgba(75, 192, 192, 0.5)',
-						borderColor: 'rgb(75, 192, 192)',
-						borderWidth: 1
-					},
-					{
-						label: 'Медиана',
-						data: [median],
-						type: 'line',
-						fill: false,
-						borderColor: 'rgb(255, 99, 132)',
-						borderWidth: 3,
-						pointRadius: 6
-					}
-				]
-			},
-			options: {
-				responsive: true,
-				maintainAspectRatio: false,
-				scales: {
-					y: {
-						beginAtZero: true,
-						max: 100,
-						title: {
-							display: true,
-							text: 'Баллы (%)'
-						}
-					},
-					x: {
-						display: false
-					}
-				},
-				plugins: {
-					tooltip: {
-						callbacks: {
-							label: function(context) {
-								const datasetIndex = context.datasetIndex;
-								if (datasetIndex === 0) {
-									return `Диапазон: ${min.toFixed(1)}% - ${max.toFixed(1)}%`;
-								} else if (datasetIndex === 1) {
-									return `Межквартильный размах: ${q1.toFixed(1)}% - ${q3.toFixed(1)}%`;
-								} else {
-									return `Медиана: ${median.toFixed(1)}%`;
-								}
-							}
-						}
-					}
-				}
-			}
-		});
-	}
 
-	// Fallback метод для box plot
-	createBoxPlotFallback(ctx, scores, min, q1, median, q3, max, outliers) {
-		// Используем комбинированный график как раньше
-		new Chart(ctx, {
-			type: 'bar',
-			data: {
-				labels: ['Распределение'],
-				datasets: [
-					{
-						label: 'Диапазон',
-						data: [max - min],
-						backgroundColor: 'rgba(54, 162, 235, 0.5)',
-						borderColor: 'rgb(54, 162, 235)',
-						borderWidth: 1
-					},
-					{
-						label: 'Межквартильный размах',
-						data: [q3 - q1],
-						backgroundColor: 'rgba(75, 192, 192, 0.5)',
-						borderColor: 'rgb(75, 192, 192)',
-						borderWidth: 1
-					},
-					{
-						label: 'Медиана',
-						data: [median],
-						type: 'line',
-						fill: false,
-						borderColor: 'rgb(255, 99, 132)',
-						borderWidth: 3,
-						pointRadius: 6
-					}
-				]
-			},
-			options: {
-				responsive: true,
-				maintainAspectRatio: false,
-				scales: {
-					y: {
-						beginAtZero: true,
-						max: 100,
-						title: {
-							display: true,
-							text: 'Баллы (%)'
-						}
-					},
-					x: {
-						display: false
-					}
-				},
-				plugins: {
-					tooltip: {
-						callbacks: {
-							label: function(context) {
-								const datasetIndex = context.datasetIndex;
-								if (datasetIndex === 0) {
-									return `Диапазон: ${min.toFixed(1)}% - ${max.toFixed(1)}%`;
-								} else if (datasetIndex === 1) {
-									return `Межквартильный размах: ${q1.toFixed(1)}% - ${q3.toFixed(1)}%`;
-								} else {
-									return `Медиана: ${median.toFixed(1)}%`;
-								}
-							}
-						}
-					}
-				}
-			}
-		});
-	}
+    // Fallback метод для box plot
+    createBoxPlotFallback(ctx, scores, min, q1, median, q3, max, outliers) {
+        // Используем комбинированный график как раньше
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: ['Распределение'],
+                datasets: [{
+                        label: 'Диапазон',
+                        data: [max - min],
+                        backgroundColor: 'rgba(54, 162, 235, 0.5)',
+                        borderColor: 'rgb(54, 162, 235)',
+                        borderWidth: 1
+                    }, {
+                        label: 'Межквартильный размах',
+                        data: [q3 - q1],
+                        backgroundColor: 'rgba(75, 192, 192, 0.5)',
+                        borderColor: 'rgb(75, 192, 192)',
+                        borderWidth: 1
+                    }, {
+                        label: 'Медиана',
+                        data: [median],
+                        type: 'line',
+                        fill: false,
+                        borderColor: 'rgb(255, 99, 132)',
+                        borderWidth: 3,
+                        pointRadius: 6
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100,
+                        title: {
+                            display: true,
+                            text: 'Баллы (%)'
+                        }
+                    },
+                    x: {
+                        display: false
+                    }
+                },
+                plugins: {
+                    tooltip: {
+                        callbacks: {
+                            label: function (context) {
+                                const datasetIndex = context.datasetIndex;
+                                if (datasetIndex === 0) {
+                                    return `Диапазон: ${min.toFixed(1)}% - ${max.toFixed(1)}%`;
+                                } else if (datasetIndex === 1) {
+                                    return `Межквартильный размах: ${q1.toFixed(1)}% - ${q3.toFixed(1)}%`;
+                                } else {
+                                    return `Медиана: ${median.toFixed(1)}%`;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
 
-	// Метод для добавления статистики box plot
-	addBoxPlotStats(container, min, q1, median, q3, max, iqr, outlierCount) {
-		if (!container) return;
-		
-		const statsHtml = `
+    // Метод для добавления статистики box plot
+    addBoxPlotStats(container, min, q1, median, q3, max, iqr, outlierCount) {
+        if (!container)
+            return;
+
+        const statsHtml = `
 			<div class="boxplot-stats">
 				<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px;">
 					<div class="stat-item">
@@ -2861,91 +2884,92 @@ class AdvancedAnalytics {
 				</div>
 			</div>
 		`;
-		
-		container.insertAdjacentHTML('beforeend', statsHtml);
-	}
 
-	// Добавим метод для создания диаграммы рассеяния
-	createTaskScatterPlot(data) {
-		const ctx = document.getElementById('taskScatterPlot');
-		if (!ctx) return;
-		
-		const tasks = data.taskStats;
-		
-		if (!tasks || tasks.length === 0) {
-			ctx.parentElement.innerHTML = '<p class="no-data">Нет данных для построения диаграммы</p>';
-			return;
-		}
-		
-		// Подготавливаем данные для scatter plot
-		const scatterData = tasks.map((task, index) => ({
-			x: task.difficulty * 100, // Сложность в процентах
-			y: task.discrimination * 100, // Дискриминативность в процентах
-			label: `Задание ${task.number}`,
-			completionRate: task.completionRate
-		}));
-		
-		new Chart(ctx, {
-			type: 'scatter',
-			data: {
-				datasets: [{
-					label: 'Задания',
-					data: scatterData,
-					backgroundColor: scatterData.map(point => 
-						point.completionRate >= 70 ? 'rgba(75, 192, 192, 0.7)' :
-						point.completionRate >= 50 ? 'rgba(255, 205, 86, 0.7)' :
-						'rgba(255, 99, 132, 0.7)'
-					),
-					pointRadius: 8,
-					pointHoverRadius: 12
-				}]
-			},
-			options: {
-				responsive: true,
-				maintainAspectRatio: false,
-				plugins: {
-					tooltip: {
-						callbacks: {
-							label: function(context) {
-								const point = context.raw;
-								return [
-									point.label,
-									`Сложность: ${point.x.toFixed(1)}%`,
-									`Дискриминативность: ${point.y.toFixed(1)}%`,
-									`Выполняемость: ${point.completionRate.toFixed(1)}%`
-								];
-							}
-						}
-					},
-					legend: {
-						display: false
-					}
-				},
-				scales: {
-					x: {
-						title: {
-							display: true,
-							text: 'Сложность (%)'
-						},
-						min: 0,
-						max: 100
-					},
-					y: {
-						title: {
-							display: true,
-							text: 'Дискриминативность (%)'
-						},
-						min: 0,
-						max: 100
-					}
-				}
-			}
-		});
-	}
+        container.insertAdjacentHTML('beforeend', statsHtml);
+    }
 
-	// Рендеринг вкладки "Распределение"
-	renderDistributionTab(data) {
-		return `
+    // Добавим метод для создания диаграммы рассеяния
+    createTaskScatterPlot(data) {
+        const ctx = document.getElementById('taskScatterPlot');
+        if (!ctx)
+            return;
+
+        const tasks = data.taskStats;
+
+        if (!tasks || tasks.length === 0) {
+            ctx.parentElement.innerHTML = '<p class="no-data">Нет данных для построения диаграммы</p>';
+            return;
+        }
+
+        // Подготавливаем данные для scatter plot
+        const scatterData = tasks.map((task, index) => ({
+                    x: task.difficulty * 100, // Сложность в процентах
+                    y: task.discrimination * 100, // Дискриминативность в процентах
+                    label: `Задание ${task.number}`,
+                    completionRate: task.completionRate
+                }));
+
+        new Chart(ctx, {
+            type: 'scatter',
+            data: {
+                datasets: [{
+                        label: 'Задания',
+                        data: scatterData,
+                        backgroundColor: scatterData.map(point =>
+                            point.completionRate >= 70 ? 'rgba(75, 192, 192, 0.7)' :
+                            point.completionRate >= 50 ? 'rgba(255, 205, 86, 0.7)' :
+                            'rgba(255, 99, 132, 0.7)'),
+                        pointRadius: 8,
+                        pointHoverRadius: 12
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    tooltip: {
+                        callbacks: {
+                            label: function (context) {
+                                const point = context.raw;
+                                return [
+                                    point.label,
+                                    `Сложность: ${point.x.toFixed(1)}%`, 
+                                    `Дискриминативность: ${point.y.toFixed(1)}%`, 
+`Выполняемость: ${point.completionRate.toFixed(1)}%`
+                                ];
+                            }
+                        }
+                    },
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Сложность (%)'
+                        },
+                        min: 0,
+                        max: 100
+                    },
+                    y: {
+                        title: {
+                            display: true,
+                            text: 'Дискриминативность (%)'
+                        },
+                        min: 0,
+                        max: 100
+                    }
+                }
+            }
+        });
+    }
+
+    // Рендеринг вкладки "Распределение"
+    renderDistributionTab(data) {
+        return `
 			<div class="distribution-analysis">
 				<!-- Основные графики распределения -->
 				<div class="visualization-row">
@@ -2990,59 +3014,52 @@ class AdvancedAnalytics {
 				</div>
 			</div>
 		`;
-	}
+    }
 
+    // Метод для рендеринга карточек статистики
+    renderStatisticsCards(distribution) {
+        const stats = [{
+                icon: 'fa-ruler',
+                label: 'Среднее',
+                value: distribution.mean.toFixed(2),
+                description: 'Средний балл класса',
+                color: '#3498db'
+            }, {
+                icon: 'fa-balance-scale',
+                label: 'Медиана',
+                value: distribution.median.toFixed(2),
+                description: 'Значение в середине ранжированного ряда',
+                color: '#27ae60'
+            }, {
+                icon: 'fa-chart-bar',
+                label: 'Мода',
+                value: distribution.mode.toFixed(2),
+                description: 'Наиболее часто встречающийся балл',
+                color: '#f39c12'
+            }, {
+                icon: 'fa-expand-arrows-alt',
+                label: 'Ст. отклонение',
+                value: distribution.stdDev.toFixed(2),
+                description: 'Мера разброса данных',
+                color: '#e74c3c'
+            }, {
+                icon: 'fa-sort-amount-up',
+                label: 'Асимметрия',
+                value: distribution.skewness.toFixed(3),
+                description: distribution.skewness > 0 ? 'Смещение влево' :
+                distribution.skewness < 0 ? 'Смещение вправо' : 'Симметрия',
+                color: '#9b59b6'
+            }, {
+                icon: 'fa-mountain',
+                label: 'Эксцесс',
+                value: distribution.kurtosis.toFixed(3),
+                description: distribution.kurtosis > 0 ? 'Пикообразное' :
+                distribution.kurtosis < 0 ? 'Плоское' : 'Нормальное',
+                color: '#1abc9c'
+            }
+        ];
 
-	// Метод для рендеринга карточек статистики
-	renderStatisticsCards(distribution) {
-		const stats = [
-			{
-				icon: 'fa-ruler',
-				label: 'Среднее',
-				value: distribution.mean.toFixed(2),
-				description: 'Средний балл класса',
-				color: '#3498db'
-			},
-			{
-				icon: 'fa-balance-scale',
-				label: 'Медиана',
-				value: distribution.median.toFixed(2),
-				description: 'Значение в середине ранжированного ряда',
-				color: '#27ae60'
-			},
-			{
-				icon: 'fa-chart-bar',
-				label: 'Мода',
-				value: distribution.mode.toFixed(2),
-				description: 'Наиболее часто встречающийся балл',
-				color: '#f39c12'
-			},
-			{
-				icon: 'fa-expand-arrows-alt',
-				label: 'Ст. отклонение',
-				value: distribution.stdDev.toFixed(2),
-				description: 'Мера разброса данных',
-				color: '#e74c3c'
-			},
-			{
-				icon: 'fa-sort-amount-up',
-				label: 'Асимметрия',
-				value: distribution.skewness.toFixed(3),
-				description: distribution.skewness > 0 ? 'Смещение влево' : 
-						   distribution.skewness < 0 ? 'Смещение вправо' : 'Симметрия',
-				color: '#9b59b6'
-			},
-			{
-				icon: 'fa-mountain',
-				label: 'Эксцесс',
-				value: distribution.kurtosis.toFixed(3),
-				description: distribution.kurtosis > 0 ? 'Пикообразное' : 
-						   distribution.kurtosis < 0 ? 'Плоское' : 'Нормальное',
-				color: '#1abc9c'
-			}
-		];
-		
-		return stats.map(stat => `
+        return stats.map(stat => `
 			<div class="statistic-card" style="border-left: 4px solid ${stat.color}">
 				<div class="statistic-icon" style="background: ${stat.color}20; color: ${stat.color};">
 					<i class="fas ${stat.icon}"></i>
@@ -3054,14 +3071,14 @@ class AdvancedAnalytics {
 				</div>
 			</div>
 		`).join('');
-	}
+    }
 
-	// Рендеринг вкладки "Ошибки"
-	renderErrorsTab(data) {
-		// Получаем анализ ошибок
-		const errorAnalysis = data.errorAnalysis || this.analyzeErrors();
-		
-		return `
+    // Рендеринг вкладки "Ошибки"
+    renderErrorsTab(data) {
+        // Получаем анализ ошибок
+        const errorAnalysis = data.errorAnalysis || this.analyzeErrors();
+
+        return `
 			<div class="errors-analysis">
 				<!-- Сводка по ошибкам -->
 				<div class="analysis-section">
@@ -3105,13 +3122,13 @@ class AdvancedAnalytics {
 				</div>
 			</div>
 		`;
-	}
+    }
 
-	// Рендеринг вкладки "Рекомендации"
-	renderRecommendationsTab(data) {
-		const recommendations = this.generateDetailedRecommendations(data);
-		
-		return `
+    // Рендеринг вкладки "Рекомендации"
+    renderRecommendationsTab(data) {
+        const recommendations = this.generateDetailedRecommendations(data);
+
+        return `
 			<div class="recommendations-analysis">
 				<!-- Приоритетные рекомендации -->
 				<div class="analysis-section">
@@ -3223,19 +3240,19 @@ class AdvancedAnalytics {
 				</div>
 			</div>
 		`;
-	}
+    }
 
-	// Добавление стилей для подробного анализа
-	addDetailedAnalysisStyles() {
-		const styleId = 'advanced-analytics-styles';
-		if (document.getElementById(styleId)) {
-			// Удаляем старые стили
-			document.getElementById(styleId).remove();
-		}
+    // Добавление стилей для подробного анализа
+    addDetailedAnalysisStyles() {
+        const styleId = 'advanced-analytics-styles';
+        if (document.getElementById(styleId)) {
+            // Удаляем старые стили
+            document.getElementById(styleId).remove();
+        }
 
-		const style = document.createElement('style');
-		style.id = styleId;
-		style.textContent = `
+        const style = document.createElement('style');
+        style.id = styleId;
+        style.textContent = `
 			/* Добавляем важные стили для модальных окон */
 			.detailed-analysis-modal-overlay,
 			.student-modal-overlay,
@@ -4200,132 +4217,161 @@ class AdvancedAnalytics {
 			}			
 		`;
 
-		document.head.appendChild(style);
-	}
+        document.head.appendChild(style);
+    }
 
+    // Инициализация графиков в модальном окне
+    async initChartsInModal(data) {
+        setTimeout(async() => {
+            console.log('Инициализация графиков в модальном окне...');
 
+            // Проверяем наличие correlationChart в модальном окне
+            const correlationChartModal = document.getElementById('correlationChartModal');
+            if (correlationChartModal) {
+                this.createCorrelationChart();
+            }
 
-	// Инициализация графиков в модальном окне
-	initChartsInModal(data) {
-		setTimeout(async () => {
-			console.log('Инициализация графиков в модальном окне...');
-			
-			// Проверяем наличие correlationChart в модальном окне
-			const correlationChartModal = document.getElementById('correlationChartModal');
-			if (correlationChartModal) {
-				this.createCorrelationChart();
-			}			
-			
-			// Проверяем доступность BoxPlot
-			const boxPlotAvailable = await this.checkBoxPlotAvailability();
-			
-			// Создаем все графики с проверкой на существование canvas
-			const chartsToCreate = [
-				{ id: 'overviewDistributionChart', method: 'createOverviewDistributionChart', data: data },
-				{ id: 'studentScoresChart', method: 'createStudentScoresChart', data: data },
-				{ id: 'studentPerformanceChart', method: 'createStudentPerformanceChart', data: data },
-				{ id: 'taskDifficultyMatrix', method: 'createTaskDifficultyMatrix', data: data },
-				{ id: 'taskScatterPlot', method: 'createTaskScatterPlot', data: data },
-				{ id: 'scoreHistogram', method: 'createScoreHistogram', data: data },
-				{ id: 'normalDistributionChart', method: 'createNormalDistributionChart', data: data },
-				{ id: 'progressMonitoringChart', method: 'createProgressMonitoringChart', data: data },
-				{ id: 'errorByTaskChart', method: 'createErrorByTaskChart', data: data.errorAnalysis },
-				{ id: 'errorTypesChart', method: 'createErrorTypesChart', data: data.errorAnalysis }
-			];
-			
-			// Добавляем BoxPlot только если он доступен
-			if (boxPlotAvailable) {
-				chartsToCreate.splice(7, 0, { 
-					id: 'boxPlotDistribution', 
-					method: 'createBoxPlotDistribution', 
-					data: data 
-				});
-			} else {
-				// Если BoxPlot не доступен, добавляем сообщение
-				const boxPlotContainer = document.getElementById('boxPlotDistribution');
-				if (boxPlotContainer && boxPlotContainer.parentElement) {
-					boxPlotContainer.parentElement.innerHTML = `
+            // Проверяем доступность BoxPlot
+            const boxPlotAvailable = await this.checkBoxPlotAvailability();
+
+            // Создаем все графики с проверкой на существование canvas
+            const chartsToCreate = [{
+                    id: 'overviewDistributionChart',
+                    method: 'createOverviewDistributionChart',
+                    data: data
+                }, {
+                    id: 'studentScoresChart',
+                    method: 'createStudentScoresChart',
+                    data: data
+                }, {
+                    id: 'studentPerformanceChart',
+                    method: 'createStudentPerformanceChart',
+                    data: data
+                }, {
+                    id: 'taskDifficultyMatrix',
+                    method: 'createTaskDifficultyMatrix',
+                    data: data
+                }, {
+                    id: 'taskScatterPlot',
+                    method: 'createTaskScatterPlot',
+                    data: data
+                }, {
+                    id: 'scoreHistogram',
+                    method: 'createScoreHistogram',
+                    data: data
+                }, {
+                    id: 'normalDistributionChart',
+                    method: 'createNormalDistributionChart',
+                    data: data
+                }, {
+                    id: 'progressMonitoringChart',
+                    method: 'createProgressMonitoringChart',
+                    data: data
+                }, {
+                    id: 'errorByTaskChart',
+                    method: 'createErrorByTaskChart',
+                    data: data.errorAnalysis
+                }, {
+                    id: 'errorTypesChart',
+                    method: 'createErrorTypesChart',
+                    data: data.errorAnalysis
+                }
+            ];
+
+            // Добавляем BoxPlot только если он доступен
+            if (boxPlotAvailable) {
+                chartsToCreate.splice(7, 0, {
+                    id: 'boxPlotDistribution',
+                    method: 'createBoxPlotDistribution',
+                    data: data
+                });
+            } else {
+                // Если BoxPlot не доступен, добавляем сообщение
+                const boxPlotContainer = document.getElementById('boxPlotDistribution');
+                if (boxPlotContainer && boxPlotContainer.parentElement) {
+                    boxPlotContainer.parentElement.innerHTML = `
 						<div class="no-data" style="text-align: center; padding: 40px;">
 							<i class="fas fa-chart-bar fa-3x" style="color: #ddd; margin-bottom: 15px;"></i>
 							<p>Box plot недоступен</p>
 							<p style="font-size: 12px; color: #999;">Используется упрощенная версия</p>
 						</div>
 					`;
-				}
-			}
-			
-			chartsToCreate.forEach(chart => {
-				try {
-					const element = document.getElementById(chart.id);
-					if (element && element.tagName === 'CANVAS') {
-						this[chart.method](chart.data);
-						console.log(`✅ График ${chart.id} создан`);
-					} else if (element) {
-						console.log(`⚠️ Элемент ${chart.id} найден, но не является canvas`);
-					} else {
-						console.log(`⚠️ Canvas ${chart.id} не найден`);
-					}
-				} catch (error) {
-					console.error(`❌ Ошибка создания графика ${chart.id}:`, error);
-					// Для BoxPlot пробуем fallback
-					if (chart.id === 'boxPlotDistribution') {
-						const scores = data.studentStats?.map(s => s.averageScore) || [];
-						if (scores.length > 0) {
-							const sortedScores = [...scores].sort((a, b) => a - b);
-							const n = sortedScores.length;
-							const q1 = sortedScores[Math.floor(n * 0.25)];
-							const median = sortedScores[Math.floor(n * 0.5)];
-							const q3 = sortedScores[Math.floor(n * 0.75)];
-							const iqr = q3 - q1;
-							const min = Math.max(sortedScores[0], q1 - 1.5 * iqr);
-							const max = Math.min(sortedScores[n - 1], q3 + 1.5 * iqr);
-							const outliers = sortedScores.filter(score => score < min || score > max);
-							
-							this.createBoxPlotFallback(
-								element,
-								scores,
-								min, q1, median, q3, max, outliers
-							);
-						}
-					}
-				}
-			});
-			
-			// Отладка
-			this.debugCharts();
-		}, 500);
-	}
-	
-	// Проверка доступности BoxPlot
-	checkBoxPlotAvailability() {
-		return new Promise((resolve) => {
-			const checkInterval = setInterval(() => {
-				const hasNewBoxPlot = window.BoxPlot && BoxPlot.BoxPlotController;
-				const hasOldBoxPlot = typeof Chart.controllers.boxplot !== 'undefined';
-				
-				if (hasNewBoxPlot || hasOldBoxPlot) {
-					clearInterval(checkInterval);
-					console.log('✅ BoxPlot доступен:', hasNewBoxPlot ? 'Новая версия' : 'Старая версия');
-					resolve(true);
-				}
-			}, 100);
-			
-			// Таймаут 5 секунд
-			setTimeout(() => {
-				clearInterval(checkInterval);
-				console.warn('⚠️ BoxPlot не загрузился за отведенное время');
-				resolve(false);
-			}, 5000);
-		});
-	}
-	// Добавим метод addChartStyles
-	addChartStyles() {
-		const styleId = 'chart-fixes-styles';
-		if (document.getElementById(styleId)) return;
+                }
+            }
 
-		const style = document.createElement('style');
-		style.id = styleId;
-		style.textContent = `
+            chartsToCreate.forEach(chart => {
+                try {
+                    const element = document.getElementById(chart.id);
+                    if (element && element.tagName === 'CANVAS') {
+                        this[chart.method](chart.data);
+                        console.log(`✅ График ${chart.id} создан`);
+                    } else if (element) {
+                        console.log(`⚠️ Элемент ${chart.id} найден, но не является canvas`);
+                    } else {
+                        console.log(`⚠️ Canvas ${chart.id} не найден`);
+                    }
+                } catch (error) {
+                    console.error(`❌ Ошибка создания графика ${chart.id}:`, error);
+                    // Для BoxPlot пробуем fallback
+                    if (chart.id === 'boxPlotDistribution') {
+                        const scores = data.studentStats?.map(s => s.averageScore) || [];
+                        if (scores.length > 0) {
+                            const sortedScores = [...scores].sort((a, b) => a - b);
+                            const n = sortedScores.length;
+                            const q1 = sortedScores[Math.floor(n * 0.25)];
+                            const median = sortedScores[Math.floor(n * 0.5)];
+                            const q3 = sortedScores[Math.floor(n * 0.75)];
+                            const iqr = q3 - q1;
+                            const min = Math.max(sortedScores[0], q1 - 1.5 * iqr);
+                            const max = Math.min(sortedScores[n - 1], q3 + 1.5 * iqr);
+                            const outliers = sortedScores.filter(score => score < min || score > max);
+
+                            this.createBoxPlotFallback(
+                                element,
+                                scores,
+                                min, q1, median, q3, max, outliers);
+                        }
+                    }
+                }
+            });
+
+            // Отладка
+            this.debugCharts();
+        }, 500);
+    }
+
+    // Проверка доступности BoxPlot
+    checkBoxPlotAvailability() {
+        return new Promise((resolve) => {
+            const checkInterval = setInterval(() => {
+                const hasNewBoxPlot = window.BoxPlot && BoxPlot.BoxPlotController;
+                const hasOldBoxPlot = typeof Chart.controllers.boxplot !== 'undefined';
+
+                if (hasNewBoxPlot || hasOldBoxPlot) {
+                    clearInterval(checkInterval);
+                    console.log('✅ BoxPlot доступен:', hasNewBoxPlot ? 'Новая версия' : 'Старая версия');
+                    resolve(true);
+                }
+            }, 100);
+
+            // Таймаут 5 секунд
+            setTimeout(() => {
+                clearInterval(checkInterval);
+                console.warn('⚠️ BoxPlot не загрузился за отведенное время');
+                resolve(false);
+            }, 5000);
+        });
+    }
+	
+    // Добавим метод addChartStyles
+    addChartStyles() {
+        const styleId = 'chart-fixes-styles';
+        if (document.getElementById(styleId))
+            return;
+
+        const style = document.createElement('style');
+        style.id = styleId;
+        style.textContent = `
 			/* Стили для отсутствующих данных */
 			.no-data {
 				display: flex;
@@ -4475,944 +4521,992 @@ class AdvancedAnalytics {
 			}
 		`;
 
-		document.head.appendChild(style);
-	}
+        document.head.appendChild(style);
+    }
 
+    // Добавим метод для создания графика мониторинга прогресса
+    createProgressMonitoringChart(data) {
+        const ctx = document.getElementById('progressMonitoringChart');
+        if (!ctx)
+            return;
 
-	// Добавим метод для создания графика мониторинга прогресса
-	createProgressMonitoringChart(data) {
-		const ctx = document.getElementById('progressMonitoringChart');
-		if (!ctx) return;
-		
-		// Создаем демо-данные для прогресса
-		const labels = ['Неделя 1', 'Неделя 2', 'Неделя 3', 'Неделя 4'];
-		const currentScore = data.studentStats.length > 0 
-			? this.calculateOverallAverage(data.studentStats)
-			: 0;
-		
-		const targetScore = Math.min(100, currentScore + 15); // Цель +15%
-		
-		// Создаем прогноз прогресса
-		const progressData = labels.map((_, index) => {
-			const progress = currentScore + ((targetScore - currentScore) * (index / 3));
-			return Math.min(100, progress);
-		});
-		
-		new Chart(ctx, {
-			type: 'line',
-			data: {
-				labels: labels,
-				datasets: [
-					{
-						label: 'Текущий прогресс',
-						data: [currentScore, progressData[1], progressData[2], targetScore],
-						borderColor: 'rgb(75, 192, 192)',
-						backgroundColor: 'rgba(75, 192, 192, 0.2)',
-						borderWidth: 3,
-						tension: 0.3,
-						fill: true
-					},
-					{
-						label: 'Целевой показатель',
-						data: [targetScore, targetScore, targetScore, targetScore],
-						borderColor: 'rgb(255, 99, 132)',
-						borderWidth: 2,
-						borderDash: [5, 5],
-						fill: false,
-						pointRadius: 0
-					}
-				]
-			},
-			options: {
-				responsive: true,
-				maintainAspectRatio: false,
-				scales: {
-					y: {
-						beginAtZero: true,
-						max: 100,
-						title: {
-							display: true,
-							text: 'Средний балл (%)'
-						}
-					},
-					x: {
-						title: {
-							display: true,
-							text: 'Временной период'
-						}
-					}
-				},
-				plugins: {
-					annotation: {
-						annotations: {
-							targetLine: {
-								type: 'line',
-								yMin: targetScore,
-								yMax: targetScore,
-								borderColor: 'rgb(255, 99, 132)',
-								borderWidth: 2,
-								borderDash: [5, 5],
-								label: {
-									content: `Цель: ${targetScore.toFixed(1)}%`,
-									enabled: true,
-									position: 'end'
-								}
-							}
-						}
-					}
-				}
-			}
-		});
-	}
-	// Добавим метод для создания графика тенденций
-	createStudentPerformanceChart(data) {
-		const ctx = document.getElementById('studentPerformanceChart');
-		if (!ctx || !data.studentStats || data.studentStats.length === 0) return;
-		
-		// Берем 5 студентов для примера (можно рандомно или топ-5)
-		const sampleStudents = data.studentStats.slice(0, Math.min(5, data.studentStats.length));
-		
-		// Создаем данные для графика
-		const labels = sampleStudents.map(s => {
-			const nameParts = s.name.split(' ');
-			return nameParts.length >= 2 
-				? `${nameParts[0]} ${nameParts[1].charAt(0)}.` 
-				: s.name;
-		});
-		
-		// Получаем средние баллы по заданиям для каждого студента
-		const datasets = appData.tasks?.map((task, taskIndex) => {
-			// Для каждого задания собираем баллы студентов
-			const dataPoints = sampleStudents.map(student => {
-				const score = this.getStudentScore(student.index, taskIndex);
-				const maxScore = task.maxScore || 1;
-				return maxScore > 0 ? (score / maxScore) * 100 : 0;
-			});
-			
-			return {
-				label: `З-${taskIndex + 1}`,
-				data: dataPoints,
-				borderColor: this.getTaskColor(taskIndex),
-				backgroundColor: 'rgba(255, 255, 255, 0.1)',
-				tension: 0.4,
-				fill: false,
-				pointRadius: 4
-			};
-		}) || [];
-		
-		// Если данных слишком много, ограничиваем
-		const displayDatasets = datasets.slice(0, 8); // Показываем не более 8 заданий
-		
-		new Chart(ctx, {
-			type: 'line',
-			data: {
-				labels: labels,
-				datasets: displayDatasets
-			},
-			options: {
-				responsive: true,
-				maintainAspectRatio: false,
-				scales: {
-					y: {
-						beginAtZero: true,
-						max: 100,
-						title: {
-							display: true,
-							text: 'Процент выполнения (%)'
-						}
-					},
-					x: {
-						title: {
-							display: true,
-							text: 'Учащиеся'
-						}
-					}
-				},
-				plugins: {
-					legend: {
-						position: 'top'
-					}
-				}
-			}
-		});
-	}
+        // Создаем демо-данные для прогресса
+        const labels = ['Неделя 1', 'Неделя 2', 'Неделя 3', 'Неделя 4'];
+        const currentScore = data.studentStats.length > 0
+             ? this.calculateOverallAverage(data.studentStats)
+             : 0;
 
-	// Метод для получения цвета задания
-	getTaskColor(index) {
-		const colors = [
-			'#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', 
-			'#9966FF', '#FF9F40', '#FF6384', '#C9CBCF'
-		];
-		return colors[index % colors.length];
-	}
+        const targetScore = Math.min(100, currentScore + 15); // Цель +15%
 
+        // Создаем прогноз прогресса
+        const progressData = labels.map((_, index) => {
+            const progress = currentScore + ((targetScore - currentScore) * (index / 3));
+            return Math.min(100, progress);
+        });
 
-	// Закрытие модального окна
-	closeDetailedAnalysis() {
-		const modal = document.getElementById('detailedAnalysisModal');
-		if (modal) {
-			// Добавляем анимацию закрытия
-			modal.style.opacity = '0';
-			modal.style.transform = 'scale(0.9)';
-			setTimeout(() => {
-				modal.remove();
-			}, 300);
-		}
-		
-		// Удаляем стили
-		const styles = document.getElementById('detailed-analysis-styles');
-		if (styles) {
-			styles.remove();
-		}
-	}
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                        label: 'Текущий прогресс',
+                        data: [currentScore, progressData[1], progressData[2], targetScore],
+                        borderColor: 'rgb(75, 192, 192)',
+                        backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                        borderWidth: 3,
+                        tension: 0.3,
+                        fill: true
+                    }, {
+                        label: 'Целевой показатель',
+                        data: [targetScore, targetScore, targetScore, targetScore],
+                        borderColor: 'rgb(255, 99, 132)',
+                        borderWidth: 2,
+                        borderDash: [5, 5],
+                        fill: false,
+                        pointRadius: 0
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100,
+                        title: {
+                            display: true,
+                            text: 'Средний балл (%)'
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Временной период'
+                        }
+                    }
+                },
+                plugins: {
+                    annotation: {
+                        annotations: {
+                            targetLine: {
+                                type: 'line',
+                                yMin: targetScore,
+                                yMax: targetScore,
+                                borderColor: 'rgb(255, 99, 132)',
+                                borderWidth: 2,
+                                borderDash: [5, 5],
+                                label: {
+                                    content: `Цель: ${targetScore.toFixed(1)}%`,
+                                    enabled: true,
+                                    position: 'end'
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+    // Добавим метод для создания графика тенденций
+    createStudentPerformanceChart(data) {
+        const ctx = document.getElementById('studentPerformanceChart');
+        if (!ctx || !data.studentStats || data.studentStats.length === 0)
+            return;
 
-	// Добавим глобальные обработчики для кнопок в модальных окнах
-	addGlobalEventListeners() {
-		// Обработчик для всех кнопок закрытия
-		document.addEventListener('click', (e) => {
-			if (e.target.closest('.modal-close-btn') || 
-				e.target.closest('.close-btn') ||
-				(e.target.closest('.modal-overlay') && e.target.classList.contains('modal-overlay'))) {
-				const modal = e.target.closest('.modal-overlay') || 
-							 e.target.closest('[id$="Modal"]')?.parentElement;
-				if (modal) {
-					modal.style.opacity = '0';
-					modal.style.transform = 'scale(0.9)';
-					setTimeout(() => modal.remove(), 300);
-				}
-			}
-		});
-	}
+        // Берем 5 студентов для примера (можно рандомно или топ-5)
+        const sampleStudents = data.studentStats.slice(0, Math.min(5, data.studentStats.length));
 
-	// Вспомогательные методы для расчетов
-	calculateStudentStatistics() {
-		if (!appData.students || !appData.tasks) return [];
-		
-		return appData.students.map((studentName, studentIndex) => {
-			const scores = appData.tasks.map((task, taskIndex) => {
-				const score = this.getStudentScore(studentIndex, taskIndex);
-				const maxScore = task.maxScore || 1;
-				return maxScore > 0 ? (score / maxScore) * 100 : 0;
-			});
-			
-			return {
-				name: studentName,
-				index: studentIndex,
-				averageScore: this.calculateAverage(scores),
-				maxScore: Math.max(...scores),
-				minScore: Math.min(...scores),
-				stability: this.calculateStability(scores),
-				progress: this.calculateStudentProgress(studentIndex, scores)
-			};
-		});
-	}
+        // Создаем данные для графика
+        const labels = sampleStudents.map(s => {
+            const nameParts = s.name.split(' ');
+            return nameParts.length >= 2
+             ? `${nameParts[0]} ${nameParts[1].charAt(0)}.`
+             : s.name;
+        });
 
-	calculateTaskStatistics() {
-		if (!appData.tasks || !appData.students) return [];
-		
-		return appData.tasks.map((task, taskIndex) => {
-			const scores = appData.students.map((student, studentIndex) => {
-				const score = this.getStudentScore(studentIndex, taskIndex);
-				const maxScore = task.maxScore || 1;
-				return maxScore > 0 ? score / maxScore : 0;
-			});
-			
-			const completed = scores.filter(score => score > 0).length;
-			
-			return {
-				number: taskIndex + 1,
-				title: task.title || `Задание ${taskIndex + 1}`,
-				type: task.type || 'unknown',
-				competence: task.competence || 'Не указано',
-				difficulty: this.calculateTaskDifficulty(scores),
-				discrimination: this.calculateTaskDiscrimination(scores),
-				averageScore: this.calculateAverage(scores.map(s => s * (task.maxScore || 1))),
-				completionRate: (completed / scores.length) * 100
-			};
-		});
-	}
+        // Получаем средние баллы по заданиям для каждого студента
+        const datasets = appData.tasks?.map((task, taskIndex) => {
+            // Для каждого задания собираем баллы студентов
+            const dataPoints = sampleStudents.map(student => {
+                const score = this.getStudentScore(student.index, taskIndex);
+                const maxScore = task.maxScore || 1;
+                return maxScore > 0 ? (score / maxScore) * 100 : 0;
+            });
 
-	calculateScoreDistribution() {
-		const studentStats = this.calculateStudentStatistics();
-		const scores = studentStats.map(s => s.averageScore);
-		
-		if (scores.length === 0) {
-			return {
-				mean: 0,
-				median: 0,
-				mode: 0,
-				stdDev: 0,
-				skewness: 0,
-				kurtosis: 0
-			};
-		}
-		
-		// Расчет статистических показателей
-		const mean = this.calculateAverage(scores);
-		const sortedScores = [...scores].sort((a, b) => a - b);
-		const median = sortedScores[Math.floor(sortedScores.length / 2)];
-		
-		// Мода (упрощенный расчет)
-		const frequency = {};
-		scores.forEach(score => {
-			const rounded = Math.round(score);
-			frequency[rounded] = (frequency[rounded] || 0) + 1;
-		});
-		
-		let mode = 0;
-		let maxFreq = 0;
-		Object.entries(frequency).forEach(([score, freq]) => {
-			if (freq > maxFreq) {
-				mode = parseFloat(score);
-				maxFreq = freq;
-			}
-		});
-		
-		// Стандартное отклонение
-		const variance = scores.reduce((sum, score) => sum + Math.pow(score - mean, 2), 0) / scores.length;
-		const stdDev = Math.sqrt(variance);
-		
-		// Асимметрия и эксцесс (упрощенные формулы)
-		const skewness = this.calculateSkewness(scores, mean, stdDev);
-		const kurtosis = this.calculateKurtosis(scores, mean, stdDev);
-		
-		return { mean, median, mode, stdDev, skewness, kurtosis };
-	}
+            return {
+                label: `З-${taskIndex + 1}`,
+                data: dataPoints,
+                borderColor: this.getTaskColor(taskIndex),
+                backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                tension: 0.4,
+                fill: false,
+                pointRadius: 4
+            };
+        }) || [];
 
-	// Дополнительные методы для расчетов
-	calculateStability(scores) {
-		if (scores.length < 2) return 1;
-		const mean = this.calculateAverage(scores);
-		const variance = scores.reduce((sum, score) => sum + Math.pow(score - mean, 2), 0) / scores.length;
-		const maxVar = Math.pow(100, 2) / 12; // Максимально возможная дисперсия
-		return Math.max(0, 1 - (variance / maxVar));
-	}
+        // Если данных слишком много, ограничиваем
+        const displayDatasets = datasets.slice(0, 8); // Показываем не более 8 заданий
 
-	calculateTaskDifficulty(scores) {
-		// Сложность = 1 - средний процент выполнения
-		return 1 - (this.calculateAverage(scores));
-	}
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: displayDatasets
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100,
+                        title: {
+                            display: true,
+                            text: 'Процент выполнения (%)'
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Учащиеся'
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        position: 'top'
+                    }
+                }
+            }
+        });
+    }
 
-	calculateTaskDiscrimination(scores) {
-		if (scores.length < 4) return 0.5;
-		
-		// Разделяем на группы по успеваемости
-		const sortedIndices = scores
-			.map((score, index) => ({ score, index }))
-			.sort((a, b) => b.score - a.score)
-			.map(item => item.index);
-		
-		const topCount = Math.floor(sortedIndices.length / 3);
-		const bottomCount = Math.floor(sortedIndices.length / 3);
-		
-		const topGroup = sortedIndices.slice(0, topCount);
-		const bottomGroup = sortedIndices.slice(-bottomCount);
-		
-		const topAvg = this.calculateAverage(topGroup.map(i => scores[i]));
-		const bottomAvg = this.calculateAverage(bottomGroup.map(i => scores[i]));
-		
-		// Дискриминативность = разница между средними верхней и нижней групп
-		return Math.max(0, Math.min(1, (topAvg - bottomAvg)));
-	}
+    // Метод для получения цвета задания
+    getTaskColor(index) {
+        const colors = [
+            '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0',
+            '#9966FF', '#FF9F40', '#FF6384', '#C9CBCF'
+        ];
+        return colors[index % colors.length];
+    }
 
-	calculateSkewness(scores, mean, stdDev) {
-		if (scores.length < 3 || stdDev === 0) return 0;
-		
-		const n = scores.length;
-		const sumCubedDeviations = scores.reduce((sum, score) => 
-			sum + Math.pow(score - mean, 3), 0);
-		
-		return (sumCubedDeviations / n) / Math.pow(stdDev, 3);
-	}
+    // Закрытие модального окна
+    closeDetailedAnalysis() {
+        const modal = document.getElementById('detailedAnalysisModal');
+        if (modal) {
+            // Добавляем анимацию закрытия
+            modal.style.opacity = '0';
+            modal.style.transform = 'scale(0.9)';
+            setTimeout(() => {
+                modal.remove();
+            }, 300);
+        }
 
-	calculateKurtosis(scores, mean, stdDev) {
-		if (scores.length < 4 || stdDev === 0) return 0;
-		
-		const n = scores.length;
-		const sumFourthDeviations = scores.reduce((sum, score) => 
-			sum + Math.pow(score - mean, 4), 0);
-		
-		return (sumFourthDeviations / n) / Math.pow(stdDev, 4) - 3;
-	}
+        // Удаляем стили
+        const styles = document.getElementById('detailed-analysis-styles');
+        if (styles) {
+            styles.remove();
+        }
+    }
 
-	// Методы для визуализаций (упрощенные версии)
-	createOverviewDistributionChart(data) {
-		const ctx = document.getElementById('overviewDistributionChart');
-		if (!ctx) return;
-		
-		const studentGroups = this.createStudentGroups(data.studentStats);
-		
-		if (studentGroups.length === 0) {
-			ctx.parentElement.innerHTML = '<p class="no-data">Нет данных для построения диаграммы</p>';
-			return;
-		}
-		
-		new Chart(ctx, {
-			type: 'doughnut',
-			data: {
-				labels: studentGroups.map(g => g.name),
-				datasets: [{
-					data: studentGroups.map(g => g.count),
-					backgroundColor: studentGroups.map(g => g.color),
-					borderWidth: 2,
-					borderColor: '#fff'
-				}]
-			},
-			options: {
-				responsive: true,
-				maintainAspectRatio: false,
-				plugins: {
-					legend: {
-						position: 'bottom'
-					},
-					tooltip: {
-						callbacks: {
-							label: function(context) {
-								const label = context.label || '';
-								const value = context.raw || 0;
-								const total = context.dataset.data.reduce((a, b) => a + b, 0);
-								const percentage = Math.round((value / total) * 100);
-								return `${label}: ${value} учащихся (${percentage}%)`;
-							}
-						}
-					}
-				}
-			}
-		});
-	}
+    // Добавим глобальные обработчики для кнопок в модальных окнах
+    addGlobalEventListeners() {
+        // Обработчик для всех кнопок закрытия
+        document.addEventListener('click', (e) => {
+            if (e.target.closest('.modal-close-btn') ||
+                e.target.closest('.close-btn') ||
+                (e.target.closest('.modal-overlay') && e.target.classList.contains('modal-overlay'))) {
+                const modal = e.target.closest('.modal-overlay') ||
+                    e.target.closest('[id$="Modal"]')?.parentElement;
+                if (modal) {
+                    modal.style.opacity = '0';
+                    modal.style.transform = 'scale(0.9)';
+                    setTimeout(() => modal.remove(), 300);
+                }
+            }
+        });
+    }
 
+    // Вспомогательные методы для расчетов
+    calculateStudentStatistics() {
+        if (!appData.students || !appData.tasks)
+            return [];
 
-	createStudentScoresChart(data) {
-		const ctx = document.getElementById('studentScoresChart');
-		if (!ctx) return;
-		
-		const scores = data.studentStats.map(s => s.averageScore);
-		const bins = this.createHistogramBins(scores, 10);
-		
-		new Chart(ctx, {
-			type: 'bar',
-			data: {
-				labels: bins.labels,
-				datasets: [{
-					label: 'Количество учащихся',
-					data: bins.counts,
-					backgroundColor: 'rgba(54, 162, 235, 0.7)',
-					borderColor: 'rgb(54, 162, 235)',
-					borderWidth: 1
-				}]
-			},
-			options: {
-				responsive: true,
-				maintainAspectRatio: false,
-				scales: {
-					y: {
-						beginAtZero: true,
-						title: {
-							display: true,
-							text: 'Количество учащихся'
-						}
-					},
-					x: {
-						title: {
-							display: true,
-							text: 'Диапазон баллов'
-						}
-					}
-				}
-			}
-		});
-	}
+        return appData.students.map((studentName, studentIndex) => {
+            const scores = appData.tasks.map((task, taskIndex) => {
+                const score = this.getStudentScore(studentIndex, taskIndex);
+                const maxScore = task.maxScore || 1;
+                return maxScore > 0 ? (score / maxScore) * 100 : 0;
+            });
 
-	createHistogramBins(scores, binCount) {
-		const min = Math.min(...scores);
-		const max = Math.max(...scores);
-		const binWidth = (max - min) / binCount;
-		
-		const bins = Array(binCount).fill(0);
-		const labels = [];
-		
-		for (let i = 0; i < binCount; i++) {
-			const lower = min + i * binWidth;
-			const upper = min + (i + 1) * binWidth;
-			labels.push(`${lower.toFixed(0)}-${upper.toFixed(0)}%`);
-		}
-		
-		scores.forEach(score => {
-			const binIndex = Math.min(Math.floor((score - min) / binWidth), binCount - 1);
-			bins[binIndex]++;
-		});
-		
-		return { labels, counts: bins };
-	}
+            return {
+                name: studentName,
+                index: studentIndex,
+                averageScore: this.calculateAverage(scores),
+                maxScore: Math.max(...scores),
+                minScore: Math.min(...scores),
+                stability: this.calculateStability(scores),
+                progress: this.calculateStudentProgress(studentIndex, scores)
+            };
+        });
+    }
 
-	// Остальные методы для визуализаций
-	createTaskDifficultyMatrix(data) {
-		const ctx = document.getElementById('taskDifficultyMatrix');
-		if (!ctx) return;
-		
-		new Chart(ctx, {
-			type: 'radar',
-			data: {
-				labels: data.taskStats.map(t => t.title),
-				datasets: [{
-					label: 'Сложность',
-					data: data.taskStats.map(t => t.difficulty * 100),
-					backgroundColor: 'rgba(255, 99, 132, 0.2)',
-					borderColor: 'rgb(255, 99, 132)',
-					pointBackgroundColor: 'rgb(255, 99, 132)'
-				}]
-			},
-			options: {
-				responsive: true,
-				maintainAspectRatio: false,
-				scales: {
-					r: {
-						beginAtZero: true,
-						max: 100
-					}
-				}
-			}
-		});
-	}
+    calculateTaskStatistics() {
+        if (!appData.tasks || !appData.students)
+            return [];
 
-	createScoreHistogram(data) {
-		const ctx = document.getElementById('scoreHistogram');
-		if (!ctx) return;
-		
-		const scores = data.studentStats.map(s => s.averageScore);
-		const bins = this.createHistogramBins(scores, 15);
-		
-		new Chart(ctx, {
-			type: 'bar',
-			data: {
-				labels: bins.labels,
-				datasets: [{
-					label: 'Распределение баллов',
-					data: bins.counts,
-					backgroundColor: 'rgba(75, 192, 192, 0.7)',
-					borderColor: 'rgb(75, 192, 192)',
-					borderWidth: 1
-				}]
-			},
-			options: {
-				responsive: true,
-				maintainAspectRatio: false,
-				scales: {
-					y: {
-						beginAtZero: true,
-						title: {
-							display: true,
-							text: 'Частота'
-						}
-					},
-					x: {
-						title: {
-							display: true,
-							text: 'Диапазон баллов'
-						}
-					}
-				}
-			}
-		});
-	}
+        return appData.tasks.map((task, taskIndex) => {
+            const scores = appData.students.map((student, studentIndex) => {
+                const score = this.getStudentScore(studentIndex, taskIndex);
+                const maxScore = task.maxScore || 1;
+                return maxScore > 0 ? score / maxScore : 0;
+            });
 
-	// Дополнительные методы для анализа ошибок
-	// Сначала исправим метод analyzeErrors для получения реальных данных
-	analyzeErrors() {
-		// Проверяем наличие данных об ошибках в разных местах
-		let errors = [];
-		
-		// 1. Проверяем appData.errors
-		if (appData.errors && Array.isArray(appData.errors)) {
-			errors = appData.errors;
-		}
-		// 2. Проверяем studentErrors
-		else if (appData.studentErrors && Object.keys(appData.studentErrors).length > 0) {
-			// Преобразуем studentErrors в массив
-			errors = Object.entries(appData.studentErrors).flatMap(([studentIndex, studentErrs]) => {
-				return studentErrs.map(err => ({
-					...err,
-					studentIndex: parseInt(studentIndex)
-				}));
-			});
-		}
-		// 3. Создаем демо-данные, если нет реальных
-		else {
-			errors = this.generateDemoErrors();
-		}
-		
-		// Анализируем ошибки
-		const errorTypes = {};
-		const errorByTask = {};
-		const errorByStudent = {};
-		let totalErrorCount = 0;
-		
-		errors.forEach(error => {
-			const type = error.type || 'unknown';
-			const taskIndex = error.taskIndex !== undefined ? error.taskIndex : 0;
-			const studentIndex = error.studentIndex !== undefined ? error.studentIndex : 0;
-			const count = error.count || 1;
-			
-			// Статистика по типам ошибок
-			errorTypes[type] = (errorTypes[type] || 0) + count;
-			
-			// Статистика по заданиям
-			const taskKey = `Задание ${taskIndex + 1}`;
-			errorByTask[taskKey] = (errorByTask[taskKey] || 0) + count;
-			
-			// Статистика по студентам
-			const studentName = appData.students?.[studentIndex] || `Студент ${studentIndex + 1}`;
-			errorByStudent[studentName] = (errorByStudent[studentName] || 0) + count;
-			
-			totalErrorCount += count;
-		});
-		
-		return {
-			totalErrors: totalErrorCount,
-			errorTypes,
-			errorByTask,
-			errorByStudent,
-			errors: errors
-		};
-	}
+            const completed = scores.filter(score => score > 0).length;
 
-	generateDemoErrors() {
-		const errors = [];
-		const errorTypes = [
-			'factual', 'conceptual', 'application', 
-			'calculation', 'logical', 'attention', 'technical'
-		];
-		const errorDescriptions = {
-			'factual': 'Неверные факты или данные',
-			'conceptual': 'Непонимание основных понятий',
-			'application': 'Ошибки применения знаний',
-			'calculation': 'Вычислительные ошибки',
-			'logical': 'Логические ошибки в рассуждениях',
-			'attention': 'Ошибки внимательности',
-			'technical': 'Технические ошибки'
-		};
-		
-		if (appData.students && appData.tasks) {
-			// Генерируем реалистичные ошибки
-			const studentCount = Math.min(appData.students.length, 10);
-			const taskCount = Math.min(appData.tasks.length, 8);
-			
-			for (let studentIndex = 0; studentIndex < studentCount; studentIndex++) {
-				for (let taskIndex = 0; taskIndex < taskCount; taskIndex++) {
-					// 30% вероятность ошибки в задании
-					if (Math.random() < 0.3) {
-						const errorType = errorTypes[Math.floor(Math.random() * errorTypes.length)];
-						errors.push({
-							studentIndex,
-							taskIndex,
-							type: errorType,
-							description: errorDescriptions[errorType] || 'Ошибка выполнения',
-							count: Math.floor(Math.random() * 3) + 1 // 1-3 ошибки
-						});
-					}
-				}
-			}
-		}
-		
-		return errors;
-	}
+            return {
+                number: taskIndex + 1,
+                title: task.title || `Задание ${taskIndex + 1}`,
+                type: task.type || 'unknown',
+                competence: task.competence || 'Не указано',
+                difficulty: this.calculateTaskDifficulty(scores),
+                discrimination: this.calculateTaskDiscrimination(scores),
+                averageScore: this.calculateAverage(scores.map(s => s * (task.maxScore || 1))),
+                completionRate: (completed / scores.length) * 100
+            };
+        });
+    }
 
+    calculateScoreDistribution() {
+        const studentStats = this.calculateStudentStatistics();
+        const scores = studentStats.map(s => s.averageScore);
 
-	createErrorAnalysisCharts(data) {
-		this.createErrorByTaskChart(data.errorAnalysis);
-		this.createErrorTypesChart(data.errorAnalysis);
-	}
+        if (scores.length === 0) {
+            return {
+                mean: 0,
+                median: 0,
+                mode: 0,
+                stdDev: 0,
+                skewness: 0,
+                kurtosis: 0
+            };
+        }
 
-	createErrorByTaskChart(errorAnalysis) {
-		const ctx = document.getElementById('errorByTaskChart');
-		if (!ctx) {
-			console.error('Canvas errorByTaskChart не найден');
-			return;
-		}
-		
-		if (!errorAnalysis || !errorAnalysis.errorByTask || Object.keys(errorAnalysis.errorByTask).length === 0) {
-			ctx.parentElement.innerHTML = `
+        // Расчет статистических показателей
+        const mean = this.calculateAverage(scores);
+        const sortedScores = [...scores].sort((a, b) => a - b);
+        const median = sortedScores[Math.floor(sortedScores.length / 2)];
+
+        // Мода (упрощенный расчет)
+        const frequency = {};
+        scores.forEach(score => {
+            const rounded = Math.round(score);
+            frequency[rounded] = (frequency[rounded] || 0) + 1;
+        });
+
+        let mode = 0;
+        let maxFreq = 0;
+        Object.entries(frequency).forEach(([score, freq]) => {
+            if (freq > maxFreq) {
+                mode = parseFloat(score);
+                maxFreq = freq;
+            }
+        });
+
+        // Стандартное отклонение
+        const variance = scores.reduce((sum, score) => sum + Math.pow(score - mean, 2), 0) / scores.length;
+        const stdDev = Math.sqrt(variance);
+
+        // Асимметрия и эксцесс (упрощенные формулы)
+        const skewness = this.calculateSkewness(scores, mean, stdDev);
+        const kurtosis = this.calculateKurtosis(scores, mean, stdDev);
+
+        return {
+            mean,
+            median,
+            mode,
+            stdDev,
+            skewness,
+            kurtosis
+        };
+    }
+
+    // Дополнительные методы для расчетов
+    calculateStability(scores) {
+        if (scores.length < 2)
+            return 1;
+        const mean = this.calculateAverage(scores);
+        const variance = scores.reduce((sum, score) => sum + Math.pow(score - mean, 2), 0) / scores.length;
+        const maxVar = Math.pow(100, 2) / 12; // Максимально возможная дисперсия
+        return Math.max(0, 1 - (variance / maxVar));
+    }
+
+    calculateTaskDifficulty(scores) {
+        // Сложность = 1 - средний процент выполнения
+        return 1 - (this.calculateAverage(scores));
+    }
+
+    calculateTaskDiscrimination(scores) {
+        if (scores.length < 4)
+            return 0.5;
+
+        // Разделяем на группы по успеваемости
+        const sortedIndices = scores
+            .map((score, index) => ({
+                    score,
+                    index
+                }))
+            .sort((a, b) => b.score - a.score)
+            .map(item => item.index);
+
+        const topCount = Math.floor(sortedIndices.length / 3);
+        const bottomCount = Math.floor(sortedIndices.length / 3);
+
+        const topGroup = sortedIndices.slice(0, topCount);
+        const bottomGroup = sortedIndices.slice(-bottomCount);
+
+        const topAvg = this.calculateAverage(topGroup.map(i => scores[i]));
+        const bottomAvg = this.calculateAverage(bottomGroup.map(i => scores[i]));
+
+        // Дискриминативность = разница между средними верхней и нижней групп
+        return Math.max(0, Math.min(1, (topAvg - bottomAvg)));
+    }
+
+    calculateSkewness(scores, mean, stdDev) {
+        if (scores.length < 3 || stdDev === 0)
+            return 0;
+
+        const n = scores.length;
+        const sumCubedDeviations = scores.reduce((sum, score) =>
+                sum + Math.pow(score - mean, 3), 0);
+
+        return (sumCubedDeviations / n) / Math.pow(stdDev, 3);
+    }
+
+    calculateKurtosis(scores, mean, stdDev) {
+        if (scores.length < 4 || stdDev === 0)
+            return 0;
+
+        const n = scores.length;
+        const sumFourthDeviations = scores.reduce((sum, score) =>
+                sum + Math.pow(score - mean, 4), 0);
+
+        return (sumFourthDeviations / n) / Math.pow(stdDev, 4) - 3;
+    }
+
+    // Методы для визуализаций (упрощенные версии)
+    createOverviewDistributionChart(data) {
+        const ctx = document.getElementById('overviewDistributionChart');
+        if (!ctx)
+            return;
+
+        const studentGroups = this.createStudentGroups(data.studentStats);
+
+        if (studentGroups.length === 0) {
+            ctx.parentElement.innerHTML = '<p class="no-data">Нет данных для построения диаграммы</p>';
+            return;
+        }
+
+        new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: studentGroups.map(g => g.name),
+                datasets: [{
+                        data: studentGroups.map(g => g.count),
+                        backgroundColor: studentGroups.map(g => g.color),
+                        borderWidth: 2,
+                        borderColor: '#fff'
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function (context) {
+                                const label = context.label || '';
+                                const value = context.raw || 0;
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                const percentage = Math.round((value / total) * 100);
+                                return `${label}: ${value} учащихся (${percentage}%)`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    createStudentScoresChart(data) {
+        const ctx = document.getElementById('studentScoresChart');
+        if (!ctx)
+            return;
+
+        const scores = data.studentStats.map(s => s.averageScore);
+        const bins = this.createHistogramBins(scores, 10);
+
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: bins.labels,
+                datasets: [{
+                        label: 'Количество учащихся',
+                        data: bins.counts,
+                        backgroundColor: 'rgba(54, 162, 235, 0.7)',
+                        borderColor: 'rgb(54, 162, 235)',
+                        borderWidth: 1
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Количество учащихся'
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Диапазон баллов'
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    createHistogramBins(scores, binCount) {
+        const min = Math.min(...scores);
+        const max = Math.max(...scores);
+        const binWidth = (max - min) / binCount;
+
+        const bins = Array(binCount).fill(0);
+        const labels = [];
+
+        for (let i = 0; i < binCount; i++) {
+            const lower = min + i * binWidth;
+            const upper = min + (i + 1) * binWidth;
+            labels.push(`${lower.toFixed(0)}-${upper.toFixed(0)}%`);
+        }
+
+        scores.forEach(score => {
+            const binIndex = Math.min(Math.floor((score - min) / binWidth), binCount - 1);
+            bins[binIndex]++;
+        });
+
+        return {
+            labels,
+            counts: bins
+        };
+    }
+
+    // Остальные методы для визуализаций
+    createTaskDifficultyMatrix(data) {
+        const ctx = document.getElementById('taskDifficultyMatrix');
+        if (!ctx)
+            return;
+
+        new Chart(ctx, {
+            type: 'radar',
+            data: {
+                labels: data.taskStats.map(t => t.title),
+                datasets: [{
+                        label: 'Сложность',
+                        data: data.taskStats.map(t => t.difficulty * 100),
+                        backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                        borderColor: 'rgb(255, 99, 132)',
+                        pointBackgroundColor: 'rgb(255, 99, 132)'
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    r: {
+                        beginAtZero: true,
+                        max: 100
+                    }
+                }
+            }
+        });
+    }
+
+    createScoreHistogram(data) {
+        const ctx = document.getElementById('scoreHistogram');
+        if (!ctx)
+            return;
+
+        const scores = data.studentStats.map(s => s.averageScore);
+        const bins = this.createHistogramBins(scores, 15);
+
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: bins.labels,
+                datasets: [{
+                        label: 'Распределение баллов',
+                        data: bins.counts,
+                        backgroundColor: 'rgba(75, 192, 192, 0.7)',
+                        borderColor: 'rgb(75, 192, 192)',
+                        borderWidth: 1
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Частота'
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Диапазон баллов'
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // Дополнительные методы для анализа ошибок
+    // Сначала исправим метод analyzeErrors для получения реальных данных
+    analyzeErrors() {
+        // Проверяем наличие данных об ошибках в разных местах
+        let errors = [];
+
+        // 1. Проверяем appData.errors
+        if (appData.errors && Array.isArray(appData.errors)) {
+            errors = appData.errors;
+        }
+        // 2. Проверяем studentErrors
+        else if (appData.studentErrors && Object.keys(appData.studentErrors).length > 0) {
+            // Преобразуем studentErrors в массив
+            errors = Object.entries(appData.studentErrors).flatMap(([studentIndex, studentErrs]) => {
+                return studentErrs.map(err => ({
+                        ...err,
+                        studentIndex: parseInt(studentIndex)
+                    }));
+            });
+        }
+        // 3. Создаем демо-данные, если нет реальных
+        else {
+            errors = this.generateDemoErrors();
+        }
+
+        // Анализируем ошибки
+        const errorTypes = {};
+        const errorByTask = {};
+        const errorByStudent = {};
+        let totalErrorCount = 0;
+
+        errors.forEach(error => {
+            const type = error.type || 'unknown';
+            const taskIndex = error.taskIndex !== undefined ? error.taskIndex : 0;
+            const studentIndex = error.studentIndex !== undefined ? error.studentIndex : 0;
+            const count = error.count || 1;
+
+            // Статистика по типам ошибок
+            errorTypes[type] = (errorTypes[type] || 0) + count;
+
+            // Статистика по заданиям
+            const taskKey = `Задание ${taskIndex + 1}`;
+            errorByTask[taskKey] = (errorByTask[taskKey] || 0) + count;
+
+            // Статистика по студентам
+            const studentName = appData.students?.[studentIndex] || `Студент ${studentIndex + 1}`;
+            errorByStudent[studentName] = (errorByStudent[studentName] || 0) + count;
+
+            totalErrorCount += count;
+        });
+
+        return {
+            totalErrors: totalErrorCount,
+            errorTypes,
+            errorByTask,
+            errorByStudent,
+            errors: errors
+        };
+    }
+
+    generateDemoErrors() {
+        const errors = [];
+        const errorTypes = [
+            'factual', 'conceptual', 'application',
+            'calculation', 'logical', 'attention', 'technical'
+        ];
+        const errorDescriptions = {
+            'factual': 'Неверные факты или данные',
+            'conceptual': 'Непонимание основных понятий',
+            'application': 'Ошибки применения знаний',
+            'calculation': 'Вычислительные ошибки',
+            'logical': 'Логические ошибки в рассуждениях',
+            'attention': 'Ошибки внимательности',
+            'technical': 'Технические ошибки'
+        };
+
+        if (appData.students && appData.tasks) {
+            // Генерируем реалистичные ошибки
+            const studentCount = Math.min(appData.students.length, 10);
+            const taskCount = Math.min(appData.tasks.length, 8);
+
+            for (let studentIndex = 0; studentIndex < studentCount; studentIndex++) {
+                for (let taskIndex = 0; taskIndex < taskCount; taskIndex++) {
+                    // 30% вероятность ошибки в задании
+                    if (Math.random() < 0.3) {
+                        const errorType = errorTypes[Math.floor(Math.random() * errorTypes.length)];
+                        errors.push({
+                            studentIndex,
+                            taskIndex,
+                            type: errorType,
+                            description: errorDescriptions[errorType] || 'Ошибка выполнения',
+                            count: Math.floor(Math.random() * 3) + 1 // 1-3 ошибки
+                        });
+                    }
+                }
+            }
+        }
+
+        return errors;
+    }
+
+    createErrorAnalysisCharts(data) {
+        this.createErrorByTaskChart(data.errorAnalysis);
+        this.createErrorTypesChart(data.errorAnalysis);
+    }
+
+    createErrorByTaskChart(errorAnalysis) {
+        const ctx = document.getElementById('errorByTaskChart');
+        if (!ctx) {
+            console.error('Canvas errorByTaskChart не найден');
+            return;
+        }
+
+        if (!errorAnalysis || !errorAnalysis.errorByTask || Object.keys(errorAnalysis.errorByTask).length === 0) {
+            ctx.parentElement.innerHTML = `
 				<div class="no-data">
 					<i class="fas fa-chart-bar fa-3x" style="color: #ddd; margin-bottom: 10px;"></i>
 					<p>Нет данных об ошибках по заданиям</p>
 				</div>
 			`;
-			return;
-		}
-		
-		const labels = Object.keys(errorAnalysis.errorByTask);
-		const values = Object.values(errorAnalysis.errorByTask);
-		
-		// Сортируем по количеству ошибок
-		const sortedPairs = labels.map((label, index) => ({ label, value: values[index] }))
-			.sort((a, b) => b.value - a.value);
-		
-		const sortedLabels = sortedPairs.map(p => p.label);
-		const sortedValues = sortedPairs.map(p => p.value);
-		
-		// Удаляем старый график если есть
-		if (this.charts.errorByTask) {
-			this.charts.errorByTask.destroy();
-		}
-		
-		this.charts.errorByTask = new Chart(ctx, {
-			type: 'bar',
-			data: {
-				labels: sortedLabels,
-				datasets: [{
-					label: 'Количество ошибок',
-					data: sortedValues,
-					backgroundColor: 'rgba(231, 76, 60, 0.7)',
-					borderColor: 'rgb(231, 76, 60)',
-					borderWidth: 1
-				}]
-			},
-			options: {
-				responsive: true,
-				maintainAspectRatio: false,
-				scales: {
-					y: {
-						beginAtZero: true,
-						title: {
-							display: true,
-							text: 'Количество ошибок'
-						}
-					},
-					x: {
-						title: {
-							display: true,
-							text: 'Задания'
-						}
-					}
-				},
-				plugins: {
-					tooltip: {
-						callbacks: {
-							label: function(context) {
-								return `Ошибок: ${context.raw}`;
-							}
-						}
-					}
-				}
-			}
-		});
-	}
+            return;
+        }
 
-	createErrorTypesChart(errorAnalysis) {
-		const ctx = document.getElementById('errorTypesChart');
-		if (!ctx) {
-			console.error('Canvas errorTypesChart не найден');
-			return;
-		}
-		
-		if (!errorAnalysis || !errorAnalysis.errorTypes || Object.keys(errorAnalysis.errorTypes).length === 0) {
-			ctx.parentElement.innerHTML = `
+        const labels = Object.keys(errorAnalysis.errorByTask);
+        const values = Object.values(errorAnalysis.errorByTask);
+
+        // Сортируем по количеству ошибок
+        const sortedPairs = labels.map((label, index) => ({
+                    label,
+                    value: values[index]
+                }))
+            .sort((a, b) => b.value - a.value);
+
+        const sortedLabels = sortedPairs.map(p => p.label);
+        const sortedValues = sortedPairs.map(p => p.value);
+
+        // Удаляем старый график если есть
+        if (this.charts.errorByTask) {
+            this.charts.errorByTask.destroy();
+        }
+
+        this.charts.errorByTask = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: sortedLabels,
+                datasets: [{
+                        label: 'Количество ошибок',
+                        data: sortedValues,
+                        backgroundColor: 'rgba(231, 76, 60, 0.7)',
+                        borderColor: 'rgb(231, 76, 60)',
+                        borderWidth: 1
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Количество ошибок'
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Задания'
+                        }
+                    }
+                },
+                plugins: {
+                    tooltip: {
+                        callbacks: {
+                            label: function (context) {
+                                return `Ошибок: ${context.raw}`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    createErrorTypesChart(errorAnalysis) {
+        const ctx = document.getElementById('errorTypesChart');
+        if (!ctx) {
+            console.error('Canvas errorTypesChart не найден');
+            return;
+        }
+
+        if (!errorAnalysis || !errorAnalysis.errorTypes || Object.keys(errorAnalysis.errorTypes).length === 0) {
+            ctx.parentElement.innerHTML = `
 				<div class="no-data">
 					<i class="fas fa-chart-pie fa-3x" style="color: #ddd; margin-bottom: 10px;"></i>
 					<p>Нет данных о типах ошибок</p>
 				</div>
 			`;
-			return;
-		}
-		
-		const labels = Object.keys(errorAnalysis.errorTypes).map(type => this.getErrorTypeLabel(type));
-		const values = Object.values(errorAnalysis.errorTypes);
-		const total = values.reduce((a, b) => a + b, 0);
-		
-		// Сортируем по количеству
-		const sortedPairs = labels.map((label, index) => ({ 
-			label, 
-			value: values[index],
-			percentage: ((values[index] / total) * 100).toFixed(1)
-		})).sort((a, b) => b.value - a.value);
-		
-		const sortedLabels = sortedPairs.map(p => p.label);
-		const sortedValues = sortedPairs.map(p => p.value);
-		const sortedPercentages = sortedPairs.map(p => p.percentage);
-		
-		// Удаляем старый график если есть
-		if (this.charts.errorTypes) {
-			this.charts.errorTypes.destroy();
-		}
-		
-		this.charts.errorTypes = new Chart(ctx, {
-			type: 'pie',
-			data: {
-				labels: sortedLabels,
-				datasets: [{
-					data: sortedValues,
-					backgroundColor: this.generateColors(sortedLabels.length),
-					borderWidth: 2,
-					borderColor: '#fff'
-				}]
-			},
-			options: {
-				responsive: true,
-				maintainAspectRatio: false,
-				plugins: {
-					legend: {
-						position: 'right',
-						labels: {
-							font: {
-								size: 11
-							},
-							padding: 15
-						}
-					},
-					tooltip: {
-						callbacks: {
-							label: function(context) {
-								const label = context.label || '';
-								const value = context.raw || 0;
-								const percentage = sortedPercentages[context.dataIndex] || '0.0';
-								return `${label}: ${value} (${percentage}%)`;
-							}
-						}
-					}
-				}
-			}
-		});
-	}
+            return;
+        }
 
-	// Генерация цветов
-	generateColors(count) {
-		const colors = [];
-		const hueStep = 360 / count;
-		
-		for (let i = 0; i < count; i++) {
-			const hue = i * hueStep;
-			colors.push(`hsl(${hue}, 70%, 60%)`);
-		}
-		
-		return colors;
-	}
+        const labels = Object.keys(errorAnalysis.errorTypes).map(type => this.getErrorTypeLabel(type));
+        const values = Object.values(errorAnalysis.errorTypes);
+        const total = values.reduce((a, b) => a + b, 0);
 
-	// Вспомогательные методы для отображения
-	getScoreClass(score) {
-		if (score >= 85) return 'excellent';
-		if (score >= 70) return 'good';
-		if (score >= 50) return 'average';
-		return 'poor';
-	}
+        // Сортируем по количеству
+        const sortedPairs = labels.map((label, index) => ({
+                    label,
+                    value: values[index],
+                    percentage: ((values[index] / total) * 100).toFixed(1)
+                })).sort((a, b) => b.value - a.value);
 
-	getDifficultyClass(difficulty) {
-		if (difficulty >= 0.7) return 'very-hard';
-		if (difficulty >= 0.5) return 'hard';
-		if (difficulty >= 0.3) return 'medium';
-		return 'easy';
-	}
+        const sortedLabels = sortedPairs.map(p => p.label);
+        const sortedValues = sortedPairs.map(p => p.value);
+        const sortedPercentages = sortedPairs.map(p => p.percentage);
 
-	getDiscriminationClass(discrimination) {
-		if (discrimination >= 0.5) return 'excellent';
-		if (discrimination >= 0.3) return 'good';
-		if (discrimination >= 0.2) return 'acceptable';
-		return 'poor';
-	}
+        // Удаляем старый график если есть
+        if (this.charts.errorTypes) {
+            this.charts.errorTypes.destroy();
+        }
 
-	getTaskStatus(task) {
-		if (task.difficulty > 0.7) return 'very-hard';
-		if (task.discrimination < 0.2) return 'poor-discrimination';
-		if (task.completionRate < 30) return 'low-completion';
-		return 'good';
-	}
+        this.charts.errorTypes = new Chart(ctx, {
+            type: 'pie',
+            data: {
+                labels: sortedLabels,
+                datasets: [{
+                        data: sortedValues,
+                        backgroundColor: this.generateColors(sortedLabels.length),
+                        borderWidth: 2,
+                        borderColor: '#fff'
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'right',
+                        labels: {
+                            font: {
+                                size: 11
+                            },
+                            padding: 15
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function (context) {
+                                const label = context.label || '';
+                                const value = context.raw || 0;
+                                const percentage = sortedPercentages[context.dataIndex] || '0.0';
+                                return `${label}: ${value} (${percentage}%)`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
 
-	getTaskStatusIcon(task) {
-		const status = this.getTaskStatus(task);
-		switch (status) {
-			case 'very-hard': return 'fa-exclamation-triangle';
-			case 'poor-discrimination': return 'fa-filter';
-			case 'low-completion': return 'fa-user-clock';
-			default: return 'fa-check-circle';
-		}
-	}
+    // Генерация цветов
+    generateColors(count) {
+        const colors = [];
+        const hueStep = 360 / count;
 
-	getTaskStatusText(task) {
-		const status = this.getTaskStatus(task);
-		switch (status) {
-			case 'very-hard': return 'Очень сложное';
-			case 'poor-discrimination': return 'Низкая дискриминативность';
-			case 'low-completion': return 'Низкая выполнимость';
-			default: return 'Хорошее';
-		}
-	}
+        for (let i = 0; i < count; i++) {
+            const hue = i * hueStep;
+            colors.push(`hsl(${hue}, 70%, 60%)`);
+        }
 
-	// Методы для экспорта
-	exportDetailedReport() {
-		showNotification('Подготовка PDF отчета...', 'info');
-		// Реализация экспорта в PDF
-	}
+        return colors;
+    }
 
-	exportDetailedCSV() {
-		showNotification('Подготовка CSV файла...', 'info');
-		// Реализация экспорта в CSV
-	}
+    // Вспомогательные методы для отображения
+    getScoreClass(score) {
+        if (score >= 85)
+            return 'excellent';
+        if (score >= 70)
+            return 'good';
+        if (score >= 50)
+            return 'average';
+        return 'poor';
+    }
 
-	printDetailedReport() {
-		window.print();
-	}
-	
-	// Вставьте эти методы в класс AdvancedAnalytics перед последней закрывающей фигурной скобкой
+    getDifficultyClass(difficulty) {
+        if (difficulty >= 0.7)
+            return 'very-hard';
+        if (difficulty >= 0.5)
+            return 'hard';
+        if (difficulty >= 0.3)
+            return 'medium';
+        return 'easy';
+    }
 
-	// Расчет прогресса студента
-	calculateStudentProgress(studentIndex, scores) {
-		// Упрощенный расчет прогресса
-		// В реальном приложении здесь была бы история предыдущих тестов
-		if (!scores || scores.length < 2) return 0;
-		
-		// Для демонстрации используем случайный прогресс
-		const baseScore = this.calculateAverage(scores);
-		const randomFactor = (Math.random() - 0.5) * 20; // -10% до +10%
-		return randomFactor;
-	}
+    getDiscriminationClass(discrimination) {
+        if (discrimination >= 0.5)
+            return 'excellent';
+        if (discrimination >= 0.3)
+            return 'good';
+        if (discrimination >= 0.2)
+            return 'acceptable';
+        return 'poor';
+    }
 
-	// Генерация карточек группового анализа
-	renderGroupAnalysisCards(sortedStudents) {
-		if (!sortedStudents || sortedStudents.length === 0) return '<p>Нет данных для анализа</p>';
-		
-		// Создаем группы с правильными критериями
-		const groups = [
-			{ 
-				name: 'Отличники', 
-				icon: 'fa-trophy',
-				filter: s => s.averageScore >= 85,
-				description: 'Высокие стабильные результаты по всем заданиям'
-			},
-			{ 
-				name: 'Хорошисты', 
-				icon: 'fa-star',
-				filter: s => s.averageScore >= 70 && s.averageScore < 85,
-				description: 'Хорошие результаты, возможны улучшения в сложных заданиях'
-			},
-			{ 
-				name: 'Средние', 
-				icon: 'fa-chart-line',
-				filter: s => s.averageScore >= 50 && s.averageScore < 70,
-				description: 'Средние результаты, высокая стабильность'
-			},
-			{ 
-				name: 'Требуют внимания', 
-				icon: 'fa-exclamation-triangle',
-				filter: s => s.averageScore < 50,
-				description: 'Низкие результаты, требуется коррекция'
-			}
-		];
-		
-		const groupResults = groups.map(group => {
-			const students = sortedStudents.filter(group.filter);
-			const averageScore = students.length > 0 
-				? students.reduce((sum, s) => sum + s.averageScore, 0) / students.length
-				: 0;
-			
-			return {
-				...group,
-				students: students.map(s => ({ name: s.name })),
-				count: students.length,
-				averageScore,
-				color: this.getGroupColor(group.name)
-			};
-		});
-		
-		return `
+    getTaskStatus(task) {
+        if (task.difficulty > 0.7)
+            return 'very-hard';
+        if (task.discrimination < 0.2)
+            return 'poor-discrimination';
+        if (task.completionRate < 30)
+            return 'low-completion';
+        return 'good';
+    }
+
+    getTaskStatusIcon(task) {
+        const status = this.getTaskStatus(task);
+        switch (status) {
+        case 'very-hard':
+            return 'fa-exclamation-triangle';
+        case 'poor-discrimination':
+            return 'fa-filter';
+        case 'low-completion':
+            return 'fa-user-clock';
+        default:
+            return 'fa-check-circle';
+        }
+    }
+
+    getTaskStatusText(task) {
+        const status = this.getTaskStatus(task);
+        switch (status) {
+        case 'very-hard':
+            return 'Очень сложное';
+        case 'poor-discrimination':
+            return 'Низкая дискриминативность';
+        case 'low-completion':
+            return 'Низкая выполнимость';
+        default:
+            return 'Хорошее';
+        }
+    }
+
+    // Методы для экспорта
+    exportDetailedReport() {
+        showNotification('Подготовка PDF отчета...', 'info');
+        // Реализация экспорта в PDF
+    }
+
+    exportDetailedCSV() {
+        showNotification('Подготовка CSV файла...', 'info');
+        // Реализация экспорта в CSV
+    }
+
+    printDetailedReport() {
+        window.print();
+    }
+
+    // Вставьте эти методы в класс AdvancedAnalytics перед последней закрывающей фигурной скобкой
+
+    // Расчет прогресса студента
+    calculateStudentProgress(studentIndex, scores) {
+        // Упрощенный расчет прогресса
+        // В реальном приложении здесь была бы история предыдущих тестов
+        if (!scores || scores.length < 2)
+            return 0;
+
+        // Для демонстрации используем случайный прогресс
+        const baseScore = this.calculateAverage(scores);
+        const randomFactor = (Math.random() - 0.5) * 20; // -10% до +10%
+        return randomFactor;
+    }
+
+    // Генерация карточек группового анализа
+    renderGroupAnalysisCards(sortedStudents) {
+        if (!sortedStudents || sortedStudents.length === 0)
+            return '<p>Нет данных для анализа</p>';
+
+        // Создаем группы с правильными критериями
+        const groups = [{
+                name: 'Отличники',
+                icon: 'fa-trophy',
+                filter: s => s.averageScore >= 85,
+                description: 'Высокие стабильные результаты по всем заданиям'
+            }, {
+                name: 'Хорошисты',
+                icon: 'fa-star',
+                filter: s => s.averageScore >= 70 && s.averageScore < 85,
+                description: 'Хорошие результаты, возможны улучшения в сложных заданиях'
+            }, {
+                name: 'Средние',
+                icon: 'fa-chart-line',
+                filter: s => s.averageScore >= 50 && s.averageScore < 70,
+                description: 'Средние результаты, высокая стабильность'
+            }, {
+                name: 'Требуют внимания',
+                icon: 'fa-exclamation-triangle',
+                filter: s => s.averageScore < 50,
+                description: 'Низкие результаты, требуется коррекция'
+            }
+        ];
+
+        const groupResults = groups.map(group => {
+            const students = sortedStudents.filter(group.filter);
+            const averageScore = students.length > 0
+                 ? students.reduce((sum, s) => sum + s.averageScore, 0) / students.length
+                 : 0;
+
+            return {
+                ...group,
+                students: students.map(s => ({
+                        name: s.name
+                    })),
+                count: students.length,
+                averageScore,
+                color: this.getGroupColor(group.name)
+            };
+        });
+
+        return `
 			<div class="group-analysis-grid">
 				${groupResults.map(group => `
 					<div class="group-analysis-card" style="border-color: ${group.color}">
@@ -5456,58 +5550,58 @@ class AdvancedAnalytics {
 				`).join('')}
 			</div>
 		`;
-	}
+    }
 
-	// Метод для получения цвета группы
-	getGroupColor(groupName) {
-		const colors = {
-			'Отличники': '#27ae60',
-			'Хорошисты': '#3498db',
-			'Средние': '#f39c12',
-			'Требуют внимания': '#e74c3c'
-		};
-		return colors[groupName] || '#6c757d';
-	}
+    // Метод для получения цвета группы
+    getGroupColor(groupName) {
+        const colors = {
+            'Отличники': '#27ae60',
+            'Хорошисты': '#3498db',
+            'Средние': '#f39c12',
+            'Требуют внимания': '#e74c3c'
+        };
+        return colors[groupName] || '#6c757d';
+    }
 
-	// Расчет общего среднего
-	calculateOverallAverage(studentStats) {
-		if (!studentStats || studentStats.length === 0) return 0;
-		const sum = studentStats.reduce((total, student) => total + student.averageScore, 0);
-		return sum / studentStats.length;
-	}
+    // Расчет общего среднего
+    calculateOverallAverage(studentStats) {
+        if (!studentStats || studentStats.length === 0)
+            return 0;
+        const sum = studentStats.reduce((total, student) => total + student.averageScore, 0);
+        return sum / studentStats.length;
+    }
 
-	// Получение типа задания
-	getTaskTypeLabel(type) {
-		const types = {
-			'multiple-choice': 'Выбор ответа',
-			'short-answer': 'Краткий ответ',
-			'essay': 'Развернутый ответ',
-			'matching': 'Сопоставление',
-			'true-false': 'Верно/Неверно',
-			'calculation': 'Расчетная задача'
-		};
-		return types[type] || type || 'Не указан';
-	}
+    // Получение типа задания
+    getTaskTypeLabel(type) {
+        const types = {
+            'multiple-choice': 'Выбор ответа',
+            'short-answer': 'Краткий ответ',
+            'essay': 'Развернутый ответ',
+            'matching': 'Сопоставление',
+            'true-false': 'Верно/Неверно',
+            'calculation': 'Расчетная задача'
+        };
+        return types[type] || type || 'Не указан';
+    }
 
-	// Рендеринг рекомендаций по заданиям
-	renderTaskRecommendations(tasks) {
-		const problematicTasks = tasks.filter(task => 
-			task.difficulty > 0.7 || 
-			task.discrimination < 0.3 || 
-			task.completionRate < 50
-		);
-		
-		if (problematicTasks.length === 0) {
-			return `
+    // Рендеринг рекомендаций по заданиям
+    renderTaskRecommendations(tasks) {
+        const problematicTasks = tasks.filter(task =>
+                task.difficulty > 0.7 ||
+                task.discrimination < 0.3 ||
+                task.completionRate < 50);
+
+        if (problematicTasks.length === 0) {
+            return `
 				<div class="no-problems-card">
 					<i class="fas fa-check-circle success"></i>
 					<h5>Отличные задания!</h5>
 					<p>Все задания имеют хорошие показатели сложности и дискриминативности.</p>
 				</div>
 			`;
-		}
-		
-		return problematicTasks.map(task => `
+        }
+
+        return problematicTasks.map(task => `
 			<div class="task-recommendation-card ${task.difficulty > 0.7 ? 'difficulty-high' : task.discrimination < 0.3 ? 'discrimination-low' : 'completion-low'}">
 				<div class="recommendation-header">
 					<h5>${task.title}</h5>
@@ -5555,89 +5649,95 @@ class AdvancedAnalytics {
 				</div>
 			</div>
 		`).join('');
-	}
+    }
 
-	// Интерпретация распределения
-	interpretDistribution(distribution) {
-		const { mean, median, stdDev, skewness, kurtosis } = distribution;
-		
-		let interpretation = '';
-		
-		// Анализ среднего
-		if (mean >= 85) {
-			interpretation += '<p><strong>Высокий средний балл</strong> - класс хорошо освоил материал.</p>';
-		} else if (mean >= 70) {
-			interpretation += '<p><strong>Хороший средний балл</strong> - класс в основном освоил материал.</p>';
-		} else if (mean >= 50) {
-			interpretation += '<p><strong>Удовлетворительный средний балл</strong> - требуется повторение материала.</p>';
-		} else {
-			interpretation += '<p><strong>Низкий средний балл</strong> - необходимо серьезное вмешательство.</p>';
-		}
-		
-		// Анализ стандартного отклонения
-		if (stdDev > 20) {
-			interpretation += '<p><strong>Большой разброс баллов</strong> - значительные различия в подготовке учащихся.</p>';
-		} else if (stdDev > 10) {
-			interpretation += '<p><strong>Умеренный разброс баллов</strong> - различия в подготовке в пределах нормы.</p>';
-		} else {
-			interpretation += '<p><strong>Маленький разброс баллов</strong> - однородная подготовка учащихся.</p>';
-		}
-		
-		// Анализ асимметрии
-		if (skewness > 0.5) {
-			interpretation += '<p><strong>Смещение влево</strong> - большинство учащихся получили низкие баллы.</p>';
-		} else if (skewness < -0.5) {
-			interpretation += '<p><strong>Смещение вправо</strong> - большинство учащихся получили высокие баллы.</p>';
-		} else {
-			interpretation += '<p><strong>Симметричное распределение</strong> - нормальное распределение баллов.</p>';
-		}
-		
-		// Анализ эксцесса
-		if (kurtosis > 1) {
-			interpretation += '<p><strong>Пикообразное распределение</strong> - баллы сконцентрированы около среднего.</p>';
-		} else if (kurtosis < -1) {
-			interpretation += '<p><strong>Плоское распределение</strong> - равномерное распределение баллов.</p>';
-		}
-		
-		return interpretation;
-	}
+    // Интерпретация распределения
+    interpretDistribution(distribution) {
+        const {
+            mean,
+            median,
+            stdDev,
+            skewness,
+            kurtosis
+        } = distribution;
 
-	// Рендеринг сводки по ошибкам
-	renderErrorSummaryCards(errorAnalysis) {
-		if (!errorAnalysis || errorAnalysis.totalErrors === 0) {
-			return `
+        let interpretation = '';
+
+        // Анализ среднего
+        if (mean >= 85) {
+            interpretation += '<p><strong>Высокий средний балл</strong> - класс хорошо освоил материал.</p>';
+        } else if (mean >= 70) {
+            interpretation += '<p><strong>Хороший средний балл</strong> - класс в основном освоил материал.</p>';
+        } else if (mean >= 50) {
+            interpretation += '<p><strong>Удовлетворительный средний балл</strong> - требуется повторение материала.</p>';
+        } else {
+            interpretation += '<p><strong>Низкий средний балл</strong> - необходимо серьезное вмешательство.</p>';
+        }
+
+        // Анализ стандартного отклонения
+        if (stdDev > 20) {
+            interpretation += '<p><strong>Большой разброс баллов</strong> - значительные различия в подготовке учащихся.</p>';
+        } else if (stdDev > 10) {
+            interpretation += '<p><strong>Умеренный разброс баллов</strong> - различия в подготовке в пределах нормы.</p>';
+        } else {
+            interpretation += '<p><strong>Маленький разброс баллов</strong> - однородная подготовка учащихся.</p>';
+        }
+
+        // Анализ асимметрии
+        if (skewness > 0.5) {
+            interpretation += '<p><strong>Смещение влево</strong> - большинство учащихся получили низкие баллы.</p>';
+        } else if (skewness < -0.5) {
+            interpretation += '<p><strong>Смещение вправо</strong> - большинство учащихся получили высокие баллы.</p>';
+        } else {
+            interpretation += '<p><strong>Симметричное распределение</strong> - нормальное распределение баллов.</p>';
+        }
+
+        // Анализ эксцесса
+        if (kurtosis > 1) {
+            interpretation += '<p><strong>Пикообразное распределение</strong> - баллы сконцентрированы около среднего.</p>';
+        } else if (kurtosis < -1) {
+            interpretation += '<p><strong>Плоское распределение</strong> - равномерное распределение баллов.</p>';
+        }
+
+        return interpretation;
+    }
+
+    // Рендеринг сводки по ошибкам
+    renderErrorSummaryCards(errorAnalysis) {
+        if (!errorAnalysis || errorAnalysis.totalErrors === 0) {
+            return `
 				<div class="no-errors-card">
 					<i class="fas fa-check-circle success"></i>
 					<h5>Ошибок не обнаружено!</h5>
 					<p>Все задания выполнены без зарегистрированных ошибок.</p>
 				</div>
 			`;
-		}
-		
-		const errorTypes = errorAnalysis.errorTypes || {};
-		const errorByTask = errorAnalysis.errorByTask || {};
-		
-		// Находим наиболее частый тип ошибок
-		let mostCommonType = '';
-		let maxTypeCount = 0;
-		Object.entries(errorTypes).forEach(([type, count]) => {
-			if (count > maxTypeCount) {
-				mostCommonType = type;
-				maxTypeCount = count;
-			}
-		});
-		
-		// Находим задание с наибольшим количеством ошибок
-		let problematicTask = '';
-		let maxTaskErrors = 0;
-		Object.entries(errorByTask).forEach(([task, count]) => {
-			if (count > maxTaskErrors) {
-				problematicTask = task;
-				maxTaskErrors = count;
-			}
-		});
-		
-		return `
+        }
+
+        const errorTypes = errorAnalysis.errorTypes || {};
+        const errorByTask = errorAnalysis.errorByTask || {};
+
+        // Находим наиболее частый тип ошибок
+        let mostCommonType = '';
+        let maxTypeCount = 0;
+        Object.entries(errorTypes).forEach(([type, count]) => {
+            if (count > maxTypeCount) {
+                mostCommonType = type;
+                maxTypeCount = count;
+            }
+        });
+
+        // Находим задание с наибольшим количеством ошибок
+        let problematicTask = '';
+        let maxTaskErrors = 0;
+        Object.entries(errorByTask).forEach(([task, count]) => {
+            if (count > maxTaskErrors) {
+                problematicTask = task;
+                maxTaskErrors = count;
+            }
+        });
+
+        return `
 			<div class="error-summary-grid">
 				<div class="error-card total-errors">
 					<div class="error-icon">
@@ -5684,30 +5784,30 @@ class AdvancedAnalytics {
 				` : ''}
 			</div>
 		`;
-	}
+    }
 
-	// Рендеринг анализа по типам ошибок
-	renderErrorTypesAnalysis(errorAnalysis) {
-		if (!errorAnalysis.errorTypes || Object.keys(errorAnalysis.errorTypes).length === 0) {
-			return '<p class="no-data">Нет данных по типам ошибок</p>';
-		}
-		
-		const errorTypes = errorAnalysis.errorTypes;
-		const totalErrors = errorAnalysis.totalErrors;
-		
-		// Сортируем по количеству ошибок
-		const sortedTypes = Object.entries(errorTypes)
-			.sort((a, b) => b[1] - a[1])
-			.slice(0, 5); // Показываем топ-5
-		
-		return `
+    // Рендеринг анализа по типам ошибок
+    renderErrorTypesAnalysis(errorAnalysis) {
+        if (!errorAnalysis.errorTypes || Object.keys(errorAnalysis.errorTypes).length === 0) {
+            return '<p class="no-data">Нет данных по типам ошибок</p>';
+        }
+
+        const errorTypes = errorAnalysis.errorTypes;
+        const totalErrors = errorAnalysis.totalErrors;
+
+        // Сортируем по количеству ошибок
+        const sortedTypes = Object.entries(errorTypes)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 5); // Показываем топ-5
+
+        return `
 			<div class="error-types-list">
 				${sortedTypes.map(([type, count]) => {
-					const percentage = ((count / totalErrors) * 100).toFixed(1);
-					const typeLabel = this.getErrorTypeLabel(type);
-					const description = this.getErrorTypeDescription(type);
-					
-					return `
+            const percentage = ((count / totalErrors) * 100).toFixed(1);
+            const typeLabel = this.getErrorTypeLabel(type);
+            const description = this.getErrorTypeDescription(type);
+
+            return `
 						<div class="error-type-item">
 							<div class="error-type-header">
 								<span class="error-type-name">${typeLabel}</span>
@@ -5721,98 +5821,98 @@ class AdvancedAnalytics {
 							</div>
 						</div>
 					`;
-				}).join('')}
+        }).join('')}
 			</div>
 		`;
-	}
+    }
 
-	// Получение метки для типа ошибки
-	getErrorTypeLabel(type) {
-		const labels = {
-			'factual': 'Фактические ошибки',
-			'conceptual': 'Концептуальные ошибки',
-			'application': 'Ошибки применения',
-			'calculation': 'Вычислительные ошибки',
-			'logical': 'Логические ошибки',
-			'attention': 'Ошибки внимательности',
-			'technical': 'Технические ошибки'
-		};
-		return labels[type] || type;
-	}
+    // Получение метки для типа ошибки
+    getErrorTypeLabel(type) {
+        const labels = {
+            'factual': 'Фактические ошибки',
+            'conceptual': 'Концептуальные ошибки',
+            'application': 'Ошибки применения',
+            'calculation': 'Вычислительные ошибки',
+            'logical': 'Логические ошибки',
+            'attention': 'Ошибки внимательности',
+            'technical': 'Технические ошибки'
+        };
+        return labels[type] || type;
+    }
 
-	// Получение описания типа ошибки
-	getErrorTypeDescription(type) {
-		const descriptions = {
-			'factual': 'Неверные факты, даты, имена, термины',
-			'conceptual': 'Непонимание основных понятий и принципов',
-			'application': 'Неумение применить знания на практике',
-			'calculation': 'Ошибки в вычислениях, арифметические ошибки',
-			'logical': 'Нарушение логики рассуждений, неверные выводы',
-			'attention': 'Пропуск деталей, невнимательное чтение задания',
-			'technical': 'Ошибки оформления, технические недочеты'
-		};
-		return descriptions[type] || 'Описание отсутствует';
-	}
+    // Получение описания типа ошибки
+    getErrorTypeDescription(type) {
+        const descriptions = {
+            'factual': 'Неверные факты, даты, имена, термины',
+            'conceptual': 'Непонимание основных понятий и принципов',
+            'application': 'Неумение применить знания на практике',
+            'calculation': 'Ошибки в вычислениях, арифметические ошибки',
+            'logical': 'Нарушение логики рассуждений, неверные выводы',
+            'attention': 'Пропуск деталей, невнимательное чтение задания',
+            'technical': 'Ошибки оформления, технические недочеты'
+        };
+        return descriptions[type] || 'Описание отсутствует';
+    }
 
-	// Рендеринг рекомендаций по коррекции ошибок
-	renderErrorCorrectionRecommendations(errorAnalysis) {
-		if (!errorAnalysis.errorTypes || Object.keys(errorAnalysis.errorTypes).length === 0) {
-			return '<p>Нет ошибок для анализа</p>';
-		}
-		
-		const recommendations = [];
-		const errorTypes = errorAnalysis.errorTypes;
-		
-		// Анализируем типы ошибок и генерируем рекомендации
-		if (errorTypes.factual) {
-			recommendations.push({
-				title: 'Работа с фактическим материалом',
-				description: 'Организовать повторение ключевых фактов, дат, терминов',
-				actions: [
-					'Создать карточки с основными фактами',
-					'Провести викторину по материалу',
-					'Использовать мнемонические приемы'
-				]
-			});
-		}
-		
-		if (errorTypes.conceptual) {
-			recommendations.push({
-				title: 'Коррекция концептуальных ошибок',
-				description: 'Устранить непонимание основных понятий и принципов',
-				actions: [
-					'Вернуться к основам темы',
-					'Использовать наглядные материалы',
-					'Обсуждение в малых группах'
-				]
-			});
-		}
-		
-		if (errorTypes.calculation) {
-			recommendations.push({
-				title: 'Устранение вычислительных ошибок',
-				description: 'Развить навыки проверки вычислений',
-				actions: [
-					'Тренировка устного счета',
-					'Проверка результатов разными способами',
-					'Работа с калькулятором'
-				]
-			});
-		}
-		
-		if (errorTypes.attention) {
-			recommendations.push({
-				title: 'Развитие внимательности',
-				description: 'Снизить количество ошибок из-за невнимательности',
-				actions: [
-					'Тренировка концентрации внимания',
-					'Чтение условий вслух',
-					'Выделение ключевых слов'
-				]
-			});
-		}
-		
-		return `
+    // Рендеринг рекомендаций по коррекции ошибок
+    renderErrorCorrectionRecommendations(errorAnalysis) {
+        if (!errorAnalysis.errorTypes || Object.keys(errorAnalysis.errorTypes).length === 0) {
+            return '<p>Нет ошибок для анализа</p>';
+        }
+
+        const recommendations = [];
+        const errorTypes = errorAnalysis.errorTypes;
+
+        // Анализируем типы ошибок и генерируем рекомендации
+        if (errorTypes.factual) {
+            recommendations.push({
+                title: 'Работа с фактическим материалом',
+                description: 'Организовать повторение ключевых фактов, дат, терминов',
+                actions: [
+                    'Создать карточки с основными фактами',
+                    'Провести викторину по материалу',
+                    'Использовать мнемонические приемы'
+                ]
+            });
+        }
+
+        if (errorTypes.conceptual) {
+            recommendations.push({
+                title: 'Коррекция концептуальных ошибок',
+                description: 'Устранить непонимание основных понятий и принципов',
+                actions: [
+                    'Вернуться к основам темы',
+                    'Использовать наглядные материалы',
+                    'Обсуждение в малых группах'
+                ]
+            });
+        }
+
+        if (errorTypes.calculation) {
+            recommendations.push({
+                title: 'Устранение вычислительных ошибок',
+                description: 'Развить навыки проверки вычислений',
+                actions: [
+                    'Тренировка устного счета',
+                    'Проверка результатов разными способами',
+                    'Работа с калькулятором'
+                ]
+            });
+        }
+
+        if (errorTypes.attention) {
+            recommendations.push({
+                title: 'Развитие внимательности',
+                description: 'Снизить количество ошибок из-за невнимательности',
+                actions: [
+                    'Тренировка концентрации внимания',
+                    'Чтение условий вслух',
+                    'Выделение ключевых слов'
+                ]
+            });
+        }
+
+        return `
 			<div class="correction-recommendations">
 				${recommendations.map((rec, index) => `
 					<div class="correction-card">
@@ -5831,117 +5931,110 @@ class AdvancedAnalytics {
 				`).join('')}
 			</div>
 		`;
-	}
+    }
 
-	// Генерация детальных рекомендаций
-	generateDetailedRecommendations(data) {
-		const studentCount = data.meta.studentCount;
-		const averageScore = this.calculateOverallAverage(data.studentStats);
-		const problematicTasks = data.taskStats.filter(task => task.difficulty > 0.7 || task.discrimination < 0.3);
-		const weakStudents = data.studentStats.filter(s => s.averageScore < 50);
-		
-		// Приоритетные рекомендации
-		const priorityRecommendations = [];
-		
-		if (weakStudents.length > 0) {
-			priorityRecommendations.push({
-				id: 'weak_students',
-				title: 'Индивидуальная работа с отстающими',
-				description: `${weakStudents.length} учащихся имеют балл ниже 50%. Требуется индивидуальный подход и дополнительные занятия.`,
-				impact: weakStudents.length > studentCount * 0.3 ? 'high' : 'medium'
-			});
-		}
-		
-		if (problematicTasks.length > 0) {
-			priorityRecommendations.push({
-				id: 'problematic_tasks',
-				title: 'Коррекция проблемных заданий',
-				description: `${problematicTasks.length} заданий имеют проблемы со сложностью или дискриминативностью.`,
-				impact: 'high'
-			});
-		}
-		
-		if (averageScore < 70) {
-			priorityRecommendations.push({
-				id: 'low_average',
-				title: 'Повторение материала',
-				description: `Средний балл класса (${averageScore.toFixed(1)}%) ниже ожидаемого. Необходимо повторить ключевые темы.`,
-				impact: 'medium'
-			});
-		}
-		
-		// План действий
-		const actionPlan = [
-			{
-				title: 'Диагностика проблем',
-				description: 'Провести индивидуальные беседы с учащимися для выявления причин затруднений',
-				deadline: '1 неделя',
-				resources: ['Анкеты', 'Индивидуальные карты', 'Психолог'],
-				progress: 0
-			},
-			{
-				title: 'Коррекция заданий',
-				description: 'Пересмотреть проблемные задания, упростить формулировки, добавить подсказки',
-				deadline: '2 недели',
-				resources: ['Методические материалы', 'Коллеги', 'Образовательные стандарты'],
-				progress: 0
-			},
-			{
-				title: 'Дифференцированное обучение',
-				description: 'Разработать задания разного уровня сложности для разных групп учащихся',
-				deadline: '3 недели',
-				resources: ['Дидактические материалы', 'Цифровые ресурсы', 'Методист'],
-				progress: 0
-			},
-			{
-				title: 'Контрольный тест',
-				description: 'Провести контрольный тест для оценки эффективности коррекционных мер',
-				deadline: '4 недели',
-				resources: ['Тестовые задания', 'Система оценивания', 'Аналитические инструменты'],
-				progress: 0
-			}
-		];
-		
-		// Ожидаемые результаты
-		const expectedResults = [
-			{
-				title: 'Улучшение среднего балла',
-				description: 'Повышение среднего балла класса на 10-15%',
-				improvement: 15,
-				timeframe: '1 месяц',
-				icon: 'fa-chart-line'
-			},
-			{
-				title: 'Снижение отстающих',
-				description: 'Уменьшение количества учащихся с баллом ниже 50% на 50%',
-				improvement: 50,
-				timeframe: '2 месяца',
-				icon: 'fa-user-graduate'
-			},
-			{
-				title: 'Улучшение заданий',
-				description: 'Повышение дискриминативности проблемных заданий до приемлемого уровня',
-				improvement: 40,
-				timeframe: '3 недели',
-				icon: 'fa-tasks'
-			}
-		];
-		
-		return {
-			priority: priorityRecommendations,
-			actionPlan,
-			expectedResults,
-			progressMetrics: {
-				currentScore: averageScore.toFixed(1),
-				targetScore: (averageScore + 15).toFixed(1),
-				improvementNeeded: (70 - averageScore).toFixed(1)
-			}
-		};
-	}
+    // Генерация детальных рекомендаций
+    generateDetailedRecommendations(data) {
+        const studentCount = data.meta.studentCount;
+        const averageScore = this.calculateOverallAverage(data.studentStats);
+        const problematicTasks = data.taskStats.filter(task => task.difficulty > 0.7 || task.discrimination < 0.3);
+        const weakStudents = data.studentStats.filter(s => s.averageScore < 50);
 
-	// Вспомогательные методы для стилей (добавьте в addDetailedAnalysisStyles)
-	addCorrectionStyles() {
-		const additionalStyles = `
+        // Приоритетные рекомендации
+        const priorityRecommendations = [];
+
+        if (weakStudents.length > 0) {
+            priorityRecommendations.push({
+                id: 'weak_students',
+                title: 'Индивидуальная работа с отстающими',
+                description: `${weakStudents.length} учащихся имеют балл ниже 50%. Требуется индивидуальный подход и дополнительные занятия.`,
+                impact: weakStudents.length > studentCount * 0.3 ? 'high' : 'medium'
+            });
+        }
+
+        if (problematicTasks.length > 0) {
+            priorityRecommendations.push({
+                id: 'problematic_tasks',
+                title: 'Коррекция проблемных заданий',
+                description: `${problematicTasks.length} заданий имеют проблемы со сложностью или дискриминативностью.`,
+                impact: 'high'
+            });
+        }
+
+        if (averageScore < 70) {
+            priorityRecommendations.push({
+                id: 'low_average',
+                title: 'Повторение материала',
+                description: `Средний балл класса (${averageScore.toFixed(1)}%) ниже ожидаемого. Необходимо повторить ключевые темы.`,
+                impact: 'medium'
+            });
+        }
+
+        // План действий
+        const actionPlan = [{
+                title: 'Диагностика проблем',
+                description: 'Провести индивидуальные беседы с учащимися для выявления причин затруднений',
+                deadline: '1 неделя',
+                resources: ['Анкеты', 'Индивидуальные карты', 'Психолог'],
+                progress: 0
+            }, {
+                title: 'Коррекция заданий',
+                description: 'Пересмотреть проблемные задания, упростить формулировки, добавить подсказки',
+                deadline: '2 недели',
+                resources: ['Методические материалы', 'Коллеги', 'Образовательные стандарты'],
+                progress: 0
+            }, {
+                title: 'Дифференцированное обучение',
+                description: 'Разработать задания разного уровня сложности для разных групп учащихся',
+                deadline: '3 недели',
+                resources: ['Дидактические материалы', 'Цифровые ресурсы', 'Методист'],
+                progress: 0
+            }, {
+                title: 'Контрольный тест',
+                description: 'Провести контрольный тест для оценки эффективности коррекционных мер',
+                deadline: '4 недели',
+                resources: ['Тестовые задания', 'Система оценивания', 'Аналитические инструменты'],
+                progress: 0
+            }
+        ];
+
+        // Ожидаемые результаты
+        const expectedResults = [{
+                title: 'Улучшение среднего балла',
+                description: 'Повышение среднего балла класса на 10-15%',
+                improvement: 15,
+                timeframe: '1 месяц',
+                icon: 'fa-chart-line'
+            }, {
+                title: 'Снижение отстающих',
+                description: 'Уменьшение количества учащихся с баллом ниже 50% на 50%',
+                improvement: 50,
+                timeframe: '2 месяца',
+                icon: 'fa-user-graduate'
+            }, {
+                title: 'Улучшение заданий',
+                description: 'Повышение дискриминативности проблемных заданий до приемлемого уровня',
+                improvement: 40,
+                timeframe: '3 недели',
+                icon: 'fa-tasks'
+            }
+        ];
+
+        return {
+            priority: priorityRecommendations,
+            actionPlan,
+            expectedResults,
+            progressMetrics: {
+                currentScore: averageScore.toFixed(1),
+                targetScore: (averageScore + 15).toFixed(1),
+                improvementNeeded: (70 - averageScore).toFixed(1)
+            }
+        };
+    }
+
+    // Вспомогательные методы для стилей (добавьте в addDetailedAnalysisStyles)
+    addCorrectionStyles() {
+        const additionalStyles = `
 			/* Стили для анализа ошибок */
 			.error-summary-grid {
 				display: grid;
@@ -6302,325 +6395,341 @@ class AdvancedAnalytics {
 				color: #7f8c8d;
 			}
 		`;
-		
-		const style = document.createElement('style');
-		style.textContent = additionalStyles;
-		document.head.appendChild(style);
-	}
 
-	// Добавьте вызов этого метода в createDetailedAnalysisModal
-	// после this.addDetailedAnalysisStyles();
-	//this.addCorrectionStyles();	
+        const style = document.createElement('style');
+        style.textContent = additionalStyles;
+        document.head.appendChild(style);
+    }
 
-	// Анализ временных метрик
-	analyzeTimeMetrics() {
-		if (!appData.students || appData.students.length === 0) {
-			return {
-				hasData: false,
-				metrics: {},
-				analysis: 'Нет данных о времени выполнения'
-			};
-		}
-		
-		// Проверяем, есть ли данные о времени в структуре appData
-		const hasTimeData = appData.test?.timeLimit || 
-						   appData.tasks?.some(task => task.timeLimit) ||
-						   appData.results?.some(result => typeof result === 'object' && result.timeSpent);
-		
-		if (!hasTimeData) {
-			// Генерируем демо-данные о времени выполнения
-			return this.generateDemoTimeMetrics();
-		}
-		
-		// Реальные данные о времени (если они есть)
-		const metrics = {
-			totalTimeLimit: appData.test?.timeLimit || 0,
-			tasksWithTimeLimit: appData.tasks?.filter(task => task.timeLimit).length || 0,
-			averageTimePerTask: 0,
-			timeDistribution: {},
-			efficiencyScores: []
-		};
-		
-		// Если есть конкретные данные о времени
-		if (appData.results && appData.results[0] && typeof appData.results[0] === 'object') {
-			return this.analyzeActualTimeMetrics();
-		}
-		
-		return {
-			hasData: true,
-			metrics,
-			analysis: 'Данные о времени ограничены. Рекомендуется добавить временные метрики для более точного анализа.',
-			recommendations: [
-				'Добавить временные ограничения для заданий',
-				'Собирать данные о времени выполнения каждого задания',
-				'Анализировать корреляцию между временем и результатами'
-			]
-		};
-	}
+    // Добавьте вызов этого метода в createDetailedAnalysisModal
+    // после this.addDetailedAnalysisStyles();
+    //this.addCorrectionStyles();
 
-	// Генерация демо-данных о времени
-	generateDemoTimeMetrics() {
-		const taskCount = appData.tasks?.length || 0;
-		const studentCount = appData.students?.length || 0;
-		
-		// Генерируем реалистичные демо-данные
-		const timePerTask = Array(taskCount).fill(0).map(() => 
-			Math.floor(Math.random() * 10) + 3 // 3-12 минут на задание
-		);
-		
-		// Данные о времени для каждого студента
-		const studentTimes = Array(studentCount).fill(0).map(() => 
-			timePerTask.map(time => time * (0.8 + Math.random() * 0.4)) // +/- 20% вариация
-		);
-		
-		// Эффективность (баллы в минуту)
-		const efficiencyScores = appData.students?.map((student, studentIndex) => {
-			const totalTime = studentTimes[studentIndex]?.reduce((a, b) => a + b, 0) || 0;
-			const totalScore = this.calculateStudentTotalScore(studentIndex);
-			const efficiency = totalTime > 0 ? (totalScore / totalTime) : 0;
-			
-			return {
-				studentName: student,
-				studentIndex,
-				totalTime: totalTime.toFixed(1),
-				totalScore: totalScore.toFixed(1),
-				efficiency: efficiency.toFixed(3),
-				efficiencyLevel: efficiency > 0.8 ? 'Высокая' : efficiency > 0.5 ? 'Средняя' : 'Низкая'
-			};
-		}) || [];
-		
-		// Распределение по времени
-		const timeDistribution = {
-			'Быстрые (< 70% времени)': Math.floor(studentCount * 0.3),
-			'Средние (70-90% времени)': Math.floor(studentCount * 0.4),
-			'Медленные (> 90% времени)': Math.floor(studentCount * 0.3)
-		};
-		
-		return {
-			hasData: true,
-			metrics: {
-				totalTimeLimit: 120, // 2 часа для всего теста
-				averageTimePerTask: (timePerTask.reduce((a, b) => a + b, 0) / taskCount).toFixed(1),
-				tasksWithTimeLimit: taskCount,
-				efficiencyScores: efficiencyScores.sort((a, b) => b.efficiency - a.efficiency),
-				timeDistribution
-			},
-			analysis: this.generateTimeAnalysis(efficiencyScores),
-			recommendations: this.generateTimeRecommendations(efficiencyScores)
-		};
-	}
+    // Анализ временных метрик
+    analyzeTimeMetrics() {
+        if (!appData.students || appData.students.length === 0) {
+            return {
+                hasData: false,
+                metrics: {},
+                analysis: 'Нет данных о времени выполнения'
+            };
+        }
 
-	// Анализ реальных данных о времени
-	analyzeActualTimeMetrics() {
-		// Если в appData.results есть объекты с данными о времени
-		const timeData = appData.results.filter(result => 
-			typeof result === 'object' && result.timeSpent
-		);
-		
-		if (timeData.length === 0) {
-			return this.generateDemoTimeMetrics();
-		}
-		
-		// Реальная обработка данных о времени
-		const taskCount = appData.tasks?.length || 0;
-		const studentCount = appData.students?.length || 0;
-		
-		// Собираем статистику по времени
-		const timeStats = timeData.map((data, index) => ({
-			studentIndex: index,
-			studentName: appData.students?.[index] || `Студент ${index + 1}`,
-			totalTime: data.timeSpent || 0,
-			averagePerTask: data.timeSpent / taskCount || 0
-		}));
-		
-		// Сортируем по эффективности
-		const efficiencyScores = timeStats.map(stat => {
-			const totalScore = this.calculateStudentTotalScore(stat.studentIndex);
-			const efficiency = stat.totalTime > 0 ? (totalScore / stat.totalTime) : 0;
-			
-			return {
-				...stat,
-				totalScore: totalScore.toFixed(1),
-				efficiency: efficiency.toFixed(3),
-				efficiencyLevel: efficiency > 0.8 ? 'Высокая' : efficiency > 0.5 ? 'Средняя' : 'Низкая'
-			};
-		}).sort((a, b) => b.efficiency - a.efficiency);
-		
-		return {
-			hasData: true,
-			metrics: {
-				efficiencyScores,
-				timeStats,
-				averageTotalTime: (timeStats.reduce((sum, stat) => sum + stat.totalTime, 0) / timeStats.length).toFixed(1)
-			},
-			analysis: this.generateTimeAnalysis(efficiencyScores),
-			recommendations: this.generateTimeRecommendations(efficiencyScores)
-		};
-	}
+        // Проверяем, есть ли данные о времени в структуре appData
+        const hasTimeData = appData.test?.timeLimit ||
+            appData.tasks?.some(task => task.timeLimit) ||
+            appData.results?.some(result => typeof result === 'object' && result.timeSpent);
 
-	// Расчет общего балла студента
-	calculateStudentTotalScore(studentIndex) {
-		if (!appData.tasks || !appData.results || !appData.results[studentIndex]) return 0;
-		
-		let totalScore = 0;
-		appData.tasks.forEach((task, taskIndex) => {
-			const score = this.getStudentScore(studentIndex, taskIndex);
-			totalScore += score;
-		});
-		
-		return totalScore;
-	}
+        if (!hasTimeData) {
+            // Генерируем демо-данные о времени выполнения
+            return this.generateDemoTimeMetrics();
+        }
 
-	// Генерация анализа времени
-	generateTimeAnalysis(efficiencyScores) {
-		if (!efficiencyScores || efficiencyScores.length === 0) {
-			return 'Недостаточно данных для анализа временных метрик.';
-		}
-		
-		const highEfficiency = efficiencyScores.filter(s => s.efficiencyLevel === 'Высокая').length;
-		const lowEfficiency = efficiencyScores.filter(s => s.efficiencyLevel === 'Низкая').length;
-		const total = efficiencyScores.length;
-		
-		let analysis = '<h5>Анализ временной эффективности:</h5>';
-		analysis += `<p><strong>Высокая эффективность:</strong> ${highEfficiency} учащихся (${((highEfficiency / total) * 100).toFixed(1)}%)</p>`;
-		analysis += `<p><strong>Низкая эффективность:</strong> ${lowEfficiency} учащихся (${((lowEfficiency / total) * 100).toFixed(1)}%)</p>`;
-		
-		// Находим лучших и худших по эффективности
-		if (efficiencyScores.length >= 3) {
-			const best = efficiencyScores[0];
-			const worst = efficiencyScores[efficiencyScores.length - 1];
-			
-			analysis += `<p><strong>Наиболее эффективный:</strong> ${best.studentName} (${best.efficiency} баллов/минуту)</p>`;
-			analysis += `<p><strong>Наименее эффективный:</strong> ${worst.studentName} (${worst.efficiency} баллов/минуту)</p>`;
-		}
-		
-		// Выводы
-		analysis += '<h5 style="margin-top: 15px;">Выводы:</h5>';
-		
-		if (highEfficiency > lowEfficiency) {
-			analysis += '<p>Большинство учащихся работают эффективно, оптимально распределяя время.</p>';
-		} else if (lowEfficiency > highEfficiency) {
-			analysis += '<p>Значительная часть учащихся работает неэффективно, требуется тренировка тайм-менеджмента.</p>';
-		} else {
-			analysis += '<p>Распределение эффективности равномерное, есть потенциал для улучшения у половины учащихся.</p>';
-		}
-		
-		return analysis;
-	}
+        // Реальные данные о времени (если они есть)
+        const metrics = {
+            totalTimeLimit: appData.test?.timeLimit || 0,
+            tasksWithTimeLimit: appData.tasks?.filter(task => task.timeLimit).length || 0,
+            averageTimePerTask: 0,
+            timeDistribution: {},
+            efficiencyScores: []
+        };
 
-	// Генерация рекомендаций по времени
-	generateTimeRecommendations(efficiencyScores) {
-		const lowEfficiency = efficiencyScores.filter(s => s.efficiencyLevel === 'Низкая').length;
-		
-		const recommendations = [
-			'Проводить тренировочные тесты с ограничением времени',
-			'Учить студентов распределять время между заданиями'
-		];
-		
-		if (lowEfficiency > 0) {
-			recommendations.push('Для учащихся с низкой эффективностью разработать индивидуальные планы по тайм-менеджменту');
-			recommendations.push('Включить задания на развитие скорости мышления');
-		}
-		
-		// Проверяем распределение времени
-		const timeVariation = efficiencyScores.map(s => parseFloat(s.efficiency));
-		const avgEfficiency = this.calculateAverage(timeVariation);
-		const stdDev = this.calculateStandardDeviation(timeVariation);
-		
-		if (stdDev > avgEfficiency * 0.5) {
-			recommendations.push('Большой разброс во времени выполнения - дифференцировать задания по сложности');
-		}
-		
-		return recommendations;
-	}
+        // Если есть конкретные данные о времени
+        if (appData.results && appData.results[0] && typeof appData.results[0] === 'object') {
+            return this.analyzeActualTimeMetrics();
+        }
 
-	// Расчет стандартного отклонения
-	calculateStandardDeviation(values) {
-		if (!values || values.length < 2) return 0;
-		const mean = this.calculateAverage(values);
-		const variance = values.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / values.length;
-		return Math.sqrt(variance);
-	}
+        return {
+            hasData: true,
+            metrics,
+            analysis: 'Данные о времени ограничены. Рекомендуется добавить временные метрики для более точного анализа.',
+            recommendations: [
+                'Добавить временные ограничения для заданий',
+                'Собирать данные о времени выполнения каждого задания',
+                'Анализировать корреляцию между временем и результатами'
+            ]
+        };
+    }
 
-	// Реализация метода showStudentDetails
-	showStudentDetails(studentIndex) {
-		if (!appData.students || !appData.students[studentIndex]) {
-			showNotification('Студент не найден', 'error');
-			return;
-		}
-		
-		const studentName = appData.students[studentIndex];
-		const studentScores = appData.tasks?.map((task, taskIndex) => {
-			const score = this.getStudentScore(studentIndex, taskIndex);
-			const maxScore = task.maxScore || 1;
-			const percentage = maxScore > 0 ? (score / maxScore) * 100 : 0;
-			
-			return {
-				task: task.title || `Задание ${taskIndex + 1}`,
-				score: score.toFixed(1),
-				maxScore: maxScore.toFixed(1),
-				percentage: percentage.toFixed(1),
-				level: task.level || 1
-			};
-		}) || [];
-		
-		const totalScore = studentScores.reduce((sum, item) => sum + parseFloat(item.score), 0);
-		const maxTotalScore = studentScores.reduce((sum, item) => sum + parseFloat(item.maxScore), 0);
-		const overallPercentage = maxTotalScore > 0 ? (totalScore / maxTotalScore) * 100 : 0;
-		
-		// Расчет компетенций
-		const competences = {
-			'Знание': { scores: [], average: 0 },
-			'Понимание': { scores: [], average: 0 },
-			'Применение': { scores: [], average: 0 },
-			'Анализ': { scores: [], average: 0 },
-			'Синтез': { scores: [], average: 0 }
-		};
-		
-		studentScores.forEach((item, index) => {
-			const task = appData.tasks?.[index];
-			if (task) {
-				const competence = this.getCompetenceByLevel(task.level || 1);
-				if (competences[competence]) {
-					competences[competence].scores.push(parseFloat(item.percentage));
-				}
-			}
-		});
-		
-		// Расчет средних по компетенциям
-		Object.keys(competences).forEach(key => {
-			if (competences[key].scores.length > 0) {
-				competences[key].average = this.calculateAverage(competences[key].scores);
-			}
-		});
-		
-		// Анализ ошибок студента
-		const studentErrors = appData.errors?.filter(error => 
-			error.studentIndex === studentIndex
-		) || [];
-		
-		// Создаем модальное окно с детальной информацией
-		this.createStudentDetailsModal({
-			studentIndex,
-			studentName,
-			studentScores,
-			totalScore: totalScore.toFixed(1),
-			maxTotalScore: maxTotalScore.toFixed(1),
-			overallPercentage: overallPercentage.toFixed(1),
-			competences,
-			errors: studentErrors
-		});
-	}
+    // Генерация демо-данных о времени
+    generateDemoTimeMetrics() {
+        const taskCount = appData.tasks?.length || 0;
+        const studentCount = appData.students?.length || 0;
 
-	// Создание модального окна деталей студента
-	createStudentDetailsModal(data) {
-		// Удаляем существующее модальное окно
-		const existingModal = document.getElementById('studentDetailsModal');
-		if (existingModal) existingModal.remove();
-		
-		const modal = document.createElement('div');
-		modal.id = 'studentDetailsModal';
-		modal.innerHTML = `
+        // Генерируем реалистичные демо-данные
+        const timePerTask = Array(taskCount).fill(0).map(() =>
+                Math.floor(Math.random() * 10) + 3 // 3-12 минут на задание
+            );
+
+        // Данные о времени для каждого студента
+        const studentTimes = Array(studentCount).fill(0).map(() =>
+                timePerTask.map(time => time * (0.8 + Math.random() * 0.4)) // +/- 20% вариация
+            );
+
+        // Эффективность (баллы в минуту)
+        const efficiencyScores = appData.students?.map((student, studentIndex) => {
+            const totalTime = studentTimes[studentIndex]?.reduce((a, b) => a + b, 0) || 0;
+            const totalScore = this.calculateStudentTotalScore(studentIndex);
+            const efficiency = totalTime > 0 ? (totalScore / totalTime) : 0;
+
+            return {
+                studentName: student,
+                studentIndex,
+                totalTime: totalTime.toFixed(1),
+                totalScore: totalScore.toFixed(1),
+                efficiency: efficiency.toFixed(3),
+                efficiencyLevel: efficiency > 0.8 ? 'Высокая' : efficiency > 0.5 ? 'Средняя' : 'Низкая'
+            };
+        }) || [];
+
+        // Распределение по времени
+        const timeDistribution = {
+            'Быстрые (< 70% времени)': Math.floor(studentCount * 0.3),
+            'Средние (70-90% времени)': Math.floor(studentCount * 0.4),
+            'Медленные (> 90% времени)': Math.floor(studentCount * 0.3)
+        };
+
+        return {
+            hasData: true,
+            metrics: {
+                totalTimeLimit: 120, // 2 часа для всего теста
+                averageTimePerTask: (timePerTask.reduce((a, b) => a + b, 0) / taskCount).toFixed(1),
+                tasksWithTimeLimit: taskCount,
+                efficiencyScores: efficiencyScores.sort((a, b) => b.efficiency - a.efficiency),
+                timeDistribution
+            },
+            analysis: this.generateTimeAnalysis(efficiencyScores),
+            recommendations: this.generateTimeRecommendations(efficiencyScores)
+        };
+    }
+
+    // Анализ реальных данных о времени
+    analyzeActualTimeMetrics() {
+        // Если в appData.results есть объекты с данными о времени
+        const timeData = appData.results.filter(result =>
+                typeof result === 'object' && result.timeSpent);
+
+        if (timeData.length === 0) {
+            return this.generateDemoTimeMetrics();
+        }
+
+        // Реальная обработка данных о времени
+        const taskCount = appData.tasks?.length || 0;
+        const studentCount = appData.students?.length || 0;
+
+        // Собираем статистику по времени
+        const timeStats = timeData.map((data, index) => ({
+                    studentIndex: index,
+                    studentName: appData.students?.[index] || `Студент ${index + 1}`,
+                    totalTime: data.timeSpent || 0,
+                    averagePerTask: data.timeSpent / taskCount || 0
+                }));
+
+        // Сортируем по эффективности
+        const efficiencyScores = timeStats.map(stat => {
+            const totalScore = this.calculateStudentTotalScore(stat.studentIndex);
+            const efficiency = stat.totalTime > 0 ? (totalScore / stat.totalTime) : 0;
+
+            return {
+                ...stat,
+                totalScore: totalScore.toFixed(1),
+                efficiency: efficiency.toFixed(3),
+                efficiencyLevel: efficiency > 0.8 ? 'Высокая' : efficiency > 0.5 ? 'Средняя' : 'Низкая'
+            };
+        }).sort((a, b) => b.efficiency - a.efficiency);
+
+        return {
+            hasData: true,
+            metrics: {
+                efficiencyScores,
+                timeStats,
+                averageTotalTime: (timeStats.reduce((sum, stat) => sum + stat.totalTime, 0) / timeStats.length).toFixed(1)
+            },
+            analysis: this.generateTimeAnalysis(efficiencyScores),
+            recommendations: this.generateTimeRecommendations(efficiencyScores)
+        };
+    }
+
+    // Расчет общего балла студента
+    calculateStudentTotalScore(studentIndex) {
+        if (!appData.tasks || !appData.results || !appData.results[studentIndex])
+            return 0;
+
+        let totalScore = 0;
+        appData.tasks.forEach((task, taskIndex) => {
+            const score = this.getStudentScore(studentIndex, taskIndex);
+            totalScore += score;
+        });
+
+        return totalScore;
+    }
+
+    // Генерация анализа времени
+    generateTimeAnalysis(efficiencyScores) {
+        if (!efficiencyScores || efficiencyScores.length === 0) {
+            return 'Недостаточно данных для анализа временных метрик.';
+        }
+
+        const highEfficiency = efficiencyScores.filter(s => s.efficiencyLevel === 'Высокая').length;
+        const lowEfficiency = efficiencyScores.filter(s => s.efficiencyLevel === 'Низкая').length;
+        const total = efficiencyScores.length;
+
+        let analysis = '<h5>Анализ временной эффективности:</h5>';
+        analysis += `<p><strong>Высокая эффективность:</strong> ${highEfficiency} учащихся (${((highEfficiency / total) * 100).toFixed(1)}%)</p>`;
+        analysis += `<p><strong>Низкая эффективность:</strong> ${lowEfficiency} учащихся (${((lowEfficiency / total) * 100).toFixed(1)}%)</p>`;
+
+        // Находим лучших и худших по эффективности
+        if (efficiencyScores.length >= 3) {
+            const best = efficiencyScores[0];
+            const worst = efficiencyScores[efficiencyScores.length - 1];
+
+            analysis += `<p><strong>Наиболее эффективный:</strong> ${best.studentName} (${best.efficiency} баллов/минуту)</p>`;
+            analysis += `<p><strong>Наименее эффективный:</strong> ${worst.studentName} (${worst.efficiency} баллов/минуту)</p>`;
+        }
+
+        // Выводы
+        analysis += '<h5 style="margin-top: 15px;">Выводы:</h5>';
+
+        if (highEfficiency > lowEfficiency) {
+            analysis += '<p>Большинство учащихся работают эффективно, оптимально распределяя время.</p>';
+        } else if (lowEfficiency > highEfficiency) {
+            analysis += '<p>Значительная часть учащихся работает неэффективно, требуется тренировка тайм-менеджмента.</p>';
+        } else {
+            analysis += '<p>Распределение эффективности равномерное, есть потенциал для улучшения у половины учащихся.</p>';
+        }
+
+        return analysis;
+    }
+
+    // Генерация рекомендаций по времени
+    generateTimeRecommendations(efficiencyScores) {
+        const lowEfficiency = efficiencyScores.filter(s => s.efficiencyLevel === 'Низкая').length;
+
+        const recommendations = [
+            'Проводить тренировочные тесты с ограничением времени',
+            'Учить студентов распределять время между заданиями'
+        ];
+
+        if (lowEfficiency > 0) {
+            recommendations.push('Для учащихся с низкой эффективностью разработать индивидуальные планы по тайм-менеджменту');
+            recommendations.push('Включить задания на развитие скорости мышления');
+        }
+
+        // Проверяем распределение времени
+        const timeVariation = efficiencyScores.map(s => parseFloat(s.efficiency));
+        const avgEfficiency = this.calculateAverage(timeVariation);
+        const stdDev = this.calculateStandardDeviation(timeVariation);
+
+        if (stdDev > avgEfficiency * 0.5) {
+            recommendations.push('Большой разброс во времени выполнения - дифференцировать задания по сложности');
+        }
+
+        return recommendations;
+    }
+
+    // Расчет стандартного отклонения
+    calculateStandardDeviation(values) {
+        if (!values || values.length < 2)
+            return 0;
+        const mean = this.calculateAverage(values);
+        const variance = values.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / values.length;
+        return Math.sqrt(variance);
+    }
+
+    // Реализация метода showStudentDetails
+    showStudentDetails(studentIndex) {
+        if (!appData.students || !appData.students[studentIndex]) {
+            showNotification('Студент не найден', 'error');
+            return;
+        }
+
+        const studentName = appData.students[studentIndex];
+        const studentScores = appData.tasks?.map((task, taskIndex) => {
+            const score = this.getStudentScore(studentIndex, taskIndex);
+            const maxScore = task.maxScore || 1;
+            const percentage = maxScore > 0 ? (score / maxScore) * 100 : 0;
+
+            return {
+                task: task.title || `Задание ${taskIndex + 1}`,
+                score: score.toFixed(1),
+                maxScore: maxScore.toFixed(1),
+                percentage: percentage.toFixed(1),
+                level: task.level || 1
+            };
+        }) || [];
+
+        const totalScore = studentScores.reduce((sum, item) => sum + parseFloat(item.score), 0);
+        const maxTotalScore = studentScores.reduce((sum, item) => sum + parseFloat(item.maxScore), 0);
+        const overallPercentage = maxTotalScore > 0 ? (totalScore / maxTotalScore) * 100 : 0;
+
+        // Расчет компетенций
+        const competences = {
+            'Знание': {
+                scores: [],
+                average: 0
+            },
+            'Понимание': {
+                scores: [],
+                average: 0
+            },
+            'Применение': {
+                scores: [],
+                average: 0
+            },
+            'Анализ': {
+                scores: [],
+                average: 0
+            },
+            'Синтез': {
+                scores: [],
+                average: 0
+            }
+        };
+
+        studentScores.forEach((item, index) => {
+            const task = appData.tasks?.[index];
+            if (task) {
+                const competence = this.getCompetenceByLevel(task.level || 1);
+                if (competences[competence]) {
+                    competences[competence].scores.push(parseFloat(item.percentage));
+                }
+            }
+        });
+
+        // Расчет средних по компетенциям
+        Object.keys(competences).forEach(key => {
+            if (competences[key].scores.length > 0) {
+                competences[key].average = this.calculateAverage(competences[key].scores);
+            }
+        });
+
+        // Анализ ошибок студента
+        const studentErrors = appData.errors?.filter(error =>
+                error.studentIndex === studentIndex) || [];
+
+        // Создаем модальное окно с детальной информацией
+        this.createStudentDetailsModal({
+            studentIndex,
+            studentName,
+            studentScores,
+            totalScore: totalScore.toFixed(1),
+            maxTotalScore: maxTotalScore.toFixed(1),
+            overallPercentage: overallPercentage.toFixed(1),
+            competences,
+            errors: studentErrors
+        });
+    }
+
+    // Создание модального окна деталей студента
+    createStudentDetailsModal(data) {
+        // Удаляем существующее модальное окно
+        const existingModal = document.getElementById('studentDetailsModal');
+        if (existingModal)
+            existingModal.remove();
+
+        const modal = document.createElement('div');
+        modal.id = 'studentDetailsModal';
+        modal.innerHTML = `
 			<div class="student-modal-overlay" onclick="this.parentElement.remove()">
 				<div class="student-modal-content" onclick="event.stopPropagation()">
 					<div class="student-modal-header">
@@ -6771,107 +6880,110 @@ class AdvancedAnalytics {
 				</div>
 			</div>
 		`;
-		
-		document.body.appendChild(modal);
-		
-		// Добавляем стили
-		this.addStudentModalStyles();
-		
-		// Создаем график компетенций
-		setTimeout(() => {
-			this.createStudentCompetencesChart(data.competences);
-		}, 100);
-	}
 
-	// Генерация рекомендаций для студента
-	generateStudentRecommendations(data) {
-		const recommendations = [];
-		const overall = parseFloat(data.overallPercentage);
-		
-		if (overall < 50) {
-			recommendations.push('Требуется повторение основного материала');
-			recommendations.push('Необходима индивидуальная консультация с преподавателем');
-		} else if (overall < 70) {
-			recommendations.push('Рекомендуется дополнительная практика по сложным темам');
-			recommendations.push('Работа над устранением типичных ошибок');
-		} else if (overall < 85) {
-			recommendations.push('Продолжать в том же темпе, уделить внимание деталям');
-			recommendations.push('Развивать навыки решения нестандартных задач');
-		} else {
-			recommendations.push('Отличный результат! Можно переходить к более сложным темам');
-			recommendations.push('Рекомендуется участие в олимпиадах и конкурсах');
-		}
-		
-		// Анализ компетенций
-		const weakCompetences = Object.entries(data.competences)
-			.filter(([key, value]) => value.average < 60)
-			.map(([key]) => key);
-		
-		if (weakCompetences.length > 0) {
-			recommendations.push(`Сосредоточиться на развитии: ${weakCompetences.join(', ')}`);
-		}
-		
-		// Анализ ошибок
-		if (data.errors.length > 0) {
-			const errorTypes = [...new Set(data.errors.map(e => e.type))];
-			if (errorTypes.includes('calculation')) {
-				recommendations.push('Тренировать вычислительные навыки');
-			}
-			if (errorTypes.includes('conceptual')) {
-				recommendations.push('Повторить основные понятия и определения');
-			}
-		}
-		
-		return recommendations.slice(0, 5); // Ограничиваем 5 рекомендациями
-	}
+        document.body.appendChild(modal);
 
-	// Создание графика компетенций студента
-	createStudentCompetencesChart(competences) {
-		const ctx = document.getElementById('studentCompetencesChart');
-		if (!ctx) return;
-		
-		const labels = Object.keys(competences);
-		const data = labels.map(key => competences[key].average);
-		
-		new Chart(ctx, {
-			type: 'radar',
-			data: {
-				labels: labels,
-				datasets: [{
-					label: 'Уровень компетенции',
-					data: data,
-					backgroundColor: 'rgba(54, 162, 235, 0.2)',
-					borderColor: 'rgb(54, 162, 235)',
-					pointBackgroundColor: 'rgb(54, 162, 235)',
-					pointBorderColor: '#fff',
-					pointHoverBackgroundColor: '#fff',
-					pointHoverBorderColor: 'rgb(54, 162, 235)'
-				}]
-			},
-			options: {
-				responsive: true,
-				maintainAspectRatio: false,
-				scales: {
-					r: {
-						beginAtZero: true,
-						max: 100,
-						ticks: {
-							stepSize: 20
-						}
-					}
-				}
-			}
-		});
-	}
+        // Добавляем стили
+        this.addStudentModalStyles();
 
-	// Добавление стилей для модального окна студента
-	addStudentModalStyles() {
-		const styleId = 'student-modal-styles';
-		if (document.getElementById(styleId)) return;
-		
-		const style = document.createElement('style');
-		style.id = styleId;
-		style.textContent = `
+        // Создаем график компетенций
+        setTimeout(() => {
+            this.createStudentCompetencesChart(data.competences);
+        }, 100);
+    }
+
+    // Генерация рекомендаций для студента
+    generateStudentRecommendations(data) {
+        const recommendations = [];
+        const overall = parseFloat(data.overallPercentage);
+
+        if (overall < 50) {
+            recommendations.push('Требуется повторение основного материала');
+            recommendations.push('Необходима индивидуальная консультация с преподавателем');
+        } else if (overall < 70) {
+            recommendations.push('Рекомендуется дополнительная практика по сложным темам');
+            recommendations.push('Работа над устранением типичных ошибок');
+        } else if (overall < 85) {
+            recommendations.push('Продолжать в том же темпе, уделить внимание деталям');
+            recommendations.push('Развивать навыки решения нестандартных задач');
+        } else {
+            recommendations.push('Отличный результат! Можно переходить к более сложным темам');
+            recommendations.push('Рекомендуется участие в олимпиадах и конкурсах');
+        }
+
+        // Анализ компетенций
+        const weakCompetences = Object.entries(data.competences)
+            .filter(([key, value]) => value.average < 60)
+            .map(([key]) => key);
+
+        if (weakCompetences.length > 0) {
+            recommendations.push(`Сосредоточиться на развитии: ${weakCompetences.join(', ')}`);
+        }
+
+        // Анализ ошибок
+        if (data.errors.length > 0) {
+            const errorTypes = [...new Set(data.errors.map(e => e.type))];
+            if (errorTypes.includes('calculation')) {
+                recommendations.push('Тренировать вычислительные навыки');
+            }
+            if (errorTypes.includes('conceptual')) {
+                recommendations.push('Повторить основные понятия и определения');
+            }
+        }
+
+        return recommendations.slice(0, 5); // Ограничиваем 5 рекомендациями
+    }
+
+    // Создание графика компетенций студента
+    createStudentCompetencesChart(competences) {
+        const ctx = document.getElementById('studentCompetencesChart');
+        if (!ctx)
+            return;
+
+        const labels = Object.keys(competences);
+        const data = labels.map(key => competences[key].average);
+
+        new Chart(ctx, {
+            type: 'radar',
+            data: {
+                labels: labels,
+                datasets: [{
+                        label: 'Уровень компетенции',
+                        data: data,
+                        backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                        borderColor: 'rgb(54, 162, 235)',
+                        pointBackgroundColor: 'rgb(54, 162, 235)',
+                        pointBorderColor: '#fff',
+                        pointHoverBackgroundColor: '#fff',
+                        pointHoverBorderColor: 'rgb(54, 162, 235)'
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    r: {
+                        beginAtZero: true,
+                        max: 100,
+                        ticks: {
+                            stepSize: 20
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // Добавление стилей для модального окна студента
+    addStudentModalStyles() {
+        const styleId = 'student-modal-styles';
+        if (document.getElementById(styleId))
+            return;
+
+        const style = document.createElement('style');
+        style.id = styleId;
+        style.textContent = `
 			.student-modal-overlay {
 				position: fixed;
 				top: 0;
@@ -7131,83 +7243,87 @@ class AdvancedAnalytics {
 				gap: 10px;
 			}
 		`;
-		
-		document.head.appendChild(style);
-	}
 
-	// Реализация метода exportStudentReport
-	exportStudentReport(studentIndex) {
-		if (!appData.students || !appData.students[studentIndex]) {
-			showNotification('Студент не найден', 'error');
-			return;
-		}
-		
-		const studentName = appData.students[studentIndex];
-		const studentData = this.collectStudentDataForExport(studentIndex);
-		
-		// Создаем HTML отчет
-		const reportHTML = this.generateStudentReportHTML(studentName, studentData);
-		
-		// Экспорт в файл
-		this.exportToFile(reportHTML, `отчет_${studentName.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.html`);
-		
-		showNotification(`Отчет студента "${studentName}" экспортирован`, 'success');
-	}
+        document.head.appendChild(style);
+    }
 
-	// Сбор данных студента для экспорта
-	collectStudentDataForExport(studentIndex) {
-		const studentName = appData.students[studentIndex];
-		const tasks = appData.tasks?.map((task, index) => ({
-			number: index + 1,
-			title: task.title || `Задание ${index + 1}`,
-			score: this.getStudentScore(studentIndex, index),
-			maxScore: task.maxScore || 1,
-			level: task.level || 1,
-			competence: this.getCompetenceByLevel(task.level || 1)
-		})) || [];
-		
-		const totalScore = tasks.reduce((sum, task) => sum + task.score, 0);
-		const maxTotalScore = tasks.reduce((sum, task) => sum + task.maxScore, 0);
-		const overallPercentage = maxTotalScore > 0 ? (totalScore / maxTotalScore) * 100 : 0;
-		
-		const errors = appData.errors?.filter(error => error.studentIndex === studentIndex) || [];
-		
-		return {
-			studentName,
-			tasks,
-			totalScore,
-			maxTotalScore,
-			overallPercentage: overallPercentage.toFixed(1),
-			errors,
-			testInfo: {
-				subject: appData.test?.subject || 'Не указан',
-				theme: appData.test?.theme || 'Не указана',
-				date: appData.test?.testDate || 'Не указана',
-				class: appData.test?.class || 'Не указан'
-			}
-		};
-	}
+    // Реализация метода exportStudentReport
+    exportStudentReport(studentIndex) {
+        if (!appData.students || !appData.students[studentIndex]) {
+            showNotification('Студент не найден', 'error');
+            return;
+        }
 
-	// Генерация HTML отчета студента
-	generateStudentReportHTML(studentName, data) {
-		const date = new Date().toLocaleDateString('ru-RU', {
-			year: 'numeric',
-			month: 'long',
-			day: 'numeric'
-		});
-		
-		// Статистика по компетенциям
-		const competenceStats = {};
-		data.tasks.forEach(task => {
-			if (!competenceStats[task.competence]) {
-				competenceStats[task.competence] = { total: 0, max: 0, count: 0 };
-			}
-			competenceStats[task.competence].total += task.score;
-			competenceStats[task.competence].max += task.maxScore;
-			competenceStats[task.competence].count++;
-		});
-		
-		return `
+        const studentName = appData.students[studentIndex];
+        const studentData = this.collectStudentDataForExport(studentIndex);
+
+        // Создаем HTML отчет
+        const reportHTML = this.generateStudentReportHTML(studentName, studentData);
+
+        // Экспорт в файл
+        this.exportToFile(reportHTML, `отчет_${studentName.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.html`);
+
+        showNotification(`Отчет студента "${studentName}" экспортирован`, 'success');
+    }
+
+    // Сбор данных студента для экспорта
+    collectStudentDataForExportsa(studentIndex) {
+        const studentName = appData.students[studentIndex];
+        const tasks = appData.tasks?.map((task, index) => ({
+                    number: index + 1,
+                    title: task.title || `Задание ${index + 1}`,
+                    score: this.getStudentScore(studentIndex, index),
+                    maxScore: task.maxScore || 1,
+                    level: task.level || 1,
+                    competence: this.getCompetenceByLevel(task.level || 1)
+                })) || [];
+
+        const totalScore = tasks.reduce((sum, task) => sum + task.score, 0);
+        const maxTotalScore = tasks.reduce((sum, task) => sum + task.maxScore, 0);
+        const overallPercentage = maxTotalScore > 0 ? (totalScore / maxTotalScore) * 100 : 0;
+
+        const errors = appData.errors?.filter(error => error.studentIndex === studentIndex) || [];
+
+        return {
+            studentName,
+            tasks,
+            totalScore,
+            maxTotalScore,
+            overallPercentage: overallPercentage.toFixed(1),
+            errors,
+            testInfo: {
+                subject: appData.test?.subject || 'Не указан',
+                theme: appData.test?.theme || 'Не указана',
+                date: appData.test?.testDate || 'Не указана',
+                class: appData.test?.class || 'Не указан'
+            }
+        };
+    }
+
+    // Генерация HTML отчета студента
+    generateStudentReportHTML(studentName, data) {
+        const date = new Date().toLocaleDateString('ru-RU', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+        });
+
+        // Статистика по компетенциям
+        const competenceStats = {};
+        data.tasks.forEach(task => {
+            if (!competenceStats[task.competence]) {
+                competenceStats[task.competence] = {
+                    total: 0,
+                    max: 0,
+                    count: 0
+                };
+            }
+            competenceStats[task.competence].total += task.score;
+            competenceStats[task.competence].max += task.maxScore;
+            competenceStats[task.competence].count++;
+        });
+
+        return `
 			<!DOCTYPE html>
 			<html lang="ru">
 			<head>
@@ -7398,9 +7514,9 @@ class AdvancedAnalytics {
 					<div class="stat-card">
 						<div>Уровень подготовки</div>
 						<div class="stat-value">
-							${parseFloat(data.overallPercentage) >= 85 ? 'Отлично' : 
-							  parseFloat(data.overallPercentage) >= 70 ? 'Хорошо' : 
-							  parseFloat(data.overallPercentage) >= 50 ? 'Удовлетворительно' : 'Неудовлетворительно'}
+							${parseFloat(data.overallPercentage) >= 85 ? 'Отлично' :
+        parseFloat(data.overallPercentage) >= 70 ? 'Хорошо' :
+        parseFloat(data.overallPercentage) >= 50 ? 'Удовлетворительно' : 'Неудовлетворительно'}
 						</div>
 						<div>${this.getScoreDescription(parseFloat(data.overallPercentage))}</div>
 					</div>
@@ -7421,8 +7537,8 @@ class AdvancedAnalytics {
 						</thead>
 						<tbody>
 							${data.tasks.map(task => {
-								const percentage = (task.score / task.maxScore * 100).toFixed(1);
-								return `
+            const percentage = (task.score / task.maxScore * 100).toFixed(1);
+            return `
 									<tr>
 										<td>${task.number}</td>
 										<td>${task.title}</td>
@@ -7437,7 +7553,7 @@ class AdvancedAnalytics {
 										<td>${task.competence}</td>
 									</tr>
 								`;
-							}).join('')}
+        }).join('')}
 						</tbody>
 					</table>
 				</div>
@@ -7446,8 +7562,8 @@ class AdvancedAnalytics {
 					<h2>🎯 Анализ компетенций</h2>
 					<div class="competence-grid">
 						${Object.entries(competenceStats).map(([competence, stats]) => {
-							const percentage = stats.max > 0 ? (stats.total / stats.max * 100).toFixed(1) : 0;
-							return `
+            const percentage = stats.max > 0 ? (stats.total / stats.max * 100).toFixed(1) : 0;
+            return `
 								<div class="competence-item">
 									<h3 style="margin-top: 0;">${competence}</h3>
 									<div>Выполнено заданий: ${stats.count}</div>
@@ -7460,7 +7576,7 @@ class AdvancedAnalytics {
 									</div>
 								</div>
 							`;
-						}).join('')}
+        }).join('')}
 					</div>
 				</div>
 				
@@ -7492,17 +7608,17 @@ class AdvancedAnalytics {
 				<div class="section">
 					<h2>💡 Рекомендации</h2>
 					${this.generateStudentRecommendations({
-						studentIndex: 0,
-						studentName,
-						overallPercentage: parseFloat(data.overallPercentage),
-						competences: Object.fromEntries(
-							Object.entries(competenceStats).map(([key, stats]) => [
-								key, 
-								{ average: stats.max > 0 ? (stats.total / stats.max * 100) : 0 }
-							])
-						),
-						errors: data.errors
-					}).map(rec => `<p>• ${rec}</p>`).join('')}
+            studentIndex: 0,
+            studentName,
+            overallPercentage: parseFloat(data.overallPercentage),
+            competences: Object.fromEntries(
+                Object.entries(competenceStats).map(([key, stats]) => [
+                        key, {
+                            average: stats.max > 0 ? (stats.total / stats.max * 100) : 0
+                        }
+                    ])),
+            errors: data.errors
+        }).map(rec => `<p>• ${rec}</p>`).join('')}
 				</div>
 				
 				<div class="footer">
@@ -7512,51 +7628,56 @@ class AdvancedAnalytics {
 			</body>
 			</html>
 		`;
-	}
+    }
 
-	// Вспомогательный метод для получения описания балла
-	getScoreDescription(percentage) {
-		if (percentage >= 85) return 'Отличное владение материалом';
-		if (percentage >= 70) return 'Хорошее понимание темы';
-		if (percentage >= 50) return 'Базовое понимание, требуется практика';
-		return 'Требуется повторение материала';
-	}
+    // Вспомогательный метод для получения описания балла
+    getScoreDescription(percentage) {
+        if (percentage >= 85)
+            return 'Отличное владение материалом';
+        if (percentage >= 70)
+            return 'Хорошее понимание темы';
+        if (percentage >= 50)
+            return 'Базовое понимание, требуется практика';
+        return 'Требуется повторение материала';
+    }
 
-	// Экспорт в файл
-	exportToFile(content, filename) {
-		const blob = new Blob([content], { type: 'text/html;charset=utf-8' });
-		const url = URL.createObjectURL(blob);
-		const link = document.createElement('a');
-		link.href = url;
-		link.download = filename;
-		link.style.display = 'none';
-		document.body.appendChild(link);
-		link.click();
-		document.body.removeChild(link);
-		URL.revokeObjectURL(url);
-	}
+    // Экспорт в файл
+    exportToFile(content, filename) {
+        const blob = new Blob([content], {
+            type: 'text/html;charset=utf-8'
+        });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = filename;
+        link.style.display = 'none';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+    }
 
-	// Реализация метода editTask
-	editTask(taskIndex) {
-		if (!appData.tasks || !appData.tasks[taskIndex]) {
-			showNotification('Задание не найдено', 'error');
-			return;
-		}
-		
-		const task = appData.tasks[taskIndex];
-		
-		// Создаем модальное окно редактирования
-		this.createTaskEditModal(taskIndex, task);
-	}
+    // Реализация метода editTask
+    editTask(taskIndex) {
+        if (!appData.tasks || !appData.tasks[taskIndex]) {
+            showNotification('Задание не найдено', 'error');
+            return;
+        }
 
-	// Создание модального окна редактирования задания
-	createTaskEditModal(taskIndex, task) {
-		// Ограничиваем уровень 1-4
-		const currentLevel = Math.min(Math.max(task.level || 1, 1), 4);
-		
-		const modal = document.createElement('div');
-		modal.id = 'taskEditModal';
-		modal.innerHTML = `
+        const task = appData.tasks[taskIndex];
+
+        // Создаем модальное окно редактирования
+        this.createTaskEditModal(taskIndex, task);
+    }
+
+    // Создание модального окна редактирования задания
+    createTaskEditModal(taskIndex, task) {
+        // Ограничиваем уровень 1-4
+        const currentLevel = Math.min(Math.max(task.level || 1, 1), 4);
+
+        const modal = document.createElement('div');
+        modal.id = 'taskEditModal';
+        modal.innerHTML = `
 			<div class="task-modal-overlay" onclick="this.parentElement.remove()">
 				<div class="task-modal-content" onclick="event.stopPropagation()">
 					<div class="task-modal-header">
@@ -7661,182 +7782,153 @@ class AdvancedAnalytics {
 				</div>
 			</div>
 		`;
-		
-		document.body.appendChild(modal);
-		this.addTaskModalStyles();
-	}
 
-	// Расчет процента выполнения задания
-	calculateTaskCompletionRate(taskIndex) {
-		if (!appData.students || !appData.results) return 0;
-		
-		let completed = 0;
-		appData.students.forEach((student, studentIndex) => {
-			const score = this.getStudentScore(studentIndex, taskIndex);
-			if (score > 0) completed++;
-		});
-		
-		return (completed / appData.students.length) * 100;
-	}
+        document.body.appendChild(modal);
+        this.addTaskModalStyles();
+    }
 
-	// Реализация метода saveTaskChanges
-	saveTaskChanges(taskIndex) {
-		const form = document.getElementById('taskEditForm');
-		if (!form) return;
-		
-		const levelSelect = document.getElementById('taskLevel');
-		const selectedLevel = parseInt(levelSelect.value);
-		
-		// Ограничиваем уровень 1-4
-		const finalLevel = Math.min(Math.max(selectedLevel, 1), 4);
-		
-		const updatedTask = {
-			...appData.tasks[taskIndex],
-			title: document.getElementById('taskTitle').value,
-			level: finalLevel,
-			maxScore: parseFloat(document.getElementById('taskMaxScore').value),
-			type: document.getElementById('taskType').value,
-			competence: this.getCompetenceByLevel(finalLevel),
-			description: document.getElementById('taskDescription').value
-		};
-		
-		// Обновляем данные
-		appData.tasks[taskIndex] = updatedTask;
-		
-		// Сохраняем изменения
-		this.saveAppDataChanges();
-		
-		// Закрываем модальное окно
-		const modal = document.getElementById('taskEditModal');
-		if (modal) modal.remove();
-		
-		showNotification('Задание успешно обновлено', 'success');
-		
-		// Обновляем интерфейс
-		if (window.refreshTaskList) {
-			window.refreshTaskList();
-		}
-	}
-	saveTaskChanges(taskIndex) {
-		const form = document.getElementById('taskEditForm');
-		if (!form) return;
-		
-		const levelSelect = document.getElementById('taskLevel');
-		const selectedLevel = parseInt(levelSelect.value);
-		
-		// Ограничиваем уровень 1-4
-		const finalLevel = Math.min(Math.max(selectedLevel, 1), 4);
-		
-		const updatedTask = {
-			...appData.tasks[taskIndex],
-			title: document.getElementById('taskTitle').value,
-			level: finalLevel,
-			maxScore: parseFloat(document.getElementById('taskMaxScore').value),
-			type: document.getElementById('taskType').value,
-			competence: this.getCompetenceByLevel(finalLevel),
-			description: document.getElementById('taskDescription').value
-		};
-		
-		// Обновляем данные
-		appData.tasks[taskIndex] = updatedTask;
-		
-		// Сохраняем изменения
-		this.saveAppDataChanges();
-		
-		// Закрываем модальное окно
-		const modal = document.getElementById('taskEditModal');
-		if (modal) modal.remove();
-		
-		showNotification('Задание успешно обновлено', 'success');
-		
-		// Обновляем интерфейс
-		if (window.refreshTaskList) {
-			window.refreshTaskList();
-		}
-	}
+    // Расчет процента выполнения задания
+    calculateTaskCompletionRate(taskIndex) {
+        if (!appData.students || !appData.results)
+            return 0;
 
-	// Сохранение изменений в appData
-	saveAppDataChanges() {
-		// В реальном приложении здесь была бы синхронизация с сервером
-		// или сохранение в localStorage
-		showNotification('Изменения сохранены', 'info');
-	}
+        let completed = 0;
+        appData.students.forEach((student, studentIndex) => {
+            const score = this.getStudentScore(studentIndex, taskIndex);
+            if (score > 0)
+                completed++;
+        });
 
-	// Реализация метода analyzeTask (расширенная версия)
-	analyzeTask(taskIndex) {
-		if (!appData.tasks || !appData.tasks[taskIndex]) {
-			showNotification('Задание не найдено', 'error');
-			return;
-		}
-		
-		const task = appData.tasks[taskIndex];
-		
-		// Собираем данные для анализа
-		const analysisData = this.collectTaskAnalysisData(taskIndex);
-		
-		// Создаем модальное окно детального анализа
-		this.createTaskAnalysisModal(taskIndex, task, analysisData);
-	}
+        return (completed / appData.students.length) * 100;
+    }
 
-	// Сбор данных для анализа задания
-	collectTaskAnalysisData(taskIndex) {
-		const task = appData.tasks[taskIndex];
-		const studentCount = appData.students?.length || 0;
-		
-		// Собираем баллы всех студентов за это задание
-		const scores = appData.students?.map((student, studentIndex) => {
-			const score = this.getStudentScore(studentIndex, taskIndex);
-			const maxScore = task.maxScore || 1;
-			return {
-				studentIndex,
-				studentName: student,
-				score,
-				percentage: maxScore > 0 ? (score / maxScore) * 100 : 0
-			};
-		}) || [];
-		
-		// Статистика
-		const percentages = scores.map(s => s.percentage);
-		const averageScore = this.calculateAverage(percentages);
-		const completed = scores.filter(s => s.score > 0).length;
-		const completionRate = (completed / studentCount) * 100;
-		
-		// Распределение по группам
-		const excellent = scores.filter(s => s.percentage >= 85).length;
-		const good = scores.filter(s => s.percentage >= 70 && s.percentage < 85).length;
-		const average = scores.filter(s => s.percentage >= 50 && s.percentage < 70).length;
-		const poor = scores.filter(s => s.percentage < 50).length;
-		
-		// Анализ ошибок для этого задания
-		const taskErrors = appData.errors?.filter(error => error.taskIndex === taskIndex) || [];
-		const errorTypes = {};
-		taskErrors.forEach(error => {
-			errorTypes[error.type] = (errorTypes[error.type] || 0) + (error.count || 1);
-		});
-		
-		return {
-			scores,
-			statistics: {
-				averageScore,
-				completionRate,
-				studentCount,
-				distribution: { excellent, good, average, poor }
-			},
-			errors: {
-				total: taskErrors.length,
-				byType: errorTypes,
-				list: taskErrors
-			},
-			difficulty: task.difficulty || this.calculateTaskDifficulty(percentages.map(p => p / 100)),
-			discrimination: task.discrimination || this.calculateTaskDiscrimination(percentages.map(p => p / 100))
-		};
-	}
+    saveTaskChanges(taskIndex) {
+        const form = document.getElementById('taskEditForm');
+        if (!form)
+            return;
 
-	// Создание модального окна анализа задания
-	createTaskAnalysisModal(taskIndex, task, analysisData) {
-		const modal = document.createElement('div');
-		modal.id = 'taskAnalysisModal';
-		modal.innerHTML = `
+        const levelSelect = document.getElementById('taskLevel');
+        const selectedLevel = parseInt(levelSelect.value);
+
+        // Ограничиваем уровень 1-4
+        const finalLevel = Math.min(Math.max(selectedLevel, 1), 4);
+
+        const updatedTask = {
+            ...appData.tasks[taskIndex],
+            title: document.getElementById('taskTitle').value,
+            level: finalLevel,
+            maxScore: parseFloat(document.getElementById('taskMaxScore').value),
+            type: document.getElementById('taskType').value,
+            competence: this.getCompetenceByLevel(finalLevel),
+            description: document.getElementById('taskDescription').value
+        };
+
+        // Обновляем данные
+        appData.tasks[taskIndex] = updatedTask;
+
+        // Сохраняем изменения
+        this.saveAppDataChanges();
+
+        // Закрываем модальное окно
+        const modal = document.getElementById('taskEditModal');
+        if (modal)
+            modal.remove();
+
+        showNotification('Задание успешно обновлено', 'success');
+
+        // Обновляем интерфейс
+        if (window.refreshTaskList) {
+            window.refreshTaskList();
+        }
+    }
+
+    // Сохранение изменений в appData
+    saveAppDataChanges() {
+        // В реальном приложении здесь была бы синхронизация с сервером
+        // или сохранение в localStorage
+        showNotification('Изменения сохранены', 'info');
+    }
+
+    // Реализация метода analyzeTask (расширенная версия)
+    analyzeTask(taskIndex) {
+        if (!appData.tasks || !appData.tasks[taskIndex]) {
+            showNotification('Задание не найдено', 'error');
+            return;
+        }
+
+        const task = appData.tasks[taskIndex];
+
+        // Собираем данные для анализа
+        const analysisData = this.collectTaskAnalysisData(taskIndex);
+
+        // Создаем модальное окно детального анализа
+        this.createTaskAnalysisModal(taskIndex, task, analysisData);
+    }
+
+    // Сбор данных для анализа задания
+    collectTaskAnalysisData(taskIndex) {
+        const task = appData.tasks[taskIndex];
+        const studentCount = appData.students?.length || 0;
+
+        // Собираем баллы всех студентов за это задание
+        const scores = appData.students?.map((student, studentIndex) => {
+            const score = this.getStudentScore(studentIndex, taskIndex);
+            const maxScore = task.maxScore || 1;
+            return {
+                studentIndex,
+                studentName: student,
+                score,
+                percentage: maxScore > 0 ? (score / maxScore) * 100 : 0
+            };
+        }) || [];
+
+        // Статистика
+        const percentages = scores.map(s => s.percentage);
+        const averageScore = this.calculateAverage(percentages);
+        const completed = scores.filter(s => s.score > 0).length;
+        const completionRate = (completed / studentCount) * 100;
+
+        // Распределение по группам
+        const excellent = scores.filter(s => s.percentage >= 85).length;
+        const good = scores.filter(s => s.percentage >= 70 && s.percentage < 85).length;
+        const average = scores.filter(s => s.percentage >= 50 && s.percentage < 70).length;
+        const poor = scores.filter(s => s.percentage < 50).length;
+
+        // Анализ ошибок для этого задания
+        const taskErrors = appData.errors?.filter(error => error.taskIndex === taskIndex) || [];
+        const errorTypes = {};
+        taskErrors.forEach(error => {
+            errorTypes[error.type] = (errorTypes[error.type] || 0) + (error.count || 1);
+        });
+
+        return {
+            scores,
+            statistics: {
+                averageScore,
+                completionRate,
+                studentCount,
+                distribution: {
+                    excellent,
+                    good,
+                    average,
+                    poor
+                }
+            },
+            errors: {
+                total: taskErrors.length,
+                byType: errorTypes,
+                list: taskErrors
+            },
+            difficulty: task.difficulty || this.calculateTaskDifficulty(percentages.map(p => p / 100)),
+            discrimination: task.discrimination || this.calculateTaskDiscrimination(percentages.map(p => p / 100))
+        };
+    }
+
+    // Создание модального окна анализа задания
+    createTaskAnalysisModal(taskIndex, task, analysisData) {
+        const modal = document.createElement('div');
+        modal.id = 'taskAnalysisModal';
+        modal.innerHTML = `
 			<div class="analysis-modal-overlay" onclick="this.parentElement.remove()">
 				<div class="analysis-modal-content" onclick="event.stopPropagation()">
 					<div class="analysis-modal-header">
@@ -7986,125 +8078,126 @@ class AdvancedAnalytics {
 				</div>
 			</div>
 		`;
-		
-		document.body.appendChild(modal);
-		this.addAnalysisModalStyles();
-		
-		// Создаем графики
-		setTimeout(() => {
-			this.createTaskScoreDistributionChart(analysisData.scores);
-			this.createTaskErrorTypesChart(analysisData.errors.byType);
-		}, 100);
-	}
 
-	// Расчет среднего для группы
-	calculateGroupAverage(groupScores) {
-		if (!groupScores || groupScores.length === 0) return 0;
-		const sum = groupScores.reduce((total, score) => total + score.percentage, 0);
-		return sum / groupScores.length;
-	}
+        document.body.appendChild(modal);
+        this.addAnalysisModalStyles();
 
-	// Генерация рекомендаций по заданию
-	generateTaskRecommendations(analysisData) {
-		const recommendations = [];
-		
-		// Анализ сложности
-		if (analysisData.difficulty > 0.7) {
-			recommendations.push('Задание слишком сложное. Рассмотрите возможность упрощения формулировки или добавления подсказок.');
-		} else if (analysisData.difficulty < 0.3) {
-			recommendations.push('Задание слишком простое. Добавьте дополнительные элементы сложности для лучшей дискриминации.');
-		}
-		
-		// Анализ дискриминативности
-		if (analysisData.discrimination < 0.3) {
-			recommendations.push('Низкая дискриминативность. Пересмотрите варианты ответов или критерии оценивания.');
-		}
-		
-		// Анализ выполнения
-		if (analysisData.statistics.completionRate < 50) {
-			recommendations.push('Низкая выполняемость. Проверьте ясность формулировки и адекватность времени выполнения.');
-		}
-		
-		// Анализ распределения
-		const poorPercentage = (analysisData.statistics.distribution.poor / analysisData.statistics.studentCount) * 100;
-		if (poorPercentage > 30) {
-			recommendations.push('Большой процент учащихся не справляется с заданием. Требуется дополнительное объяснение темы.');
-		}
-		
-		// Анализ ошибок
-		if (analysisData.errors.total > 0) {
-			const mostCommonError = Object.entries(analysisData.errors.byType)
-				.sort((a, b) => b[1] - a[1])[0];
-			
-			if (mostCommonError) {
-				recommendations.push(`Наиболее частый тип ошибок: "${this.getErrorTypeLabel(mostCommonError[0])}". Обратите внимание на объяснение этой темы.`);
-			}
-		}
-		
-		return recommendations.length > 0 ? recommendations : ['Задание хорошо сбалансировано. Продолжайте в том же духе!'];
-	}
+        // Создаем графики
+        setTimeout(() => {
+            this.createTaskScoreDistributionChart(analysisData.scores);
+            this.createTaskErrorTypesChart(analysisData.errors.byType);
+        }, 100);
+    }
 
-	// Реализация метода implementRecommendation
-	implementRecommendation(recommendationId) {
-		// В реальном приложении здесь была бы логика реализации рекомендаций
-		// Для демонстрации покажем подробное модальное окно
-		
-		const recommendations = {
-			'weak_students': {
-				title: 'Индивидуальная работа с отстающими',
-				steps: [
-					'Провести диагностику проблемных зон у каждого отстающего учащегося',
-					'Разработать индивидуальные планы коррекции',
-					'Организовать дополнительные занятия 2 раза в неделю',
-					'Вести дневник прогресса для каждого учащегося',
-					'Провести промежуточную проверку через 2 недели'
-				],
-				resources: ['Методические материалы', 'Дидактические карточки', 'Онлайн-платформы'],
-				timeframe: '4 недели',
-				expectedResult: 'Увеличение среднего балла отстающих учащихся на 15-20%'
-			},
-			'problematic_tasks': {
-				title: 'Коррекция проблемных заданий',
-				steps: [
-					'Проанализировать каждое проблемное задание',
-					'Переформулировать сложные вопросы',
-					'Добавить подсказки и примеры',
-					'Провести апробацию на небольшой группе',
-					'Внести окончательные корректировки'
-				],
-				resources: ['Коллеги для рецензии', 'Образовательные стандарты', 'Методические рекомендации'],
-				timeframe: '2 недели',
-				expectedResult: 'Улучшение дискриминативности заданий до 0.4+'
-			},
-			'low_average': {
-				title: 'Повторение материала',
-				steps: [
-					'Выявить наиболее проблемные темы',
-					'Подготовить обобщающие уроки',
-					'Использовать интерактивные методы обучения',
-					'Провести тренировочные работы',
-					'Организовать взаимопомощь в группах'
-				],
-				resources: ['Презентации', 'Рабочие тетради', 'Обучающие видео'],
-				timeframe: '3 недели',
-				expectedResult: 'Повышение среднего балла класса на 10%'
-			}
-		};
-		
-		const recommendation = recommendations[recommendationId];
-		
-		if (recommendation) {
-			this.showRecommendationImplementationModal(recommendationId, recommendation);
-		} else {
-			showNotification('Рекомендация не найдена', 'error');
-		}
-	}
+    // Расчет среднего для группы
+    calculateGroupAverage(groupScores) {
+        if (!groupScores || groupScores.length === 0)
+            return 0;
+        const sum = groupScores.reduce((total, score) => total + score.percentage, 0);
+        return sum / groupScores.length;
+    }
 
-	// Показ модального окна реализации рекомендации
-	showRecommendationImplementationModal(id, recommendation) {
-		const modal = document.createElement('div');
-		modal.id = 'implementationModal';
-		modal.innerHTML = `
+    // Генерация рекомендаций по заданию
+    generateTaskRecommendations(analysisData) {
+        const recommendations = [];
+
+        // Анализ сложности
+        if (analysisData.difficulty > 0.7) {
+            recommendations.push('Задание слишком сложное. Рассмотрите возможность упрощения формулировки или добавления подсказок.');
+        } else if (analysisData.difficulty < 0.3) {
+            recommendations.push('Задание слишком простое. Добавьте дополнительные элементы сложности для лучшей дискриминации.');
+        }
+
+        // Анализ дискриминативности
+        if (analysisData.discrimination < 0.3) {
+            recommendations.push('Низкая дискриминативность. Пересмотрите варианты ответов или критерии оценивания.');
+        }
+
+        // Анализ выполнения
+        if (analysisData.statistics.completionRate < 50) {
+            recommendations.push('Низкая выполняемость. Проверьте ясность формулировки и адекватность времени выполнения.');
+        }
+
+        // Анализ распределения
+        const poorPercentage = (analysisData.statistics.distribution.poor / analysisData.statistics.studentCount) * 100;
+        if (poorPercentage > 30) {
+            recommendations.push('Большой процент учащихся не справляется с заданием. Требуется дополнительное объяснение темы.');
+        }
+
+        // Анализ ошибок
+        if (analysisData.errors.total > 0) {
+            const mostCommonError = Object.entries(analysisData.errors.byType)
+                .sort((a, b) => b[1] - a[1])[0];
+
+            if (mostCommonError) {
+                recommendations.push(`Наиболее частый тип ошибок: "${this.getErrorTypeLabel(mostCommonError[0])}". Обратите внимание на объяснение этой темы.`);
+            }
+        }
+
+        return recommendations.length > 0 ? recommendations : ['Задание хорошо сбалансировано. Продолжайте в том же духе!'];
+    }
+
+    // Реализация метода implementRecommendation
+    implementRecommendation(recommendationId) {
+        // В реальном приложении здесь была бы логика реализации рекомендаций
+        // Для демонстрации покажем подробное модальное окно
+
+        const recommendations = {
+            'weak_students': {
+                title: 'Индивидуальная работа с отстающими',
+                steps: [
+                    'Провести диагностику проблемных зон у каждого отстающего учащегося',
+                    'Разработать индивидуальные планы коррекции',
+                    'Организовать дополнительные занятия 2 раза в неделю',
+                    'Вести дневник прогресса для каждого учащегося',
+                    'Провести промежуточную проверку через 2 недели'
+                ],
+                resources: ['Методические материалы', 'Дидактические карточки', 'Онлайн-платформы'],
+                timeframe: '4 недели',
+                expectedResult: 'Увеличение среднего балла отстающих учащихся на 15-20%'
+            },
+            'problematic_tasks': {
+                title: 'Коррекция проблемных заданий',
+                steps: [
+                    'Проанализировать каждое проблемное задание',
+                    'Переформулировать сложные вопросы',
+                    'Добавить подсказки и примеры',
+                    'Провести апробацию на небольшой группе',
+                    'Внести окончательные корректировки'
+                ],
+                resources: ['Коллеги для рецензии', 'Образовательные стандарты', 'Методические рекомендации'],
+                timeframe: '2 недели',
+                expectedResult: 'Улучшение дискриминативности заданий до 0.4+'
+            },
+            'low_average': {
+                title: 'Повторение материала',
+                steps: [
+                    'Выявить наиболее проблемные темы',
+                    'Подготовить обобщающие уроки',
+                    'Использовать интерактивные методы обучения',
+                    'Провести тренировочные работы',
+                    'Организовать взаимопомощь в группах'
+                ],
+                resources: ['Презентации', 'Рабочие тетради', 'Обучающие видео'],
+                timeframe: '3 недели',
+                expectedResult: 'Повышение среднего балла класса на 10%'
+            }
+        };
+
+        const recommendation = recommendations[recommendationId];
+
+        if (recommendation) {
+            this.showRecommendationImplementationModal(recommendationId, recommendation);
+        } else {
+            showNotification('Рекомендация не найдена', 'error');
+        }
+    }
+
+    // Показ модального окна реализации рекомендации
+    showRecommendationImplementationModal(id, recommendation) {
+        const modal = document.createElement('div');
+        modal.id = 'implementationModal';
+        modal.innerHTML = `
 			<div class="implementation-modal-overlay" onclick="this.parentElement.remove()">
 				<div class="implementation-modal-content" onclick="event.stopPropagation()">
 					<div class="implementation-modal-header">
@@ -8168,46 +8261,47 @@ class AdvancedAnalytics {
 				</div>
 			</div>
 		`;
-		
-		document.body.appendChild(modal);
-		this.addImplementationModalStyles();
-	}
 
-	// Запуск реализации рекомендации
-	startImplementation(recommendationId) {
-		const startDate = document.getElementById('startDate')?.value;
-		const responsiblePerson = document.getElementById('responsiblePerson')?.value;
-		
-		if (!responsiblePerson) {
-			showNotification('Укажите ответственного', 'warning');
-			return;
-		}
-		
-		// В реальном приложении здесь была бы отправка данных на сервер
-		const implementationData = {
-			recommendationId,
-			startDate,
-			responsiblePerson,
-			status: 'in_progress',
-			startedAt: new Date().toISOString()
-		};
-		
-		// Сохраняем в localStorage для демонстрации
-		const implementations = JSON.parse(localStorage.getItem('recommendationImplementations') || '[]');
-		implementations.push(implementationData);
-		localStorage.setItem('recommendationImplementations', JSON.stringify(implementations));
-		
-		// Закрываем модальное окно
-		const modal = document.getElementById('implementationModal');
-		if (modal) modal.remove();
-		
-		showNotification('Реализация рекомендации начата!', 'success');
-	}
+        document.body.appendChild(modal);
+        this.addImplementationModalStyles();
+    }
 
-	// Добавление стилей для модальных окон
-	addTaskModalStyles() {
-		const style = document.createElement('style');
-		style.textContent = `
+    // Запуск реализации рекомендации
+    startImplementation(recommendationId) {
+        const startDate = document.getElementById('startDate')?.value;
+        const responsiblePerson = document.getElementById('responsiblePerson')?.value;
+
+        if (!responsiblePerson) {
+            showNotification('Укажите ответственного', 'warning');
+            return;
+        }
+
+        // В реальном приложении здесь была бы отправка данных на сервер
+        const implementationData = {
+            recommendationId,
+            startDate,
+            responsiblePerson,
+            status: 'in_progress',
+            startedAt: new Date().toISOString()
+        };
+
+        // Сохраняем в localStorage для демонстрации
+        const implementations = JSON.parse(localStorage.getItem('recommendationImplementations') || '[]');
+        implementations.push(implementationData);
+        localStorage.setItem('recommendationImplementations', JSON.stringify(implementations));
+
+        // Закрываем модальное окно
+        const modal = document.getElementById('implementationModal');
+        if (modal)
+            modal.remove();
+
+        showNotification('Реализация рекомендации начата!', 'success');
+    }
+
+    // Добавление стилей для модальных окон
+    addTaskModalStyles() {
+        const style = document.createElement('style');
+        style.textContent = `
 			.task-modal-overlay,
 			.analysis-modal-overlay,
 			.implementation-modal-overlay {
@@ -8344,112 +8438,132 @@ class AdvancedAnalytics {
 				gap: 10px;
 			}
 		`;
-		
-		document.head.appendChild(style);
-	}
 
-	// Добавим недостающий метод для стилей анализа
-	addAnalysisModalStyles() {
-		// Этот метод уже реализован выше в addTaskModalStyles
-	}
+        document.head.appendChild(style);
+    }
 
-	// Добавим недостающий метод для стилей реализации
-	addImplementationModalStyles() {
-		// Стили уже добавлены в addTaskModalStyles
-	}
+    // Добавим недостающий метод для стилей анализа
+    addAnalysisModalStyles() {
+        // Этот метод уже реализован выше в addTaskModalStyles
+    }
 
-	// Добавим метод для создания графиков распределения баллов задания
-	createTaskScoreDistributionChart(scores) {
-		const ctx = document.getElementById('taskScoreDistributionChart');
-		if (!ctx) return;
-		
-		// Группируем баллы по диапазонам
-		const ranges = [
-			{ min: 0, max: 20, label: '0-20%' },
-			{ min: 20, max: 40, label: '20-40%' },
-			{ min: 40, max: 60, label: '40-60%' },
-			{ min: 60, max: 80, label: '60-80%' },
-			{ min: 80, max: 100, label: '80-100%' }
-		];
-		
-		const data = ranges.map(range => {
-			return scores.filter(s => s.percentage >= range.min && s.percentage < range.max).length;
-		});
-		
-		new Chart(ctx, {
-			type: 'bar',
-			data: {
-				labels: ranges.map(r => r.label),
-				datasets: [{
-					label: 'Количество учащихся',
-					data: data,
-					backgroundColor: 'rgba(52, 152, 219, 0.7)',
-					borderColor: 'rgb(52, 152, 219)',
-					borderWidth: 1
-				}]
-			},
-			options: {
-				responsive: true,
-				maintainAspectRatio: false,
-				scales: {
-					y: {
-						beginAtZero: true,
-						title: {
-							display: true,
-							text: 'Количество учащихся'
-						}
-					},
-					x: {
-						title: {
-							display: true,
-							text: 'Диапазон баллов'
-						}
-					}
-				}
-			}
-		});
-	}
+    // Добавим недостающий метод для стилей реализации
+    addImplementationModalStyles() {
+        // Стили уже добавлены в addTaskModalStyles
+    }
 
-	// Метод для создания графиков типов ошибок задания
-	createTaskErrorTypesChart(errorTypes) {
-		const ctx = document.getElementById('taskErrorTypesChart');
-		if (!ctx || !errorTypes || Object.keys(errorTypes).length === 0) return;
-		
-		const labels = Object.keys(errorTypes).map(type => this.getErrorTypeLabel(type));
-		const data = Object.values(errorTypes);
-		
-		new Chart(ctx, {
-			type: 'doughnut',
-			data: {
-				labels: labels,
-				datasets: [{
-					data: data,
-					backgroundColor: [
-						'#e74c3c', '#3498db', '#f39c12', '#27ae60', 
-						'#9b59b6', '#34495e', '#1abc9c', '#d35400'
-					].slice(0, labels.length)
-				}]
-			},
-			options: {
-				responsive: true,
-				maintainAspectRatio: false,
-				plugins: {
-					legend: {
-						position: 'bottom'
-					}
-				}
-			}
-		});
-	}
+    // Добавим метод для создания графиков распределения баллов задания
+    createTaskScoreDistributionChart(scores) {
+        const ctx = document.getElementById('taskScoreDistributionChart');
+        if (!ctx)
+            return;
 
-	// Добавим метод addMissingStyles
-	addMissingStyles() {
-		const styleId = 'missing-analytics-styles';
-		if (document.getElementById(styleId)) return;
+        // Группируем баллы по диапазонам
+        const ranges = [{
+                min: 0,
+                max: 20,
+                label: '0-20%'
+            }, {
+                min: 20,
+                max: 40,
+                label: '20-40%'
+            }, {
+                min: 40,
+                max: 60,
+                label: '40-60%'
+            }, {
+                min: 60,
+                max: 80,
+                label: '60-80%'
+            }, {
+                min: 80,
+                max: 100,
+                label: '80-100%'
+            }
+        ];
 
-		const style = document.createElement('style');
-		style.id = styleId;
-		style.textContent = `
+        const data = ranges.map(range => {
+            return scores.filter(s => s.percentage >= range.min && s.percentage < range.max).length;
+        });
+
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: ranges.map(r => r.label),
+                datasets: [{
+                        label: 'Количество учащихся',
+                        data: data,
+                        backgroundColor: 'rgba(52, 152, 219, 0.7)',
+                        borderColor: 'rgb(52, 152, 219)',
+                        borderWidth: 1
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Количество учащихся'
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Диапазон баллов'
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // Метод для создания графиков типов ошибок задания
+    createTaskErrorTypesChart(errorTypes) {
+        const ctx = document.getElementById('taskErrorTypesChart');
+        if (!ctx || !errorTypes || Object.keys(errorTypes).length === 0)
+            return;
+
+        const labels = Object.keys(errorTypes).map(type => this.getErrorTypeLabel(type));
+        const data = Object.values(errorTypes);
+
+        new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: labels,
+                datasets: [{
+                        data: data,
+                        backgroundColor: [
+                            '#e74c3c', '#3498db', '#f39c12', '#27ae60',
+                            '#9b59b6', '#34495e', '#1abc9c', '#d35400'
+                        ].slice(0, labels.length)
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+    }
+
+    // Добавим метод addMissingStyles
+    addMissingStyles() {
+        const styleId = 'missing-analytics-styles';
+        if (document.getElementById(styleId))
+            return;
+
+        const style = document.createElement('style');
+        style.id = styleId;
+        style.textContent = `
 			/* Стили для группового анализа */
 			.group-analysis-grid {
 				display: grid;
@@ -8847,171 +8961,145 @@ class AdvancedAnalytics {
 			}			
 		`;
 
-		document.head.appendChild(style);
-	}	
-	
-	// Добавим метод для отладки
-	debugCharts() {
-		console.group('Отладка графиков');
-		
-		const canvasIds = [
-			'overviewDistributionChart',
-			'studentScoresChart',
-			'studentPerformanceChart',
-			'taskDifficultyMatrix',
-			'taskScatterPlot',
-			'scoreHistogram',
-			'normalDistributionChart',
-			'boxPlotDistribution',
-			'errorByTaskChart',
-			'errorTypesChart',
-			'progressMonitoringChart'
-		];
-		
-		canvasIds.forEach(id => {
-			const element = document.getElementById(id);
-			console.log(`Canvas ${id}:`, element ? 'Найден' : 'Не найден');
-			if (element) {
-				console.log(`  Размеры: ${element.offsetWidth}x${element.offsetHeight}`);
-			}
-		});
-		
-		console.groupEnd();
-	}
-	
-	// ==================== СИСТЕМА ЭКСПОРТА ====================
+        document.head.appendChild(style);
+    }
 
-	exportComprehensiveAnalysisToWord() {
-		showNotification('📝 Подготовка комплексного отчета...', 'info');
-		
-		// Сначала инициализируем библиотеки
-		this.initializeExportLibraries().then(() => {
-			// Проверяем доступность docx после загрузки
-			if (typeof window.docx === 'undefined') {
-				console.warn('⚠️ Библиотека docx не загрузилась, используем альтернативный экспорт');
-				this.exportComprehensiveAnalysisFallback();
-				return;
-			}
-			
-			// Продолжаем с созданием архива
-			this.createComprehensiveArchive();
-			
-		}).catch(error => {
-			console.error('Ошибка инициализации библиотек:', error);
-			showNotification('Не удалось загрузить библиотеки экспорта', 'error');
-			this.exportComprehensiveAnalysisFallback();
-		});
-	}
 
-	// Создание комплексного архива
-	createComprehensiveArchive() {
-		showNotification('📦 Создание комплексного архива...', 'info');
-		
-		this.initializeExportLibraries().then(() => {
-			try {
-				if (typeof JSZip === 'undefined') {
-					throw new Error('JSZip не загружен');
-				}
-				
-				const zip = new JSZip();
-				const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-				const baseFolderName = `анализ_${timestamp}`;
-				
-				// Собираем данные
-				const allData = this.collectDetailedData();
-				const comprehensiveAnalysis = this.performComprehensiveAnalysis();
-				
-				// 1. Главный Word отчет
-				const mainReportPromise = Promise.resolve()
-					.then(() => this.generateMainWordReport(allData, comprehensiveAnalysis))
-					.then(blob => {
-						if (blob) {
-							zip.file(`${baseFolderName}/Комплексный_анализ_результатов.docx`, blob);
-							console.log('✅ Главный Word отчет добавлен');
-						}
-					})
-					.catch(error => {
-						console.warn('Не удалось создать Word отчет:', error);
-					});
-				
-				// 2. Графики
-				const chartsPromise = Promise.resolve()
-					.then(() => {
-						const chartsFolder = zip.folder(`${baseFolderName}/графики`);
-						return this.exportAllChartsToImages(chartsFolder);
-					})
-					.then(() => {
-						console.log('✅ Графики экспортированы');
-					})
-					.catch(error => {
-						console.warn('Не удалось экспортировать графики:', error);
-					});
-				
-				// 3. HTML отчет (запасной вариант)
-				const htmlReportPromise = Promise.resolve()
-					.then(() => {
-						const htmlBlob = this.generateEnhancedHTMLReport(allData, comprehensiveAnalysis);
-						zip.file(`${baseFolderName}/аналитический_отчет.html`, htmlBlob);
-						console.log('✅ HTML отчет добавлен');
-					});
-				
-				// 4. Данные в JSON
-				const jsonPromise = Promise.resolve()
-					.then(() => {
-						const rawData = JSON.stringify(allData, null, 2);
-						zip.file(`${baseFolderName}/исходные_данные.json`, rawData);
-						console.log('✅ JSON данные добавлены');
-					});
-				
-				// 5. README файл
-				const readmePromise = Promise.resolve()
-					.then(() => {
-						const readmeContent = this.generateReadmeContent(allData);
-						zip.file(`${baseFolderName}/README.txt`, readmeContent);
-					});
-				
-				// Ждем завершения всех операций
-				Promise.all([mainReportPromise, chartsPromise, htmlReportPromise, jsonPromise, readmePromise])
-					.then(() => {
-						console.log('✅ Все компоненты архива готовы');
-						
-						// Генерируем и скачиваем архив
-						return zip.generateAsync({ 
-							type: "blob",
-							compression: "DEFLATE",
-							compressionOptions: { level: 6 }
-						});
-					})
-					.then((content) => {
-						this.downloadBlob(content, `${baseFolderName}.zip`);
-						showNotification('✅ Комплексный архив создан и скачан', 'success');
-					})
-					.catch(error => {
-						console.error('Ошибка создания архива:', error);
-						showNotification('Ошибка при создании архива', 'error');
-						
-						// Пробуем простой экспорт
-						this.exportToWord();
-					});
-					
-			} catch (error) {
-				console.error('Критическая ошибка:', error);
-				showNotification('Не удалось создать архив', 'error');
-				this.exportEnhancedHTMLReport(allData, comprehensiveAnalysis);
-			}
-		}).catch(error => {
-			console.error('Ошибка инициализации библиотек:', error);
-			showNotification('Используется упрощенный экспорт', 'warning');
-			
-			const allData = this.collectDetailedData();
-			const comprehensiveAnalysis = this.performComprehensiveAnalysis();
-			this.exportEnhancedHTMLReport(allData, comprehensiveAnalysis);
-		});
-	}
+    // ==================== СИСТЕМА ЭКСПОРТА ====================
 
-	// Генерация README файла
-	generateReadmeContent(allData) {
-    return `АРХИВ АНАЛИТИЧЕСКИХ МАТЕРИАЛОВ
+    exportComprehensiveAnalysisToWord() {
+        showNotification('📝 Подготовка комплексного отчета...', 'info');
+
+        // Сначала инициализируем библиотеки
+        this.initializeExportLibraries().then(() => {
+            // Проверяем доступность docx после загрузки
+            if (typeof window.docx === 'undefined') {
+                console.warn('⚠️ Библиотека docx не загрузилась, используем альтернативный экспорт');
+                this.exportComprehensiveAnalysisFallback();
+                return;
+            }
+
+            // Продолжаем с созданием архива
+            this.createComprehensiveArchive();
+
+        }).catch(error => {
+            console.error('Ошибка инициализации библиотек:', error);
+            showNotification('Не удалось загрузить библиотеки экспорта', 'error');
+            this.exportComprehensiveAnalysisFallback();
+        });
+    }
+
+    // Создание комплексного архива
+    createComprehensiveArchive() {
+        showNotification('📦 Создание комплексного архива...', 'info');
+
+        this.initializeExportLibraries().then(() => {
+            try {
+                if (typeof JSZip === 'undefined') {
+                    throw new Error('JSZip не загружен');
+                }
+
+                const zip = new JSZip();
+                const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+                const baseFolderName = `анализ_${timestamp}`;
+
+                // Собираем данные
+                const allData = this.collectDetailedData();
+                const comprehensiveAnalysis = this.performComprehensiveAnalysis();
+
+                // 1. Главный Word отчет
+                const mainReportPromise = Promise.resolve()
+                    .then(() => this.generateMainWordReport(allData, comprehensiveAnalysis))
+                    .then(blob => {
+                        if (blob) {
+                            zip.file(`${baseFolderName}/Комплексный_анализ_результатов.docx`, blob);
+                            console.log('✅ Главный Word отчет добавлен');
+                        }
+                    })
+                    .catch(error => {
+                        console.warn('Не удалось создать Word отчет:', error);
+                    });
+
+                // 2. Графики
+                const chartsPromise = Promise.resolve()
+                    .then(() => {
+                        const chartsFolder = zip.folder(`${baseFolderName}/графики`);
+                        return this.exportAllChartsToImages(chartsFolder);
+                    })
+                    .then(() => {
+                        console.log('✅ Графики экспортированы');
+                    })
+                    .catch(error => {
+                        console.warn('Не удалось экспортировать графики:', error);
+                    });
+
+                // 3. HTML отчет (запасной вариант)
+                const htmlReportPromise = Promise.resolve()
+                    .then(() => {
+                        const htmlBlob = this.generateEnhancedHTMLReport(allData, comprehensiveAnalysis);
+                        zip.file(`${baseFolderName}/аналитический_отчет.html`, htmlBlob);
+                        console.log('✅ HTML отчет добавлен');
+                    });
+
+                // 4. Данные в JSON
+                const jsonPromise = Promise.resolve()
+                    .then(() => {
+                        const rawData = JSON.stringify(allData, null, 2);
+                        zip.file(`${baseFolderName}/исходные_данные.json`, rawData);
+                        console.log('✅ JSON данные добавлены');
+                    });
+
+                // 5. README файл
+                const readmePromise = Promise.resolve()
+                    .then(() => {
+                        const readmeContent = this.generateReadmeContent(allData);
+                        zip.file(`${baseFolderName}/README.txt`, readmeContent);
+                    });
+
+                // Ждем завершения всех операций
+                Promise.all([mainReportPromise, chartsPromise, htmlReportPromise, jsonPromise, readmePromise])
+                .then(() => {
+                    console.log('✅ Все компоненты архива готовы');
+
+                    // Генерируем и скачиваем архив
+                    return zip.generateAsync({
+                        type: "blob",
+                        compression: "DEFLATE",
+                        compressionOptions: {
+                            level: 6
+                        }
+                    });
+                })
+                .then((content) => {
+                    this.downloadBlob(content, `${baseFolderName}.zip`);
+                    showNotification('✅ Комплексный архив создан и скачан', 'success');
+                })
+                .catch(error => {
+                    console.error('Ошибка создания архива:', error);
+                    showNotification('Ошибка при создании архива', 'error');
+
+                    // Пробуем простой экспорт
+                    this.exportToWord();
+                });
+
+            } catch (error) {
+                console.error('Критическая ошибка:', error);
+                showNotification('Не удалось создать архив', 'error');
+                this.exportEnhancedHTMLReport(allData, comprehensiveAnalysis);
+            }
+        }).catch(error => {
+            console.error('Ошибка инициализации библиотек:', error);
+            showNotification('Используется упрощенный экспорт', 'warning');
+
+            const allData = this.collectDetailedData();
+            const comprehensiveAnalysis = this.performComprehensiveAnalysis();
+            this.exportEnhancedHTMLReport(allData, comprehensiveAnalysis);
+        });
+    }
+
+    // Генерация README файла
+    generateReadmeContent(allData) {
+        return `АРХИВ АНАЛИТИЧЕСКИХ МАТЕРИАЛОВ
 ====================================
 
 📅 Дата создания: ${new Date().toLocaleString()}
@@ -9058,1932 +9146,2214 @@ class AdvancedAnalytics {
 • Регулярно проводите анализ для мониторинга прогресса
 
 © Система Advanced Analytics • ${new Date().getFullYear()}`;
-	}
+    }
 
-	// Метод для экспорта улучшенного HTML отчета
-	exportEnhancedHTMLReport(allData, comprehensiveAnalysis) {
-		const htmlBlob = this.generateEnhancedHTMLReport(allData, comprehensiveAnalysis);
-		this.downloadBlob(htmlBlob, `аналитический_отчет_${new Date().toISOString().split('T')[0]}.html`);
-		showNotification('✅ HTML отчет экспортирован', 'success');
-}
-
-	// Генерация главного Word отчета
-	// ОБНОВЛЕННЫЙ МЕТОД generateMainWordReport (с проверками)
-	generateMainWordReport(allData, comprehensiveAnalysis) {
-		try {
-			// Проверяем доступность docx
-			if (typeof window.docx === 'undefined') {
-				console.warn('Библиотека docx недоступна');
-				return this.generateEnhancedHTMLReport(allData, comprehensiveAnalysis);
-			}
-			
-			const { Document, Paragraph, TextRun, Table, TableRow, TableCell, 
-					Packer, HeadingLevel, AlignmentType, WidthType, BorderStyle } = window.docx;
-			
-			// Создаем стилизованный документ
-			const doc = new Document({
-				styles: {
-					paragraphStyles: [
-						{
-							id: "Title",
-							name: "Title",
-							basedOn: "Normal",
-							next: "Normal",
-							run: {
-								size: 48,
-								bold: true,
-								color: "2C3E50",
-							},
-							paragraph: {
-								spacing: { after: 300 },
-								alignment: AlignmentType.CENTER,
-							},
-						},
-						{
-							id: "Heading1",
-							name: "Heading 1",
-							basedOn: "Normal",
-							next: "Normal",
-							run: {
-								size: 32,
-								bold: true,
-								color: "3498DB",
-							},
-							paragraph: {
-								spacing: { before: 240, after: 120 },
-							},
-						},
-						{
-							id: "Heading2",
-							name: "Heading 2",
-							basedOn: "Normal",
-							next: "Normal",
-							run: {
-								size: 28,
-								bold: true,
-								color: "2C3E50",
-							},
-							paragraph: {
-								spacing: { before: 200, after: 100 },
-							},
-						},
-						{
-							id: "Normal",
-							name: "Normal",
-							basedOn: "Normal",
-							next: "Normal",
-							run: {
-								size: 24,
-							},
-							paragraph: {
-								spacing: { line: 276 },
-							},
-						},
-					],
-				},
-				sections: [
-					{
-						properties: {
-							page: {
-								margin: {
-									top: 1000,
-									right: 1000,
-									bottom: 1000,
-									left: 1000,
-								},
-							},
-						},
-						children: [
-							// ТИТУЛЬНАЯ СТРАНИЦА
-							new Paragraph({
-								text: "📊 КОМПЛЕКСНЫЙ АНАЛИЗ РЕЗУЛЬТАТОВ ТЕСТИРОВАНИЯ",
-								style: "Title",
-							}),
-							
-							new Paragraph({
-								text: "Аналитический отчет",
-								style: "Heading1",
-								alignment: AlignmentType.CENTER,
-							}),
-							
-							new Paragraph({
-								text: "\n",
-							}),
-							
-							// ИНФОРМАЦИЯ О ТЕСТЕ
-							this.createTestInfoTable(allData),
-							
-							new Paragraph({
-								text: "\n",
-							}),
-							
-							// ДАТА ГЕНЕРАЦИИ
-							new Paragraph({
-								children: [
-									new TextRun({
-										text: "Дата формирования отчета: ",
-										bold: true,
-									}),
-									new TextRun(new Date().toLocaleDateString('ru-RU', {
-										year: 'numeric',
-										month: 'long',
-										day: 'numeric',
-										hour: '2-digit',
-										minute: '2-digit'
-									})),
-								],
-								alignment: AlignmentType.RIGHT,
-							}),
-							
-							new Paragraph({
-								text: "\n\n\n",
-							}),
-							
-							// РАЗДЕЛИТЕЛЬ
-							new Paragraph({
-								text: "▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬",
-								alignment: AlignmentType.CENTER,
-							}),
-							
-							// СВОДНАЯ СТАТИСТИКА
-							new Paragraph({
-								text: "📈 СВОДНАЯ СТАТИСТИКА",
-								style: "Heading1",
-							}),
-							
-							...this.createSummaryStatsSection(allData, comprehensiveAnalysis),
-							
-							// АНАЛИЗ НАДЕЖНОСТИ
-							new Paragraph({
-								text: "🛡️ АНАЛИЗ НАДЕЖНОСТИ ТЕСТА",
-								style: "Heading1",
-							}),
-							
-							...this.createReliabilitySection(comprehensiveAnalysis.reliability),
-							
-							// РАСПРЕДЕЛЕНИЕ УЧАЩИХСЯ
-							new Paragraph({
-								text: "👥 РАСПРЕДЕЛЕНИЕ УЧАЩИХСЯ",
-								style: "Heading1",
-							}),
-							
-							...this.createDistributionSection(allData),
-							
-							// АНАЛИЗ ЗАДАНИЙ
-							new Paragraph({
-								text: "📝 АНАЛИЗ ЗАДАНИЙ",
-								style: "Heading1",
-							}),
-							
-							...this.createTasksAnalysisSection(allData),
-							
-							// РЕКОМЕНДАЦИИ
-							new Paragraph({
-								text: "💡 РЕКОМЕНДАЦИИ И ПЛАН ДЕЙСТВИЙ",
-								style: "Heading1",
-							}),
-							
-							...this.createRecommendationsSection(comprehensiveAnalysis.recommendations, allData),
-							
-							// ЗАКЛЮЧЕНИЕ
-							new Paragraph({
-								text: "📋 ЗАКЛЮЧЕНИЕ",
-								style: "Heading1",
-							}),
-							
-							new Paragraph({
-								text: this.generateDetailedConclusion(allData, comprehensiveAnalysis),
-							}),
-							
-							// ПОДПИСЬ
-							new Paragraph({
-								text: "\n\n\n",
-							}),
-							
-							new Paragraph({
-								text: "▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬",
-								alignment: AlignmentType.CENTER,
-							}),
-							
-							new Paragraph({
-								children: [
-									new TextRun({
-										text: "Сформировано системой Advanced Analytics v2.0",
-										italics: true,
-										color: "7F8C8D",
-									}),
-								],
-								alignment: AlignmentType.CENTER,
-							}),
-							
-							new Paragraph({
-								children: [
-									new TextRun({
-										text: "Для получения дополнительной информации обращайтесь к разработчикам системы",
-										size: 20,
-										color: "95A5A6",
-									}),
-								],
-								alignment: AlignmentType.CENTER,
-							}),
-						],
-					},
-				],
-			});
-			
-			return Packer.toBlob(doc);
-			
-		} catch (error) {
-			console.error('Ошибка создания Word документа:', error);
-			return this.generateEnhancedHTMLReport(allData, comprehensiveAnalysis);
-		}
-	}
-
-	// Создание таблицы с информацией о тесте
-	createTestInfoTable(allData) {
-		const { Table, TableRow, TableCell, Paragraph, TextRun, WidthType, BorderStyle } = window.docx;
-		
-		return new Table({
-			width: { size: 100, type: WidthType.PERCENTAGE },
-			borders: {
-				top: { style: BorderStyle.SINGLE, size: 3, color: "3498DB" },
-				bottom: { style: BorderStyle.SINGLE, size: 3, color: "3498DB" },
-				left: { style: BorderStyle.SINGLE, size: 3, color: "3498DB" },
-				right: { style: BorderStyle.SINGLE, size: 3, color: "3498DB" },
-			},
-			rows: [
-				new TableRow({
-					children: [
-						new TableCell({
-							width: { size: 50, type: WidthType.PERCENTAGE },
-							children: [
-								new Paragraph({
-									children: [
-										new TextRun({
-											text: "📚 Название теста:",
-											bold: true,
-											color: "2C3E50",
-										}),
-									],
-								}),
-								new Paragraph(allData.meta.testName || "Не указано"),
-							],
-							shading: { fill: "F8F9FA" },
-						}),
-						new TableCell({
-							width: { size: 50, type: WidthType.PERCENTAGE },
-							children: [
-								new Paragraph({
-									children: [
-										new TextRun({
-											text: "🎯 Тема:",
-											bold: true,
-											color: "2C3E50",
-										}),
-									],
-								}),
-								new Paragraph(allData.meta.theme || "Не указана"),
-							],
-							shading: { fill: "F8F9FA" },
-						}),
-					],
-				}),
-				new TableRow({
-					children: [
-						new TableCell({
-							children: [
-								new Paragraph({
-									children: [
-										new TextRun({
-											text: "👥 Количество учащихся:",
-											bold: true,
-											color: "2C3E50",
-										}),
-									],
-								}),
-								new Paragraph({
-									children: [
-										new TextRun({
-											text: allData.meta.studentCount.toString(),
-											bold: true,
-											color: "3498DB",
-											size: 28,
-										}),
-									],
-									alignment: AlignmentType.CENTER,
-								}),
-							],
-						}),
-						new TableCell({
-							children: [
-								new Paragraph({
-									children: [
-										new TextRun({
-											text: "📝 Количество заданий:",
-											bold: true,
-											color: "2C3E50",
-										}),
-									],
-								}),
-								new Paragraph({
-									children: [
-										new TextRun({
-											text: allData.meta.taskCount.toString(),
-											bold: true,
-											color: "3498DB",
-											size: 28,
-										}),
-									],
-									alignment: AlignmentType.CENTER,
-								}),
-							],
-						}),
-					],
-				}),
-				new TableRow({
-					children: [
-						new TableCell({
-							children: [
-								new Paragraph({
-									children: [
-										new TextRun({
-											text: "🏫 Класс/Группа:",
-											bold: true,
-											color: "2C3E50",
-										}),
-									],
-								}),
-								new Paragraph(allData.meta.class || "Не указано"),
-							],
-						}),
-						new TableCell({
-							children: [
-								new Paragraph({
-									children: [
-										new TextRun({
-											text: "📅 Дата проведения:",
-											bold: true,
-											color: "2C3E50",
-										}),
-									],
-								}),
-								new Paragraph(allData.meta.date || new Date().toLocaleDateString()),
-							],
-						}),
-					],
-				}),
-			],
-		});
-	}
-
-	// Создание секции сводной статистики
-	createSummaryStatsSection(allData, comprehensiveAnalysis) {
-		const { Paragraph, TextRun, Table, TableRow, TableCell } = window.docx;
-		const sections = [];
-		
-		// Карточки статистики
-		const statsCards = [
-			{
-				label: "Средний балл класса",
-				value: `${this.calculateOverallAverage(allData.studentStats).toFixed(1)}%`,
-				color: "3498DB",
-				icon: "📊"
-			},
-			{
-				label: "Надежность теста (α)",
-				value: comprehensiveAnalysis.reliability.alpha.toFixed(3),
-				color: "27AE60",
-				icon: "🛡️"
-			},
-			{
-				label: "Отличники",
-				value: comprehensiveAnalysis.clusters.excellent.count.toString(),
-				color: "F39C12",
-				icon: "🏆"
-			},
-			{
-				label: "Требуют внимания",
-				value: comprehensiveAnalysis.clusters.weak.count.toString(),
-				color: "E74C3C",
-				icon: "⚠️"
-			},
-		];
-		
-		// Таблица с карточками статистики
-		const tableRows = [];
-		for (let i = 0; i < statsCards.length; i += 2) {
-			const rowCells = [];
-			
-			// Первая карточка в ряду
-			rowCells.push(
-				new TableCell({
-					width: { size: 50, type: WidthType.PERCENTAGE },
-					children: [
-						new Paragraph({
-							children: [
-								new TextRun({
-									text: `${statsCards[i].icon} ${statsCards[i].label}`,
-									bold: true,
-									size: 22,
-								}),
-							],
-						}),
-						new Paragraph({
-							children: [
-								new TextRun({
-									text: statsCards[i].value,
-									bold: true,
-									size: 36,
-									color: statsCards[i].color,
-								}),
-							],
-							alignment: AlignmentType.CENTER,
-						}),
-					],
-					margins: { top: 100, bottom: 100, left: 100, right: 100 },
-					shading: { fill: "FFFFFF" },
-				})
-			);
-			
-			// Вторая карточка в ряду (если есть)
-			if (i + 1 < statsCards.length) {
-				rowCells.push(
-					new TableCell({
-						width: { size: 50, type: WidthType.PERCENTAGE },
-						children: [
-							new Paragraph({
-								children: [
-									new TextRun({
-										text: `${statsCards[i + 1].icon} ${statsCards[i + 1].label}`,
-										bold: true,
-										size: 22,
-									}),
-								],
-							}),
-							new Paragraph({
-								children: [
-									new TextRun({
-										text: statsCards[i + 1].value,
-										bold: true,
-										size: 36,
-										color: statsCards[i + 1].color,
-									}),
-								],
-								alignment: AlignmentType.CENTER,
-							}),
-						],
-						margins: { top: 100, bottom: 100, left: 100, right: 100 },
-						shading: { fill: "FFFFFF" },
-					})
-				);
-			}
-			
-			tableRows.push(new TableRow({ children: rowCells }));
-		}
-		
-		sections.push(
-			new Table({
-				rows: tableRows,
-				width: { size: 100, type: WidthType.PERCENTAGE },
-			}),
-			
-			new Paragraph({ text: "\n" }),
-			
-			// Дополнительная информация
-			new Paragraph({
-				children: [
-					new TextRun({
-						text: "📌 Дополнительные показатели:",
-						bold: true,
-						size: 24,
-					}),
-				],
-			}),
-			
-			new Paragraph({
-				children: [
-					new TextRun({
-						text: `• Стандартное отклонение: `,
-						bold: true,
-					}),
-					new TextRun(`${allData.distribution.stdDev.toFixed(1)}%`),
-					new TextRun({
-						text: ` (${this.interpretStdDev(allData.distribution.stdDev)})`,
-						italics: true,
-					}),
-				],
-			}),
-			
-			new Paragraph({
-				children: [
-					new TextRun({
-						text: `• Асимметрия распределения: `,
-						bold: true,
-					}),
-					new TextRun(`${allData.distribution.skewness.toFixed(3)}`),
-					new TextRun({
-						text: ` (${this.interpretSkewness(allData.distribution.skewness)})`,
-						italics: true,
-					}),
-				],
-			}),
-			
-			new Paragraph({
-				children: [
-					new TextRun({
-						text: `• Коэффициент вариации: `,
-						bold: true,
-					}),
-					new TextRun(`${(allData.distribution.stdDev / allData.distribution.mean * 100).toFixed(1)}%`),
-				],
-			}),
-			
-			new Paragraph({ text: "\n" }),
-		);
-		
-		return sections;
-	}
-
-	// Интерпретация стандартного отклонения
-	interpretStdDev(stdDev) {
-		if (stdDev < 10) return "небольшой разброс";
-		if (stdDev < 20) return "умеренный разброс";
-		return "значительный разброс";
-	}
-
-	// Интерпретация асимметрии
-	interpretSkewness(skewness) {
-		if (skewness > 0.5) return "смещение влево";
-		if (skewness < -0.5) return "смещение вправо";
-		return "симметричное распределение";
-	}
-
-	// Секция анализа надежности
-	createReliabilitySection(reliability) {
-		const { Paragraph, TextRun, Table, TableRow, TableCell } = window.docx;
-		const sections = [];
-		
-		// Определяем цвет и иконку в зависимости от значения
-		let reliabilityIcon, reliabilityColor;
-		if (reliability.alpha >= 0.8) {
-			reliabilityIcon = "✅";
-			reliabilityColor = "27AE60";
-		} else if (reliability.alpha >= 0.7) {
-			reliabilityIcon = "⚠️";
-			reliabilityColor = "F39C12";
-		} else {
-			reliabilityIcon = "❌";
-			reliabilityColor = "E74C3C";
-		}
-		
-		sections.push(
-			new Table({
-				width: { size: 100, type: WidthType.PERCENTAGE },
-				rows: [
-					new TableRow({
-						children: [
-							new TableCell({
-								width: { size: 30, type: WidthType.PERCENTAGE },
-								children: [
-									new Paragraph({
-										children: [
-											new TextRun({
-												text: `${reliabilityIcon} Коэффициент α Кронбаха`,
-												bold: true,
-												size: 24,
-											}),
-										],
-										alignment: AlignmentType.CENTER,
-									}),
-								],
-								shading: { fill: "F8F9FA" },
-							}),
-							new TableCell({
-								width: { size: 70, type: WidthType.PERCENTAGE },
-								children: [
-									new Paragraph({
-										children: [
-											new TextRun({
-												text: reliability.description,
-											}),
-										],
-									}),
-									new Paragraph({
-										children: [
-											new TextRun({
-												text: "Рекомендация: ",
-												bold: true,
-											}),
-											new TextRun(reliability.recommendation),
-										],
-									}),
-								],
-							}),
-						],
-					}),
-				],
-			}),
-			
-			new Paragraph({ text: "\n" }),
-			
-			// Шкала надежности
-			new Paragraph({
-				children: [
-					new TextRun({
-						text: "📊 Шкала оценки надежности теста:",
-						bold: true,
-					}),
-				],
-			}),
-			
-			this.createReliabilityScaleTable(reliability.alpha),
-			
-			new Paragraph({ text: "\n" }),
-		);
-		
-		return sections;
-	}
-
-	// Таблица шкалы надежности
-	createReliabilityScaleTable(alpha) {
-		const { Table, TableRow, TableCell, Paragraph, TextRun } = window.docx;
-		
-		const scaleData = [
-			{ range: "α ≥ 0.90", label: "Отличная", color: "27AE60", description: "Высшая степень надежности" },
-			{ range: "0.80 ≤ α < 0.90", label: "Хорошая", color: "3498DB", description: "Достаточно для итогового контроля" },
-			{ range: "0.70 ≤ α < 0.80", label: "Приемлемая", color: "F39C12", description: "Достаточно для учебного контроля" },
-			{ range: "0.60 ≤ α < 0.70", label: "Сомнительная", color: "E67E22", description: "Требуется пересмотр теста" },
-			{ range: "α < 0.60", label: "Низкая", color: "E74C3C", description: "Неприемлемая надежность" },
-		];
-		
-		const rows = scaleData.map(item => {
-			const isCurrent = alpha >= parseFloat(item.range.split("α")[0]) || 
-							 (item.range.includes("≤") && alpha >= 0.70 && alpha < 0.80) ||
-							 (item.range.includes("< 0.60") && alpha < 0.60);
-			
-			return new TableRow({
-				children: [
-					new TableCell({
-						children: [
-							new Paragraph({
-								children: [
-									new TextRun({
-										text: item.range,
-										bold: true,
-										color: item.color,
-									}),
-								],
-							}),
-						],
-						shading: isCurrent ? { fill: "FFF3CD" } : undefined,
-					}),
-					new TableCell({
-						children: [
-							new Paragraph({
-								children: [
-									new TextRun({
-										text: item.label,
-										bold: true,
-										color: item.color,
-									}),
-								],
-							}),
-						],
-						shading: isCurrent ? { fill: "FFF3CD" } : undefined,
-					}),
-					new TableCell({
-						children: [new Paragraph(item.description)],
-						shading: isCurrent ? { fill: "FFF3CD" } : undefined,
-					}),
-				],
-			});
-		});
-		
-		// Добавляем заголовки
-		rows.unshift(
-			new TableRow({
-				children: [
-					new TableCell({
-						children: [new Paragraph("Диапазон")],
-						shading: { fill: "2C3E50" },
-					}),
-					new TableCell({
-						children: [new Paragraph("Оценка")],
-						shading: { fill: "2C3E50" },
-					}),
-					new TableCell({
-						children: [new Paragraph("Интерпретация")],
-						shading: { fill: "2C3E50" },
-					}),
-				],
-			})
-		);
-		
-		return new Table({ rows });
-	}
-
-	// Секция распределения учащихся
-	createDistributionSection(allData) {
-		const { Paragraph, TextRun, Table, TableRow, TableCell } = window.docx;
-		const sections = [];
-		
-		const studentGroups = this.createStudentGroups(allData.studentStats);
-		
-		sections.push(
-			new Paragraph({
-				children: [
-					new TextRun({
-						text: "📊 Распределение учащихся по уровням подготовки:",
-						bold: true,
-					}),
-				],
-			}),
-			
-			new Paragraph({ text: "\n" }),
-		);
-		
-		// Таблица распределения
-		const distributionRows = [
-			new TableRow({
-				children: [
-					new TableCell({
-						children: [new Paragraph("Уровень")],
-						shading: { fill: "34495E" },
-					}),
-					new TableCell({
-						children: [new Paragraph("Критерий")],
-						shading: { fill: "34495E" },
-					}),
-					new TableCell({
-						children: [new Paragraph("Количество")],
-						shading: { fill: "34495E" },
-					}),
-					new TableCell({
-						children: [new Paragraph("Процент")],
-						shading: { fill: "34495E" },
-					}),
-					new TableCell({
-						children: [new Paragraph("Средний балл")],
-						shading: { fill: "34495E" },
-					}),
-				],
-			}),
-		];
-		
-		studentGroups.forEach(group => {
-			distributionRows.push(
-				new TableRow({
-					children: [
-						new TableCell({
-							children: [new Paragraph(group.name)],
-							shading: { fill: `${group.color}20` },
-						}),
-						new TableCell({
-							children: [new Paragraph(`${group.min}% - ${group.max}%`)],
-						}),
-						new TableCell({
-							children: [new Paragraph(group.count.toString())],
-						}),
-						new TableCell({
-							children: [new Paragraph(`${group.percentage}%`)],
-						}),
-						new TableCell({
-							children: [new Paragraph(this.calculateGroupAverageScore(allData.studentStats, group))],
-						}),
-					],
-				})
-			);
-		});
-		
-		sections.push(
-			new Table({ rows: distributionRows }),
-			
-			new Paragraph({ text: "\n" }),
-			
-			// Анализ распределения
-			new Paragraph({
-				children: [
-					new TextRun({
-						text: "📈 Анализ распределения:",
-						bold: true,
-					}),
-				],
-			}),
-			
-			new Paragraph(this.interpretDistribution(allData.distribution)),
-			
-			new Paragraph({ text: "\n" }),
-			
-			// Рекомендации по распределению
-			new Paragraph({
-				children: [
-					new TextRun({
-						text: "🎯 Рекомендации по работе с группами:",
-						bold: true,
-					}),
-				],
-			}),
-			
-			...this.createGroupRecommendations(studentGroups),
-			
-			new Paragraph({ text: "\n" }),
-		);
-		
-		return sections;
-	}
-
-	// Рекомендации по группам
-	createGroupRecommendations(groups) {
-		const { Paragraph, TextRun } = window.docx;
-		const recommendations = [];
-		
-		groups.forEach(group => {
-			if (group.count > 0) {
-				let recommendation = "";
-				
-				switch(group.name) {
-					case 'Отлично (5)':
-						recommendation = `Для ${group.count} учащихся группы "Отлично": предлагать углубленные задания, участие в олимпиадах, исследовательские проекты.`;
-						break;
-					case 'Хорошо (4)':
-						recommendation = `Для ${group.count} учащихся группы "Хорошо": работа над устранением пробелов, развитие аналитических навыков.`;
-						break;
-					case 'Удовлетворительно (3)':
-						recommendation = `Для ${group.count} учащихся группы "Удовлетворительно": дополнительная практика, индивидуальные консультации, повторение материала.`;
-						break;
-					case 'Неудовлетворительно (2)':
-						recommendation = `Для ${group.count} учащихся группы "Неудовлетворительно": интенсивная коррекционная работа, индивидуальный подход, дополнительные занятия.`;
-						break;
-				}
-				
-				recommendations.push(
-					new Paragraph({
-						children: [
-							new TextRun({
-								text: `• ${recommendation}`,
-							}),
-						],
-						indent: { left: 400 },
-					})
-				);
-			}
-		});
-		
-		return recommendations;
-	}
-
-	// Секция анализа заданий
-	createTasksAnalysisSection(allData) {
-		const { Paragraph, TextRun, Table, TableRow, TableCell } = window.docx;
-		const sections = [];
-		
-		const problematicTasks = allData.taskStats.filter(task => 
-			task.difficulty > 0.7 || task.discrimination < 0.3 || task.completionRate < 50
-		);
-		
-		sections.push(
-			new Paragraph({
-				children: [
-					new TextRun({
-						text: `Всего заданий: ${allData.meta.taskCount}`,
-						bold: true,
-					}),
-				],
-			}),
-			
-			new Paragraph({
-				children: [
-					new TextRun({
-						text: `Проблемных заданий: ${problematicTasks.length} `,
-						bold: true,
-						color: problematicTasks.length > 0 ? "E74C3C" : "27AE60",
-					}),
-					new TextRun({
-						text: `(${((problematicTasks.length / allData.meta.taskCount) * 100).toFixed(1)}%)`,
-						italics: true,
-					}),
-				],
-			}),
-			
-			new Paragraph({ text: "\n" }),
-		);
-		
-		if (problematicTasks.length > 0) {
-			sections.push(
-				new Paragraph({
-					children: [
-						new TextRun({
-							text: "⚠️ Задания, требующие внимания:",
-							bold: true,
-							color: "E74C3C",
-						}),
-					],
-				}),
-				
-				new Paragraph({ text: "\n" }),
-			);
-			
-			// Таблица проблемных заданий
-			const taskRows = [
-				new TableRow({
-					children: [
-						new TableCell({ children: [new Paragraph("№")] }),
-						new TableCell({ children: [new Paragraph("Задание")] }),
-						new TableCell({ children: [new Paragraph("Сложность")] }),
-						new TableCell({ children: [new Paragraph("Дискриминативность")] }),
-						new TableCell({ children: [new Paragraph("Выполняемость")] }),
-						new TableCell({ children: [new Paragraph("Проблема")] }),
-					],
-				}),
-			];
-			
-			problematicTasks.forEach(task => {
-				let problems = [];
-				if (task.difficulty > 0.7) problems.push("Сложное");
-				if (task.discrimination < 0.3) problems.push("Низкая дискриминативность");
-				if (task.completionRate < 50) problems.push("Низкая выполнимость");
-				
-				taskRows.push(
-					new TableRow({
-						children: [
-							new TableCell({ children: [new Paragraph(task.number.toString())] }),
-							new TableCell({ 
-								children: [new Paragraph(task.title.substring(0, 30) + (task.title.length > 30 ? "..." : ""))] 
-							}),
-							new TableCell({ 
-								children: [new Paragraph({
-									children: [
-										new TextRun({
-											text: `${(task.difficulty * 100).toFixed(1)}%`,
-											color: task.difficulty > 0.7 ? "E74C3C" : "27AE60",
-										}),
-									],
-								})] 
-							}),
-							new TableCell({ 
-								children: [new Paragraph({
-									children: [
-										new TextRun({
-											text: `${(task.discrimination * 100).toFixed(1)}%`,
-											color: task.discrimination < 0.3 ? "E74C3C" : "27AE60",
-										}),
-									],
-								})] 
-							}),
-							new TableCell({ 
-								children: [new Paragraph({
-									children: [
-										new TextRun({
-											text: `${task.completionRate.toFixed(1)}%`,
-											color: task.completionRate < 50 ? "E74C3C" : "27AE60",
-										}),
-									],
-								})] 
-							}),
-							new TableCell({ children: [new Paragraph(problems.join(", "))] }),
-						],
-					})
-				);
-			});
-			
-			sections.push(
-				new Table({ rows: taskRows }),
-				
-				new Paragraph({ text: "\n" }),
-				
-				new Paragraph({
-					children: [
-						new TextRun({
-							text: "🔧 Рекомендации по улучшению заданий:",
-							bold: true,
-						}),
-					],
-				}),
-				
-				new Paragraph("• Для заданий с высокой сложностью: упростить формулировки, добавить подсказки"),
-				new Paragraph("• Для заданий с низкой дискриминативностью: пересмотреть варианты ответов"),
-				new Paragraph("• Для заданий с низкой выполнимостью: проверить время выполнения, разделить на части"),
-				
-				new Paragraph({ text: "\n" }),
-			);
-		} else {
-			sections.push(
-				new Paragraph({
-					children: [
-						new TextRun({
-							text: "✅ Все задания имеют хорошие показатели сложности и дискриминативности.",
-							color: "27AE60",
-						}),
-					],
-				}),
-				
-				new Paragraph({ text: "\n" }),
-			);
-		}
-		
-		// Анализ по уровням
-		sections.push(
-			new Paragraph({
-				children: [
-					new TextRun({
-						text: "📊 Распределение заданий по уровням сложности:",
-						bold: true,
-					}),
-				],
-			}),
-			
-			new Paragraph({ text: "\n" }),
-			
-			...this.createTaskLevelsAnalysis(allData.taskStats),
-			
-			new Paragraph({ text: "\n" }),
-		);
-		
-		return sections;
-	}
-
-	// Анализ заданий по уровням
-	createTaskLevelsAnalysis(taskStats) {
-		const { Paragraph, TextRun, Table, TableRow, TableCell } = window.docx;
-		const sections = [];
-		
-		// Группируем задания по уровням
-		const levels = {
-			1: { name: 'Базовый', count: 0, avgDifficulty: 0, avgDiscrimination: 0 },
-			2: { name: 'Применение', count: 0, avgDifficulty: 0, avgDiscrimination: 0 },
-			3: { name: 'Анализ', count: 0, avgDifficulty: 0, avgDiscrimination: 0 },
-			4: { name: 'Творчество', count: 0, avgDifficulty: 0, avgDiscrimination: 0 }
-		};
-		
-		taskStats.forEach(task => {
-			const level = Math.min(Math.max(task.level || 1, 1), 4);
-			if (levels[level]) {
-				levels[level].count++;
-				levels[level].avgDifficulty += task.difficulty || 0;
-				levels[level].avgDiscrimination += task.discrimination || 0;
-			}
-		});
-		
-		// Таблица уровней
-		const levelRows = [
-			new TableRow({
-				children: [
-					new TableCell({ children: [new Paragraph("Уровень")] }),
-					new TableCell({ children: [new Paragraph("Количество")] }),
-					new TableCell({ children: [new Paragraph("Средняя сложность")] }),
-					new TableCell({ children: [new Paragraph("Средняя дискриминативность")] }),
-					new TableCell({ children: [new Paragraph("Рекомендация")] }),
-				],
-			}),
-		];
-		
-		Object.entries(levels).forEach(([levelNum, level]) => {
-			if (level.count > 0) {
-				level.avgDifficulty = (level.avgDifficulty / level.count * 100).toFixed(1);
-				level.avgDiscrimination = (level.avgDiscrimination / level.count * 100).toFixed(1);
-				
-				let recommendation = "";
-				if (parseFloat(level.avgDifficulty) > 70) {
-					recommendation = "Упростить задания";
-				} else if (parseFloat(level.avgDiscrimination) < 30) {
-					recommendation = "Улучшить дифференциацию";
-				} else {
-					recommendation = "Оптимальный уровень";
-				}
-				
-				levelRows.push(
-					new TableRow({
-						children: [
-							new TableCell({ children: [new Paragraph(`${level.name} (${levelNum})`)] }),
-							new TableCell({ children: [new Paragraph(level.count.toString())] }),
-							new TableCell({ 
-								children: [new Paragraph({
-									children: [
-										new TextRun({
-											text: `${level.avgDifficulty}%`,
-											color: parseFloat(level.avgDifficulty) > 70 ? "E74C3C" : "27AE60",
-										}),
-									],
-								})] 
-							}),
-							new TableCell({ 
-								children: [new Paragraph({
-									children: [
-										new TextRun({
-											text: `${level.avgDiscrimination}%`,
-											color: parseFloat(level.avgDiscrimination) < 30 ? "E74C3C" : "27AE60",
-										}),
-									],
-								})] 
-							}),
-							new TableCell({ children: [new Paragraph(recommendation)] }),
-						],
-					})
-				);
-			}
-		});
-		
-		sections.push(
-			new Table({ rows: levelRows }),
-			new Paragraph({ text: "\n" })
-		);
-		
-		return sections;
-	}
-
-	// Секция рекомендаций
-	createRecommendationsSection(recommendations, allData) {
-		const { Paragraph, TextRun, Table, TableRow, TableCell } = window.docx;
-		const sections = [];
-		
-		sections.push(
-			new Paragraph({
-				children: [
-					new TextRun({
-						text: "На основе проведенного анализа сформулированы следующие рекомендации:",
-						bold: true,
-					}),
-				],
-			}),
-			
-			new Paragraph({ text: "\n" }),
-		);
-		
-		// Основные рекомендации
-		recommendations.forEach((rec, index) => {
-			sections.push(
-				new Paragraph({
-					children: [
-						new TextRun({
-							text: `${index + 1}. `,
-							bold: true,
-							color: "3498DB",
-						}),
-						new TextRun(rec),
-					],
-					spacing: { after: 100 },
-				})
-			);
-		});
-		
-		sections.push(
-			new Paragraph({ text: "\n" }),
-			
-			new Paragraph({
-				children: [
-					new TextRun({
-						text: "📅 Примерный план действий на ближайший месяц:",
-						bold: true,
-					}),
-				],
-			}),
-			
-			new Paragraph({ text: "\n" }),
-			
-			...this.createActionPlan(allData),
-			
-			new Paragraph({ text: "\n" }),
-		);
-		
-		return sections;
-	}
-
-	// План действий
-	createActionPlan(allData) {
-		const { Paragraph, TextRun } = window.docx;
-		const actions = [];
-		
-		const actionSteps = [
-			{
-				period: "Неделя 1",
-				actions: [
-					"Индивидуальные беседы с учащимися, показавшими низкие результаты",
-					"Анализ ошибок и выявление типичных проблем",
-					"Коррекция наиболее проблемных заданий"
-				]
-			},
-			{
-				period: "Неделя 2",
-				actions: [
-					"Проведение дополнительных занятий для отстающих учащихся",
-					"Разработка дифференцированных заданий",
-					"Работа над развитием компетенций"
-				]
-			},
-			{
-				period: "Неделя 3",
-				actions: [
-					"Проведение тренировочного теста",
-					"Анализ прогресса учащихся",
-					"Коррекция учебного плана"
-				]
-			},
-			{
-				period: "Неделя 4",
-				actions: [
-					"Контрольный тест для оценки эффективности",
-					"Подведение итогов коррекционной работы",
-					"Планирование дальнейшей работы"
-				]
-			}
-		];
-		
-		actionSteps.forEach(step => {
-			actions.push(
-				new Paragraph({
-					children: [
-						new TextRun({
-							text: `${step.period}: `,
-							bold: true,
-							color: "2C3E50",
-						}),
-					],
-				})
-			);
-			
-			step.actions.forEach(action => {
-				actions.push(
-					new Paragraph({
-						children: [
-							new TextRun({
-								text: `  • ${action}`,
-							}),
-						],
-						indent: { left: 400 },
-					})
-				);
-			});
-			
-			actions.push(new Paragraph({ text: "\n" }));
-		});
-		
-		return actions;
-	}
-
-	// Детальное заключение
-	generateDetailedConclusion(allData, comprehensiveAnalysis) {
-		const averageScore = this.calculateOverallAverage(allData.studentStats);
-		const weakStudents = allData.studentStats.filter(s => s.averageScore < 50).length;
-		const problematicTasks = allData.taskStats.filter(t => t.difficulty > 0.7 || t.discrimination < 0.3).length;
-		const studentGroups = this.createStudentGroups(allData.studentStats);
-		
-		let conclusion = "Проведенный комплексный анализ результатов тестирования позволяет сделать следующие выводы:\n\n";
-		
-		// Общая оценка
-		conclusion += "1. ОБЩАЯ ОЦЕНКА РЕЗУЛЬТАТОВ:\n";
-		conclusion += `   • Средний балл класса составляет ${averageScore.toFixed(1)}%, что свидетельствует о ${averageScore >= 85 ? "высоком" : averageScore >= 70 ? "хорошем" : averageScore >= 50 ? "удовлетворительном" : "неудовлетворительном"} уровне подготовки.\n`;
-		conclusion += `   • Распределение учащихся по группам: ${studentGroups.map(g => `${g.name} - ${g.count} чел. (${g.percentage}%)`).join(', ')}.\n`;
-		conclusion += `   • Количество учащихся, требующих особого внимания: ${weakStudents} (${((weakStudents / allData.meta.studentCount) * 100).toFixed(1)}%).\n\n`;
-		
-		// Качество теста
-		conclusion += "2. КАЧЕСТВО ТЕСТОВОГО ИНСТРУМЕНТА:\n";
-		conclusion += `   • Надежность теста (α Кронбаха): ${comprehensiveAnalysis.reliability.alpha.toFixed(3)} - ${comprehensiveAnalysis.reliability.interpretation}.\n`;
-		conclusion += `   • Проблемных заданий: ${problematicTasks} из ${allData.meta.taskCount} (${((problematicTasks / allData.meta.taskCount) * 100).toFixed(1)}%).\n`;
-		conclusion += `   • Качество заданий: ${problematicTasks === 0 ? "все задания соответствуют критериям качества" : "требуется коррекция проблемных заданий"}.\n\n`;
-		
-		// Рекомендации
-		conclusion += "3. ПЕРСПЕКТИВЫ РАЗВИТИЯ:\n";
-		conclusion += "   • Для улучшения результатов рекомендуется последовательная реализация предложенных рекомендаций.\n";
-		conclusion += "   • Ключевой акцент следует сделать на дифференцированный подход к обучению.\n";
-		conclusion += "   • Важно обеспечить регулярный мониторинг прогресса учащихся.\n\n";
-		
-		// Прогноз
-		conclusion += "4. ПРОГНОЗИРУЕМЫЕ РЕЗУЛЬТАТЫ:\n";
-		conclusion += `   • При реализации рекомендаций ожидается повышение среднего балла на 10-15% в течение месяца.\n`;
-		conclusion += `   • Количество учащихся с низкими результатами может сократиться на 30-50%.\n`;
-		conclusion += "   • Улучшится качество тестового инструмента и объективность оценки.\n";
-		
-		return conclusion;
-	}
-
-	// Альтернативный HTML отчет (если docx не доступен)
-	generateEnhancedHTMLReport(allData, comprehensiveAnalysis) {
-		const timestamp = new Date().toLocaleString();
-		
-		const html = `<!DOCTYPE html>
-	<html lang="ru">
-	<head>
-		<meta charset="UTF-8">
-		<meta name="viewport" content="width=device-width, initial-scale=1.0">
-		<title>Аналитический отчет</title>
-		<style>
-			@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-			
-			* {
-				margin: 0;
-				padding: 0;
-				box-sizing: border-box;
-			}
-			
-			body {
-				font-family: 'Inter', sans-serif;
-				line-height: 1.6;
-				color: #2C3E50;
-				background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-				min-height: 100vh;
-				padding: 20px;
-			}
-			
-			.report-container {
-				max-width: 1200px;
-				margin: 0 auto;
-				background: white;
-				border-radius: 20px;
-				box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-				overflow: hidden;
-			}
-			
-			.report-header {
-				background: linear-gradient(135deg, #2C3E50, #34495E);
-				color: white;
-				padding: 40px;
-				text-align: center;
-				position: relative;
-				overflow: hidden;
-			}
-			
-			.report-header::before {
-				content: '';
-				position: absolute;
-				top: -50%;
-				left: -50%;
-				right: -50%;
-				bottom: -50%;
-				background: radial-gradient(circle, rgba(255,255,255,0.1) 1px, transparent 1px);
-				background-size: 50px 50px;
-				animation: float 20s linear infinite;
-			}
-			
-			@keyframes float {
-				0% { transform: rotate(0deg); }
-				100% { transform: rotate(360deg); }
-			}
-			
-			.report-title {
-				font-size: 42px;
-				font-weight: 700;
-				margin-bottom: 10px;
-				position: relative;
-				z-index: 1;
-			}
-			
-			.report-subtitle {
-				font-size: 24px;
-				opacity: 0.9;
-				margin-bottom: 30px;
-				position: relative;
-				z-index: 1;
-			}
-			
-			.test-info {
-				display: grid;
-				grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-				gap: 20px;
-				margin-top: 30px;
-				position: relative;
-				z-index: 1;
-			}
-			
-			.info-card {
-				background: rgba(255,255,255,0.1);
-				backdrop-filter: blur(10px);
-				border-radius: 15px;
-				padding: 20px;
-				text-align: center;
-				border: 1px solid rgba(255,255,255,0.2);
-			}
-			
-			.info-value {
-				font-size: 32px;
-				font-weight: 700;
-				margin-bottom: 5px;
-			}
-			
-			.info-label {
-				font-size: 14px;
-				opacity: 0.8;
-				text-transform: uppercase;
-				letter-spacing: 1px;
-			}
-			
-			.report-body {
-				padding: 40px;
-			}
-			
-			.section {
-				margin-bottom: 50px;
-				padding-bottom: 30px;
-				border-bottom: 2px solid #F8F9FA;
-			}
-			
-			.section:last-child {
-				border-bottom: none;
-			}
-			
-			.section-title {
-				font-size: 28px;
-				font-weight: 600;
-				color: #2C3E50;
-				margin-bottom: 25px;
-				display: flex;
-				align-items: center;
-				gap: 10px;
-			}
-			
-			.section-title::after {
-				content: '';
-				flex: 1;
-				height: 2px;
-				background: linear-gradient(90deg, #3498DB, transparent);
-			}
-			
-			.stats-grid {
-				display: grid;
-				grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-				gap: 20px;
-				margin-bottom: 30px;
-			}
-			
-			.stat-card {
-				background: #F8F9FA;
-				border-radius: 15px;
-				padding: 25px;
-				text-align: center;
-				transition: transform 0.3s, box-shadow 0.3s;
-				border: 2px solid transparent;
-			}
-			
-			.stat-card:hover {
-				transform: translateY(-5px);
-				box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-			}
-			
-			.stat-card.excellent { border-color: #27AE60; }
-			.stat-card.good { border-color: #3498DB; }
-			.stat-card.warning { border-color: #F39C12; }
-			.stat-card.danger { border-color: #E74C3C; }
-			
-			.stat-icon {
-				font-size: 32px;
-				margin-bottom: 15px;
-			}
-			
-			.stat-value {
-				font-size: 36px;
-				font-weight: 700;
-				margin-bottom: 5px;
-			}
-			
-			.stat-label {
-				font-size: 14px;
-				color: #7F8C8D;
-				text-transform: uppercase;
-				letter-spacing: 1px;
-			}
-			
-			table {
-				width: 100%;
-				border-collapse: collapse;
-				margin: 20px 0;
-				background: white;
-				border-radius: 10px;
-				overflow: hidden;
-				box-shadow: 0 5px 15px rgba(0,0,0,0.05);
-			}
-			
-			th {
-				background: #34495E;
-				color: white;
-				padding: 15px;
-				text-align: left;
-				font-weight: 600;
-			}
-			
-			td {
-				padding: 12px 15px;
-				border-bottom: 1px solid #F8F9FA;
-			}
-			
-			tr:hover {
-				background: #F8F9FA;
-			}
-			
-			.recommendation-item {
-				background: #E8F4FC;
-				border-radius: 10px;
-				padding: 20px;
-				margin-bottom: 15px;
-				display: flex;
-				align-items: flex-start;
-				gap: 15px;
-			}
-			
-			.recommendation-number {
-				background: #3498DB;
-				color: white;
-				width: 30px;
-				height: 30px;
-				border-radius: 50%;
-				display: flex;
-				align-items: center;
-				justify-content: center;
-				font-weight: 700;
-				flex-shrink: 0;
-			}
-			
-			.conclusion {
-				background: linear-gradient(135deg, #F8F9FA, #E9ECEF);
-				border-radius: 15px;
-				padding: 30px;
-				margin-top: 30px;
-				border-left: 5px solid #3498DB;
-			}
-			
-			.conclusion-title {
-				font-size: 24px;
-				font-weight: 600;
-				margin-bottom: 20px;
-				color: #2C3E50;
-			}
-			
-			.report-footer {
-				background: #F8F9FA;
-				padding: 30px 40px;
-				text-align: center;
-				border-top: 1px solid #E9ECEF;
-			}
-			
-			.footer-text {
-				color: #7F8C8D;
-				font-size: 14px;
-			}
-			
-			@media print {
-				body {
-					background: white;
-					padding: 0;
-				}
-				
-				.report-container {
-					box-shadow: none;
-					border-radius: 0;
-				}
-				
-				.report-header {
-					background: #2C3E50;
-					color: white;
-				}
-				
-				.stat-card:hover {
-					transform: none;
-					box-shadow: none;
-				}
-			}
-			
-			@media (max-width: 768px) {
-				.report-title {
-					font-size: 32px;
-				}
-				
-				.report-subtitle {
-					font-size: 20px;
-				}
-				
-				.stats-grid {
-					grid-template-columns: 1fr;
-				}
-				
-				.test-info {
-					grid-template-columns: 1fr;
-				}
-				
-				.report-body {
-					padding: 20px;
-				}
-			}
-		</style>
-	</head>
-	<body>
-		<div class="report-container">
-			<!-- Заголовок -->
-			<header class="report-header">
-				<h1 class="report-title">📊 Аналитический отчет</h1>
-				<p class="report-subtitle">Комплексный анализ результатов тестирования</p>
-				
-				<div class="test-info">
-					<div class="info-card">
-						<div class="info-value">${allData.meta.testName || 'Не указан'}</div>
-						<div class="info-label">Тест</div>
-					</div>
-					<div class="info-card">
-						<div class="info-value">${allData.meta.studentCount}</div>
-						<div class="info-label">Учащихся</div>
-					</div>
-					<div class="info-card">
-						<div class="info-value">${allData.meta.taskCount}</div>
-						<div class="info-label">Заданий</div>
-					</div>
-					<div class="info-card">
-						<div class="info-value">${allData.meta.date || new Date().toLocaleDateString()}</div>
-						<div class="info-label">Дата</div>
-					</div>
-				</div>
-			</header>
-			
-			<!-- Основное содержимое -->
-			<main class="report-body">
-				<!-- Сводная статистика -->
-				<section class="section">
-					<h2 class="section-title">📈 Сводная статистика</h2>
-					
-					<div class="stats-grid">
-						<div class="stat-card excellent">
-							<div class="stat-icon">📊</div>
-							<div class="stat-value">${this.calculateOverallAverage(allData.studentStats).toFixed(1)}%</div>
-							<div class="stat-label">Средний балл</div>
-						</div>
-						
-						<div class="stat-card ${comprehensiveAnalysis.reliability.alpha >= 0.8 ? 'excellent' : comprehensiveAnalysis.reliability.alpha >= 0.7 ? 'good' : 'warning'}">
-							<div class="stat-icon">🛡️</div>
-							<div class="stat-value">${comprehensiveAnalysis.reliability.alpha.toFixed(3)}</div>
-							<div class="stat-label">Надежность теста</div>
-						</div>
-						
-						<div class="stat-card good">
-							<div class="stat-icon">🏆</div>
-							<div class="stat-value">${comprehensiveAnalysis.clusters.excellent.count}</div>
-							<div class="stat-label">Отличники</div>
-						</div>
-						
-						<div class="stat-card ${comprehensiveAnalysis.clusters.weak.count > 0 ? 'danger' : 'excellent'}">
-							<div class="stat-icon">⚠️</div>
-							<div class="stat-value">${comprehensiveAnalysis.clusters.weak.count}</div>
-							<div class="stat-label">Требуют внимания</div>
-						</div>
-					</div>
-				</section>
-				
-				<!-- Распределение учащихся -->
-				<section class="section">
-					<h2 class="section-title">👥 Распределение учащихся</h2>
-					
-					<table>
-						<thead>
-							<tr>
-								<th>Уровень</th>
-								<th>Критерий</th>
-								<th>Количество</th>
-								<th>Процент</th>
-								<th>Средний балл</th>
-							</tr>
-						</thead>
-						<tbody>
-							${(() => {
-								const groups = this.createStudentGroups(allData.studentStats);
-								return groups.map(group => `
-									<tr>
-										<td><strong>${group.name}</strong></td>
-										<td>${group.min}% - ${group.max}%</td>
-										<td>${group.count}</td>
-										<td>${group.percentage}%</td>
-										<td>${this.calculateGroupAverageScore(allData.studentStats, group)}</td>
-									</tr>
-								`).join('');
-							})()}
-						</tbody>
-					</table>
-				</section>
-				
-				<!-- Анализ заданий -->
-				<section class="section">
-					<h2 class="section-title">📝 Анализ заданий</h2>
-					
-					${(() => {
-						const problematicTasks = allData.taskStats.filter(task => 
-							task.difficulty > 0.7 || task.discrimination < 0.3 || task.completionRate < 50
-						);
-						
-						if (problematicTasks.length > 0) {
-							return `
-								<p><strong>Проблемных заданий: ${problematicTasks.length} из ${allData.meta.taskCount} (${((problematicTasks.length / allData.meta.taskCount) * 100).toFixed(1)}%)</strong></p>
-								<table>
-									<thead>
-										<tr>
-											<th>Задание</th>
-											<th>Сложность</th>
-											<th>Дискриминативность</th>
-											<th>Выполняемость</th>
-											<th>Проблема</th>
-										</tr>
-									</thead>
-									<tbody>
-										${problematicTasks.map(task => {
-											let problems = [];
-											if (task.difficulty > 0.7) problems.push("Сложное");
-											if (task.discrimination < 0.3) problems.push("Низкая дискриминативность");
-											if (task.completionRate < 50) problems.push("Низкая выполнимость");
-											
-											return `
-												<tr>
-													<td>${task.title}</td>
-													<td style="color: ${task.difficulty > 0.7 ? '#E74C3C' : '#27AE60'}">${(task.difficulty * 100).toFixed(1)}%</td>
-													<td style="color: ${task.discrimination < 0.3 ? '#E74C3C' : '#27AE60'}">${(task.discrimination * 100).toFixed(1)}%</td>
-													<td style="color: ${task.completionRate < 50 ? '#E74C3C' : '#27AE60'}">${task.completionRate.toFixed(1)}%</td>
-													<td>${problems.join(', ')}</td>
-												</tr>
-											`;
-										}).join('')}
-									</tbody>
-								</table>
-							`;
-						} else {
-							return '<p style="color: #27AE60; font-weight: 600;">✅ Все задания имеют хорошие показатели сложности и дискриминативности.</p>';
-						}
-					})()}
-				</section>
-				
-				<!-- Рекомендации -->
-				<section class="section">
-					<h2 class="section-title">💡 Рекомендации</h2>
-					
-					${comprehensiveAnalysis.recommendations.map((rec, index) => `
-						<div class="recommendation-item">
-							<div class="recommendation-number">${index + 1}</div>
-							<div>${rec}</div>
-						</div>
-					`).join('')}
-				</section>
-				
-				<!-- Заключение -->
-				<section class="section">
-					<div class="conclusion">
-						<h3 class="conclusion-title">📋 Заключение</h3>
-						<p>${this.generateDetailedConclusion(allData, comprehensiveAnalysis).replace(/\n/g, '<br>')}</p>
-					</div>
-				</section>
-			</main>
-			
-			<!-- Подвал -->
-			<footer class="report-footer">
-				<p class="footer-text">Сформировано системой Advanced Analytics • ${timestamp}</p>
-				<p class="footer-text">Для получения дополнительной информации обращайтесь к разработчикам системы</p>
-			</footer>
-		</div>
-		
-		<script>
-			// Добавляем интерактивность
-			document.addEventListener('DOMContentLoaded', function() {
-				// Анимация карточек
-				const cards = document.querySelectorAll('.stat-card');
-				cards.forEach(card => {
-					card.addEventListener('mouseenter', function() {
-						this.style.transform = 'translateY(-5px)';
-						this.style.boxShadow = '0 10px 30px rgba(0,0,0,0.1)';
-					});
-					
-					card.addEventListener('mouseleave', function() {
-						this.style.transform = '';
-						this.style.boxShadow = '';
-					});
-				});
-				
-				// Печать отчета
-				const printButton = document.createElement('button');
-				printButton.innerHTML = '🖨️ Печать отчета';
-				printButton.style.cssText = `
-					position: fixed;
-					bottom: 20px;
-					right: 20px;
-					background: #3498DB;
-					color: white;
-					border: none;
-					padding: 12px 24px;
-					border-radius: 25px;
-					font-family: 'Inter', sans-serif;
-					font-weight: 600;
-					cursor: pointer;
-					box-shadow: 0 5px 15px rgba(52, 152, 219, 0.3);
-					z-index: 1000;
-					transition: all 0.3s;
-				`;
-				
-				printButton.addEventListener('mouseenter', () => {
-					printButton.style.transform = 'translateY(-2px)';
-					printButton.style.boxShadow = '0 8px 20px rgba(52, 152, 219, 0.4)';
-				});
-				
-				printButton.addEventListener('mouseleave', () => {
-					printButton.style.transform = '';
-					printButton.style.boxShadow = '0 5px 15px rgba(52, 152, 219, 0.3)';
-				});
-				
-				printButton.addEventListener('click', () => {
-					window.print();
-				});
-				
-				document.body.appendChild(printButton);
-				
-				// Анимация появления элементов
-				const sections = document.querySelectorAll('.section');
-				sections.forEach((section, index) => {
-					setTimeout(() => {
-						section.style.opacity = '0';
-						section.style.transform = 'translateY(20px)';
-						section.style.transition = 'opacity 0.5s, transform 0.5s';
-						
-						setTimeout(() => {
-							section.style.opacity = '1';
-							section.style.transform = 'translateY(0)';
-						}, 50);
-					}, index * 200);
-				});
-			});
-		</script>
-	</body>
-	</html>`;
-		
-		return new Blob([html], { type: 'text/html' });
-	}	
+    // Метод для экспорта улучшенного HTML отчета
+    exportEnhancedHTMLReport(allData, comprehensiveAnalysis) {
+        const htmlBlob = this.generateEnhancedHTMLReport(allData, comprehensiveAnalysis);
+        this.downloadBlob(htmlBlob, `аналитический_отчет_${new Date().toISOString().split('T')[0]}.html`);
+        showNotification('✅ HTML отчет экспортирован', 'success');
+    }
 	
 	
-// Альтернатива: простой Word отчет
-generateSimpleWordReport(allData, comprehensiveAnalysis) {
-    try {
-        // Создаем простой текстовый документ
-        let content = `КОМПЛЕКСНЫЙ АНАЛИЗ РЕЗУЛЬТАТОВ ТЕСТИРОВАНИЯ\n`;
-        content += '='.repeat(60) + '\n\n';
-        
-        content += `Тест: ${allData.meta.testName || 'Не указан'}\n`;
-        content += `Тема: ${allData.meta.theme || 'Не указана'}\n`;
-        content += `Дата: ${allData.meta.date || new Date().toLocaleDateString()}\n`;
-        content += `Класс: ${allData.meta.class || 'Не указан'}\n`;
-        content += `Учащихся: ${allData.meta.studentCount}\n`;
-        content += `Заданий: ${allData.meta.taskCount}\n\n`;
-        
-        content += 'СВОДНАЯ СТАТИСТИКА:\n';
-        content += '-'.repeat(30) + '\n';
-        content += `Средний балл: ${this.calculateOverallAverage(allData.studentStats).toFixed(1)}%\n`;
-        content += `Надежность теста (α): ${comprehensiveAnalysis.reliability.alpha.toFixed(3)}\n`;
-        content += `Отличники: ${comprehensiveAnalysis.clusters.excellent.count}\n`;
-        content += `Требуют внимания: ${comprehensiveAnalysis.clusters.weak.count}\n\n`;
-        
-        content += 'РЕКОМЕНДАЦИИ:\n';
-        content += '-'.repeat(30) + '\n';
-        comprehensiveAnalysis.recommendations.forEach((rec, index) => {
-            content += `${index + 1}. ${rec}\n`;
+
+    // ОБНОВЛЕННЫЙ МЕТОД generateMainWordReport (с проверками)
+    generateMainWordReport(allData, comprehensiveAnalysis) {
+        try {
+            // Проверяем доступность docx
+            if (typeof window.docx === 'undefined') {
+                console.warn('Библиотека docx недоступна');
+                return this.generateEnhancedHTMLReport(allData, comprehensiveAnalysis);
+            }
+
+            const {
+                Document,
+                Paragraph,
+                TextRun,
+                Table,
+                TableRow,
+                TableCell,
+                Packer,
+                HeadingLevel,
+                AlignmentType,
+                WidthType,
+                BorderStyle
+            } = window.docx;
+
+            // Создаем стилизованный документ
+            const doc = new Document({
+                styles: {
+                    paragraphStyles: [{
+                            id: "Title",
+                            name: "Title",
+                            basedOn: "Normal",
+                            next: "Normal",
+                            run: {
+                                size: 48,
+                                bold: true,
+                                color: "2C3E50",
+                            },
+                            paragraph: {
+                                spacing: {
+                                    after: 300
+                                },
+                                alignment: AlignmentType.CENTER,
+                            },
+                        }, {
+                            id: "Heading1",
+                            name: "Heading 1",
+                            basedOn: "Normal",
+                            next: "Normal",
+                            run: {
+                                size: 32,
+                                bold: true,
+                                color: "3498DB",
+                            },
+                            paragraph: {
+                                spacing: {
+                                    before: 240,
+                                    after: 120
+                                },
+                            },
+                        }, {
+                            id: "Heading2",
+                            name: "Heading 2",
+                            basedOn: "Normal",
+                            next: "Normal",
+                            run: {
+                                size: 28,
+                                bold: true,
+                                color: "2C3E50",
+                            },
+                            paragraph: {
+                                spacing: {
+                                    before: 200,
+                                    after: 100
+                                },
+                            },
+                        }, {
+                            id: "Normal",
+                            name: "Normal",
+                            basedOn: "Normal",
+                            next: "Normal",
+                            run: {
+                                size: 24,
+                            },
+                            paragraph: {
+                                spacing: {
+                                    line: 276
+                                },
+                            },
+                        },
+                    ],
+                },
+                sections: [{
+                        properties: {
+                            page: {
+                                margin: {
+                                    top: 1000,
+                                    right: 1000,
+                                    bottom: 1000,
+                                    left: 1000,
+                                },
+                            },
+                        },
+                        children: [
+                            // ТИТУЛЬНАЯ СТРАНИЦА
+                            new Paragraph({
+                                text: "📊 КОМПЛЕКСНЫЙ АНАЛИЗ РЕЗУЛЬТАТОВ ТЕСТИРОВАНИЯ",
+                                style: "Title",
+                            }),
+
+                            new Paragraph({
+                                text: "Аналитический отчет",
+                                style: "Heading1",
+                                alignment: AlignmentType.CENTER,
+                            }),
+
+                            new Paragraph({
+                                text: "\n",
+                            }),
+
+                            // ИНФОРМАЦИЯ О ТЕСТЕ
+                            this.createTestInfoTable(allData),
+
+                            new Paragraph({
+                                text: "\n",
+                            }),
+
+                            // ДАТА ГЕНЕРАЦИИ
+                            new Paragraph({
+                                children: [
+                                    new TextRun({
+                                        text: "Дата формирования отчета: ",
+                                        bold: true,
+                                    }),
+                                    new TextRun(new Date().toLocaleDateString('ru-RU', {
+                                            year: 'numeric',
+                                            month: 'long',
+                                            day: 'numeric',
+                                            hour: '2-digit',
+                                            minute: '2-digit'
+                                        })),
+                                ],
+                                alignment: AlignmentType.RIGHT,
+                            }),
+
+                            new Paragraph({
+                                text: "\n\n\n",
+                            }),
+
+                            // РАЗДЕЛИТЕЛЬ
+                            new Paragraph({
+                                text: "▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬",
+                                alignment: AlignmentType.CENTER,
+                            }),
+
+                            // СВОДНАЯ СТАТИСТИКА
+                            new Paragraph({
+                                text: "📈 СВОДНАЯ СТАТИСТИКА",
+                                style: "Heading1",
+                            }),
+
+                            ...this.createSummaryStatsSection(allData, comprehensiveAnalysis),
+
+                            // АНАЛИЗ НАДЕЖНОСТИ
+                            new Paragraph({
+                                text: "🛡️ АНАЛИЗ НАДЕЖНОСТИ ТЕСТА",
+                                style: "Heading1",
+                            }),
+
+                            ...this.createReliabilitySection(comprehensiveAnalysis.reliability),
+
+                            // РАСПРЕДЕЛЕНИЕ УЧАЩИХСЯ
+                            new Paragraph({
+                                text: "👥 РАСПРЕДЕЛЕНИЕ УЧАЩИХСЯ",
+                                style: "Heading1",
+                            }),
+
+                            ...this.createDistributionSection(allData),
+
+                            // АНАЛИЗ ЗАДАНИЙ
+                            new Paragraph({
+                                text: "📝 АНАЛИЗ ЗАДАНИЙ",
+                                style: "Heading1",
+                            }),
+
+                            ...this.createTasksAnalysisSection(allData),
+
+                            // РЕКОМЕНДАЦИИ
+                            new Paragraph({
+                                text: "💡 РЕКОМЕНДАЦИИ И ПЛАН ДЕЙСТВИЙ",
+                                style: "Heading1",
+                            }),
+
+                            ...this.createRecommendationsSection(comprehensiveAnalysis.recommendations, allData),
+
+                            // ЗАКЛЮЧЕНИЕ
+                            new Paragraph({
+                                text: "📋 ЗАКЛЮЧЕНИЕ",
+                                style: "Heading1",
+                            }),
+
+                            new Paragraph({
+                                text: this.generateDetailedConclusion(allData, comprehensiveAnalysis),
+                            }),
+
+                            // ПОДПИСЬ
+                            new Paragraph({
+                                text: "\n\n\n",
+                            }),
+
+                            new Paragraph({
+                                text: "▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬",
+                                alignment: AlignmentType.CENTER,
+                            }),
+
+                            new Paragraph({
+                                children: [
+                                    new TextRun({
+                                        text: "Сформировано системой Advanced Analytics v2.0",
+                                        italics: true,
+                                        color: "7F8C8D",
+                                    }),
+                                ],
+                                alignment: AlignmentType.CENTER,
+                            }),
+
+                            new Paragraph({
+                                children: [
+                                    new TextRun({
+                                        text: "Для получения дополнительной информации обращайтесь к разработчикам системы",
+                                        size: 20,
+                                        color: "95A5A6",
+                                    }),
+                                ],
+                                alignment: AlignmentType.CENTER,
+                            }),
+                        ],
+                    },
+                ],
+            });
+
+            return Packer.toBlob(doc);
+
+        } catch (error) {
+            console.error('Ошибка создания Word документа:', error);
+            return this.generateEnhancedHTMLReport(allData, comprehensiveAnalysis);
+        }
+    }
+
+    // Создание таблицы с информацией о тесте
+    createTestInfoTable(allData) {
+        const {
+            Table,
+            TableRow,
+            TableCell,
+            Paragraph,
+            TextRun,
+            WidthType,
+            BorderStyle
+        } = window.docx;
+
+        return new Table({
+            width: {
+                size: 100,
+                type: WidthType.PERCENTAGE
+            },
+            borders: {
+                top: {
+                    style: BorderStyle.SINGLE,
+                    size: 3,
+                    color: "3498DB"
+                },
+                bottom: {
+                    style: BorderStyle.SINGLE,
+                    size: 3,
+                    color: "3498DB"
+                },
+                left: {
+                    style: BorderStyle.SINGLE,
+                    size: 3,
+                    color: "3498DB"
+                },
+                right: {
+                    style: BorderStyle.SINGLE,
+                    size: 3,
+                    color: "3498DB"
+                },
+            },
+            rows: [
+                new TableRow({
+                    children: [
+                        new TableCell({
+                            width: {
+                                size: 50,
+                                type: WidthType.PERCENTAGE
+                            },
+                            children: [
+                                new Paragraph({
+                                    children: [
+                                        new TextRun({
+                                            text: "📚 Название теста:",
+                                            bold: true,
+                                            color: "2C3E50",
+                                        }),
+                                    ],
+                                }),
+                                new Paragraph(allData.meta.testName || "Не указано"),
+                            ],
+                            shading: {
+                                fill: "F8F9FA"
+                            },
+                        }),
+                        new TableCell({
+                            width: {
+                                size: 50,
+                                type: WidthType.PERCENTAGE
+                            },
+                            children: [
+                                new Paragraph({
+                                    children: [
+                                        new TextRun({
+                                            text: "🎯 Тема:",
+                                            bold: true,
+                                            color: "2C3E50",
+                                        }),
+                                    ],
+                                }),
+                                new Paragraph(allData.meta.theme || "Не указана"),
+                            ],
+                            shading: {
+                                fill: "F8F9FA"
+                            },
+                        }),
+                    ],
+                }),
+                new TableRow({
+                    children: [
+                        new TableCell({
+                            children: [
+                                new Paragraph({
+                                    children: [
+                                        new TextRun({
+                                            text: "👥 Количество учащихся:",
+                                            bold: true,
+                                            color: "2C3E50",
+                                        }),
+                                    ],
+                                }),
+                                new Paragraph({
+                                    children: [
+                                        new TextRun({
+                                            text: allData.meta.studentCount.toString(),
+                                            bold: true,
+                                            color: "3498DB",
+                                            size: 28,
+                                        }),
+                                    ],
+                                    alignment: AlignmentType.CENTER,
+                                }),
+                            ],
+                        }),
+                        new TableCell({
+                            children: [
+                                new Paragraph({
+                                    children: [
+                                        new TextRun({
+                                            text: "📝 Количество заданий:",
+                                            bold: true,
+                                            color: "2C3E50",
+                                        }),
+                                    ],
+                                }),
+                                new Paragraph({
+                                    children: [
+                                        new TextRun({
+                                            text: allData.meta.taskCount.toString(),
+                                            bold: true,
+                                            color: "3498DB",
+                                            size: 28,
+                                        }),
+                                    ],
+                                    alignment: AlignmentType.CENTER,
+                                }),
+                            ],
+                        }),
+                    ],
+                }),
+                new TableRow({
+                    children: [
+                        new TableCell({
+                            children: [
+                                new Paragraph({
+                                    children: [
+                                        new TextRun({
+                                            text: "🏫 Класс/Группа:",
+                                            bold: true,
+                                            color: "2C3E50",
+                                        }),
+                                    ],
+                                }),
+                                new Paragraph(allData.meta.class || "Не указано"),
+                            ],
+                        }),
+                        new TableCell({
+                            children: [
+                                new Paragraph({
+                                    children: [
+                                        new TextRun({
+                                            text: "📅 Дата проведения:",
+                                            bold: true,
+                                            color: "2C3E50",
+                                        }),
+                                    ],
+                                }),
+                                new Paragraph(allData.meta.date || new Date().toLocaleDateString()),
+                            ],
+                        }),
+                    ],
+                }),
+            ],
         });
-        
-        content += '\n' + '='.repeat(60) + '\n';
-        content += `Сгенерировано: ${new Date().toLocaleString()}\n`;
-        
-        return new Blob([content], { type: 'application/msword' });
-        
-    } catch (error) {
-        console.error('Ошибка создания простого отчета:', error);
-        return null;
     }
-}
 
-// Упрощенное содержимое для Word
-createSimpleContentForWord(allData, comprehensiveAnalysis) {
-    const paragraphs = [];
-    
-    if (window.docx.Paragraph) {
-        paragraphs.push(
-            new window.docx.Paragraph({
-                text: `Тест: ${allData.meta.testName || 'Не указан'}`,
-                spacing: { after: 200 }
+    // Создание секции сводной статистики
+    createSummaryStatsSection(allData, comprehensiveAnalysis) {
+        const {
+            Paragraph,
+            TextRun,
+            Table,
+            TableRow,
+            TableCell
+        } = window.docx;
+        const sections = [];
+
+        // Карточки статистики
+        const statsCards = [{
+                label: "Средний балл класса",
+                value: `${this.calculateOverallAverage(allData.studentStats).toFixed(1)}%`,
+                color: "3498DB",
+                icon: "📊"
+            }, {
+                label: "Надежность теста (α)",
+                value: comprehensiveAnalysis.reliability.alpha.toFixed(3),
+                color: "27AE60",
+                icon: "🛡️"
+            }, {
+                label: "Отличники",
+                value: comprehensiveAnalysis.clusters.excellent.count.toString(),
+                color: "F39C12",
+                icon: "🏆"
+            }, {
+                label: "Требуют внимания",
+                value: comprehensiveAnalysis.clusters.weak.count.toString(),
+                color: "E74C3C",
+                icon: "⚠️"
+            },
+        ];
+
+        // Таблица с карточками статистики
+        const tableRows = [];
+        for (let i = 0; i < statsCards.length; i += 2) {
+            const rowCells = [];
+
+            // Первая карточка в ряду
+            rowCells.push(
+                new TableCell({
+                    width: {
+                        size: 50,
+                        type: WidthType.PERCENTAGE
+                    },
+                    children: [
+                        new Paragraph({
+                            children: [
+                                new TextRun({
+                                    text: `${statsCards[i].icon} ${statsCards[i].label}`,
+                                    bold: true,
+                                    size: 22,
+                                }),
+                            ],
+                        }),
+                        new Paragraph({
+                            children: [
+                                new TextRun({
+                                    text: statsCards[i].value,
+                                    bold: true,
+                                    size: 36,
+                                    color: statsCards[i].color,
+                                }),
+                            ],
+                            alignment: AlignmentType.CENTER,
+                        }),
+                    ],
+                    margins: {
+                        top: 100,
+                        bottom: 100,
+                        left: 100,
+                        right: 100
+                    },
+                    shading: {
+                        fill: "FFFFFF"
+                    },
+                }));
+
+            // Вторая карточка в ряду (если есть)
+            if (i + 1 < statsCards.length) {
+                rowCells.push(
+                    new TableCell({
+                        width: {
+                            size: 50,
+                            type: WidthType.PERCENTAGE
+                        },
+                        children: [
+                            new Paragraph({
+                                children: [
+                                    new TextRun({
+                                        text: `${statsCards[i + 1].icon} ${statsCards[i + 1].label}`,
+                                        bold: true,
+                                        size: 22,
+                                    }),
+                                ],
+                            }),
+                            new Paragraph({
+                                children: [
+                                    new TextRun({
+                                        text: statsCards[i + 1].value,
+                                        bold: true,
+                                        size: 36,
+                                        color: statsCards[i + 1].color,
+                                    }),
+                                ],
+                                alignment: AlignmentType.CENTER,
+                            }),
+                        ],
+                        margins: {
+                            top: 100,
+                            bottom: 100,
+                            left: 100,
+                            right: 100
+                        },
+                        shading: {
+                            fill: "FFFFFF"
+                        },
+                    }));
+            }
+
+            tableRows.push(new TableRow({
+                    children: rowCells
+                }));
+        }
+
+        sections.push(
+            new Table({
+                rows: tableRows,
+                width: {
+                    size: 100,
+                    type: WidthType.PERCENTAGE
+                },
             }),
-            
-            new window.docx.Paragraph({
-                text: `Тема: ${allData.meta.theme || 'Не указана'}`,
-                spacing: { after: 200 }
+
+            new Paragraph({
+                text: "\n"
             }),
-            
-            new window.docx.Paragraph({
-                text: `Дата: ${allData.meta.date || new Date().toLocaleDateString()}`,
-                spacing: { after: 200 }
+
+            // Дополнительная информация
+            new Paragraph({
+                children: [
+                    new TextRun({
+                        text: "📌 Дополнительные показатели:",
+                        bold: true,
+                        size: 24,
+                    }),
+                ],
             }),
-            
-            new window.docx.Paragraph({
-                text: '='.repeat(60),
-                spacing: { after: 400 }
-            })
-        );
+
+            new Paragraph({
+                children: [
+                    new TextRun({
+                        text: `• Стандартное отклонение: `,
+                        bold: true,
+                    }),
+                    new TextRun(`${allData.distribution.stdDev.toFixed(1)}%`),
+                    new TextRun({
+                        text: ` (${this.interpretStdDev(allData.distribution.stdDev)})`,
+                        italics: true,
+                    }),
+                ],
+            }),
+
+            new Paragraph({
+                children: [
+                    new TextRun({
+                        text: `• Асимметрия распределения: `,
+                        bold: true,
+                    }),
+                    new TextRun(`${allData.distribution.skewness.toFixed(3)}`),
+                    new TextRun({
+                        text: ` (${this.interpretSkewness(allData.distribution.skewness)})`,
+                        italics: true,
+                    }),
+                ],
+            }),
+
+            new Paragraph({
+                children: [
+                    new TextRun({
+                        text: `• Коэффициент вариации: `,
+                        bold: true,
+                    }),
+                    new TextRun(`${(allData.distribution.stdDev / allData.distribution.mean * 100).toFixed(1)}%`),
+                ],
+            }),
+
+            new Paragraph({
+                text: "\n"
+            }), );
+
+        return sections;
     }
-    
-    return paragraphs;
-}
 
-// Fallback для комплексного экспорта
-exportComprehensiveAnalysisFallback() {
-    showNotification('Используется упрощенный экспорт', 'warning');
-    
-    // Создаем простой HTML отчет
-    const allData = this.collectDetailedData();
-    const comprehensiveAnalysis = this.performComprehensiveAnalysis();
-    
-    const htmlContent = `
+    // Интерпретация стандартного отклонения
+    interpretStdDev(stdDev) {
+        if (stdDev < 10)
+            return "небольшой разброс";
+        if (stdDev < 20)
+            return "умеренный разброс";
+        return "значительный разброс";
+    }
+
+    // Интерпретация асимметрии
+    interpretSkewness(skewness) {
+        if (skewness > 0.5)
+            return "смещение влево";
+        if (skewness < -0.5)
+            return "смещение вправо";
+        return "симметричное распределение";
+    }
+
+    // Секция анализа надежности
+    createReliabilitySection(reliability) {
+        const {
+            Paragraph,
+            TextRun,
+            Table,
+            TableRow,
+            TableCell
+        } = window.docx;
+        const sections = [];
+
+        // Определяем цвет и иконку в зависимости от значения
+        let reliabilityIcon,
+        reliabilityColor;
+        if (reliability.alpha >= 0.8) {
+            reliabilityIcon = "✅";
+            reliabilityColor = "27AE60";
+        } else if (reliability.alpha >= 0.7) {
+            reliabilityIcon = "⚠️";
+            reliabilityColor = "F39C12";
+        } else {
+            reliabilityIcon = "❌";
+            reliabilityColor = "E74C3C";
+        }
+
+        sections.push(
+            new Table({
+                width: {
+                    size: 100,
+                    type: WidthType.PERCENTAGE
+                },
+                rows: [
+                    new TableRow({
+                        children: [
+                            new TableCell({
+                                width: {
+                                    size: 30,
+                                    type: WidthType.PERCENTAGE
+                                },
+                                children: [
+                                    new Paragraph({
+                                        children: [
+                                            new TextRun({
+                                                text: `${reliabilityIcon} Коэффициент α Кронбаха`,
+                                                bold: true,
+                                                size: 24,
+                                            }),
+                                        ],
+                                        alignment: AlignmentType.CENTER,
+                                    }),
+                                ],
+                                shading: {
+                                    fill: "F8F9FA"
+                                },
+                            }),
+                            new TableCell({
+                                width: {
+                                    size: 70,
+                                    type: WidthType.PERCENTAGE
+                                },
+                                children: [
+                                    new Paragraph({
+                                        children: [
+                                            new TextRun({
+                                                text: reliability.description,
+                                            }),
+                                        ],
+                                    }),
+                                    new Paragraph({
+                                        children: [
+                                            new TextRun({
+                                                text: "Рекомендация: ",
+                                                bold: true,
+                                            }),
+                                            new TextRun(reliability.recommendation),
+                                        ],
+                                    }),
+                                ],
+                            }),
+                        ],
+                    }),
+                ],
+            }),
+
+            new Paragraph({
+                text: "\n"
+            }),
+
+            // Шкала надежности
+            new Paragraph({
+                children: [
+                    new TextRun({
+                        text: "📊 Шкала оценки надежности теста:",
+                        bold: true,
+                    }),
+                ],
+            }),
+
+            this.createReliabilityScaleTable(reliability.alpha),
+
+            new Paragraph({
+                text: "\n"
+            }), );
+
+        return sections;
+    }
+
+    // Таблица шкалы надежности
+    createReliabilityScaleTable(alpha) {
+        const {
+            Table,
+            TableRow,
+            TableCell,
+            Paragraph,
+            TextRun
+        } = window.docx;
+
+        const scaleData = [{
+                range: "α ≥ 0.90",
+                label: "Отличная",
+                color: "27AE60",
+                description: "Высшая степень надежности"
+            }, {
+                range: "0.80 ≤ α < 0.90",
+                label: "Хорошая",
+                color: "3498DB",
+                description: "Достаточно для итогового контроля"
+            }, {
+                range: "0.70 ≤ α < 0.80",
+                label: "Приемлемая",
+                color: "F39C12",
+                description: "Достаточно для учебного контроля"
+            }, {
+                range: "0.60 ≤ α < 0.70",
+                label: "Сомнительная",
+                color: "E67E22",
+                description: "Требуется пересмотр теста"
+            }, {
+                range: "α < 0.60",
+                label: "Низкая",
+                color: "E74C3C",
+                description: "Неприемлемая надежность"
+            },
+        ];
+
+        const rows = scaleData.map(item => {
+            const isCurrent = alpha >= parseFloat(item.range.split("α")[0]) ||
+                (item.range.includes("≤") && alpha >= 0.70 && alpha < 0.80) ||
+                (item.range.includes("< 0.60") && alpha < 0.60);
+
+            return new TableRow({
+                children: [
+                    new TableCell({
+                        children: [
+                            new Paragraph({
+                                children: [
+                                    new TextRun({
+                                        text: item.range,
+                                        bold: true,
+                                        color: item.color,
+                                    }),
+                                ],
+                            }),
+                        ],
+                        shading: isCurrent ? {
+                            fill: "FFF3CD"
+                        }
+                         : undefined,
+                    }),
+                    new TableCell({
+                        children: [
+                            new Paragraph({
+                                children: [
+                                    new TextRun({
+                                        text: item.label,
+                                        bold: true,
+                                        color: item.color,
+                                    }),
+                                ],
+                            }),
+                        ],
+                        shading: isCurrent ? {
+                            fill: "FFF3CD"
+                        }
+                         : undefined,
+                    }),
+                    new TableCell({
+                        children: [new Paragraph(item.description)],
+                        shading: isCurrent ? {
+                            fill: "FFF3CD"
+                        }
+                         : undefined,
+                    }),
+                ],
+            });
+        });
+
+        // Добавляем заголовки
+        rows.unshift(
+            new TableRow({
+                children: [
+                    new TableCell({
+                        children: [new Paragraph("Диапазон")],
+                        shading: {
+                            fill: "2C3E50"
+                        },
+                    }),
+                    new TableCell({
+                        children: [new Paragraph("Оценка")],
+                        shading: {
+                            fill: "2C3E50"
+                        },
+                    }),
+                    new TableCell({
+                        children: [new Paragraph("Интерпретация")],
+                        shading: {
+                            fill: "2C3E50"
+                        },
+                    }),
+                ],
+            }));
+
+        return new Table({
+            rows
+        });
+    }
+
+    // Секция распределения учащихся
+    createDistributionSection(allData) {
+        const {
+            Paragraph,
+            TextRun,
+            Table,
+            TableRow,
+            TableCell
+        } = window.docx;
+        const sections = [];
+
+        const studentGroups = this.createStudentGroups(allData.studentStats);
+
+        sections.push(
+            new Paragraph({
+                children: [
+                    new TextRun({
+                        text: "📊 Распределение учащихся по уровням подготовки:",
+                        bold: true,
+                    }),
+                ],
+            }),
+
+            new Paragraph({
+                text: "\n"
+            }), );
+
+        // Таблица распределения
+        const distributionRows = [
+            new TableRow({
+                children: [
+                    new TableCell({
+                        children: [new Paragraph("Уровень")],
+                        shading: {
+                            fill: "34495E"
+                        },
+                    }),
+                    new TableCell({
+                        children: [new Paragraph("Критерий")],
+                        shading: {
+                            fill: "34495E"
+                        },
+                    }),
+                    new TableCell({
+                        children: [new Paragraph("Количество")],
+                        shading: {
+                            fill: "34495E"
+                        },
+                    }),
+                    new TableCell({
+                        children: [new Paragraph("Процент")],
+                        shading: {
+                            fill: "34495E"
+                        },
+                    }),
+                    new TableCell({
+                        children: [new Paragraph("Средний балл")],
+                        shading: {
+                            fill: "34495E"
+                        },
+                    }),
+                ],
+            }),
+        ];
+
+        studentGroups.forEach(group => {
+            distributionRows.push(
+                new TableRow({
+                    children: [
+                        new TableCell({
+                            children: [new Paragraph(group.name)],
+                            shading: {
+                                fill: `${group.color}20`
+                            },
+                        }),
+                        new TableCell({
+                            children: [new Paragraph(`${group.min}% - ${group.max}%`)],
+                        }),
+                        new TableCell({
+                            children: [new Paragraph(group.count.toString())],
+                        }),
+                        new TableCell({
+                            children: [new Paragraph(`${group.percentage}%`)],
+                        }),
+                        new TableCell({
+                            children: [new Paragraph(this.calculateGroupAverageScore(allData.studentStats, group))],
+                        }),
+                    ],
+                }));
+        });
+
+        sections.push(
+            new Table({
+                rows: distributionRows
+            }),
+
+            new Paragraph({
+                text: "\n"
+            }),
+
+            // Анализ распределения
+            new Paragraph({
+                children: [
+                    new TextRun({
+                        text: "📈 Анализ распределения:",
+                        bold: true,
+                    }),
+                ],
+            }),
+
+            new Paragraph(this.interpretDistribution(allData.distribution)),
+
+            new Paragraph({
+                text: "\n"
+            }),
+
+            // Рекомендации по распределению
+            new Paragraph({
+                children: [
+                    new TextRun({
+                        text: "🎯 Рекомендации по работе с группами:",
+                        bold: true,
+                    }),
+                ],
+            }),
+
+            ...this.createGroupRecommendations(studentGroups),
+
+            new Paragraph({
+                text: "\n"
+            }), );
+
+        return sections;
+    }
+
+    // Рекомендации по группам
+    createGroupRecommendations(groups) {
+        const {
+            Paragraph,
+            TextRun
+        } = window.docx;
+        const recommendations = [];
+
+        groups.forEach(group => {
+            if (group.count > 0) {
+                let recommendation = "";
+
+                switch (group.name) {
+                case 'Отлично (5)':
+                    recommendation = `Для ${group.count} учащихся группы "Отлично": предлагать углубленные задания, участие в олимпиадах, исследовательские проекты.`;
+                    break;
+                case 'Хорошо (4)':
+                    recommendation = `Для ${group.count} учащихся группы "Хорошо": работа над устранением пробелов, развитие аналитических навыков.`;
+                    break;
+                case 'Удовлетворительно (3)':
+                    recommendation = `Для ${group.count} учащихся группы "Удовлетворительно": дополнительная практика, индивидуальные консультации, повторение материала.`;
+                    break;
+                case 'Неудовлетворительно (2)':
+                    recommendation = `Для ${group.count} учащихся группы "Неудовлетворительно": интенсивная коррекционная работа, индивидуальный подход, дополнительные занятия.`;
+                    break;
+                }
+
+                recommendations.push(
+                    new Paragraph({
+                        children: [
+                            new TextRun({
+                                text: `• ${recommendation}`,
+                            }),
+                        ],
+                        indent: {
+                            left: 400
+                        },
+                    }));
+            }
+        });
+
+        return recommendations;
+    }
+
+    // Секция анализа заданий
+    createTasksAnalysisSection(allData) {
+        const {
+            Paragraph,
+            TextRun,
+            Table,
+            TableRow,
+            TableCell
+        } = window.docx;
+        const sections = [];
+
+        const problematicTasks = allData.taskStats.filter(task =>
+                task.difficulty > 0.7 || task.discrimination < 0.3 || task.completionRate < 50);
+
+        sections.push(
+            new Paragraph({
+                children: [
+                    new TextRun({
+                        text: `Всего заданий: ${allData.meta.taskCount}`,
+                        bold: true,
+                    }),
+                ],
+            }),
+
+            new Paragraph({
+                children: [
+                    new TextRun({
+                        text: `Проблемных заданий: ${problematicTasks.length} `,
+                        bold: true,
+                        color: problematicTasks.length > 0 ? "E74C3C" : "27AE60",
+                    }),
+                    new TextRun({
+                        text: `(${((problematicTasks.length / allData.meta.taskCount) * 100).toFixed(1)}%)`,
+                        italics: true,
+                    }),
+                ],
+            }),
+
+            new Paragraph({
+                text: "\n"
+            }), );
+
+        if (problematicTasks.length > 0) {
+            sections.push(
+                new Paragraph({
+                    children: [
+                        new TextRun({
+                            text: "⚠️ Задания, требующие внимания:",
+                            bold: true,
+                            color: "E74C3C",
+                        }),
+                    ],
+                }),
+
+                new Paragraph({
+                    text: "\n"
+                }), );
+
+            // Таблица проблемных заданий
+            const taskRows = [
+                new TableRow({
+                    children: [
+                        new TableCell({
+                            children: [new Paragraph("№")]
+                        }),
+                        new TableCell({
+                            children: [new Paragraph("Задание")]
+                        }),
+                        new TableCell({
+                            children: [new Paragraph("Сложность")]
+                        }),
+                        new TableCell({
+                            children: [new Paragraph("Дискриминативность")]
+                        }),
+                        new TableCell({
+                            children: [new Paragraph("Выполняемость")]
+                        }),
+                        new TableCell({
+                            children: [new Paragraph("Проблема")]
+                        }),
+                    ],
+                }),
+            ];
+
+            problematicTasks.forEach(task => {
+                let problems = [];
+                if (task.difficulty > 0.7)
+                    problems.push("Сложное");
+                if (task.discrimination < 0.3)
+                    problems.push("Низкая дискриминативность");
+                if (task.completionRate < 50)
+                    problems.push("Низкая выполнимость");
+
+                taskRows.push(
+                    new TableRow({
+                        children: [
+                            new TableCell({
+                                children: [new Paragraph(task.number.toString())]
+                            }),
+                            new TableCell({
+                                children: [new Paragraph(task.title.substring(0, 30) + (task.title.length > 30 ? "..." : ""))]
+                            }),
+                            new TableCell({
+                                children: [new Paragraph({
+                                        children: [
+                                            new TextRun({
+                                                text: `${(task.difficulty * 100).toFixed(1)}%`,
+                                                color: task.difficulty > 0.7 ? "E74C3C" : "27AE60",
+                                            }),
+                                        ],
+                                    })]
+                            }),
+                            new TableCell({
+                                children: [new Paragraph({
+                                        children: [
+                                            new TextRun({
+                                                text: `${(task.discrimination * 100).toFixed(1)}%`,
+                                                color: task.discrimination < 0.3 ? "E74C3C" : "27AE60",
+                                            }),
+                                        ],
+                                    })]
+                            }),
+                            new TableCell({
+                                children: [new Paragraph({
+                                        children: [
+                                            new TextRun({
+                                                text: `${task.completionRate.toFixed(1)}%`,
+                                                color: task.completionRate < 50 ? "E74C3C" : "27AE60",
+                                            }),
+                                        ],
+                                    })]
+                            }),
+                            new TableCell({
+                                children: [new Paragraph(problems.join(", "))]
+                            }),
+                        ],
+                    }));
+            });
+
+            sections.push(
+                new Table({
+                    rows: taskRows
+                }),
+
+                new Paragraph({
+                    text: "\n"
+                }),
+
+                new Paragraph({
+                    children: [
+                        new TextRun({
+                            text: "🔧 Рекомендации по улучшению заданий:",
+                            bold: true,
+                        }),
+                    ],
+                }),
+
+                new Paragraph("• Для заданий с высокой сложностью: упростить формулировки, добавить подсказки"),
+                new Paragraph("• Для заданий с низкой дискриминативностью: пересмотреть варианты ответов"),
+                new Paragraph("• Для заданий с низкой выполнимостью: проверить время выполнения, разделить на части"),
+
+                new Paragraph({
+                    text: "\n"
+                }), );
+        } else {
+            sections.push(
+                new Paragraph({
+                    children: [
+                        new TextRun({
+                            text: "✅ Все задания имеют хорошие показатели сложности и дискриминативности.",
+                            color: "27AE60",
+                        }),
+                    ],
+                }),
+
+                new Paragraph({
+                    text: "\n"
+                }), );
+        }
+
+        // Анализ по уровням
+        sections.push(
+            new Paragraph({
+                children: [
+                    new TextRun({
+                        text: "📊 Распределение заданий по уровням сложности:",
+                        bold: true,
+                    }),
+                ],
+            }),
+
+            new Paragraph({
+                text: "\n"
+            }),
+
+            ...this.createTaskLevelsAnalysis(allData.taskStats),
+
+            new Paragraph({
+                text: "\n"
+            }), );
+
+        return sections;
+    }
+
+    // Анализ заданий по уровням
+    createTaskLevelsAnalysis(taskStats) {
+        const {
+            Paragraph,
+            TextRun,
+            Table,
+            TableRow,
+            TableCell
+        } = window.docx;
+        const sections = [];
+
+        // Группируем задания по уровням
+        const levels = {
+            1: {
+                name: 'Базовый',
+                count: 0,
+                avgDifficulty: 0,
+                avgDiscrimination: 0
+            },
+            2: {
+                name: 'Применение',
+                count: 0,
+                avgDifficulty: 0,
+                avgDiscrimination: 0
+            },
+            3: {
+                name: 'Анализ',
+                count: 0,
+                avgDifficulty: 0,
+                avgDiscrimination: 0
+            },
+            4: {
+                name: 'Творчество',
+                count: 0,
+                avgDifficulty: 0,
+                avgDiscrimination: 0
+            }
+        };
+
+        taskStats.forEach(task => {
+            const level = Math.min(Math.max(task.level || 1, 1), 4);
+            if (levels[level]) {
+                levels[level].count++;
+                levels[level].avgDifficulty += task.difficulty || 0;
+                levels[level].avgDiscrimination += task.discrimination || 0;
+            }
+        });
+
+        // Таблица уровней
+        const levelRows = [
+            new TableRow({
+                children: [
+                    new TableCell({
+                        children: [new Paragraph("Уровень")]
+                    }),
+                    new TableCell({
+                        children: [new Paragraph("Количество")]
+                    }),
+                    new TableCell({
+                        children: [new Paragraph("Средняя сложность")]
+                    }),
+                    new TableCell({
+                        children: [new Paragraph("Средняя дискриминативность")]
+                    }),
+                    new TableCell({
+                        children: [new Paragraph("Рекомендация")]
+                    }),
+                ],
+            }),
+        ];
+
+        Object.entries(levels).forEach(([levelNum, level]) => {
+            if (level.count > 0) {
+                level.avgDifficulty = (level.avgDifficulty / level.count * 100).toFixed(1);
+                level.avgDiscrimination = (level.avgDiscrimination / level.count * 100).toFixed(1);
+
+                let recommendation = "";
+                if (parseFloat(level.avgDifficulty) > 70) {
+                    recommendation = "Упростить задания";
+                } else if (parseFloat(level.avgDiscrimination) < 30) {
+                    recommendation = "Улучшить дифференциацию";
+                } else {
+                    recommendation = "Оптимальный уровень";
+                }
+
+                levelRows.push(
+                    new TableRow({
+                        children: [
+                            new TableCell({
+                                children: [new Paragraph(`${level.name} (${levelNum})`)]
+                            }),
+                            new TableCell({
+                                children: [new Paragraph(level.count.toString())]
+                            }),
+                            new TableCell({
+                                children: [new Paragraph({
+                                        children: [
+                                            new TextRun({
+                                                text: `${level.avgDifficulty}%`,
+                                                color: parseFloat(level.avgDifficulty) > 70 ? "E74C3C" : "27AE60",
+                                            }),
+                                        ],
+                                    })]
+                            }),
+                            new TableCell({
+                                children: [new Paragraph({
+                                        children: [
+                                            new TextRun({
+                                                text: `${level.avgDiscrimination}%`,
+                                                color: parseFloat(level.avgDiscrimination) < 30 ? "E74C3C" : "27AE60",
+                                            }),
+                                        ],
+                                    })]
+                            }),
+                            new TableCell({
+                                children: [new Paragraph(recommendation)]
+                            }),
+                        ],
+                    }));
+            }
+        });
+
+        sections.push(
+            new Table({
+                rows: levelRows
+            }),
+            new Paragraph({
+                text: "\n"
+            }));
+
+        return sections;
+    }
+
+    // Секция рекомендаций
+    createRecommendationsSection(recommendations, allData) {
+        const {
+            Paragraph,
+            TextRun,
+            Table,
+            TableRow,
+            TableCell
+        } = window.docx;
+        const sections = [];
+
+        sections.push(
+            new Paragraph({
+                children: [
+                    new TextRun({
+                        text: "На основе проведенного анализа сформулированы следующие рекомендации:",
+                        bold: true,
+                    }),
+                ],
+            }),
+
+            new Paragraph({
+                text: "\n"
+            }), );
+
+        // Основные рекомендации
+        recommendations.forEach((rec, index) => {
+            sections.push(
+                new Paragraph({
+                    children: [
+                        new TextRun({
+                            text: `${index + 1}. `,
+                            bold: true,
+                            color: "3498DB",
+                        }),
+                        new TextRun(rec),
+                    ],
+                    spacing: {
+                        after: 100
+                    },
+                }));
+        });
+
+        sections.push(
+            new Paragraph({
+                text: "\n"
+            }),
+
+            new Paragraph({
+                children: [
+                    new TextRun({
+                        text: "📅 Примерный план действий на ближайший месяц:",
+                        bold: true,
+                    }),
+                ],
+            }),
+
+            new Paragraph({
+                text: "\n"
+            }),
+
+            ...this.createActionPlan(allData),
+
+            new Paragraph({
+                text: "\n"
+            }), );
+
+        return sections;
+    }
+
+    // План действий
+    createActionPlan(allData) {
+        const {
+            Paragraph,
+            TextRun
+        } = window.docx;
+        const actions = [];
+
+        const actionSteps = [{
+                period: "Неделя 1",
+                actions: [
+                    "Индивидуальные беседы с учащимися, показавшими низкие результаты",
+                    "Анализ ошибок и выявление типичных проблем",
+                    "Коррекция наиболее проблемных заданий"
+                ]
+            }, {
+                period: "Неделя 2",
+                actions: [
+                    "Проведение дополнительных занятий для отстающих учащихся",
+                    "Разработка дифференцированных заданий",
+                    "Работа над развитием компетенций"
+                ]
+            }, {
+                period: "Неделя 3",
+                actions: [
+                    "Проведение тренировочного теста",
+                    "Анализ прогресса учащихся",
+                    "Коррекция учебного плана"
+                ]
+            }, {
+                period: "Неделя 4",
+                actions: [
+                    "Контрольный тест для оценки эффективности",
+                    "Подведение итогов коррекционной работы",
+                    "Планирование дальнейшей работы"
+                ]
+            }
+        ];
+
+        actionSteps.forEach(step => {
+            actions.push(
+                new Paragraph({
+                    children: [
+                        new TextRun({
+                            text: `${step.period}: `,
+                            bold: true,
+                            color: "2C3E50",
+                        }),
+                    ],
+                }));
+
+            step.actions.forEach(action => {
+                actions.push(
+                    new Paragraph({
+                        children: [
+                            new TextRun({
+                                text: `  • ${action}`,
+                            }),
+                        ],
+                        indent: {
+                            left: 400
+                        },
+                    }));
+            });
+
+            actions.push(new Paragraph({
+                    text: "\n"
+                }));
+        });
+
+        return actions;
+    }
+
+    // Детальное заключение
+    generateDetailedConclusion(allData, comprehensiveAnalysis) {
+        const averageScore = this.calculateOverallAverage(allData.studentStats);
+        const weakStudents = allData.studentStats.filter(s => s.averageScore < 50).length;
+        const problematicTasks = allData.taskStats.filter(t => t.difficulty > 0.7 || t.discrimination < 0.3).length;
+        const studentGroups = this.createStudentGroups(allData.studentStats);
+
+        let conclusion = "Проведенный комплексный анализ результатов тестирования позволяет сделать следующие выводы:\n\n";
+
+        // Общая оценка
+        conclusion += "1. ОБЩАЯ ОЦЕНКА РЕЗУЛЬТАТОВ:\n";
+        conclusion += `   • Средний балл класса составляет ${averageScore.toFixed(1)}%, что свидетельствует о ${averageScore >= 85 ? "высоком" : averageScore >= 70 ? "хорошем" : averageScore >= 50 ? "удовлетворительном" : "неудовлетворительном"} уровне подготовки.\n`;
+        conclusion += `   • Распределение учащихся по группам: ${studentGroups.map(g => `${g.name} - ${g.count} чел. (${g.percentage}%)`).join(', ')}.\n`;
+        conclusion += `   • Количество учащихся, требующих особого внимания: ${weakStudents} (${((weakStudents / allData.meta.studentCount) * 100).toFixed(1)}%).\n\n`;
+
+        // Качество теста
+        conclusion += "2. КАЧЕСТВО ТЕСТОВОГО ИНСТРУМЕНТА:\n";
+        conclusion += `   • Надежность теста (α Кронбаха): ${comprehensiveAnalysis.reliability.alpha.toFixed(3)} - ${comprehensiveAnalysis.reliability.interpretation}.\n`;
+        conclusion += `   • Проблемных заданий: ${problematicTasks} из ${allData.meta.taskCount} (${((problematicTasks / allData.meta.taskCount) * 100).toFixed(1)}%).\n`;
+        conclusion += `   • Качество заданий: ${problematicTasks === 0 ? "все задания соответствуют критериям качества" : "требуется коррекция проблемных заданий"}.\n\n`;
+
+        // Рекомендации
+        conclusion += "3. ПЕРСПЕКТИВЫ РАЗВИТИЯ:\n";
+        conclusion += "   • Для улучшения результатов рекомендуется последовательная реализация предложенных рекомендаций.\n";
+        conclusion += "   • Ключевой акцент следует сделать на дифференцированный подход к обучению.\n";
+        conclusion += "   • Важно обеспечить регулярный мониторинг прогресса учащихся.\n\n";
+
+        // Прогноз
+        conclusion += "4. ПРОГНОЗИРУЕМЫЕ РЕЗУЛЬТАТЫ:\n";
+        conclusion += `   • При реализации рекомендаций ожидается повышение среднего балла на 10-15% в течение месяца.\n`;
+        conclusion += `   • Количество учащихся с низкими результатами может сократиться на 30-50%.\n`;
+        conclusion += "   • Улучшится качество тестового инструмента и объективность оценки.\n";
+
+        return conclusion;
+    }
+
+    // Альтернативный HTML отчет (если docx не доступен)
+    // Альтернативный HTML отчет (если docx не доступен)
+    generateEnhancedHTMLReport(allData, comprehensiveAnalysis) {
+        const timestamp = new Date().toLocaleString();
+
+        const html = `<!DOCTYPE html>
+    <html lang="ru">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Аналитический отчет</title>
+        <style>
+            @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+            
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+            
+            body {
+                font-family: 'Inter', sans-serif;
+                line-height: 1.6;
+                color: #2C3E50;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                min-height: 100vh;
+                padding: 20px;
+            }
+            
+            .report-container {
+                max-width: 1200px;
+                margin: 0 auto;
+                background: white;
+                border-radius: 20px;
+                box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+                overflow: hidden;
+            }
+            
+            .report-header {
+                background: linear-gradient(135deg, #2C3E50, #34495E);
+                color: white;
+                padding: 40px;
+                text-align: center;
+                position: relative;
+                overflow: hidden;
+            }
+            
+            .report-header::before {
+                content: '';
+                position: absolute;
+                top: -50%;
+                left: -50%;
+                right: -50%;
+                bottom: -50%;
+                background: radial-gradient(circle, rgba(255,255,255,0.1) 1px, transparent 1px);
+                background-size: 50px 50px;
+                animation: float 20s linear infinite;
+            }
+            
+            @keyframes float {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+            }
+            
+            .report-title {
+                font-size: 42px;
+                font-weight: 700;
+                margin-bottom: 10px;
+                position: relative;
+                z-index: 1;
+            }
+            
+            .report-subtitle {
+                font-size: 24px;
+                opacity: 0.9;
+                margin-bottom: 30px;
+                position: relative;
+                z-index: 1;
+            }
+            
+            .test-info {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+                gap: 20px;
+                margin-top: 30px;
+                position: relative;
+                z-index: 1;
+            }
+            
+            .info-card {
+                background: rgba(255,255,255,0.1);
+                backdrop-filter: blur(10px);
+                border-radius: 15px;
+                padding: 20px;
+                text-align: center;
+                border: 1px solid rgba(255,255,255,0.2);
+            }
+            
+            .info-value {
+                font-size: 32px;
+                font-weight: 700;
+                margin-bottom: 5px;
+            }
+            
+            .info-label {
+                font-size: 14px;
+                opacity: 0.8;
+                text-transform: uppercase;
+                letter-spacing: 1px;
+            }
+            
+            .report-body {
+                padding: 40px;
+            }
+            
+            .section {
+                margin-bottom: 50px;
+                padding-bottom: 30px;
+                border-bottom: 2px solid #F8F9FA;
+            }
+            
+            .section:last-child {
+                border-bottom: none;
+            }
+            
+            .section-title {
+                font-size: 28px;
+                font-weight: 600;
+                color: #2C3E50;
+                margin-bottom: 25px;
+                display: flex;
+                align-items: center;
+                gap: 10px;
+            }
+            
+            .section-title::after {
+                content: '';
+                flex: 1;
+                height: 2px;
+                background: linear-gradient(90deg, #3498DB, transparent);
+            }
+            
+            .stats-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+                gap: 20px;
+                margin-bottom: 30px;
+            }
+            
+            .stat-card {
+                background: #F8F9FA;
+                border-radius: 15px;
+                padding: 25px;
+                text-align: center;
+                transition: transform 0.3s, box-shadow 0.3s;
+                border: 2px solid transparent;
+            }
+            
+            .stat-card:hover {
+                transform: translateY(-5px);
+                box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            }
+            
+            .stat-card.excellent { border-color: #27AE60; }
+            .stat-card.good { border-color: #3498DB; }
+            .stat-card.warning { border-color: #F39C12; }
+            .stat-card.danger { border-color: #E74C3C; }
+            
+            .stat-icon {
+                font-size: 32px;
+                margin-bottom: 15px;
+            }
+            
+            .stat-value {
+                font-size: 36px;
+                font-weight: 700;
+                margin-bottom: 5px;
+            }
+            
+            .stat-label {
+                font-size: 14px;
+                color: #7F8C8D;
+                text-transform: uppercase;
+                letter-spacing: 1px;
+            }
+            
+            table {
+                width: 100%;
+                border-collapse: collapse;
+                margin: 20px 0;
+                background: white;
+                border-radius: 10px;
+                overflow: hidden;
+                box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+            }
+            
+            th {
+                background: #34495E;
+                color: white;
+                padding: 15px;
+                text-align: left;
+                font-weight: 600;
+            }
+            
+            td {
+                padding: 12px 15px;
+                border-bottom: 1px solid #F8F9FA;
+            }
+            
+            tr:hover {
+                background: #F8F9FA;
+            }
+            
+            .recommendation-item {
+                background: #E8F4FC;
+                border-radius: 10px;
+                padding: 20px;
+                margin-bottom: 15px;
+                display: flex;
+                align-items: flex-start;
+                gap: 15px;
+            }
+            
+            .recommendation-number {
+                background: #3498DB;
+                color: white;
+                width: 30px;
+                height: 30px;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-weight: 700;
+                flex-shrink: 0;
+            }
+            
+            .conclusion {
+                background: linear-gradient(135deg, #F8F9FA, #E9ECEF);
+                border-radius: 15px;
+                padding: 30px;
+                margin-top: 30px;
+                border-left: 5px solid #3498DB;
+            }
+            
+            .conclusion-title {
+                font-size: 24px;
+                font-weight: 600;
+                margin-bottom: 20px;
+                color: #2C3E50;
+            }
+            
+            .report-footer {
+                background: #F8F9FA;
+                padding: 30px 40px;
+                text-align: center;
+                border-top: 1px solid #E9ECEF;
+            }
+            
+            .footer-text {
+                color: #7F8C8D;
+                font-size: 14px;
+            }
+            
+            @media print {
+                body {
+                    background: white;
+                    padding: 0;
+                }
+                
+                .report-container {
+                    box-shadow: none;
+                    border-radius: 0;
+                }
+                
+                .report-header {
+                    background: #2C3E50;
+                    color: white;
+                }
+                
+                .stat-card:hover {
+                    transform: none;
+                    box-shadow: none;
+                }
+            }
+            
+            @media (max-width: 768px) {
+                .report-title {
+                    font-size: 32px;
+                }
+                
+                .report-subtitle {
+                    font-size: 20px;
+                }
+                
+                .stats-grid {
+                    grid-template-columns: 1fr;
+                }
+                
+                .test-info {
+                    grid-template-columns: 1fr;
+                }
+                
+                .report-body {
+                    padding: 20px;
+                }
+            }
+        </style>
+    </head>
+    <body>
+        <div class="report-container">
+            <!-- Заголовок -->
+            <header class="report-header">
+                <h1 class="report-title">📊 Аналитический отчет</h1>
+                <p class="report-subtitle">Комплексный анализ результатов тестирования</p>
+                
+                <div class="test-info">
+                    <div class="info-card">
+                        <div class="info-value">${allData.meta.testName || 'Не указан'}</div>
+                        <div class="info-label">Тест</div>
+                    </div>
+                    <div class="info-card">
+                        <div class="info-value">${allData.meta.studentCount}</div>
+                        <div class="info-label">Учащихся</div>
+                    </div>
+                    <div class="info-card">
+                        <div class="info-value">${allData.meta.taskCount}</div>
+                        <div class="info-label">Заданий</div>
+                    </div>
+                    <div class="info-card">
+                        <div class="info-value">${allData.meta.date || new Date().toLocaleDateString()}</div>
+                        <div class="info-label">Дата</div>
+                    </div>
+                </div>
+            </header>
+            
+            <!-- Основное содержимое -->
+            <main class="report-body">
+                <!-- Сводная статистика -->
+                <section class="section">
+                    <h2 class="section-title">📈 Сводная статистика</h2>
+                    
+                    <div class="stats-grid">
+                        <div class="stat-card excellent">
+                            <div class="stat-icon">📊</div>
+                            <div class="stat-value">${this.calculateOverallAverage(allData.studentStats).toFixed(1)}%</div>
+                            <div class="stat-label">Средний балл</div>
+                        </div>
+                        
+                        <div class="stat-card ${comprehensiveAnalysis.reliability.alpha >= 0.8 ? 'excellent' : comprehensiveAnalysis.reliability.alpha >= 0.7 ? 'good' : 'warning'}">
+                            <div class="stat-icon">🛡️</div>
+                            <div class="stat-value">${comprehensiveAnalysis.reliability.alpha.toFixed(3)}</div>
+                            <div class="stat-label">Надежность теста</div>
+                        </div>
+                        
+                        <div class="stat-card good">
+                            <div class="stat-icon">🏆</div>
+                            <div class="stat-value">${comprehensiveAnalysis.clusters.excellent.count}</div>
+                            <div class="stat-label">Отличники</div>
+                        </div>
+                        
+                        <div class="stat-card ${comprehensiveAnalysis.clusters.weak.count > 0 ? 'danger' : 'excellent'}">
+                            <div class="stat-icon">⚠️</div>
+                            <div class="stat-value">${comprehensiveAnalysis.clusters.weak.count}</div>
+                            <div class="stat-label">Требуют внимания</div>
+                        </div>
+                    </div>
+                </section>
+                
+                <!-- Распределение учащихся -->
+                <section class="section">
+                    <h2 class="section-title">👥 Распределение учащихся</h2>
+                    
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Уровень</th>
+                                <th>Критерий</th>
+                                <th>Количество</th>
+                                <th>Процент</th>
+                                <th>Средний балл</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${(() => {
+                                const groups = this.createStudentGroups(allData.studentStats);
+                                return groups.map(group => `
+                                    <tr>
+                                        <td><strong>${group.name}</strong></td>
+                                        <td>${group.min}% - ${group.max}%</td>
+                                        <td>${group.count}</td>
+                                        <td>${group.percentage}%</td>
+                                        <td>${this.calculateGroupAverageScore(allData.studentStats, group)}</td>
+                                    </tr>
+                                `).join('');
+                            })()}
+                        </tbody>
+                    </table>
+                </section>
+                
+                <!-- Анализ заданий -->
+                <section class="section">
+                    <h2 class="section-title">📝 Анализ заданий</h2>
+                    
+                    ${(() => {
+                        const problematicTasks = allData.taskStats.filter(task =>
+                                task.difficulty > 0.7 || task.discrimination < 0.3 || task.completionRate < 50);
+
+                        if (problematicTasks.length > 0) {
+                            return `
+                                <p><strong>Проблемных заданий: ${problematicTasks.length} из ${allData.meta.taskCount} (${((problematicTasks.length / allData.meta.taskCount) * 100).toFixed(1)}%)</strong></p>
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Задание</th>
+                                            <th>Сложность</th>
+                                            <th>Дискриминативность</th>
+                                            <th>Выполняемость</th>
+                                            <th>Проблема</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${problematicTasks.map(task => {
+                                            let problems = [];
+                                            if (task.difficulty > 0.7)
+                                                problems.push("Сложное");
+                                            if (task.discrimination < 0.3)
+                                                problems.push("Низкая дискриминативность");
+                                            if (task.completionRate < 50)
+                                                problems.push("Низкая выполнимость");
+
+                                            return `
+                                                <tr>
+                                                    <td>${task.title}</td>
+                                                    <td style="color: ${task.difficulty > 0.7 ? '#E74C3C' : '#27AE60'}">${(task.difficulty * 100).toFixed(1)}%</td>
+                                                    <td style="color: ${task.discrimination < 0.3 ? '#E74C3C' : '#27AE60'}">${(task.discrimination * 100).toFixed(1)}%</td>
+                                                    <td style="color: ${task.completionRate < 50 ? '#E74C3C' : '#27AE60'}">${task.completionRate.toFixed(1)}%</td>
+                                                    <td>${problems.join(', ')}</td>
+                                                </tr>
+                                            `;
+                                        }).join('')}
+                                    </tbody>
+                                </table>
+                            `;
+                        } else {
+                            return '<p style="color: #27AE60; font-weight: 600;">✅ Все задания имеют хорошие показатели сложности и дискриминативности.</p>';
+                        }
+                    })()}
+                </section>
+                
+                <!-- Рекомендации -->
+                <section class="section">
+                    <h2 class="section-title">💡 Рекомендации</h2>
+                    
+                    ${comprehensiveAnalysis.recommendations.map((rec, index) => `
+                        <div class="recommendation-item">
+                            <div class="recommendation-number">${index + 1}</div>
+                            <div>${rec}</div>
+                        </div>
+                    `).join('')}
+                </section>
+                
+                <!-- Заключение -->
+                <section class="section">
+                    <div class="conclusion">
+                        <h3 class="conclusion-title">📋 Заключение</h3>
+                        <p>${this.generateDetailedConclusion(allData, comprehensiveAnalysis).replace(/\n/g, '<br>')}</p>
+                    </div>
+                </section>
+            </main>
+            
+            <!-- Подвал -->
+            <footer class="report-footer">
+                <p class="footer-text">Сформировано системой Advanced Analytics • ${timestamp}</p>
+                <p class="footer-text">Для получения дополнительной информации обращайтесь к разработчикам системы</p>
+            </footer>
+        </div>
+        
+        <script>
+            // Добавляем интерактивность
+            document.addEventListener('DOMContentLoaded', function() {
+                // Анимация карточек
+                const cards = document.querySelectorAll('.stat-card');
+                cards.forEach(card => {
+                    card.addEventListener('mouseenter', function() {
+                        this.style.transform = 'translateY(-5px)';
+                        this.style.boxShadow = '0 10px 30px rgba(0,0,0,0.1)';
+                    });
+                    
+                    card.addEventListener('mouseleave', function() {
+                        this.style.transform = '';
+                        this.style.boxShadow = '';
+                    });
+                });
+                
+                // Печать отчета
+                const printButton = document.createElement('button');
+                printButton.innerHTML = '🖨️ Печать отчета';
+                printButton.style.cssText = 
+                    'position: fixed; ' +
+                    'bottom: 20px; ' +
+                    'right: 20px; ' +
+                    'background: #3498DB; ' +
+                    'color: white; ' +
+                    'border: none; ' +
+                    'padding: 12px 24px; ' +
+                    'border-radius: 25px; ' +
+                    'font-family: "Inter", sans-serif; ' +
+                    'font-weight: 600; ' +
+                    'cursor: pointer; ' +
+                    'box-shadow: 0 5px 15px rgba(52, 152, 219, 0.3); ' +
+                    'z-index: 1000; ' +
+                    'transition: all 0.3s;';
+                
+                printButton.addEventListener('mouseenter', () => {
+                    printButton.style.transform = 'translateY(-2px)';
+                    printButton.style.boxShadow = '0 8px 20px rgba(52, 152, 219, 0.4)';
+                });
+                
+                printButton.addEventListener('mouseleave', () => {
+                    printButton.style.transform = '';
+                    printButton.style.boxShadow = '0 5px 15px rgba(52, 152, 219, 0.3)';
+                });
+                
+                printButton.addEventListener('click', () => {
+                    window.print();
+                });
+                
+                document.body.appendChild(printButton);
+                
+                // Анимация появления элементов
+                const sections = document.querySelectorAll('.section');
+                sections.forEach((section, index) => {
+                    setTimeout(() => {
+                        section.style.opacity = '0';
+                        section.style.transform = 'translateY(20px)';
+                        section.style.transition = 'opacity 0.5s, transform 0.5s';
+                        
+                        setTimeout(() => {
+                            section.style.opacity = '1';
+                            section.style.transform = 'translateY(0)';
+                        }, 50);
+                    }, index * 200);
+                });
+            });
+        </script>
+    </body>
+    </html>`;
+
+        return new Blob([html], {
+            type: 'text/html'
+        });
+    }
+
+    // Альтернатива: простой Word отчет
+    generateSimpleWordReport(allData, comprehensiveAnalysis) {
+        try {
+            // Создаем простой текстовый документ
+            let content = `КОМПЛЕКСНЫЙ АНАЛИЗ РЕЗУЛЬТАТОВ ТЕСТИРОВАНИЯ\n`;
+            content += '='.repeat(60) + '\n\n';
+
+            content += `Тест: ${allData.meta.testName || 'Не указан'}\n`;
+            content += `Тема: ${allData.meta.theme || 'Не указана'}\n`;
+            content += `Дата: ${allData.meta.date || new Date().toLocaleDateString()}\n`;
+            content += `Класс: ${allData.meta.class || 'Не указан'}\n`;
+            content += `Учащихся: ${allData.meta.studentCount}\n`;
+            content += `Заданий: ${allData.meta.taskCount}\n\n`;
+
+            content += 'СВОДНАЯ СТАТИСТИКА:\n';
+            content += '-'.repeat(30) + '\n';
+            content += `Средний балл: ${this.calculateOverallAverage(allData.studentStats).toFixed(1)}%\n`;
+            content += `Надежность теста (α): ${comprehensiveAnalysis.reliability.alpha.toFixed(3)}\n`;
+            content += `Отличники: ${comprehensiveAnalysis.clusters.excellent.count}\n`;
+            content += `Требуют внимания: ${comprehensiveAnalysis.clusters.weak.count}\n\n`;
+
+            content += 'РЕКОМЕНДАЦИИ:\n';
+            content += '-'.repeat(30) + '\n';
+            comprehensiveAnalysis.recommendations.forEach((rec, index) => {
+                content += `${index + 1}. ${rec}\n`;
+            });
+
+            content += '\n' + '='.repeat(60) + '\n';
+            content += `Сгенерировано: ${new Date().toLocaleString()}\n`;
+
+            return new Blob([content], {
+                type: 'application/msword'
+            });
+
+        } catch (error) {
+            console.error('Ошибка создания простого отчета:', error);
+            return null;
+        }
+    }
+
+    // Упрощенное содержимое для Word
+    createSimpleContentForWord(allData, comprehensiveAnalysis) {
+        const paragraphs = [];
+
+        if (window.docx.Paragraph) {
+            paragraphs.push(
+                new window.docx.Paragraph({
+                    text: `Тест: ${allData.meta.testName || 'Не указан'}`,
+                    spacing: {
+                        after: 200
+                    }
+                }),
+
+                new window.docx.Paragraph({
+                    text: `Тема: ${allData.meta.theme || 'Не указана'}`,
+                    spacing: {
+                        after: 200
+                    }
+                }),
+
+                new window.docx.Paragraph({
+                    text: `Дата: ${allData.meta.date || new Date().toLocaleDateString()}`,
+                    spacing: {
+                        after: 200
+                    }
+                }),
+
+                new window.docx.Paragraph({
+                    text: '='.repeat(60),
+                    spacing: {
+                        after: 400
+                    }
+                }));
+        }
+
+        return paragraphs;
+    }
+
+    // Fallback для комплексного экспорта
+    exportComprehensiveAnalysisFallback() {
+        showNotification('Используется упрощенный экспорт', 'warning');
+
+        // Создаем простой HTML отчет
+        const allData = this.collectDetailedData();
+        const comprehensiveAnalysis = this.performComprehensiveAnalysis();
+
+        const htmlContent = `
         <!DOCTYPE html>
         <html lang="ru">
         <head>
@@ -11045,1692 +11415,2033 @@ exportComprehensiveAnalysisFallback() {
         </body>
         </html>
     `;
-    
-    this.downloadBlob(new Blob([htmlContent], { type: 'text/html' }), 'аналитический_отчет.html');
-}
 
-// Вспомогательный метод для скачивания Blob
-downloadBlob(blob, filename) {
-    try {
-        // Пробуем использовать FileSaver.js
-        if (typeof window.saveAs !== 'undefined') {
-            window.saveAs(blob, filename);
-        } else {
-            // Fallback метод
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = filename;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-        }
-    } catch (error) {
-        console.error('Ошибка скачивания файла:', error);
-        showNotification('Ошибка при скачивании файла', 'error');
+        this.downloadBlob(new Blob([htmlContent], {
+                type: 'text/html'
+            }), 'аналитический_отчет.html');
     }
-}
 
+    // Вспомогательный метод для скачивания Blob
+    downloadBlob(blob, filename) {
+        try {
+            // Пробуем использовать FileSaver.js
+            if (typeof window.saveAs !== 'undefined') {
+                window.saveAs(blob, filename);
+            } else {
+                // Fallback метод
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            }
+        } catch (error) {
+            console.error('Ошибка скачивания файла:', error);
+            showNotification('Ошибка при скачивании файла', 'error');
+        }
+    }
 
+    // Создание сводной таблицы для Word
+    createSummaryTableForWord(allData, comprehensiveAnalysis) {
+        const {
+            Table,
+            TableRow,
+            TableCell,
+            Paragraph,
+            TextRun,
+            WidthType
+        } = window.docx;
 
-	// Создание сводной таблицы для Word
-	createSummaryTableForWord(allData, comprehensiveAnalysis) {
-		const { Table, TableRow, TableCell, Paragraph, TextRun, WidthType } = window.docx;
-		
-		return [
-			new Table({
-				width: { size: 100, type: WidthType.PERCENTAGE },
-				borders: {
-					top: { style: BorderStyle.SINGLE, size: 1, color: "000000" },
-					bottom: { style: BorderStyle.SINGLE, size: 1, color: "000000" },
-					left: { style: BorderStyle.SINGLE, size: 1, color: "000000" },
-					right: { style: BorderStyle.SINGLE, size: 1, color: "000000" },
-					insideHorizontal: { style: BorderStyle.SINGLE, size: 1, color: "CCCCCC" },
-					insideVertical: { style: BorderStyle.SINGLE, size: 1, color: "CCCCCC" }
-				},
-				rows: [
-					new TableRow({
-						children: [
-							new TableCell({
-								width: { size: 50, type: WidthType.PERCENTAGE },
-								children: [new Paragraph("Показатель")],
-								shading: { fill: "F0F0F0" }
-							}),
-							new TableCell({
-								width: { size: 25, type: WidthType.PERCENTAGE },
-								children: [new Paragraph("Значение")],
-								shading: { fill: "F0F0F0" }
-							}),
-							new TableCell({
-								width: { size: 25, type: WidthType.PERCENTAGE },
-								children: [new Paragraph("Интерпретация")],
-								shading: { fill: "F0F0F0" }
-							})
-						]
-					}),
-					
-					new TableRow({
-						children: [
-							new TableCell({
-								children: [new Paragraph("Средний балл класса")]
-							}),
-							new TableCell({
-								children: [new Paragraph(`${this.calculateOverallAverage(allData.studentStats).toFixed(1)}%`)]
-							}),
-							new TableCell({
-								children: [new Paragraph(this.interpretAverageScore(this.calculateOverallAverage(allData.studentStats)))]
-							})
-						]
-					}),
-					
-					new TableRow({
-						children: [
-							new TableCell({
-								children: [new Paragraph("Надежность теста (α Кронбаха)")]
-							}),
-							new TableCell({
-								children: [new Paragraph(`${comprehensiveAnalysis.reliability.alpha.toFixed(3)}`)]
-							}),
-							new TableCell({
-								children: [new Paragraph(comprehensiveAnalysis.reliability.interpretation)]
-							})
-						]
-					}),
-					
-					new TableRow({
-						children: [
-							new TableCell({
-								children: [new Paragraph("Отличники")]
-							}),
-							new TableCell({
-								children: [new Paragraph(`${comprehensiveAnalysis.clusters.excellent.count}`)]
-							}),
-							new TableCell({
-								children: [new Paragraph(`${((comprehensiveAnalysis.clusters.excellent.count / allData.meta.studentCount) * 100).toFixed(1)}% от общего числа`)]
-							})
-						]
-					}),
-					
-					new TableRow({
-						children: [
-							new TableCell({
-								children: [new Paragraph("Требуют внимания")]
-							}),
-							new TableCell({
-								children: [new Paragraph(`${comprehensiveAnalysis.clusters.weak.count}`)]
-							}),
-							new TableCell({
-								children: [new Paragraph(`${((comprehensiveAnalysis.clusters.weak.count / allData.meta.studentCount) * 100).toFixed(1)}% от общего числа`)]
-							})
-						]
-					}),
-					
-					new TableRow({
-						children: [
-							new TableCell({
-								children: [new Paragraph("Проблемных заданий")]
-							}),
-							new TableCell({
-								children: [new Paragraph(`${allData.taskStats.filter(t => t.difficulty > 0.7 || t.discrimination < 0.3).length}`)]
-							}),
-							new TableCell({
-								children: [new Paragraph(`из ${allData.meta.taskCount} заданий`)]
-							})
-						]
-					})
-				]
-			}),
-			
-			new Paragraph({ text: "", spacing: { after: 300 } })
-		];
-	}
+        return [
+            new Table({
+                width: {
+                    size: 100,
+                    type: WidthType.PERCENTAGE
+                },
+                borders: {
+                    top: {
+                        style: BorderStyle.SINGLE,
+                        size: 1,
+                        color: "000000"
+                    },
+                    bottom: {
+                        style: BorderStyle.SINGLE,
+                        size: 1,
+                        color: "000000"
+                    },
+                    left: {
+                        style: BorderStyle.SINGLE,
+                        size: 1,
+                        color: "000000"
+                    },
+                    right: {
+                        style: BorderStyle.SINGLE,
+                        size: 1,
+                        color: "000000"
+                    },
+                    insideHorizontal: {
+                        style: BorderStyle.SINGLE,
+                        size: 1,
+                        color: "CCCCCC"
+                    },
+                    insideVertical: {
+                        style: BorderStyle.SINGLE,
+                        size: 1,
+                        color: "CCCCCC"
+                    }
+                },
+                rows: [
+                    new TableRow({
+                        children: [
+                            new TableCell({
+                                width: {
+                                    size: 50,
+                                    type: WidthType.PERCENTAGE
+                                },
+                                children: [new Paragraph("Показатель")],
+                                shading: {
+                                    fill: "F0F0F0"
+                                }
+                            }),
+                            new TableCell({
+                                width: {
+                                    size: 25,
+                                    type: WidthType.PERCENTAGE
+                                },
+                                children: [new Paragraph("Значение")],
+                                shading: {
+                                    fill: "F0F0F0"
+                                }
+                            }),
+                            new TableCell({
+                                width: {
+                                    size: 25,
+                                    type: WidthType.PERCENTAGE
+                                },
+                                children: [new Paragraph("Интерпретация")],
+                                shading: {
+                                    fill: "F0F0F0"
+                                }
+                            })
+                        ]
+                    }),
 
-	// Интерпретация среднего балла
-	interpretAverageScore(score) {
-		if (score >= 85) return "Отличный результат";
-		if (score >= 70) return "Хороший результат";
-		if (score >= 50) return "Удовлетворительный результат";
-		return "Неудовлетворительный результат";
-	}
+                    new TableRow({
+                        children: [
+                            new TableCell({
+                                children: [new Paragraph("Средний балл класса")]
+                            }),
+                            new TableCell({
+                                children: [new Paragraph(`${this.calculateOverallAverage(allData.studentStats).toFixed(1)}%`)]
+                            }),
+                            new TableCell({
+                                children: [new Paragraph(this.interpretAverageScore(this.calculateOverallAverage(allData.studentStats)))]
+                            })
+                        ]
+                    }),
 
-	// Анализ надежности для Word
-	createReliabilityAnalysisForWord(reliability) {
-		const { Paragraph, TextRun } = window.docx;
-		
-		return [
-			new Paragraph({
-				text: `Коэффициент альфа Кронбаха: ${reliability.alpha.toFixed(3)}`,
-				spacing: { after: 100 }
-			}),
-			
-			new Paragraph({
-				text: `Оценка надежности: ${reliability.interpretation}`,
-				spacing: { after: 100 }
-			}),
-			
-			new Paragraph({
-				text: `Описание: ${reliability.description}`,
-				spacing: { after: 100 }
-			}),
-			
-			new Paragraph({
-				text: `Рекомендации: ${reliability.recommendation}`,
-				spacing: { after: 200 }
-			}),
-			
-			new Paragraph({
-				children: [
-					new TextRun({
-						text: "Примечание: ",
-						bold: true
-					}),
-					new TextRun("Для педагогических тестов обычно приемлемым считается α ≥ 0.7. Высокая надежность (α ≥ 0.8) указывает на хорошую внутреннюю согласованность теста.")
-				],
-				spacing: { after: 300 }
-			})
-		];
-	}
+                    new TableRow({
+                        children: [
+                            new TableCell({
+                                children: [new Paragraph("Надежность теста (α Кронбаха)")]
+                            }),
+                            new TableCell({
+                                children: [new Paragraph(`${comprehensiveAnalysis.reliability.alpha.toFixed(3)}`)]
+                            }),
+                            new TableCell({
+                                children: [new Paragraph(comprehensiveAnalysis.reliability.interpretation)]
+                            })
+                        ]
+                    }),
 
-	// Анализ распределения для Word
-	createDistributionAnalysisForWord(allData) {
-		const { Paragraph, TextRun, Table, TableRow, TableCell } = window.docx;
-		const studentGroups = this.createStudentGroups(allData.studentStats);
-		
-		const paragraphs = [
-			new Paragraph({
-				text: "Распределение учащихся по уровню подготовки:",
-				spacing: { after: 100 }
-			})
-		];
-		
-		// Таблица распределения
-		if (studentGroups.length > 0) {
-			const tableRows = [
-				new TableRow({
-					children: [
-						new TableCell({ children: [new Paragraph("Уровень")] }),
-						new TableCell({ children: [new Paragraph("Количество учащихся")] }),
-						new TableCell({ children: [new Paragraph("Процент")] }),
-						new TableCell({ children: [new Paragraph("Средний балл")] })
-					]
-				})
-			];
-			
-			studentGroups.forEach(group => {
-				tableRows.push(
-					new TableRow({
-						children: [
-							new TableCell({ children: [new Paragraph(group.name)] }),
-							new TableCell({ children: [new Paragraph(group.count.toString())] }),
-							new TableCell({ children: [new Paragraph(group.percentage + "%")] }),
-							new TableCell({ children: [new Paragraph(this.calculateGroupAverageScore(allData.studentStats, group))] })
-						]
-					})
-				);
-			});
-			
-			paragraphs.push(
-				new Table({
-					rows: tableRows
-				})
-			);
-		}
-		
-		// Интерпретация распределения
-		paragraphs.push(
-			new Paragraph({
-				text: this.interpretDistribution(allData.distribution),
-				spacing: { before: 200, after: 300 }
-			})
-		);
-		
-		return paragraphs;
-	}
+                    new TableRow({
+                        children: [
+                            new TableCell({
+                                children: [new Paragraph("Отличники")]
+                            }),
+                            new TableCell({
+                                children: [new Paragraph(`${comprehensiveAnalysis.clusters.excellent.count}`)]
+                            }),
+                            new TableCell({
+                                children: [new Paragraph(`${((comprehensiveAnalysis.clusters.excellent.count / allData.meta.studentCount) * 100).toFixed(1)}% от общего числа`)]
+                            })
+                        ]
+                    }),
 
-	// Расчет среднего балла группы
-	calculateGroupAverageScore(studentStats, group) {
-		const groupStudents = studentStats.filter(s => {
-			const score = s.averageScore;
-			return score >= group.min && score < (group.name.includes('Отлично') ? 101 : group.max);
-		});
-		
-		if (groupStudents.length === 0) return "0.0%";
-		const avg = groupStudents.reduce((sum, s) => sum + s.averageScore, 0) / groupStudents.length;
-		return avg.toFixed(1) + "%";
-	}
+                    new TableRow({
+                        children: [
+                            new TableCell({
+                                children: [new Paragraph("Требуют внимания")]
+                            }),
+                            new TableCell({
+                                children: [new Paragraph(`${comprehensiveAnalysis.clusters.weak.count}`)]
+                            }),
+                            new TableCell({
+                                children: [new Paragraph(`${((comprehensiveAnalysis.clusters.weak.count / allData.meta.studentCount) * 100).toFixed(1)}% от общего числа`)]
+                            })
+                        ]
+                    }),
 
-	// Анализ заданий для Word
-	createTasksAnalysisForWord(allData) {
-		const { Paragraph, TextRun, Table, TableRow, TableCell } = window.docx;
-		
-		const problematicTasks = allData.taskStats.filter(task => 
-			task.difficulty > 0.7 || task.discrimination < 0.3
-		);
-		
-		const paragraphs = [
-			new Paragraph({
-				text: `Всего заданий: ${allData.meta.taskCount}`,
-				spacing: { after: 100 }
-			}),
-			
-			new Paragraph({
-				text: `Проблемных заданий: ${problematicTasks.length} (${((problematicTasks.length / allData.meta.taskCount) * 100).toFixed(1)}%)`,
-				spacing: { after: 100 }
-			})
-		];
-		
-		// Таблица проблемных заданий
-		if (problematicTasks.length > 0) {
-			paragraphs.push(
-				new Paragraph({
-					text: "Проблемные задания, требующие внимания:",
-					spacing: { before: 200, after: 100 }
-				})
-			);
-			
-			const tableRows = [
-				new TableRow({
-					children: [
-						new TableCell({ children: [new Paragraph("№")] }),
-						new TableCell({ children: [new Paragraph("Задание")] }),
-						new TableCell({ children: [new Paragraph("Сложность")] }),
-						new TableCell({ children: [new Paragraph("Дискриминативность")] }),
-						new TableCell({ children: [new Paragraph("Проблема")] }),
-						new TableCell({ children: [new Paragraph("Рекомендация")] })
-					]
-				})
-			];
-			
-			problematicTasks.forEach(task => {
-				let problem = "";
-				let recommendation = "";
-				
-				if (task.difficulty > 0.7) {
-					problem = "Слишком высокая сложность";
-					recommendation = "Упростить формулировку, добавить подсказки";
-				} else if (task.discrimination < 0.3) {
-					problem = "Низкая дискриминативность";
-					recommendation = "Пересмотреть варианты ответов";
-				}
-				
-				tableRows.push(
-					new TableRow({
-						children: [
-							new TableCell({ children: [new Paragraph(task.number.toString())] }),
-							new TableCell({ children: [new Paragraph(task.title.substring(0, 50) + (task.title.length > 50 ? "..." : ""))] }),
-							new TableCell({ children: [new Paragraph((task.difficulty * 100).toFixed(1) + "%")] }),
-							new TableCell({ children: [new Paragraph((task.discrimination * 100).toFixed(1) + "%")] }),
-							new TableCell({ children: [new Paragraph(problem)] }),
-							new TableCell({ children: [new Paragraph(recommendation)] })
-						]
-					})
-				);
-			});
-			
-			paragraphs.push(
-				new Table({
-					rows: tableRows
-				})
-			);
-		}
-		
-		paragraphs.push(
-			new Paragraph({
-				text: "",
-				spacing: { after: 300 }
-			})
-		);
-		
-		return paragraphs;
-	}
+                    new TableRow({
+                        children: [
+                            new TableCell({
+                                children: [new Paragraph("Проблемных заданий")]
+                            }),
+                            new TableCell({
+                                children: [new Paragraph(`${allData.taskStats.filter(t => t.difficulty > 0.7 || t.discrimination < 0.3).length}`)]
+                            }),
+                            new TableCell({
+                                children: [new Paragraph(`из ${allData.meta.taskCount} заданий`)]
+                            })
+                        ]
+                    })
+                ]
+            }),
 
-	// Рекомендации для Word
-	createRecommendationsForWord(recommendations) {
-		const { Paragraph, TextRun } = window.docx;
-		
-		const paragraphs = [
-			new Paragraph({
-				text: "На основе проведенного анализа сформулированы следующие рекомендации:",
-				spacing: { after: 100 }
-			})
-		];
-		
-		recommendations.forEach((rec, index) => {
-			paragraphs.push(
-				new Paragraph({
-					children: [
-						new TextRun({
-							text: `${index + 1}. `,
-							bold: true
-						}),
-						new TextRun(rec)
-					],
-					spacing: { after: 50 }
-				})
-			);
-		});
-		
-		paragraphs.push(
-			new Paragraph({
-				text: "",
-				spacing: { after: 300 }
-			})
-		);
-		
-		return paragraphs;
-	}
+            new Paragraph({
+                text: "",
+                spacing: {
+                    after: 300
+                }
+            })
+        ];
+    }
 
-	// Генерация заключения
-	generateConclusion(allData) {
-		const averageScore = this.calculateOverallAverage(allData.studentStats);
-		const weakStudents = allData.studentStats.filter(s => s.averageScore < 50).length;
-		const problematicTasks = allData.taskStats.filter(t => t.difficulty > 0.7 || t.discrimination < 0.3).length;
-		
-		let conclusion = "На основе комплексного анализа результатов тестирования можно сделать следующие выводы:\n\n";
-		
-		conclusion += `1. Общий уровень подготовки класса составляет ${averageScore.toFixed(1)}%, что является `;
-		if (averageScore >= 85) {
-			conclusion += "отличным показателем. ";
-		} else if (averageScore >= 70) {
-			conclusion += "хорошим показателем. ";
-		} else if (averageScore >= 50) {
-			conclusion += "удовлетворительным показателем. ";
-		} else {
-			conclusion += "неудовлетворительным показателем. ";
-		}
-		
-		conclusion += `\n2. В классе выделяется ${weakStudents} учащихся, требующих особого внимания и дополнительной помощи `;
-		conclusion += `(${((weakStudents / allData.meta.studentCount) * 100).toFixed(1)}% от общего числа).\n`;
-		
-		conclusion += `\n3. Из ${allData.meta.taskCount} заданий ${problematicTasks} имеют проблемы со сложностью или дискриминативностью `;
-		conclusion += `(${((problematicTasks / allData.meta.taskCount) * 100).toFixed(1)}%).\n`;
-		
-		conclusion += "\n4. Для улучшения результатов рекомендуется последовательная реализация предложенных рекомендаций, ";
-		conclusion += "с акцентом на дифференцированный подход к обучению и коррекцию проблемных заданий.";
-		
-		return conclusion;
-	}
+    // Интерпретация среднего балла
+    interpretAverageScore(score) {
+        if (score >= 85)
+            return "Отличный результат";
+        if (score >= 70)
+            return "Хороший результат";
+        if (score >= 50)
+            return "Удовлетворительный результат";
+        return "Неудовлетворительный результат";
+    }
 
-	// Генерация отчетов по вкладкам
-	generateTabReports(allData) {
-		const reports = {};
-		
-		// Обзор
-		reports["обзор"] = this.generateTabReport("Обзор", allData, this.renderOverviewTab(allData));
-		
-		// Учащиеся
-		reports["учащиеся"] = this.generateTabReport("Анализ учащихся", allData, this.renderStudentsTab(allData));
-		
-		// Задания
-		reports["задания"] = this.generateTabReport("Анализ заданий", allData, this.renderTasksTab(allData));
-		
-		// Распределение
-		reports["распределение"] = this.generateTabReport("Распределение результатов", allData, this.renderDistributionTab(allData));
-		
-		// Ошибки
-		reports["ошибки"] = this.generateTabReport("Анализ ошибок", allData, this.renderErrorsTab(allData));
-		
-		// Рекомендации
-		reports["рекомендации"] = this.generateTabReport("Рекомендации", allData, this.renderRecommendationsTab(allData));
-		
-		return reports;
-	}
+    // Анализ надежности для Word
+    createReliabilityAnalysisForWord(reliability) {
+        const {
+            Paragraph,
+            TextRun
+        } = window.docx;
 
-	// Генерация отчета по вкладке
-	generateTabReport(title, allData, htmlContent) {
-		const { Document, Paragraph, HeadingLevel, Packer, AlignmentType } = window.docx;
-		
-		const doc = new Document({
-			sections: [{
-				properties: {},
-				children: [
-					new Paragraph({
-						text: title.toUpperCase(),
-						heading: HeadingLevel.TITLE,
-						alignment: AlignmentType.CENTER
-					}),
-					
-					new Paragraph({
-						text: `Тест: ${allData.meta.testName}`,
-						alignment: AlignmentType.CENTER
-					}),
-					
-					new Paragraph({
-						text: `Дата: ${allData.meta.date}`,
-						alignment: AlignmentType.CENTER
-					}),
-					
-					new Paragraph({
-						text: `Сгенерировано: ${new Date().toLocaleString()}`,
-						alignment: AlignmentType.CENTER
-					}),
-					
-					new Paragraph({
-						text: this.extractTextFromHTML(htmlContent),
-						spacing: { before: 400 }
-					})
-				]
-			}]
-		});
-		
-		return Packer.toBlob(doc);
-	}
+        return [
+            new Paragraph({
+                text: `Коэффициент альфа Кронбаха: ${reliability.alpha.toFixed(3)}`,
+                spacing: {
+                    after: 100
+                }
+            }),
 
-	// Извлечение текста из HTML
-	extractTextFromHTML(html) {
-		const tempDiv = document.createElement('div');
-		tempDiv.innerHTML = html;
-		return tempDiv.textContent || tempDiv.innerText || '';
-	}
+            new Paragraph({
+                text: `Оценка надежности: ${reliability.interpretation}`,
+                spacing: {
+                    after: 100
+                }
+            }),
 
-	// Сбор данных студента для экспорта
-	collectStudentDataForExport(studentIndex) {
-		if (!appData.students || !appData.students[studentIndex]) {
-			return null;
-		}
-		
-		const studentName = appData.students[studentIndex];
-		const studentStats = this.calculateStudentStatistics();
-		const studentStat = studentStats.find(s => s.index === studentIndex);
-		
-		// Результаты по заданиям
-		const taskResults = appData.tasks?.map((task, taskIndex) => {
-			const score = this.getStudentScore(studentIndex, taskIndex);
-			const maxScore = task.maxScore || 1;
-			const percentage = maxScore > 0 ? (score / maxScore) * 100 : 0;
-			
-			return {
-				taskNumber: taskIndex + 1,
-				taskTitle: task.title || `Задание ${taskIndex + 1}`,
-				score: score.toFixed(2),
-				maxScore: maxScore.toFixed(2),
-				percentage: percentage.toFixed(1),
-				level: task.level || 1,
-				competence: task.competence || this.getCompetenceByLevel(task.level || 1)
-			};
-		}) || [];
-		
-		// Ошибки студента
-		const studentErrors = appData.errors?.filter(error => 
-			error.studentIndex === studentIndex
-		) || [];
-		
-		// Компетенции
-		const competences = this.analyzeStudentCompetences(studentIndex);
-		
-		// Сравнение с классом
-		const classAverage = this.calculateOverallAverage(studentStats);
-		const rank = this.calculateStudentRank(studentIndex, studentStats);
-		
-		return {
-			studentName,
-			studentIndex,
-			studentStat,
-			taskResults,
-			totalTasks: taskResults.length,
-			totalScore: taskResults.reduce((sum, t) => sum + parseFloat(t.score), 0).toFixed(2),
-			maxPossibleScore: taskResults.reduce((sum, t) => sum + parseFloat(t.maxScore), 0).toFixed(2),
-			overallPercentage: studentStat?.averageScore || 0,
-			competences,
-			errors: studentErrors,
-			comparison: {
-				classAverage: classAverage.toFixed(1),
-				studentAverage: studentStat?.averageScore.toFixed(1) || "0.0",
-				rank: rank,
-				percentile: ((rank / studentStats.length) * 100).toFixed(1)
-			},
-			strengths: this.identifyStudentStrengths(studentIndex, taskResults),
-			weaknesses: this.identifyStudentWeaknesses(studentIndex, taskResults)
-		};
-	}
+            new Paragraph({
+                text: `Описание: ${reliability.description}`,
+                spacing: {
+                    after: 100
+                }
+            }),
 
-	// Анализ компетенций студента
-	analyzeStudentCompetences(studentIndex) {
-		if (!appData.tasks) return {};
-		
-		const competences = {
-			'Базовый': { scores: [], count: 0 },
-			'Применение': { scores: [], count: 0 },
-			'Анализ': { scores: [], count: 0 },
-			'Творчество': { scores: [], count: 0 }
-		};
-		
-		appData.tasks.forEach((task, taskIndex) => {
-			const level = Math.min(Math.max(task.level || 1, 1), 4);
-			const competence = this.getCompetenceByLevel(level);
-			const score = this.getStudentScore(studentIndex, taskIndex);
-			const maxScore = task.maxScore || 1;
-			const percentage = maxScore > 0 ? (score / maxScore) * 100 : 0;
-			
-			if (competences[competence]) {
-				competences[competence].scores.push(percentage);
-				competences[competence].count++;
-			}
-		});
-		
-		// Расчет средних
-		Object.keys(competences).forEach(key => {
-			if (competences[key].scores.length > 0) {
-				competences[key].average = this.calculateAverage(competences[key].scores);
-			} else {
-				competences[key].average = 0;
-			}
-		});
-		
-		return competences;
-	}
+            new Paragraph({
+                text: `Рекомендации: ${reliability.recommendation}`,
+                spacing: {
+                    after: 200
+                }
+            }),
 
-	// Расчет ранга студента
-	calculateStudentRank(studentIndex, studentStats) {
-		const sorted = [...studentStats].sort((a, b) => b.averageScore - a.averageScore);
-		const student = sorted.find(s => s.index === studentIndex);
-		return sorted.indexOf(student) + 1;
-	}
+            new Paragraph({
+                children: [
+                    new TextRun({
+                        text: "Примечание: ",
+                        bold: true
+                    }),
+                    new TextRun("Для педагогических тестов обычно приемлемым считается α ≥ 0.7. Высокая надежность (α ≥ 0.8) указывает на хорошую внутреннюю согласованность теста.")
+                ],
+                spacing: {
+                    after: 300
+                }
+            })
+        ];
+    }
 
-	// Выявление сильных сторон
-	identifyStudentStrengths(studentIndex, taskResults) {
-		const strengths = [];
-		const goodTasks = taskResults.filter(t => parseFloat(t.percentage) >= 80);
-		
-		if (goodTasks.length > 0) {
-			// Группировка по уровням
-			const levelGroups = {};
-			goodTasks.forEach(task => {
-				if (!levelGroups[task.level]) levelGroups[task.level] = [];
-				levelGroups[task.level].push(task);
-			});
-			
-			// Находим уровни с лучшими результатами
-			Object.entries(levelGroups).forEach(([level, tasks]) => {
-				if (tasks.length >= 2) { // Минимум 2 задания одного уровня
-					strengths.push({
-						level: parseInt(level),
-						competence: tasks[0].competence,
-						count: tasks.length,
-						averageScore: (tasks.reduce((sum, t) => sum + parseFloat(t.percentage), 0) / tasks.length).toFixed(1)
-					});
-				}
-			});
-		}
-		
-		return strengths;
-	}
+    // Анализ распределения для Word
+    createDistributionAnalysisForWord(allData) {
+        const {
+            Paragraph,
+            TextRun,
+            Table,
+            TableRow,
+            TableCell
+        } = window.docx;
+        const studentGroups = this.createStudentGroups(allData.studentStats);
 
-	// Выявление слабых сторон
-	identifyStudentWeaknesses(studentIndex, taskResults) {
-		const weaknesses = [];
-		const weakTasks = taskResults.filter(t => parseFloat(t.percentage) < 50);
-		
-		if (weakTasks.length > 0) {
-			// Группировка по уровням
-			const levelGroups = {};
-			weakTasks.forEach(task => {
-				if (!levelGroups[task.level]) levelGroups[task.level] = [];
-				levelGroups[task.level].push(task);
-			});
-			
-			// Находим проблемные уровни
-			Object.entries(levelGroups).forEach(([level, tasks]) => {
-				weaknesses.push({
-					level: parseInt(level),
-					competence: tasks[0].competence,
-					count: tasks.length,
-					averageScore: (tasks.reduce((sum, t) => sum + parseFloat(t.percentage), 0) / tasks.length).toFixed(1),
-					tasks: tasks.map(t => t.taskNumber)
-				});
-			});
-		}
-		
-		return weaknesses;
-	}
+        const paragraphs = [
+            new Paragraph({
+                text: "Распределение учащихся по уровню подготовки:",
+                spacing: {
+                    after: 100
+                }
+            })
+        ];
 
-	// Генерация Word отчета для студента
-	generateStudentWordReport(studentName, studentData) {
-		const { Document, Paragraph, HeadingLevel, Packer, AlignmentType, 
-				Table, TableRow, TableCell, TextRun } = window.docx;
-		
-		const doc = new Document({
-			sections: [{
-				properties: {},
-				children: [
-					// Заголовок
-					new Paragraph({
-						text: "ИНДИВИДУАЛЬНЫЙ ОТЧЕТ УЧАЩЕГОСЯ",
-						heading: HeadingLevel.TITLE,
-						alignment: AlignmentType.CENTER
-					}),
-					
-					new Paragraph({
-						text: studentName,
-						heading: HeadingLevel.HEADING_1,
-						alignment: AlignmentType.CENTER
-					}),
-					
-					// Основная информация
-					new Paragraph({
-						text: `Тест: ${appData.test?.subject || "Не указан"}`,
-						alignment: AlignmentType.CENTER
-					}),
-					
-					new Paragraph({
-						text: `Дата: ${studentData.comparison?.testDate || new Date().toLocaleDateString()}`,
-						alignment: AlignmentType.CENTER
-					}),
-					
-					// Сводная таблица
-					new Table({
-						rows: [
-							new TableRow({
-								children: [
-									new TableCell({ children: [new Paragraph("Общий результат")] }),
-									new TableCell({ children: [new Paragraph(`${studentData.overallPercentage}%`)] })
-								]
-							}),
-							new TableRow({
-								children: [
-									new TableCell({ children: [new Paragraph("Место в классе")] }),
-									new TableCell({ children: [new Paragraph(`${studentData.comparison.rank} из ${appData.students?.length || 0}`)] })
-								]
-							}),
-							new TableRow({
-								children: [
-									new TableCell({ children: [new Paragraph("Процентиль")] }),
-									new TableCell({ children: [new Paragraph(`${studentData.comparison.percentile}%`)] })
-								]
-							}),
-							new TableRow({
-								children: [
-									new TableCell({ children: [new Paragraph("Средний балл класса")] }),
-									new TableCell({ children: [new Paragraph(`${studentData.comparison.classAverage}%`)] })
-								]
-							})
-						]
-					}),
-					
-					// Результаты по заданиям
-					new Paragraph({
-						text: "РЕЗУЛЬТАТЫ ПО ЗАДАНИЯМ",
-						heading: HeadingLevel.HEADING_1,
-						spacing: { before: 400 }
-					}),
-					
-					...this.createStudentTasksTable(studentData.taskResults),
-					
-					// Анализ компетенций
-					new Paragraph({
-						text: "АНАЛИЗ КОМПЕТЕНЦИЙ",
-						heading: HeadingLevel.HEADING_1,
-						spacing: { before: 400 }
-					}),
-					
-					...this.createStudentCompetencesTable(studentData.competences),
-					
-					// Сильные и слабые стороны
-					new Paragraph({
-						text: "СИЛЬНЫЕ И СЛАБЫЕ СТОРОНЫ",
-						heading: HeadingLevel.HEADING_1,
-						spacing: { before: 400 }
-					}),
-					
-					...this.createStrengthsWeaknessesAnalysis(studentData),
-					
-					// Рекомендации
-					new Paragraph({
-						text: "РЕКОМЕНДАЦИИ",
-						heading: HeadingLevel.HEADING_1,
-						spacing: { before: 400 }
-					}),
-					
-					...this.createStudentRecommendations(studentData),
-					
-					// Подпись
-					new Paragraph({
-						text: "________________________________________________________________________",
-						alignment: AlignmentType.CENTER,
-						spacing: { before: 400 }
-					}),
-					
-					new Paragraph({
-						text: "Дата формирования отчета: " + new Date().toLocaleDateString(),
-						alignment: AlignmentType.RIGHT
-					})
-				]
-			}]
-		});
-		
-		return Packer.toBlob(doc);
-	}
+        // Таблица распределения
+        if (studentGroups.length > 0) {
+            const tableRows = [
+                new TableRow({
+                    children: [
+                        new TableCell({
+                            children: [new Paragraph("Уровень")]
+                        }),
+                        new TableCell({
+                            children: [new Paragraph("Количество учащихся")]
+                        }),
+                        new TableCell({
+                            children: [new Paragraph("Процент")]
+                        }),
+                        new TableCell({
+                            children: [new Paragraph("Средний балл")]
+                        })
+                    ]
+                })
+            ];
 
-	// Создание таблицы заданий студента
-	createStudentTasksTable(taskResults) {
-		const { Table, TableRow, TableCell, Paragraph } = window.docx;
-		
-		if (!taskResults || taskResults.length === 0) {
-			return [new Paragraph("Нет данных о результатах")];
-		}
-		
-		const headerRow = new TableRow({
-			children: [
-				new TableCell({ children: [new Paragraph("№")] }),
-				new TableCell({ children: [new Paragraph("Задание")] }),
-				new TableCell({ children: [new Paragraph("Балл")] }),
-				new TableCell({ children: [new Paragraph("Максимум")] }),
-				new TableCell({ children: [new Paragraph("Процент")] }),
-				new TableCell({ children: [new Paragraph("Уровень")] })
-			]
-		});
-		
-		const rows = [headerRow];
-		
-		taskResults.forEach(task => {
-			rows.push(
-				new TableRow({
-					children: [
-						new TableCell({ children: [new Paragraph(task.taskNumber.toString())] }),
-						new TableCell({ children: [new Paragraph(task.taskTitle)] }),
-						new TableCell({ children: [new Paragraph(task.score)] }),
-						new TableCell({ children: [new Paragraph(task.maxScore)] }),
-						new TableCell({ children: [new Paragraph(task.percentage + "%")] }),
-						new TableCell({ children: [new Paragraph(task.level.toString())] })
-					]
-				})
-			);
-		});
-		
-		return [new Table({ rows: rows })];
-	}
+            studentGroups.forEach(group => {
+                tableRows.push(
+                    new TableRow({
+                        children: [
+                            new TableCell({
+                                children: [new Paragraph(group.name)]
+                            }),
+                            new TableCell({
+                                children: [new Paragraph(group.count.toString())]
+                            }),
+                            new TableCell({
+                                children: [new Paragraph(group.percentage + "%")]
+                            }),
+                            new TableCell({
+                                children: [new Paragraph(this.calculateGroupAverageScore(allData.studentStats, group))]
+                            })
+                        ]
+                    }));
+            });
 
-	// Создание таблицы компетенций студента
-	createStudentCompetencesTable(competences) {
-		const { Table, TableRow, TableCell, Paragraph } = window.docx;
-		
-		const rows = [
-			new TableRow({
-				children: [
-					new TableCell({ children: [new Paragraph("Компетенция")] }),
-					new TableCell({ children: [new Paragraph("Количество заданий")] }),
-					new TableCell({ children: [new Paragraph("Средний результат")] }),
-					new TableCell({ children: [new Paragraph("Оценка")] })
-				]
-			})
-		];
-		
-		Object.entries(competences).forEach(([name, data]) => {
-			rows.push(
-				new TableRow({
-					children: [
-						new TableCell({ children: [new Paragraph(name)] }),
-						new TableCell({ children: [new Paragraph(data.count.toString())] }),
-						new TableCell({ children: [new Paragraph(data.average.toFixed(1) + "%")] }),
-						new TableCell({ children: [new Paragraph(this.getCompetenceRating(data.average))] })
-					]
-				})
-			);
-		});
-		
-		return [new Table({ rows: rows }), new Paragraph("")];
-	}
+            paragraphs.push(
+                new Table({
+                    rows: tableRows
+                }));
+        }
 
-	// Оценка компетенции
-	getCompetenceRating(average) {
-		if (average >= 85) return "Отлично";
-		if (average >= 70) return "Хорошо";
-		if (average >= 50) return "Удовлетворительно";
-		return "Неудовлетворительно";
-	}
+        // Интерпретация распределения
+        paragraphs.push(
+            new Paragraph({
+                text: this.interpretDistribution(allData.distribution),
+                spacing: {
+                    before: 200,
+                    after: 300
+                }
+            }));
 
-	// Анализ сильных и слабых сторон
-	createStrengthsWeaknessesAnalysis(studentData) {
-		const { Paragraph, TextRun } = window.docx;
-		
-		const paragraphs = [];
-		
-		// Сильные стороны
-		if (studentData.strengths && studentData.strengths.length > 0) {
-			paragraphs.push(
-				new Paragraph({
-					children: [
-						new TextRun({
-							text: "Сильные стороны: ",
-							bold: true
-						})
-					]
-				})
-			);
-			
-			studentData.strengths.forEach(strength => {
-				paragraphs.push(
-					new Paragraph({
-						text: `• Уровень ${strength.level} (${strength.competence}): ${strength.count} заданий со средним результатом ${strength.averageScore}%`,
-						indent: { left: 400 }
-					})
-				);
-			});
-		}
-		
-		// Слабые стороны
-		if (studentData.weaknesses && studentData.weaknesses.length > 0) {
-			paragraphs.push(
-				new Paragraph({
-					children: [
-						new TextRun({
-							text: "Слабые стороны: ",
-							bold: true
-						})
-					],
-					spacing: { before: 200 }
-				})
-			);
-			
-			studentData.weaknesses.forEach(weakness => {
-				paragraphs.push(
-					new Paragraph({
-						text: `• Уровень ${weakness.level} (${weakness.competence}): ${weakness.count} заданий со средним результатом ${weakness.averageScore}%`,
-						indent: { left: 400 }
-					})
-				);
-				
-				if (weakness.tasks && weakness.tasks.length > 0) {
-					paragraphs.push(
-						new Paragraph({
-							text: `  Проблемные задания: ${weakness.tasks.join(', ')}`,
-							indent: { left: 800 }
-						})
-					);
-				}
-			});
-		}
-		
-		return paragraphs;
-	}
+        return paragraphs;
+    }
 
-	// Рекомендации для студента
-	createStudentRecommendations(studentData) {
-		const { Paragraph, TextRun } = window.docx;
-		
-		const recommendations = [];
-		const overall = parseFloat(studentData.overallPercentage);
-		
-		// Общие рекомендации
-		if (overall < 50) {
-			recommendations.push("Требуется повторение основного материала");
-			recommendations.push("Необходима индивидуальная консультация с преподавателем");
-			recommendations.push("Выполнение дополнительных заданий базового уровня");
-		} else if (overall < 70) {
-			recommendations.push("Рекомендуется дополнительная практика по сложным темам");
-			recommendations.push("Работа над устранением типичных ошибок");
-			recommendations.push("Развитие навыков самопроверки");
-		} else if (overall < 85) {
-			recommendations.push("Продолжать в том же темпе, уделить внимание деталям");
-			recommendations.push("Развивать навыки решения нестандартных задач");
-			recommendations.push("Участие в олимпиадных заданиях");
-		} else {
-			recommendations.push("Отличный результат! Можно переходить к более сложным темам");
-			recommendations.push("Рекомендуется участие в олимпиадах и конкурсах");
-			recommendations.push("Возможность выполнения исследовательских проектов");
-		}
-		
-		// Рекомендации по компетенциям
-		Object.entries(studentData.competences).forEach(([name, data]) => {
-			if (data.average < 60) {
-				recommendations.push(`Уделить особое внимание развитию компетенции "${name}"`);
-			} else if (data.average >= 85) {
-				recommendations.push(`Компетенция "${name}" развита отлично, можно углублять знания`);
-			}
-		});
-		
-		// Рекомендации по ошибкам
-		if (studentData.errors && studentData.errors.length > 0) {
-			const errorTypes = [...new Set(studentData.errors.map(e => e.type))];
-			if (errorTypes.includes('calculation')) {
-				recommendations.push("Тренировать вычислительные навыки, проверку расчетов");
-			}
-			if (errorTypes.includes('conceptual')) {
-				recommendations.push("Повторить основные понятия и определения, создать глоссарий");
-			}
-			if (errorTypes.includes('attention')) {
-				recommendations.push("Развивать внимательность, читать условия заданий вслух");
-			}
-		}
-		
-		// Форматирование
-		const paragraphs = [];
-		recommendations.forEach((rec, index) => {
-			paragraphs.push(
-				new Paragraph({
-					children: [
-						new TextRun({
-							text: `${index + 1}. `,
-							bold: true
-						}),
-						new TextRun(rec)
-					],
-					spacing: { after: 50 }
-				})
-			);
-		});
-		
-		return paragraphs;
-	}
+    // Расчет среднего балла группы
+    calculateGroupAverageScore(studentStats, group) {
+        const groupStudents = studentStats.filter(s => {
+            const score = s.averageScore;
+            return score >= group.min && score < (group.name.includes('Отлично') ? 101 : group.max);
+        });
 
-	// Генерация Excel отчета для студента
-	generateStudentExcelReport(studentName, studentData) {
-		// Используем библиотеку ExcelJS
-		const ExcelJS = window.ExcelJS;
-		const workbook = new ExcelJS.Workbook();
-		
-		// Основной лист
-		const worksheet = workbook.addWorksheet('Результаты');
-		
-		// Заголовок
-		worksheet.mergeCells('A1:F1');
-		worksheet.getCell('A1').value = `ИНДИВИДУАЛЬНЫЙ ОТЧЕТ: ${studentName}`;
-		worksheet.getCell('A1').font = { bold: true, size: 16 };
-		worksheet.getCell('A1').alignment = { horizontal: 'center' };
-		
-		// Основная информация
-		worksheet.getCell('A3').value = 'Общий результат:';
-		worksheet.getCell('B3').value = `${studentData.overallPercentage}%`;
-		
-		worksheet.getCell('A4').value = 'Место в классе:';
-		worksheet.getCell('B4').value = `${studentData.comparison.rank} из ${appData.students?.length || 0}`;
-		
-		worksheet.getCell('A5').value = 'Процентиль:';
-		worksheet.getCell('B5').value = `${studentData.comparison.percentile}%`;
-		
-		worksheet.getCell('A6').value = 'Средний балл класса:';
-		worksheet.getCell('B6').value = `${studentData.comparison.classAverage}%`;
-		
-		// Результаты по заданиям
-		worksheet.mergeCells('A8:F8');
-		worksheet.getCell('A8').value = 'РЕЗУЛЬТАТЫ ПО ЗАДАНИЯМ';
-		worksheet.getCell('A8').font = { bold: true };
-		
-		// Заголовки таблицы
-		const headers = ['№', 'Задание', 'Балл', 'Максимум', 'Процент', 'Уровень'];
-		headers.forEach((header, index) => {
-			worksheet.getCell(10, index + 1).value = header;
-			worksheet.getCell(10, index + 1).font = { bold: true };
-			worksheet.getCell(10, index + 1).fill = {
-				type: 'pattern',
-				pattern: 'solid',
-				fgColor: { argb: 'FFE0E0E0' }
-			};
-		});
-		
-		// Данные
-		studentData.taskResults.forEach((task, index) => {
-			const row = 11 + index;
-			worksheet.getCell(row, 1).value = task.taskNumber;
-			worksheet.getCell(row, 2).value = task.taskTitle;
-			worksheet.getCell(row, 3).value = parseFloat(task.score);
-			worksheet.getCell(row, 4).value = parseFloat(task.maxScore);
-			worksheet.getCell(row, 5).value = { formula: `C${row}/D${row}*100`, result: parseFloat(task.percentage) };
-			worksheet.getCell(row, 6).value = task.level;
-			
-			// Форматирование процента
-			worksheet.getCell(row, 5).numFmt = '0.0"%";[Red]-0.0"%";';
-		});
-		
-		// Лист с компетенциями
-		const competencesSheet = workbook.addWorksheet('Компетенции');
-		
-		competencesSheet.getCell('A1').value = 'КОМПЕТЕНЦИИ';
-		competencesSheet.getCell('A1').font = { bold: true, size: 14 };
-		
-		const compHeaders = ['Компетенция', 'Заданий', 'Средний результат', 'Оценка'];
-		compHeaders.forEach((header, index) => {
-			competencesSheet.getCell(3, index + 1).value = header;
-			competencesSheet.getCell(3, index + 1).font = { bold: true };
-		});
-		
-		Object.entries(studentData.competences).forEach(([name, data], index) => {
-			const row = 4 + index;
-			competencesSheet.getCell(row, 1).value = name;
-			competencesSheet.getCell(row, 2).value = data.count;
-			competencesSheet.getCell(row, 3).value = data.average;
-			competencesSheet.getCell(row, 4).value = this.getCompetenceRating(data.average);
-			
-			// Форматирование
-			competencesSheet.getCell(row, 3).numFmt = '0.0"%";[Red]-0.0"%";';
-		});
-		
-		// Настройка ширины колонок
-		worksheet.columns = [
-			{ width: 5 },   // №
-			{ width: 40 },  // Задание
-			{ width: 10 },  // Балл
-			{ width: 10 },  // Максимум
-			{ width: 10 },  // Процент
-			{ width: 8 }    // Уровень
-		];
-		
-		competencesSheet.columns = [
-			{ width: 20 },  // Компетенция
-			{ width: 10 },  // Заданий
-			{ width: 15 },  // Результат
-			{ width: 15 }   // Оценка
-		];
-		
-		// Сохраняем как blob
-		return workbook.xlsx.writeBuffer();
-	}
+        if (groupStudents.length === 0)
+            return "0.0%";
+        const avg = groupStudents.reduce((sum, s) => sum + s.averageScore, 0) / groupStudents.length;
+        return avg.toFixed(1) + "%";
+    }
 
-	// Экспорт всех графиков как изображений
-	exportAllChartsToImages(folder) {
-		return new Promise((resolve) => {
-			console.log('🖼️ Экспорт графиков...');
-			
-			const chartsToExport = [];
-			const allCanvases = document.querySelectorAll('canvas');
-			
-			// Собираем все canvas элементы
-			allCanvases.forEach((canvas, index) => {
-				if (canvas.width > 10 && canvas.height > 10) { // Проверяем, что canvas не пустой
-					chartsToExport.push({
-						canvas: canvas,
-						id: canvas.id || `chart_${index}`,
-						name: canvas.closest('.chart-container') ? 
-							  canvas.closest('.chart-container').querySelector('h4')?.textContent || 
-							  canvas.closest('.viz-card')?.querySelector('h4')?.textContent || 
-							  `График ${index + 1}` : 
-							  `График ${index + 1}`
-					});
-				}
-			});
-			
-			console.log(`Найдено ${chartsToExport.length} графиков для экспорта`);
-			
-			if (chartsToExport.length === 0) {
-				resolve();
-				return;
-			}
-			
-			let exportedCount = 0;
-			const totalCharts = Math.min(chartsToExport.length, 30); // Ограничиваем
-			
-			chartsToExport.slice(0, totalCharts).forEach((chartData, index) => {
-				setTimeout(() => {
-					try {
-						const canvas = chartData.canvas;
-						
-						// Создаем временный canvas для лучшего качества
-						const tempCanvas = document.createElement('canvas');
-						const ctx = tempCanvas.getContext('2d');
-						
-						// Увеличиваем размер для лучшего качества
-						const scale = 2;
-						tempCanvas.width = canvas.width * scale;
-						tempCanvas.height = canvas.height * scale;
-						
-						// Устанавливаем белый фон
-						ctx.fillStyle = 'white';
-						ctx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
-						
-						// Копируем оригинальный график
-						ctx.drawImage(canvas, 0, 0, tempCanvas.width, tempCanvas.height);
-						
-						// Конвертируем в base64
-						const imageData = tempCanvas.toDataURL('image/png', 1.0);
-						const base64Data = imageData.replace(/^data:image\/png;base64,/, '');
-						
-						// Сохраняем
-						const fileName = this.sanitizeFileName(`${chartData.name}.png`);
-						folder.file(`графики/${fileName}`, base64Data, { base64: true });
-						
-						exportedCount++;
-						console.log(`✅ Экспортирован график: ${chartData.name} (${exportedCount}/${totalCharts})`);
-						
-						if (exportedCount === totalCharts) {
-							console.log(`✅ Все графики экспортированы: ${exportedCount} из ${totalCharts}`);
-							resolve();
-						}
-						
-					} catch (error) {
-						console.warn(`❌ Ошибка экспорта графика ${chartData.name}:`, error);
-						exportedCount++;
-						
-						if (exportedCount === totalCharts) {
-							resolve();
-						}
-					}
-				}, index * 100); // Задержка для предотвращения блокировки
-			});
-			
-			// Таймаут на случай проблем
-			setTimeout(() => {
-				console.log(`⏱️ Таймаут экспорта графиков, экспортировано: ${exportedCount}`);
-				resolve();
-			}, 30000);
-		});
-	}
+    // Анализ заданий для Word
+    createTasksAnalysisForWord(allData) {
+        const {
+            Paragraph,
+            TextRun,
+            Table,
+            TableRow,
+            TableCell
+        } = window.docx;
 
-	// Генерация сводного Excel отчета
-	generateSummaryExcelReport(allData) {
-		const ExcelJS = window.ExcelJS;
-		const workbook = new ExcelJS.Workbook();
-		
-		// Лист 1: Общая статистика
-		const summarySheet = workbook.addWorksheet('Общая статистика');
-		
-		// Заголовок
-		summarySheet.mergeCells('A1:D1');
-		summarySheet.getCell('A1').value = 'СВОДНАЯ СТАТИСТИКА ТЕСТИРОВАНИЯ';
-		summarySheet.getCell('A1').font = { bold: true, size: 16 };
-		
-		// Основные показатели
-		const indicators = [
-			['Тест', allData.meta.testName || 'Не указан'],
-			['Тема', allData.meta.theme || 'Не указана'],
-			['Дата', allData.meta.date || 'Не указана'],
-			['Класс', allData.meta.class || 'Не указан'],
-			['Учащихся', allData.meta.studentCount],
-			['Заданий', allData.meta.taskCount],
-			['Средний балл', `${this.calculateOverallAverage(allData.studentStats).toFixed(1)}%`],
-			['Медиана', `${allData.distribution.median.toFixed(1)}%`],
-			['Стандартное отклонение', `${allData.distribution.stdDev.toFixed(1)}%`]
-		];
-		
-		indicators.forEach(([label, value], index) => {
-			summarySheet.getCell(`A${index + 3}`).value = label;
-			summarySheet.getCell(`A${index + 3}`).font = { bold: true };
-			summarySheet.getCell(`B${index + 3}`).value = value;
-		});
-		
-		// Лист 2: Результаты учащихся
-		const studentsSheet = workbook.addWorksheet('Результаты учащихся');
-		
-		// Заголовки
-		const studentHeaders = ['№', 'ФИО', 'Средний балл', 'Максимум', 'Минимум', 'Место', 'Процентиль', 'Группа'];
-		studentHeaders.forEach((header, index) => {
-			studentsSheet.getCell(1, index + 1).value = header;
-			studentsSheet.getCell(1, index + 1).font = { bold: true };
-		});
-		
-		// Данные
-		const sortedStudents = [...allData.studentStats].sort((a, b) => b.averageScore - a.averageScore);
-		sortedStudents.forEach((student, index) => {
-			const row = index + 2;
-			studentsSheet.getCell(row, 1).value = index + 1;
-			studentsSheet.getCell(row, 2).value = student.name;
-			studentsSheet.getCell(row, 3).value = student.averageScore;
-			studentsSheet.getCell(row, 4).value = student.maxScore;
-			studentsSheet.getCell(row, 5).value = student.minScore;
-			studentsSheet.getCell(row, 6).value = index + 1;
-			studentsSheet.getCell(row, 7).value = ((index + 1) / sortedStudents.length * 100).toFixed(1);
-			studentsSheet.getCell(row, 8).value = this.getStudentGroup(student.averageScore);
-			
-			// Форматирование
-			studentsSheet.getCell(row, 3).numFmt = '0.0"%";[Red]-0.0"%";';
-			studentsSheet.getCell(row, 4).numFmt = '0.0"%";[Red]-0.0"%";';
-			studentsSheet.getCell(row, 5).numFmt = '0.0"%";[Red]-0.0"%";';
-			studentsSheet.getCell(row, 7).numFmt = '0.0"%";[Red]-0.0"%";';
-		});
-		
-		// Лист 3: Анализ заданий
-		const tasksSheet = workbook.addWorksheet('Анализ заданий');
-		
-		const taskHeaders = ['№', 'Задание', 'Тип', 'Уровень', 'Сложность', 'Дискриминативность', 
-							 'Средний балл', 'Выполняемость', 'Статус'];
-		taskHeaders.forEach((header, index) => {
-			tasksSheet.getCell(1, index + 1).value = header;
-			tasksSheet.getCell(1, index + 1).font = { bold: true };
-		});
-		
-		allData.taskStats.forEach((task, index) => {
-			const row = index + 2;
-			tasksSheet.getCell(row, 1).value = task.number;
-			tasksSheet.getCell(row, 2).value = task.title;
-			tasksSheet.getCell(row, 3).value = task.type;
-			tasksSheet.getCell(row, 4).value = task.level || 1;
-			tasksSheet.getCell(row, 5).value = task.difficulty;
-			tasksSheet.getCell(row, 6).value = task.discrimination;
-			tasksSheet.getCell(row, 7).value = task.averageScore;
-			tasksSheet.getCell(row, 8).value = task.completionRate;
-			tasksSheet.getCell(row, 9).value = this.getTaskStatusText(task);
-			
-			// Форматирование
-			tasksSheet.getCell(row, 5).numFmt = '0.0%';
-			tasksSheet.getCell(row, 6).numFmt = '0.0%';
-			tasksSheet.getCell(row, 8).numFmt = '0.0"%";[Red]-0.0"%";';
-			
-			// Цветовая индикация для сложных заданий
-			if (task.difficulty > 0.7) {
-				tasksSheet.getCell(row, 5).fill = {
-					type: 'pattern',
-					pattern: 'solid',
-					fgColor: { argb: 'FFFF9999' }
-				};
-			}
-		});
-		
-		// Лист 4: Группы учащихся
-		const groupsSheet = workbook.addWorksheet('Группы учащихся');
-		
-		groupsSheet.getCell('A1').value = 'РАСПРЕДЕЛЕНИЕ УЧАЩИХСЯ ПО ГРУППАМ';
-		groupsSheet.getCell('A1').font = { bold: true, size: 14 };
-		
-		const groupHeaders = ['Группа', 'Количество', 'Процент', 'Средний балл', 'Минимум', 'Максимум'];
-		groupHeaders.forEach((header, index) => {
-			groupsSheet.getCell(3, index + 1).value = header;
-			groupsSheet.getCell(3, index + 1).font = { bold: true };
-		});
-		
-		const studentGroups = this.createStudentGroups(allData.studentStats);
-		studentGroups.forEach((group, index) => {
-			const row = 4 + index;
-			groupsSheet.getCell(row, 1).value = group.name;
-			groupsSheet.getCell(row, 2).value = group.count;
-			groupsSheet.getCell(row, 3).value = parseFloat(group.percentage);
-			groupsSheet.getCell(row, 4).value = this.calculateGroupAverageScore(allData.studentStats, group).replace('%', '');
-			groupsSheet.getCell(row, 5).value = this.getGroupMinScore(allData.studentStats, group);
-			groupsSheet.getCell(row, 6).value = this.getGroupMaxScore(allData.studentStats, group);
-			
-			// Форматирование
-			groupsSheet.getCell(row, 3).numFmt = '0.0"%";[Red]-0.0"%";';
-			groupsSheet.getCell(row, 4).numFmt = '0.0"%";[Red]-0.0"%";';
-			groupsSheet.getCell(row, 5).numFmt = '0.0"%";[Red]-0.0"%";';
-			groupsSheet.getCell(row, 6).numFmt = '0.0"%";[Red]-0.0"%";';
-		});
-		
-		// Настройка ширины колонок
-		summarySheet.columns = [
-			{ width: 25 },
-			{ width: 30 }
-		];
-		
-		studentsSheet.columns = [
-			{ width: 5 },
-			{ width: 30 },
-			{ width: 12 },
-			{ width: 10 },
-			{ width: 10 },
-			{ width: 8 },
-			{ width: 10 },
-			{ width: 15 }
-		];
-		
-		tasksSheet.columns = [
-			{ width: 5 },
-			{ width: 40 },
-			{ width: 15 },
-			{ width: 8 },
-			{ width: 12 },
-			{ width: 15 },
-			{ width: 12 },
-			{ width: 12 },
-			{ width: 15 }
-		];
-		
-		groupsSheet.columns = [
-			{ width: 20 },
-			{ width: 12 },
-			{ width: 10 },
-			{ width: 12 },
-			{ width: 10 },
-			{ width: 10 }
-		];
-		
-		return workbook.xlsx.writeBuffer();
-	}
+        const problematicTasks = allData.taskStats.filter(task =>
+                task.difficulty > 0.7 || task.discrimination < 0.3);
 
-	// Вспомогательные методы для Excel
-	getStudentGroup(score) {
-		if (score >= 85) return 'Отличники';
-		if (score >= 70) return 'Хорошисты';
-		if (score >= 50) return 'Средние';
-		return 'Требуют внимания';
-	}
+        const paragraphs = [
+            new Paragraph({
+                text: `Всего заданий: ${allData.meta.taskCount}`,
+                spacing: {
+                    after: 100
+                }
+            }),
 
-	getGroupMinScore(studentStats, group) {
-		const groupStudents = studentStats.filter(s => 
-			s.averageScore >= group.min && s.averageScore < (group.name.includes('Отлично') ? 101 : group.max)
-		);
-		if (groupStudents.length === 0) return 0;
-		return Math.min(...groupStudents.map(s => s.averageScore));
-	}
+            new Paragraph({
+                text: `Проблемных заданий: ${problematicTasks.length} (${((problematicTasks.length / allData.meta.taskCount) * 100).toFixed(1)}%)`,
+                spacing: {
+                    after: 100
+                }
+            })
+        ];
 
-	getGroupMaxScore(studentStats, group) {
-		const groupStudents = studentStats.filter(s => 
-			s.averageScore >= group.min && s.averageScore < (group.name.includes('Отлично') ? 101 : group.max)
-		);
-		if (groupStudents.length === 0) return 0;
-		return Math.max(...groupStudents.map(s => s.averageScore));
-	}
+        // Таблица проблемных заданий
+        if (problematicTasks.length > 0) {
+            paragraphs.push(
+                new Paragraph({
+                    text: "Проблемные задания, требующие внимания:",
+                    spacing: {
+                        before: 200,
+                        after: 100
+                    }
+                }));
 
-	// Санитизация имени файла
-	sanitizeFileName(fileName) {
-		return fileName
-			.replace(/[<>:"/\\|?*]/g, '_') // Заменяем запрещенные символы
-			.replace(/\s+/g, '_') // Заменяем пробелы на подчеркивания
-			.replace(/_{2,}/g, '_') // Убираем двойные подчеркивания
-			.trim();
-	}
+            const tableRows = [
+                new TableRow({
+                    children: [
+                        new TableCell({
+                            children: [new Paragraph("№")]
+                        }),
+                        new TableCell({
+                            children: [new Paragraph("Задание")]
+                        }),
+                        new TableCell({
+                            children: [new Paragraph("Сложность")]
+                        }),
+                        new TableCell({
+                            children: [new Paragraph("Дискриминативность")]
+                        }),
+                        new TableCell({
+                            children: [new Paragraph("Проблема")]
+                        }),
+                        new TableCell({
+                            children: [new Paragraph("Рекомендация")]
+                        })
+                    ]
+                })
+            ];
 
-	// Инициализация библиотек для экспорта
-	initializeExportLibraries() {
-		return new Promise((resolve, reject) => {
-			console.log('🔄 Инициализация библиотек для экспорта...');
-			
-			// Проверяем, какие библиотеки уже загружены
-			const loadedLibraries = {
-				jszip: typeof JSZip !== 'undefined',
-				docx: typeof window.docx !== 'undefined',
-				exceljs: typeof window.ExcelJS !== 'undefined',
-				filesaver: typeof window.saveAs !== 'undefined'
-			};
-			
-			console.log('Загруженные библиотеки:', loadedLibraries);
-			
-			const librariesToLoad = [];
-			
-			// JSZip
-			if (!loadedLibraries.jszip) {
-				librariesToLoad.push(
-					this.loadScriptWithFallback(
-						'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js',
-						'JSZip'
-					)
-				);
-			}
-			
-			// docx
-			if (!loadedLibraries.docx) {
-				librariesToLoad.push(
-					this.loadScriptWithFallback(
-						'https://cdnjs.cloudflare.com/ajax/libs/docx/7.7.0/docx.min.js',
-						'docx'
-					)
-				);
-			}
-			
-			// ExcelJS
-			if (!loadedLibraries.exceljs) {
-				librariesToLoad.push(
-					this.loadScriptWithFallback(
-						'https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js',
-						'ExcelJS'
-					)
-				);
-			}
-			
-			// FileSaver
-			if (!loadedLibraries.filesaver) {
-				librariesToLoad.push(
-					this.loadScriptWithFallback(
-						'https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js',
-						'FileSaver'
-					)
-				);
-			}
-			
-			if (librariesToLoad.length === 0) {
-				console.log('✅ Все библиотеки уже загружены');
-				resolve();
-				return;
-			}
-			
-			let loadedCount = 0;
-			const totalToLoad = librariesToLoad.length;
-			
-			// Создаем обработчики для каждой библиотеки
-			librariesToLoad.forEach(promise => {
-				promise
-					.then(() => {
-						loadedCount++;
-						console.log(`✅ Загружена библиотека (${loadedCount}/${totalToLoad})`);
-						
-						if (loadedCount === totalToLoad) {
-							console.log('✅ Все библиотеки успешно загружены');
-							resolve();
-						}
-					})
-					.catch(error => {
-						console.warn(`⚠️ Не удалось загрузить библиотеку:`, error);
-						loadedCount++;
-						
-						if (loadedCount === totalToLoad) {
-							console.warn('⚠️ Некоторые библиотеки не загрузились, продолжаем с доступными');
-							resolve(); // Разрешаем промис даже с ошибками
-						}
-					});
-			});
-			
-			// Таймаут на случай проблем с загрузкой
-			setTimeout(() => {
-				console.warn('⚠️ Таймаут загрузки библиотек');
-				resolve(); // Все равно продолжаем
-			}, 10000);
-		});
-	}
+            problematicTasks.forEach(task => {
+                let problem = "";
+                let recommendation = "";
 
-	// Загрузка скрипта
-	loadScript(src) {
-		return new Promise((resolve, reject) => {
-			const script = document.createElement('script');
-			script.src = src;
-			script.onload = () => resolve();
-			script.onerror = () => reject(new Error(`Не удалось загрузить скрипт: ${src}`));
-			document.head.appendChild(script);
-		});
-	}
+                if (task.difficulty > 0.7) {
+                    problem = "Слишком высокая сложность";
+                    recommendation = "Упростить формулировку, добавить подсказки";
+                } else if (task.discrimination < 0.3) {
+                    problem = "Низкая дискриминативность";
+                    recommendation = "Пересмотреть варианты ответов";
+                }
 
-	loadScriptWithFallback(src, libraryName) {
-		return new Promise((resolve, reject) => {
-			console.log(`📦 Загрузка библиотеки ${libraryName}...`);
-			
-			// Проверяем, не загружается ли уже эта библиотека
-			if (document.querySelector(`script[src="${src}"]`)) {
-				console.log(`📦 Библиотека ${libraryName} уже загружается`);
-				// Ждем, пока загрузится
-				const checkInterval = setInterval(() => {
-					if ((libraryName === 'docx' && window.docx) ||
-						(libraryName === 'JSZip' && JSZip) ||
-						(libraryName === 'ExcelJS' && window.ExcelJS) ||
-						(libraryName === 'FileSaver' && window.saveAs)) {
-						clearInterval(checkInterval);
-						console.log(`✅ Библиотека ${libraryName} загрузилась`);
-						resolve();
-					}
-				}, 500);
-				
-				setTimeout(() => {
-					clearInterval(checkInterval);
-					console.warn(`⚠️ Таймаут проверки библиотеки ${libraryName}`);
-					resolve(); // Все равно разрешаем
-				}, 5000);
-				
-				return;
-			}
-			
-			const script = document.createElement('script');
-			script.src = src;
-			script.async = true;
-			
-			script.onload = () => {
-				console.log(`✅ Библиотека ${libraryName} загружена`);
-				
-				// Даем время на инициализацию
-				setTimeout(() => {
-					// Проверяем, что библиотека действительно доступна
-					const isLoaded = (libraryName === 'docx' && window.docx) ||
-								   (libraryName === 'JSZip' && JSZip) ||
-								   (libraryName === 'ExcelJS' && window.ExcelJS) ||
-								   (libraryName === 'FileSaver' && window.saveAs);
-					
-					if (isLoaded) {
-						resolve();
-					} else {
-						console.warn(`⚠️ Библиотека ${libraryName} загрузилась, но не инициализирована`);
-						// Пробуем fallback
-						this.tryLibraryFallback(libraryName).then(resolve).catch(reject);
-					}
-				}, 1000);
-			};
-			
-			script.onerror = (error) => {
-				console.error(`❌ Ошибка загрузки библиотеки ${libraryName}:`, error);
-				// Пробуем альтернативный источник
-				this.loadScriptFallback(libraryName).then(resolve).catch(reject);
-			};
-			
-			document.head.appendChild(script);
-		});
-	}
+                tableRows.push(
+                    new TableRow({
+                        children: [
+                            new TableCell({
+                                children: [new Paragraph(task.number.toString())]
+                            }),
+                            new TableCell({
+                                children: [new Paragraph(task.title.substring(0, 50) + (task.title.length > 50 ? "..." : ""))]
+                            }),
+                            new TableCell({
+                                children: [new Paragraph((task.difficulty * 100).toFixed(1) + "%")]
+                            }),
+                            new TableCell({
+                                children: [new Paragraph((task.discrimination * 100).toFixed(1) + "%")]
+                            }),
+                            new TableCell({
+                                children: [new Paragraph(problem)]
+                            }),
+                            new TableCell({
+                                children: [new Paragraph(recommendation)]
+                            })
+                        ]
+                    }));
+            });
 
-	// Альтернативные источники для библиотек
-	loadScriptFallback(libraryName) {
-		return new Promise((resolve, reject) => {
-			console.log(`🔄 Пробуем альтернативный источник для ${libraryName}...`);
-			
-			let fallbackSrc;
-			switch (libraryName) {
-				case 'JSZip':
-					fallbackSrc = 'https://unpkg.com/jszip@3.10.1/dist/jszip.min.js';
-					break;
-				case 'docx':
-					fallbackSrc = 'https://unpkg.com/docx@7.7.0/build/index.js';
-					break;
-				case 'ExcelJS':
-					fallbackSrc = 'https://unpkg.com/exceljs@4.4.0/dist/exceljs.min.js';
-					break;
-				case 'FileSaver':
-					fallbackSrc = 'https://unpkg.com/file-saver@2.0.5/dist/FileSaver.min.js';
-					break;
-				default:
-					reject(new Error(`Нет fallback для ${libraryName}`));
-					return;
-			}
-			
-			const script = document.createElement('script');
-			script.src = fallbackSrc;
-			script.async = true;
-			
-			script.onload = () => {
-				console.log(`✅ Библиотека ${libraryName} загружена из fallback`);
-				setTimeout(() => resolve(), 500);
-			};
-			
-			script.onerror = () => {
-				console.error(`❌ Ошибка загрузки fallback для ${libraryName}`);
-				reject(new Error(`Не удалось загрузить ${libraryName}`));
-			};
-			
-			document.head.appendChild(script);
-		});
-	}
+            paragraphs.push(
+                new Table({
+                    rows: tableRows
+                }));
+        }
 
-	// Попытка локальной инициализации библиотеки
-	tryLibraryFallback(libraryName) {
-		return new Promise((resolve) => {
-			console.log(`🔄 Пробуем локальную инициализацию ${libraryName}...`);
-			
-			switch (libraryName) {
-				case 'docx':
-					// Пробуем создать минимальную реализацию docx
-					if (!window.docx) {
-						window.docx = {
-							Document: class {
-								constructor(options) {
-									this.sections = options.sections || [];
-								}
-							},
-							Paragraph: class {
-								constructor(options) {
-									this.text = options.text || '';
-									this.heading = options.heading;
-									this.alignment = options.alignment;
-								}
-							},
-							TextRun: class {
-								constructor(options) {
-									this.text = options.text || '';
-									this.bold = options.bold;
-								}
-							},
-							Table: class {
-								constructor(options) {
-									this.rows = options.rows || [];
-								}
-							},
-							TableRow: class {
-								constructor(options) {
-									this.children = options.children || [];
-								}
-							},
-							TableCell: class {
-								constructor(options) {
-									this.children = options.children || [];
-								}
-							},
-							Packer: {
-								toBlob: async function(doc) {
-									console.warn('⚠️ Используется упрощенная версия docx');
-									// Создаем простой текстовый документ
-									let content = '';
-									if (doc.sections && doc.sections[0] && doc.sections[0].children) {
-										doc.sections[0].children.forEach(child => {
-											if (child.text) {
-												content += child.text + '\n';
-											}
-										});
-									}
-									return new Blob([content], { type: 'text/plain' });
-								}
-							}
-						};
-						console.log('✅ Создана упрощенная версия docx');
-					}
-					break;
-					
-				case 'JSZip':
-					if (!window.JSZip) {
-						console.warn('⚠️ JSZip недоступен, используем альтернативу');
-						// Простая реализация архивации
-						window.JSZip = class {
-							constructor() {
-								this.files = {};
-							}
-							
-							file(name, content, options) {
-								this.files[name] = { content, options };
-							}
-							
-							folder(name) {
-								return this; // Упрощенная реализация
-							}
-							
-							generateAsync(options) {
-								return Promise.resolve(new Blob([JSON.stringify(this.files)], { type: 'application/zip' }));
-							}
-						};
-					}
-					break;
-			}
-			
-			setTimeout(() => resolve(), 100);
-		});
-	}
+        paragraphs.push(
+            new Paragraph({
+                text: "",
+                spacing: {
+                    after: 300
+                }
+            }));
 
-	// Обновленный метод exportAnalysisReport для поддержки Word
-	exportAnalysisReport() {
-		showNotification('🔄 Подготовка отчета...', 'info');
-		
-		// Инициализируем библиотеки
-		this.initializeExportLibraries().then(() => {
-			// Предлагаем выбор формата
-			this.showExportOptionsModal();
-		}).catch(error => {
-			showNotification('Используется упрощенный экспорт', 'warning');
-			// Fallback: старый метод экспорта
-			this.exportAnalysisReportFallback();
-		});
-	}
+        return paragraphs;
+    }
 
-	// Модальное окно выбора формата экспорта
-	showExportOptionsModal() {
-		const modalHTML = `
+    // Рекомендации для Word
+    createRecommendationsForWord(recommendations) {
+        const {
+            Paragraph,
+            TextRun
+        } = window.docx;
+
+        const paragraphs = [
+            new Paragraph({
+                text: "На основе проведенного анализа сформулированы следующие рекомендации:",
+                spacing: {
+                    after: 100
+                }
+            })
+        ];
+
+        recommendations.forEach((rec, index) => {
+            paragraphs.push(
+                new Paragraph({
+                    children: [
+                        new TextRun({
+                            text: `${index + 1}. `,
+                            bold: true
+                        }),
+                        new TextRun(rec)
+                    ],
+                    spacing: {
+                        after: 50
+                    }
+                }));
+        });
+
+        paragraphs.push(
+            new Paragraph({
+                text: "",
+                spacing: {
+                    after: 300
+                }
+            }));
+
+        return paragraphs;
+    }
+
+    // Генерация заключения
+    generateConclusion(allData) {
+        const averageScore = this.calculateOverallAverage(allData.studentStats);
+        const weakStudents = allData.studentStats.filter(s => s.averageScore < 50).length;
+        const problematicTasks = allData.taskStats.filter(t => t.difficulty > 0.7 || t.discrimination < 0.3).length;
+
+        let conclusion = "На основе комплексного анализа результатов тестирования можно сделать следующие выводы:\n\n";
+
+        conclusion += `1. Общий уровень подготовки класса составляет ${averageScore.toFixed(1)}%, что является `;
+        if (averageScore >= 85) {
+            conclusion += "отличным показателем. ";
+        } else if (averageScore >= 70) {
+            conclusion += "хорошим показателем. ";
+        } else if (averageScore >= 50) {
+            conclusion += "удовлетворительным показателем. ";
+        } else {
+            conclusion += "неудовлетворительным показателем. ";
+        }
+
+        conclusion += `\n2. В классе выделяется ${weakStudents} учащихся, требующих особого внимания и дополнительной помощи `;
+        conclusion += `(${((weakStudents / allData.meta.studentCount) * 100).toFixed(1)}% от общего числа).\n`;
+
+        conclusion += `\n3. Из ${allData.meta.taskCount} заданий ${problematicTasks} имеют проблемы со сложностью или дискриминативностью `;
+        conclusion += `(${((problematicTasks / allData.meta.taskCount) * 100).toFixed(1)}%).\n`;
+
+        conclusion += "\n4. Для улучшения результатов рекомендуется последовательная реализация предложенных рекомендаций, ";
+        conclusion += "с акцентом на дифференцированный подход к обучению и коррекцию проблемных заданий.";
+
+        return conclusion;
+    }
+
+    // Генерация отчетов по вкладкам
+    generateTabReports(allData) {
+        const reports = {};
+
+        // Обзор
+        reports["обзор"] = this.generateTabReport("Обзор", allData, this.renderOverviewTab(allData));
+
+        // Учащиеся
+        reports["учащиеся"] = this.generateTabReport("Анализ учащихся", allData, this.renderStudentsTab(allData));
+
+        // Задания
+        reports["задания"] = this.generateTabReport("Анализ заданий", allData, this.renderTasksTab(allData));
+
+        // Распределение
+        reports["распределение"] = this.generateTabReport("Распределение результатов", allData, this.renderDistributionTab(allData));
+
+        // Ошибки
+        reports["ошибки"] = this.generateTabReport("Анализ ошибок", allData, this.renderErrorsTab(allData));
+
+        // Рекомендации
+        reports["рекомендации"] = this.generateTabReport("Рекомендации", allData, this.renderRecommendationsTab(allData));
+
+        return reports;
+    }
+
+    // Генерация отчета по вкладке
+    generateTabReport(title, allData, htmlContent) {
+        const {
+            Document,
+            Paragraph,
+            HeadingLevel,
+            Packer,
+            AlignmentType
+        } = window.docx;
+
+        const doc = new Document({
+            sections: [{
+                    properties: {},
+                    children: [
+                        new Paragraph({
+                            text: title.toUpperCase(),
+                            heading: HeadingLevel.TITLE,
+                            alignment: AlignmentType.CENTER
+                        }),
+
+                        new Paragraph({
+                            text: `Тест: ${allData.meta.testName}`,
+                            alignment: AlignmentType.CENTER
+                        }),
+
+                        new Paragraph({
+                            text: `Дата: ${allData.meta.date}`,
+                            alignment: AlignmentType.CENTER
+                        }),
+
+                        new Paragraph({
+                            text: `Сгенерировано: ${new Date().toLocaleString()}`,
+                            alignment: AlignmentType.CENTER
+                        }),
+
+                        new Paragraph({
+                            text: this.extractTextFromHTML(htmlContent),
+                            spacing: {
+                                before: 400
+                            }
+                        })
+                    ]
+                }
+            ]
+        });
+
+        return Packer.toBlob(doc);
+    }
+
+    // Извлечение текста из HTML
+    extractTextFromHTML(html) {
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = html;
+        return tempDiv.textContent || tempDiv.innerText || '';
+    }
+
+    // Сбор данных студента для экспорта
+    collectStudentDataForExport(studentIndex) {
+        if (!appData.students || !appData.students[studentIndex]) {
+            return null;
+        }
+
+        const studentName = appData.students[studentIndex];
+        const studentStats = this.calculateStudentStatistics();
+        const studentStat = studentStats.find(s => s.index === studentIndex);
+
+        // Результаты по заданиям
+        const taskResults = appData.tasks?.map((task, taskIndex) => {
+            const score = this.getStudentScore(studentIndex, taskIndex);
+            const maxScore = task.maxScore || 1;
+            const percentage = maxScore > 0 ? (score / maxScore) * 100 : 0;
+
+            return {
+                taskNumber: taskIndex + 1,
+                taskTitle: task.title || `Задание ${taskIndex + 1}`,
+                score: score.toFixed(2),
+                maxScore: maxScore.toFixed(2),
+                percentage: percentage.toFixed(1),
+                level: task.level || 1,
+                competence: task.competence || this.getCompetenceByLevel(task.level || 1)
+            };
+        }) || [];
+
+        // Ошибки студента
+        const studentErrors = appData.errors?.filter(error =>
+                error.studentIndex === studentIndex) || [];
+
+        // Компетенции
+        const competences = this.analyzeStudentCompetences(studentIndex);
+
+        // Сравнение с классом
+        const classAverage = this.calculateOverallAverage(studentStats);
+        const rank = this.calculateStudentRank(studentIndex, studentStats);
+
+        return {
+            studentName,
+            studentIndex,
+            studentStat,
+            taskResults,
+            totalTasks: taskResults.length,
+            totalScore: taskResults.reduce((sum, t) => sum + parseFloat(t.score), 0).toFixed(2),
+            maxPossibleScore: taskResults.reduce((sum, t) => sum + parseFloat(t.maxScore), 0).toFixed(2),
+            overallPercentage: studentStat?.averageScore || 0,
+            competences,
+            errors: studentErrors,
+            comparison: {
+                classAverage: classAverage.toFixed(1),
+                studentAverage: studentStat?.averageScore.toFixed(1) || "0.0",
+                rank: rank,
+                percentile: ((rank / studentStats.length) * 100).toFixed(1)
+            },
+            strengths: this.identifyStudentStrengths(studentIndex, taskResults),
+            weaknesses: this.identifyStudentWeaknesses(studentIndex, taskResults)
+        };
+    }
+
+    // Анализ компетенций студента
+    analyzeStudentCompetences(studentIndex) {
+        if (!appData.tasks)
+            return {};
+
+        const competences = {
+            'Базовый': {
+                scores: [],
+                count: 0
+            },
+            'Применение': {
+                scores: [],
+                count: 0
+            },
+            'Анализ': {
+                scores: [],
+                count: 0
+            },
+            'Творчество': {
+                scores: [],
+                count: 0
+            }
+        };
+
+        appData.tasks.forEach((task, taskIndex) => {
+            const level = Math.min(Math.max(task.level || 1, 1), 4);
+            const competence = this.getCompetenceByLevel(level);
+            const score = this.getStudentScore(studentIndex, taskIndex);
+            const maxScore = task.maxScore || 1;
+            const percentage = maxScore > 0 ? (score / maxScore) * 100 : 0;
+
+            if (competences[competence]) {
+                competences[competence].scores.push(percentage);
+                competences[competence].count++;
+            }
+        });
+
+        // Расчет средних
+        Object.keys(competences).forEach(key => {
+            if (competences[key].scores.length > 0) {
+                competences[key].average = this.calculateAverage(competences[key].scores);
+            } else {
+                competences[key].average = 0;
+            }
+        });
+
+        return competences;
+    }
+
+    // Расчет ранга студента
+    calculateStudentRank(studentIndex, studentStats) {
+        const sorted = [...studentStats].sort((a, b) => b.averageScore - a.averageScore);
+        const student = sorted.find(s => s.index === studentIndex);
+        return sorted.indexOf(student) + 1;
+    }
+
+    // Выявление сильных сторон
+    identifyStudentStrengths(studentIndex, taskResults) {
+        const strengths = [];
+        const goodTasks = taskResults.filter(t => parseFloat(t.percentage) >= 80);
+
+        if (goodTasks.length > 0) {
+            // Группировка по уровням
+            const levelGroups = {};
+            goodTasks.forEach(task => {
+                if (!levelGroups[task.level])
+                    levelGroups[task.level] = [];
+                levelGroups[task.level].push(task);
+            });
+
+            // Находим уровни с лучшими результатами
+            Object.entries(levelGroups).forEach(([level, tasks]) => {
+                if (tasks.length >= 2) { // Минимум 2 задания одного уровня
+                    strengths.push({
+                        level: parseInt(level),
+                        competence: tasks[0].competence,
+                        count: tasks.length,
+                        averageScore: (tasks.reduce((sum, t) => sum + parseFloat(t.percentage), 0) / tasks.length).toFixed(1)
+                    });
+                }
+            });
+        }
+
+        return strengths;
+    }
+
+    // Выявление слабых сторон
+    identifyStudentWeaknesses(studentIndex, taskResults) {
+        const weaknesses = [];
+        const weakTasks = taskResults.filter(t => parseFloat(t.percentage) < 50);
+
+        if (weakTasks.length > 0) {
+            // Группировка по уровням
+            const levelGroups = {};
+            weakTasks.forEach(task => {
+                if (!levelGroups[task.level])
+                    levelGroups[task.level] = [];
+                levelGroups[task.level].push(task);
+            });
+
+            // Находим проблемные уровни
+            Object.entries(levelGroups).forEach(([level, tasks]) => {
+                weaknesses.push({
+                    level: parseInt(level),
+                    competence: tasks[0].competence,
+                    count: tasks.length,
+                    averageScore: (tasks.reduce((sum, t) => sum + parseFloat(t.percentage), 0) / tasks.length).toFixed(1),
+                    tasks: tasks.map(t => t.taskNumber)
+                });
+            });
+        }
+
+        return weaknesses;
+    }
+
+    // Генерация Word отчета для студента
+    generateStudentWordReport(studentName, studentData) {
+        const {
+            Document,
+            Paragraph,
+            HeadingLevel,
+            Packer,
+            AlignmentType,
+            Table,
+            TableRow,
+            TableCell,
+            TextRun
+        } = window.docx;
+
+        const doc = new Document({
+            sections: [{
+                    properties: {},
+                    children: [
+                        // Заголовок
+                        new Paragraph({
+                            text: "ИНДИВИДУАЛЬНЫЙ ОТЧЕТ УЧАЩЕГОСЯ",
+                            heading: HeadingLevel.TITLE,
+                            alignment: AlignmentType.CENTER
+                        }),
+
+                        new Paragraph({
+                            text: studentName,
+                            heading: HeadingLevel.HEADING_1,
+                            alignment: AlignmentType.CENTER
+                        }),
+
+                        // Основная информация
+                        new Paragraph({
+                            text: `Тест: ${appData.test?.subject || "Не указан"}`,
+                            alignment: AlignmentType.CENTER
+                        }),
+
+                        new Paragraph({
+                            text: `Дата: ${studentData.comparison?.testDate || new Date().toLocaleDateString()}`,
+                            alignment: AlignmentType.CENTER
+                        }),
+
+                        // Сводная таблица
+                        new Table({
+                            rows: [
+                                new TableRow({
+                                    children: [
+                                        new TableCell({
+                                            children: [new Paragraph("Общий результат")]
+                                        }),
+                                        new TableCell({
+                                            children: [new Paragraph(`${studentData.overallPercentage}%`)]
+                                        })
+                                    ]
+                                }),
+                                new TableRow({
+                                    children: [
+                                        new TableCell({
+                                            children: [new Paragraph("Место в классе")]
+                                        }),
+                                        new TableCell({
+                                            children: [new Paragraph(`${studentData.comparison.rank} из ${appData.students?.length || 0}`)]
+                                        })
+                                    ]
+                                }),
+                                new TableRow({
+                                    children: [
+                                        new TableCell({
+                                            children: [new Paragraph("Процентиль")]
+                                        }),
+                                        new TableCell({
+                                            children: [new Paragraph(`${studentData.comparison.percentile}%`)]
+                                        })
+                                    ]
+                                }),
+                                new TableRow({
+                                    children: [
+                                        new TableCell({
+                                            children: [new Paragraph("Средний балл класса")]
+                                        }),
+                                        new TableCell({
+                                            children: [new Paragraph(`${studentData.comparison.classAverage}%`)]
+                                        })
+                                    ]
+                                })
+                            ]
+                        }),
+
+                        // Результаты по заданиям
+                        new Paragraph({
+                            text: "РЕЗУЛЬТАТЫ ПО ЗАДАНИЯМ",
+                            heading: HeadingLevel.HEADING_1,
+                            spacing: {
+                                before: 400
+                            }
+                        }),
+
+                        ...this.createStudentTasksTable(studentData.taskResults),
+
+                        // Анализ компетенций
+                        new Paragraph({
+                            text: "АНАЛИЗ КОМПЕТЕНЦИЙ",
+                            heading: HeadingLevel.HEADING_1,
+                            spacing: {
+                                before: 400
+                            }
+                        }),
+
+                        ...this.createStudentCompetencesTable(studentData.competences),
+
+                        // Сильные и слабые стороны
+                        new Paragraph({
+                            text: "СИЛЬНЫЕ И СЛАБЫЕ СТОРОНЫ",
+                            heading: HeadingLevel.HEADING_1,
+                            spacing: {
+                                before: 400
+                            }
+                        }),
+
+                        ...this.createStrengthsWeaknessesAnalysis(studentData),
+
+                        // Рекомендации
+                        new Paragraph({
+                            text: "РЕКОМЕНДАЦИИ",
+                            heading: HeadingLevel.HEADING_1,
+                            spacing: {
+                                before: 400
+                            }
+                        }),
+
+                        ...this.createStudentRecommendations(studentData),
+
+                        // Подпись
+                        new Paragraph({
+                            text: "________________________________________________________________________",
+                            alignment: AlignmentType.CENTER,
+                            spacing: {
+                                before: 400
+                            }
+                        }),
+
+                        new Paragraph({
+                            text: "Дата формирования отчета: " + new Date().toLocaleDateString(),
+                            alignment: AlignmentType.RIGHT
+                        })
+                    ]
+                }
+            ]
+        });
+
+        return Packer.toBlob(doc);
+    }
+
+    // Создание таблицы заданий студента
+    createStudentTasksTable(taskResults) {
+        const {
+            Table,
+            TableRow,
+            TableCell,
+            Paragraph
+        } = window.docx;
+
+        if (!taskResults || taskResults.length === 0) {
+            return [new Paragraph("Нет данных о результатах")];
+        }
+
+        const headerRow = new TableRow({
+            children: [
+                new TableCell({
+                    children: [new Paragraph("№")]
+                }),
+                new TableCell({
+                    children: [new Paragraph("Задание")]
+                }),
+                new TableCell({
+                    children: [new Paragraph("Балл")]
+                }),
+                new TableCell({
+                    children: [new Paragraph("Максимум")]
+                }),
+                new TableCell({
+                    children: [new Paragraph("Процент")]
+                }),
+                new TableCell({
+                    children: [new Paragraph("Уровень")]
+                })
+            ]
+        });
+
+        const rows = [headerRow];
+
+        taskResults.forEach(task => {
+            rows.push(
+                new TableRow({
+                    children: [
+                        new TableCell({
+                            children: [new Paragraph(task.taskNumber.toString())]
+                        }),
+                        new TableCell({
+                            children: [new Paragraph(task.taskTitle)]
+                        }),
+                        new TableCell({
+                            children: [new Paragraph(task.score)]
+                        }),
+                        new TableCell({
+                            children: [new Paragraph(task.maxScore)]
+                        }),
+                        new TableCell({
+                            children: [new Paragraph(task.percentage + "%")]
+                        }),
+                        new TableCell({
+                            children: [new Paragraph(task.level.toString())]
+                        })
+                    ]
+                }));
+        });
+
+        return [new Table({
+                rows: rows
+            })];
+    }
+
+    // Создание таблицы компетенций студента
+    createStudentCompetencesTable(competences) {
+        const {
+            Table,
+            TableRow,
+            TableCell,
+            Paragraph
+        } = window.docx;
+
+        const rows = [
+            new TableRow({
+                children: [
+                    new TableCell({
+                        children: [new Paragraph("Компетенция")]
+                    }),
+                    new TableCell({
+                        children: [new Paragraph("Количество заданий")]
+                    }),
+                    new TableCell({
+                        children: [new Paragraph("Средний результат")]
+                    }),
+                    new TableCell({
+                        children: [new Paragraph("Оценка")]
+                    })
+                ]
+            })
+        ];
+
+        Object.entries(competences).forEach(([name, data]) => {
+            rows.push(
+                new TableRow({
+                    children: [
+                        new TableCell({
+                            children: [new Paragraph(name)]
+                        }),
+                        new TableCell({
+                            children: [new Paragraph(data.count.toString())]
+                        }),
+                        new TableCell({
+                            children: [new Paragraph(data.average.toFixed(1) + "%")]
+                        }),
+                        new TableCell({
+                            children: [new Paragraph(this.getCompetenceRating(data.average))]
+                        })
+                    ]
+                }));
+        });
+
+        return [new Table({
+                rows: rows
+            }), new Paragraph("")];
+    }
+
+    // Оценка компетенции
+    getCompetenceRating(average) {
+        if (average >= 85)
+            return "Отлично";
+        if (average >= 70)
+            return "Хорошо";
+        if (average >= 50)
+            return "Удовлетворительно";
+        return "Неудовлетворительно";
+    }
+
+    // Анализ сильных и слабых сторон
+    createStrengthsWeaknessesAnalysis(studentData) {
+        const {
+            Paragraph,
+            TextRun
+        } = window.docx;
+
+        const paragraphs = [];
+
+        // Сильные стороны
+        if (studentData.strengths && studentData.strengths.length > 0) {
+            paragraphs.push(
+                new Paragraph({
+                    children: [
+                        new TextRun({
+                            text: "Сильные стороны: ",
+                            bold: true
+                        })
+                    ]
+                }));
+
+            studentData.strengths.forEach(strength => {
+                paragraphs.push(
+                    new Paragraph({
+                        text: `• Уровень ${strength.level} (${strength.competence}): ${strength.count} заданий со средним результатом ${strength.averageScore}%`,
+                        indent: {
+                            left: 400
+                        }
+                    }));
+            });
+        }
+
+        // Слабые стороны
+        if (studentData.weaknesses && studentData.weaknesses.length > 0) {
+            paragraphs.push(
+                new Paragraph({
+                    children: [
+                        new TextRun({
+                            text: "Слабые стороны: ",
+                            bold: true
+                        })
+                    ],
+                    spacing: {
+                        before: 200
+                    }
+                }));
+
+            studentData.weaknesses.forEach(weakness => {
+                paragraphs.push(
+                    new Paragraph({
+                        text: `• Уровень ${weakness.level} (${weakness.competence}): ${weakness.count} заданий со средним результатом ${weakness.averageScore}%`,
+                        indent: {
+                            left: 400
+                        }
+                    }));
+
+                if (weakness.tasks && weakness.tasks.length > 0) {
+                    paragraphs.push(
+                        new Paragraph({
+                            text: `  Проблемные задания: ${weakness.tasks.join(', ')}`,
+                            indent: {
+                                left: 800
+                            }
+                        }));
+                }
+            });
+        }
+
+        return paragraphs;
+    }
+
+    // Рекомендации для студента
+    createStudentRecommendations(studentData) {
+        const {
+            Paragraph,
+            TextRun
+        } = window.docx;
+
+        const recommendations = [];
+        const overall = parseFloat(studentData.overallPercentage);
+
+        // Общие рекомендации
+        if (overall < 50) {
+            recommendations.push("Требуется повторение основного материала");
+            recommendations.push("Необходима индивидуальная консультация с преподавателем");
+            recommendations.push("Выполнение дополнительных заданий базового уровня");
+        } else if (overall < 70) {
+            recommendations.push("Рекомендуется дополнительная практика по сложным темам");
+            recommendations.push("Работа над устранением типичных ошибок");
+            recommendations.push("Развитие навыков самопроверки");
+        } else if (overall < 85) {
+            recommendations.push("Продолжать в том же темпе, уделить внимание деталям");
+            recommendations.push("Развивать навыки решения нестандартных задач");
+            recommendations.push("Участие в олимпиадных заданиях");
+        } else {
+            recommendations.push("Отличный результат! Можно переходить к более сложным темам");
+            recommendations.push("Рекомендуется участие в олимпиадах и конкурсах");
+            recommendations.push("Возможность выполнения исследовательских проектов");
+        }
+
+        // Рекомендации по компетенциям
+        Object.entries(studentData.competences).forEach(([name, data]) => {
+            if (data.average < 60) {
+                recommendations.push(`Уделить особое внимание развитию компетенции "${name}"`);
+            } else if (data.average >= 85) {
+                recommendations.push(`Компетенция "${name}" развита отлично, можно углублять знания`);
+            }
+        });
+
+        // Рекомендации по ошибкам
+        if (studentData.errors && studentData.errors.length > 0) {
+            const errorTypes = [...new Set(studentData.errors.map(e => e.type))];
+            if (errorTypes.includes('calculation')) {
+                recommendations.push("Тренировать вычислительные навыки, проверку расчетов");
+            }
+            if (errorTypes.includes('conceptual')) {
+                recommendations.push("Повторить основные понятия и определения, создать глоссарий");
+            }
+            if (errorTypes.includes('attention')) {
+                recommendations.push("Развивать внимательность, читать условия заданий вслух");
+            }
+        }
+
+        // Форматирование
+        const paragraphs = [];
+        recommendations.forEach((rec, index) => {
+            paragraphs.push(
+                new Paragraph({
+                    children: [
+                        new TextRun({
+                            text: `${index + 1}. `,
+                            bold: true
+                        }),
+                        new TextRun(rec)
+                    ],
+                    spacing: {
+                        after: 50
+                    }
+                }));
+        });
+
+        return paragraphs;
+    }
+
+    // Генерация Excel отчета для студента
+    generateStudentExcelReport(studentName, studentData) {
+        // Используем библиотеку ExcelJS
+        const ExcelJS = window.ExcelJS;
+        const workbook = new ExcelJS.Workbook();
+
+        // Основной лист
+        const worksheet = workbook.addWorksheet('Результаты');
+
+        // Заголовок
+        worksheet.mergeCells('A1:F1');
+        worksheet.getCell('A1').value = `ИНДИВИДУАЛЬНЫЙ ОТЧЕТ: ${studentName}`;
+        worksheet.getCell('A1').font = {
+            bold: true,
+            size: 16
+        };
+        worksheet.getCell('A1').alignment = {
+            horizontal: 'center'
+        };
+
+        // Основная информация
+        worksheet.getCell('A3').value = 'Общий результат:';
+        worksheet.getCell('B3').value = `${studentData.overallPercentage}%`;
+
+        worksheet.getCell('A4').value = 'Место в классе:';
+        worksheet.getCell('B4').value = `${studentData.comparison.rank} из ${appData.students?.length || 0}`;
+
+        worksheet.getCell('A5').value = 'Процентиль:';
+        worksheet.getCell('B5').value = `${studentData.comparison.percentile}%`;
+
+        worksheet.getCell('A6').value = 'Средний балл класса:';
+        worksheet.getCell('B6').value = `${studentData.comparison.classAverage}%`;
+
+        // Результаты по заданиям
+        worksheet.mergeCells('A8:F8');
+        worksheet.getCell('A8').value = 'РЕЗУЛЬТАТЫ ПО ЗАДАНИЯМ';
+        worksheet.getCell('A8').font = {
+            bold: true
+        };
+
+        // Заголовки таблицы
+        const headers = ['№', 'Задание', 'Балл', 'Максимум', 'Процент', 'Уровень'];
+        headers.forEach((header, index) => {
+            worksheet.getCell(10, index + 1).value = header;
+            worksheet.getCell(10, index + 1).font = {
+                bold: true
+            };
+            worksheet.getCell(10, index + 1).fill = {
+                type: 'pattern',
+                pattern: 'solid',
+                fgColor: {
+                    argb: 'FFE0E0E0'
+                }
+            };
+        });
+
+        // Данные
+        studentData.taskResults.forEach((task, index) => {
+            const row = 11 + index;
+            worksheet.getCell(row, 1).value = task.taskNumber;
+            worksheet.getCell(row, 2).value = task.taskTitle;
+            worksheet.getCell(row, 3).value = parseFloat(task.score);
+            worksheet.getCell(row, 4).value = parseFloat(task.maxScore);
+            worksheet.getCell(row, 5).value = {
+                formula: `C${row}/D${row}*100`,
+                result: parseFloat(task.percentage)
+            };
+            worksheet.getCell(row, 6).value = task.level;
+
+            // Форматирование процента
+            worksheet.getCell(row, 5).numFmt = '0.0"%";[Red]-0.0"%";';
+        });
+
+        // Лист с компетенциями
+        const competencesSheet = workbook.addWorksheet('Компетенции');
+
+        competencesSheet.getCell('A1').value = 'КОМПЕТЕНЦИИ';
+        competencesSheet.getCell('A1').font = {
+            bold: true,
+            size: 14
+        };
+
+        const compHeaders = ['Компетенция', 'Заданий', 'Средний результат', 'Оценка'];
+        compHeaders.forEach((header, index) => {
+            competencesSheet.getCell(3, index + 1).value = header;
+            competencesSheet.getCell(3, index + 1).font = {
+                bold: true
+            };
+        });
+
+        Object.entries(studentData.competences).forEach(([name, data], index) => {
+            const row = 4 + index;
+            competencesSheet.getCell(row, 1).value = name;
+            competencesSheet.getCell(row, 2).value = data.count;
+            competencesSheet.getCell(row, 3).value = data.average;
+            competencesSheet.getCell(row, 4).value = this.getCompetenceRating(data.average);
+
+            // Форматирование
+            competencesSheet.getCell(row, 3).numFmt = '0.0"%";[Red]-0.0"%";';
+        });
+
+        // Настройка ширины колонок
+        worksheet.columns = [{
+                width: 5
+            }, // №
+            {
+                width: 40
+            }, // Задание
+            {
+                width: 10
+            }, // Балл
+            {
+                width: 10
+            }, // Максимум
+            {
+                width: 10
+            }, // Процент
+            {
+                width: 8
+            } // Уровень
+        ];
+
+        competencesSheet.columns = [{
+                width: 20
+            }, // Компетенция
+            {
+                width: 10
+            }, // Заданий
+            {
+                width: 15
+            }, // Результат
+            {
+                width: 15
+            } // Оценка
+        ];
+
+        // Сохраняем как blob
+        return workbook.xlsx.writeBuffer();
+    }
+
+    // Экспорт всех графиков как изображений
+    exportAllChartsToImages(folder) {
+        return new Promise((resolve) => {
+            console.log('🖼️ Экспорт графиков...');
+
+            const chartsToExport = [];
+            const allCanvases = document.querySelectorAll('canvas');
+
+            // Собираем все canvas элементы
+            allCanvases.forEach((canvas, index) => {
+                if (canvas.width > 10 && canvas.height > 10) { // Проверяем, что canvas не пустой
+                    chartsToExport.push({
+                        canvas: canvas,
+                        id: canvas.id || `chart_${index}`,
+                        name: canvas.closest('.chart-container') ?
+                        canvas.closest('.chart-container').querySelector('h4')?.textContent ||
+                        canvas.closest('.viz-card')?.querySelector('h4')?.textContent ||
+                        `График ${index + 1}` : `График ${index + 1}`
+                    });
+                }
+            });
+
+            console.log(`Найдено ${chartsToExport.length} графиков для экспорта`);
+
+            if (chartsToExport.length === 0) {
+                resolve();
+                return;
+            }
+
+            let exportedCount = 0;
+            const totalCharts = Math.min(chartsToExport.length, 30); // Ограничиваем
+
+            chartsToExport.slice(0, totalCharts).forEach((chartData, index) => {
+                setTimeout(() => {
+                    try {
+                        const canvas = chartData.canvas;
+
+                        // Создаем временный canvas для лучшего качества
+                        const tempCanvas = document.createElement('canvas');
+                        const ctx = tempCanvas.getContext('2d');
+
+                        // Увеличиваем размер для лучшего качества
+                        const scale = 2;
+                        tempCanvas.width = canvas.width * scale;
+                        tempCanvas.height = canvas.height * scale;
+
+                        // Устанавливаем белый фон
+                        ctx.fillStyle = 'white';
+                        ctx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+
+                        // Копируем оригинальный график
+                        ctx.drawImage(canvas, 0, 0, tempCanvas.width, tempCanvas.height);
+
+                        // Конвертируем в base64
+                        const imageData = tempCanvas.toDataURL('image/png', 1.0);
+                        const base64Data = imageData.replace(/^data:image\/png;base64,/, '');
+
+                        // Сохраняем
+                        const fileName = this.sanitizeFileName(`${chartData.name}.png`);
+                        folder.file(`графики/${fileName}`, base64Data, {
+                            base64: true
+                        });
+
+                        exportedCount++;
+                        console.log(`✅ Экспортирован график: ${chartData.name} (${exportedCount}/${totalCharts})`);
+
+                        if (exportedCount === totalCharts) {
+                            console.log(`✅ Все графики экспортированы: ${exportedCount} из ${totalCharts}`);
+                            resolve();
+                        }
+
+                    } catch (error) {
+                        console.warn(`❌ Ошибка экспорта графика ${chartData.name}:`, error);
+                        exportedCount++;
+
+                        if (exportedCount === totalCharts) {
+                            resolve();
+                        }
+                    }
+                }, index * 100); // Задержка для предотвращения блокировки
+            });
+
+            // Таймаут на случай проблем
+            setTimeout(() => {
+                console.log(`⏱️ Таймаут экспорта графиков, экспортировано: ${exportedCount}`);
+                resolve();
+            }, 30000);
+        });
+    }
+
+    // Генерация сводного Excel отчета
+    generateSummaryExcelReport(allData) {
+        const ExcelJS = window.ExcelJS;
+        const workbook = new ExcelJS.Workbook();
+
+        // Лист 1: Общая статистика
+        const summarySheet = workbook.addWorksheet('Общая статистика');
+
+        // Заголовок
+        summarySheet.mergeCells('A1:D1');
+        summarySheet.getCell('A1').value = 'СВОДНАЯ СТАТИСТИКА ТЕСТИРОВАНИЯ';
+        summarySheet.getCell('A1').font = {
+            bold: true,
+            size: 16
+        };
+
+        // Основные показатели
+        const indicators = [
+            ['Тест', allData.meta.testName || 'Не указан'],
+            ['Тема', allData.meta.theme || 'Не указана'],
+            ['Дата', allData.meta.date || 'Не указана'],
+            ['Класс', allData.meta.class || 'Не указан'],
+            ['Учащихся', allData.meta.studentCount],
+            ['Заданий', allData.meta.taskCount],
+            ['Средний балл', `${this.calculateOverallAverage(allData.studentStats).toFixed(1)}%`],
+            ['Медиана', `${allData.distribution.median.toFixed(1)}%`],
+            ['Стандартное отклонение', `${allData.distribution.stdDev.toFixed(1)}%`]
+        ];
+
+        indicators.forEach(([label, value], index) => {
+            summarySheet.getCell(`A${index + 3}`).value = label;
+            summarySheet.getCell(`A${index + 3}`).font = {
+                bold: true
+            };
+            summarySheet.getCell(`B${index + 3}`).value = value;
+        });
+
+        // Лист 2: Результаты учащихся
+        const studentsSheet = workbook.addWorksheet('Результаты учащихся');
+
+        // Заголовки
+        const studentHeaders = ['№', 'ФИО', 'Средний балл', 'Максимум', 'Минимум', 'Место', 'Процентиль', 'Группа'];
+        studentHeaders.forEach((header, index) => {
+            studentsSheet.getCell(1, index + 1).value = header;
+            studentsSheet.getCell(1, index + 1).font = {
+                bold: true
+            };
+        });
+
+        // Данные
+        const sortedStudents = [...allData.studentStats].sort((a, b) => b.averageScore - a.averageScore);
+        sortedStudents.forEach((student, index) => {
+            const row = index + 2;
+            studentsSheet.getCell(row, 1).value = index + 1;
+            studentsSheet.getCell(row, 2).value = student.name;
+            studentsSheet.getCell(row, 3).value = student.averageScore;
+            studentsSheet.getCell(row, 4).value = student.maxScore;
+            studentsSheet.getCell(row, 5).value = student.minScore;
+            studentsSheet.getCell(row, 6).value = index + 1;
+            studentsSheet.getCell(row, 7).value = ((index + 1) / sortedStudents.length * 100).toFixed(1);
+            studentsSheet.getCell(row, 8).value = this.getStudentGroup(student.averageScore);
+
+            // Форматирование
+            studentsSheet.getCell(row, 3).numFmt = '0.0"%";[Red]-0.0"%";';
+            studentsSheet.getCell(row, 4).numFmt = '0.0"%";[Red]-0.0"%";';
+            studentsSheet.getCell(row, 5).numFmt = '0.0"%";[Red]-0.0"%";';
+            studentsSheet.getCell(row, 7).numFmt = '0.0"%";[Red]-0.0"%";';
+        });
+
+        // Лист 3: Анализ заданий
+        const tasksSheet = workbook.addWorksheet('Анализ заданий');
+
+        const taskHeaders = ['№', 'Задание', 'Тип', 'Уровень', 'Сложность', 'Дискриминативность',
+            'Средний балл', 'Выполняемость', 'Статус'];
+        taskHeaders.forEach((header, index) => {
+            tasksSheet.getCell(1, index + 1).value = header;
+            tasksSheet.getCell(1, index + 1).font = {
+                bold: true
+            };
+        });
+
+        allData.taskStats.forEach((task, index) => {
+            const row = index + 2;
+            tasksSheet.getCell(row, 1).value = task.number;
+            tasksSheet.getCell(row, 2).value = task.title;
+            tasksSheet.getCell(row, 3).value = task.type;
+            tasksSheet.getCell(row, 4).value = task.level || 1;
+            tasksSheet.getCell(row, 5).value = task.difficulty;
+            tasksSheet.getCell(row, 6).value = task.discrimination;
+            tasksSheet.getCell(row, 7).value = task.averageScore;
+            tasksSheet.getCell(row, 8).value = task.completionRate;
+            tasksSheet.getCell(row, 9).value = this.getTaskStatusText(task);
+
+            // Форматирование
+            tasksSheet.getCell(row, 5).numFmt = '0.0%';
+            tasksSheet.getCell(row, 6).numFmt = '0.0%';
+            tasksSheet.getCell(row, 8).numFmt = '0.0"%";[Red]-0.0"%";';
+
+            // Цветовая индикация для сложных заданий
+            if (task.difficulty > 0.7) {
+                tasksSheet.getCell(row, 5).fill = {
+                    type: 'pattern',
+                    pattern: 'solid',
+                    fgColor: {
+                        argb: 'FFFF9999'
+                    }
+                };
+            }
+        });
+
+        // Лист 4: Группы учащихся
+        const groupsSheet = workbook.addWorksheet('Группы учащихся');
+
+        groupsSheet.getCell('A1').value = 'РАСПРЕДЕЛЕНИЕ УЧАЩИХСЯ ПО ГРУППАМ';
+        groupsSheet.getCell('A1').font = {
+            bold: true,
+            size: 14
+        };
+
+        const groupHeaders = ['Группа', 'Количество', 'Процент', 'Средний балл', 'Минимум', 'Максимум'];
+        groupHeaders.forEach((header, index) => {
+            groupsSheet.getCell(3, index + 1).value = header;
+            groupsSheet.getCell(3, index + 1).font = {
+                bold: true
+            };
+        });
+
+        const studentGroups = this.createStudentGroups(allData.studentStats);
+        studentGroups.forEach((group, index) => {
+            const row = 4 + index;
+            groupsSheet.getCell(row, 1).value = group.name;
+            groupsSheet.getCell(row, 2).value = group.count;
+            groupsSheet.getCell(row, 3).value = parseFloat(group.percentage);
+            groupsSheet.getCell(row, 4).value = this.calculateGroupAverageScore(allData.studentStats, group).replace('%', '');
+            groupsSheet.getCell(row, 5).value = this.getGroupMinScore(allData.studentStats, group);
+            groupsSheet.getCell(row, 6).value = this.getGroupMaxScore(allData.studentStats, group);
+
+            // Форматирование
+            groupsSheet.getCell(row, 3).numFmt = '0.0"%";[Red]-0.0"%";';
+            groupsSheet.getCell(row, 4).numFmt = '0.0"%";[Red]-0.0"%";';
+            groupsSheet.getCell(row, 5).numFmt = '0.0"%";[Red]-0.0"%";';
+            groupsSheet.getCell(row, 6).numFmt = '0.0"%";[Red]-0.0"%";';
+        });
+
+        // Настройка ширины колонок
+        summarySheet.columns = [{
+                width: 25
+            }, {
+                width: 30
+            }
+        ];
+
+        studentsSheet.columns = [{
+                width: 5
+            }, {
+                width: 30
+            }, {
+                width: 12
+            }, {
+                width: 10
+            }, {
+                width: 10
+            }, {
+                width: 8
+            }, {
+                width: 10
+            }, {
+                width: 15
+            }
+        ];
+
+        tasksSheet.columns = [{
+                width: 5
+            }, {
+                width: 40
+            }, {
+                width: 15
+            }, {
+                width: 8
+            }, {
+                width: 12
+            }, {
+                width: 15
+            }, {
+                width: 12
+            }, {
+                width: 12
+            }, {
+                width: 15
+            }
+        ];
+
+        groupsSheet.columns = [{
+                width: 20
+            }, {
+                width: 12
+            }, {
+                width: 10
+            }, {
+                width: 12
+            }, {
+                width: 10
+            }, {
+                width: 10
+            }
+        ];
+
+        return workbook.xlsx.writeBuffer();
+    }
+
+    // Вспомогательные методы для Excel
+    getStudentGroup(score) {
+        if (score >= 85)
+            return 'Отличники';
+        if (score >= 70)
+            return 'Хорошисты';
+        if (score >= 50)
+            return 'Средние';
+        return 'Требуют внимания';
+    }
+
+    getGroupMinScore(studentStats, group) {
+        const groupStudents = studentStats.filter(s =>
+                s.averageScore >= group.min && s.averageScore < (group.name.includes('Отлично') ? 101 : group.max));
+        if (groupStudents.length === 0)
+            return 0;
+        return Math.min(...groupStudents.map(s => s.averageScore));
+    }
+
+    getGroupMaxScore(studentStats, group) {
+        const groupStudents = studentStats.filter(s =>
+                s.averageScore >= group.min && s.averageScore < (group.name.includes('Отлично') ? 101 : group.max));
+        if (groupStudents.length === 0)
+            return 0;
+        return Math.max(...groupStudents.map(s => s.averageScore));
+    }
+
+    // Санитизация имени файла
+    sanitizeFileName(fileName) {
+        return fileName
+        .replace(/[<>:"/\\|?*]/g, '_') // Заменяем запрещенные символы
+        .replace(/\s+/g, '_') // Заменяем пробелы на подчеркивания
+        .replace(/_{2,}/g, '_') // Убираем двойные подчеркивания
+        .trim();
+    }
+
+    // Инициализация библиотек для экспорта
+    initializeExportLibraries() {
+        return new Promise((resolve, reject) => {
+            console.log('🔄 Инициализация библиотек для экспорта...');
+
+            // Проверяем, какие библиотеки уже загружены
+            const loadedLibraries = {
+                jszip: typeof JSZip !== 'undefined',
+                docx: typeof window.docx !== 'undefined',
+                exceljs: typeof window.ExcelJS !== 'undefined',
+                filesaver: typeof window.saveAs !== 'undefined'
+            };
+
+            console.log('Загруженные библиотеки:', loadedLibraries);
+
+            const librariesToLoad = [];
+
+            // JSZip
+            if (!loadedLibraries.jszip) {
+                librariesToLoad.push(
+                    this.loadScriptWithFallback(
+                        'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js',
+                        'JSZip'));
+            }
+
+            // docx
+            if (!loadedLibraries.docx) {
+                librariesToLoad.push(
+                    this.loadScriptWithFallback(
+                        'https://cdnjs.cloudflare.com/ajax/libs/docx/7.7.0/docx.min.js',
+                        'docx'));
+            }
+
+            // ExcelJS
+            if (!loadedLibraries.exceljs) {
+                librariesToLoad.push(
+                    this.loadScriptWithFallback(
+                        'https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js',
+                        'ExcelJS'));
+            }
+
+            // FileSaver
+            if (!loadedLibraries.filesaver) {
+                librariesToLoad.push(
+                    this.loadScriptWithFallback(
+                        'https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js',
+                        'FileSaver'));
+            }
+
+            if (librariesToLoad.length === 0) {
+                console.log('✅ Все библиотеки уже загружены');
+                resolve();
+                return;
+            }
+
+            let loadedCount = 0;
+            const totalToLoad = librariesToLoad.length;
+
+            // Создаем обработчики для каждой библиотеки
+            librariesToLoad.forEach(promise => {
+                promise
+                .then(() => {
+                    loadedCount++;
+                    console.log(`✅ Загружена библиотека (${loadedCount}/${totalToLoad})`);
+
+                    if (loadedCount === totalToLoad) {
+                        console.log('✅ Все библиотеки успешно загружены');
+                        resolve();
+                    }
+                })
+                .catch(error => {
+                    console.warn(`⚠️ Не удалось загрузить библиотеку:`, error);
+                    loadedCount++;
+
+                    if (loadedCount === totalToLoad) {
+                        console.warn('⚠️ Некоторые библиотеки не загрузились, продолжаем с доступными');
+                        resolve(); // Разрешаем промис даже с ошибками
+                    }
+                });
+            });
+
+            // Таймаут на случай проблем с загрузкой
+            setTimeout(() => {
+                console.warn('⚠️ Таймаут загрузки библиотек');
+                resolve(); // Все равно продолжаем
+            }, 10000);
+        });
+    }
+
+    // Загрузка скрипта
+    loadScript(src) {
+        return new Promise((resolve, reject) => {
+            const script = document.createElement('script');
+            script.src = src;
+            script.onload = () => resolve();
+            script.onerror = () => reject(new Error(`Не удалось загрузить скрипт: ${src}`));
+            document.head.appendChild(script);
+        });
+    }
+
+    loadScriptWithFallback(src, libraryName) {
+        return new Promise((resolve, reject) => {
+            console.log(`📦 Загрузка библиотеки ${libraryName}...`);
+
+            // Проверяем, не загружается ли уже эта библиотека
+            if (document.querySelector(`script[src="${src}"]`)) {
+                console.log(`📦 Библиотека ${libraryName} уже загружается`);
+                // Ждем, пока загрузится
+                const checkInterval = setInterval(() => {
+                    if ((libraryName === 'docx' && window.docx) ||
+                        (libraryName === 'JSZip' && JSZip) ||
+                        (libraryName === 'ExcelJS' && window.ExcelJS) ||
+                        (libraryName === 'FileSaver' && window.saveAs)) {
+                        clearInterval(checkInterval);
+                        console.log(`✅ Библиотека ${libraryName} загрузилась`);
+                        resolve();
+                    }
+                }, 500);
+
+                setTimeout(() => {
+                    clearInterval(checkInterval);
+                    console.warn(`⚠️ Таймаут проверки библиотеки ${libraryName}`);
+                    resolve(); // Все равно разрешаем
+                }, 5000);
+
+                return;
+            }
+
+            const script = document.createElement('script');
+            script.src = src;
+            script.async = true;
+
+            script.onload = () => {
+                console.log(`✅ Библиотека ${libraryName} загружена`);
+
+                // Даем время на инициализацию
+                setTimeout(() => {
+                    // Проверяем, что библиотека действительно доступна
+                    const isLoaded = (libraryName === 'docx' && window.docx) ||
+                    (libraryName === 'JSZip' && JSZip) ||
+                    (libraryName === 'ExcelJS' && window.ExcelJS) ||
+                    (libraryName === 'FileSaver' && window.saveAs);
+
+                    if (isLoaded) {
+                        resolve();
+                    } else {
+                        console.warn(`⚠️ Библиотека ${libraryName} загрузилась, но не инициализирована`);
+                        // Пробуем fallback
+                        this.tryLibraryFallback(libraryName).then(resolve).catch(reject);
+                    }
+                }, 1000);
+            };
+
+            script.onerror = (error) => {
+                console.error(`❌ Ошибка загрузки библиотеки ${libraryName}:`, error);
+                // Пробуем альтернативный источник
+                this.loadScriptFallback(libraryName).then(resolve).catch(reject);
+            };
+
+            document.head.appendChild(script);
+        });
+    }
+
+    // Альтернативные источники для библиотек
+    loadScriptFallback(libraryName) {
+        return new Promise((resolve, reject) => {
+            console.log(`🔄 Пробуем альтернативный источник для ${libraryName}...`);
+
+            let fallbackSrc;
+            switch (libraryName) {
+            case 'JSZip':
+                fallbackSrc = 'https://unpkg.com/jszip@3.10.1/dist/jszip.min.js';
+                break;
+            case 'docx':
+                fallbackSrc = 'https://unpkg.com/docx@7.7.0/build/index.js';
+                break;
+            case 'ExcelJS':
+                fallbackSrc = 'https://unpkg.com/exceljs@4.4.0/dist/exceljs.min.js';
+                break;
+            case 'FileSaver':
+                fallbackSrc = 'https://unpkg.com/file-saver@2.0.5/dist/FileSaver.min.js';
+                break;
+            default:
+                reject(new Error(`Нет fallback для ${libraryName}`));
+                return;
+            }
+
+            const script = document.createElement('script');
+            script.src = fallbackSrc;
+            script.async = true;
+
+            script.onload = () => {
+                console.log(`✅ Библиотека ${libraryName} загружена из fallback`);
+                setTimeout(() => resolve(), 500);
+            };
+
+            script.onerror = () => {
+                console.error(`❌ Ошибка загрузки fallback для ${libraryName}`);
+                reject(new Error(`Не удалось загрузить ${libraryName}`));
+            };
+
+            document.head.appendChild(script);
+        });
+    }
+
+    // Попытка локальной инициализации библиотеки
+    tryLibraryFallback(libraryName) {
+        return new Promise((resolve) => {
+            console.log(`🔄 Пробуем локальную инициализацию ${libraryName}...`);
+
+            switch (libraryName) {
+            case 'docx':
+                // Пробуем создать минимальную реализацию docx
+                if (!window.docx) {
+                    window.docx = {
+                        Document: class {
+                            constructor(options) {
+                                this.sections = options.sections || [];
+                            }
+                        },
+                        Paragraph: class {
+                            constructor(options) {
+                                this.text = options.text || '';
+                                this.heading = options.heading;
+                                this.alignment = options.alignment;
+                            }
+                        },
+                        TextRun: class {
+                            constructor(options) {
+                                this.text = options.text || '';
+                                this.bold = options.bold;
+                            }
+                        },
+                        Table: class {
+                            constructor(options) {
+                                this.rows = options.rows || [];
+                            }
+                        },
+                        TableRow: class {
+                            constructor(options) {
+                                this.children = options.children || [];
+                            }
+                        },
+                        TableCell: class {
+                            constructor(options) {
+                                this.children = options.children || [];
+                            }
+                        },
+                        Packer: {
+                            toBlob: async function (doc) {
+                                console.warn('⚠️ Используется упрощенная версия docx');
+                                // Создаем простой текстовый документ
+                                let content = '';
+                                if (doc.sections && doc.sections[0] && doc.sections[0].children) {
+                                    doc.sections[0].children.forEach(child => {
+                                        if (child.text) {
+                                            content += child.text + '\n';
+                                        }
+                                    });
+                                }
+                                return new Blob([content], {
+                                    type: 'text/plain'
+                                });
+                            }
+                        }
+                    };
+                    console.log('✅ Создана упрощенная версия docx');
+                }
+                break;
+
+            case 'JSZip':
+                if (!window.JSZip) {
+                    console.warn('⚠️ JSZip недоступен, используем альтернативу');
+                    // Простая реализация архивации
+                    window.JSZip = class {
+                        constructor() {
+                            this.files = {};
+                        }
+
+                        file(name, content, options) {
+                            this.files[name] = {
+                                content,
+                                options
+                            };
+                        }
+
+                        folder(name) {
+                            return this; // Упрощенная реализация
+                        }
+
+                        generateAsync(options) {
+                            return Promise.resolve(new Blob([JSON.stringify(this.files)], {
+                                    type: 'application/zip'
+                                }));
+                        }
+                    };
+                }
+                break;
+            }
+
+            setTimeout(() => resolve(), 100);
+        });
+    }
+
+    // Обновленный метод exportAnalysisReport для поддержки Word
+    exportAnalysisReport() {
+        showNotification('🔄 Подготовка отчета...', 'info');
+
+        // Инициализируем библиотеки
+        this.initializeExportLibraries().then(() => {
+            // Предлагаем выбор формата
+            this.showExportOptionsModal();
+        }).catch(error => {
+            showNotification('Используется упрощенный экспорт', 'warning');
+            // Fallback: старый метод экспорта
+            this.exportAnalysisReportFallback();
+        });
+    }
+
+    // Модальное окно выбора формата экспорта
+    showExportOptionsModal() {
+        const modalHTML = `
 			<div class="export-modal-overlay" onclick="this.remove()">
 				<div class="export-modal-content" onclick="event.stopPropagation()">
 					<div class="export-modal-header">
@@ -12790,19 +13501,20 @@ downloadBlob(blob, filename) {
 				</div>
 			</div>
 		`;
-		
-		document.body.insertAdjacentHTML('beforeend', modalHTML);
-		this.addExportModalStyles();
-	}
 
-	// Добавление стилей для модального окна экспорта
-	addExportModalStyles() {
-		const styleId = 'export-modal-styles';
-		if (document.getElementById(styleId)) return;
-		
-		const style = document.createElement('style');
-		style.id = styleId;
-		style.textContent = `
+        document.body.insertAdjacentHTML('beforeend', modalHTML);
+        this.addExportModalStyles();
+    }
+
+    // Добавление стилей для модального окна экспорта
+    addExportModalStyles() {
+        const styleId = 'export-modal-styles';
+        if (document.getElementById(styleId))
+            return;
+
+        const style = document.createElement('style');
+        style.id = styleId;
+        style.textContent = `
 			.export-modal-overlay {
 				position: fixed;
 				top: 0;
@@ -12906,138 +13618,150 @@ downloadBlob(blob, filename) {
 				text-align: right;
 			}
 		`;
-		
-		document.head.appendChild(style);
-	}
 
-	// Альтернативные методы экспорта
-	exportToWord() {
-		showNotification('📝 Подготовка Word документа...', 'info');
-		
-		this.initializeExportLibraries().then(() => {
-			const allData = this.collectDetailedData();
-			const comprehensiveAnalysis = this.performComprehensiveAnalysis();
-			
-			const reportBlob = this.generateMainWordReport(allData, comprehensiveAnalysis);
-			
-			if (reportBlob) {
-				this.downloadBlob(reportBlob, `анализ_результатов_${new Date().toISOString().split('T')[0]}.docx`);
-				showNotification('✅ Word документ экспортирован', 'success');
-			} else {
-				showNotification('Не удалось создать Word документ', 'error');
-				this.exportAnalysisReportFallback();
-			}
-		}).catch(() => {
-			this.exportAnalysisReportFallback();
-		});
-	}
+        document.head.appendChild(style);
+    }
 
-	exportToExcel() {
-		showNotification('📊 Подготовка Excel файла...', 'info');
-		
-		const allData = this.collectDetailedData();
-		
-		this.generateSummaryExcelReport(allData).then(buffer => {
-			const blob = new Blob([buffer], { 
-				type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
-			});
-			const url = URL.createObjectURL(blob);
-			const a = document.createElement('a');
-			a.href = url;
-			a.download = `сводные_таблицы_${new Date().toISOString().split('T')[0]}.xlsx`;
-			document.body.appendChild(a);
-			a.click();
-			document.body.removeChild(a);
-			URL.revokeObjectURL(url);
-			
-			showNotification('✅ Excel файл экспортирован', 'success');
-		});
-	}
+    // Альтернативные методы экспорта
+    exportToWord() {
+        showNotification('📝 Подготовка Word документа...', 'info');
 
-	exportToPDF() {
-		showNotification('📄 Подготовка PDF документа...', 'info');
-		
-		// Используем html2pdf для создания PDF
-		const element = document.getElementById('advancedAnalyticsSection');
-		if (!element) {
-			showNotification('Не найден раздел аналитики', 'error');
-			return;
-		}
-		
-		const opt = {
-			margin: 10,
-			filename: `анализ_результатов_${new Date().toISOString().split('T')[0]}.pdf`,
-			image: { type: 'jpeg', quality: 0.98 },
-			html2canvas: { scale: 2 },
-			jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-		};
-		
-		// Показываем все скрытые элементы перед экспортом
-		const hiddenElements = element.querySelectorAll('[style*="display: none"]');
-		hiddenElements.forEach(el => {
-			el.dataset.originalDisplay = el.style.display;
-			el.style.display = 'block';
-		});
-		
-		// Экспорт
-		html2pdf().set(opt).from(element).save().then(() => {
-			// Восстанавливаем исходное состояние
-			hiddenElements.forEach(el => {
-				if (el.dataset.originalDisplay !== undefined) {
-					el.style.display = el.dataset.originalDisplay;
-				}
-			});
-			
-			showNotification('✅ PDF документ экспортирован', 'success');
-		});
-	}
+        this.initializeExportLibraries().then(() => {
+            const allData = this.collectDetailedData();
+            const comprehensiveAnalysis = this.performComprehensiveAnalysis();
 
-	// Старый метод для обратной совместимости
-	exportAnalysisReportFallback() {
-		const report = this.generateReport();
-		
-		const blob = new Blob([report], { type: 'text/html' });
-		const url = URL.createObjectURL(blob);
-		const a = document.createElement('a');
-		a.href = url;
-		a.download = `аналитический_отчет_${new Date().toISOString().split('T')[0]}.html`;
-		document.body.appendChild(a);
-		a.click();
-		document.body.removeChild(a);
-		URL.revokeObjectURL(url);
-		
-		showNotification('📄 Отчет экспортирован в HTML', 'success');
-	}
+            const reportBlob = this.generateMainWordReport(allData, comprehensiveAnalysis);
 
-	// Метод для отладки
-	debugCharts() {
-		console.log('=== ДЕБАГ ГРАФИКОВ ===');
-		const charts = Chart.instances || [];
-		console.log(`Обнаружено ${charts.length} графиков:`);
-		
-		charts.forEach((chart, index) => {
-			console.log(`${index + 1}. ID: ${chart.canvas.id}, Type: ${chart.config.type}`);
-		});
-		
-		// Проверяем наличие всех необходимых canvas
-		const requiredCanvases = [
-			'competenceRadar',
-			'boxPlotChart', 
-			'valueAddedChart',
-			'correlationChart'
-		];
-		
-		requiredCanvases.forEach(id => {
-			const canvas = document.getElementById(id);
-			if (!canvas) {
-				console.warn(`❌ Canvas не найден: ${id}`);
-			} else {
-				console.log(`✅ Canvas найден: ${id}`);
-			}
-		});
-	}	
+            if (reportBlob) {
+                this.downloadBlob(reportBlob, `анализ_результатов_${new Date().toISOString().split('T')[0]}.docx`);
+                showNotification('✅ Word документ экспортирован', 'success');
+            } else {
+                showNotification('Не удалось создать Word документ', 'error');
+                this.exportAnalysisReportFallback();
+            }
+        }).catch(() => {
+            this.exportAnalysisReportFallback();
+        });
+    }
+
+    exportToExcel() {
+        showNotification('📊 Подготовка Excel файла...', 'info');
+
+        const allData = this.collectDetailedData();
+
+        this.generateSummaryExcelReport(allData).then(buffer => {
+            const blob = new Blob([buffer], {
+                type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `сводные_таблицы_${new Date().toISOString().split('T')[0]}.xlsx`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+
+            showNotification('✅ Excel файл экспортирован', 'success');
+        });
+    }
+
+    exportToPDF() {
+        showNotification('📄 Подготовка PDF документа...', 'info');
+
+        // Используем html2pdf для создания PDF
+        const element = document.getElementById('advancedAnalyticsSection');
+        if (!element) {
+            showNotification('Не найден раздел аналитики', 'error');
+            return;
+        }
+
+        const opt = {
+            margin: 10,
+            filename: `анализ_результатов_${new Date().toISOString().split('T')[0]}.pdf`,
+            image: {
+                type: 'jpeg',
+                quality: 0.98
+            },
+            html2canvas: {
+                scale: 2
+            },
+            jsPDF: {
+                unit: 'mm',
+                format: 'a4',
+                orientation: 'portrait'
+            }
+        };
+
+        // Показываем все скрытые элементы перед экспортом
+        const hiddenElements = element.querySelectorAll('[style*="display: none"]');
+        hiddenElements.forEach(el => {
+            el.dataset.originalDisplay = el.style.display;
+            el.style.display = 'block';
+        });
+
+        // Экспорт
+        html2pdf().set(opt).from(element).save().then(() => {
+            // Восстанавливаем исходное состояние
+            hiddenElements.forEach(el => {
+                if (el.dataset.originalDisplay !== undefined) {
+                    el.style.display = el.dataset.originalDisplay;
+                }
+            });
+
+            showNotification('✅ PDF документ экспортирован', 'success');
+        });
+    }
+
+    // Старый метод для обратной совместимости
+    exportAnalysisReportFallback() {
+        const report = this.generateReport();
+
+        const blob = new Blob([report], {
+            type: 'text/html'
+        });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `аналитический_отчет_${new Date().toISOString().split('T')[0]}.html`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        showNotification('📄 Отчет экспортирован в HTML', 'success');
+    }
+
+    // Метод для отладки
+    debugCharts() {
+        console.log('=== ДЕБАГ ГРАФИКОВ ===');
+        const charts = Chart.instances || [];
+        console.log(`Обнаружено ${charts.length} графиков:`);
+
+        charts.forEach((chart, index) => {
+            console.log(`${index + 1}. ID: ${chart.canvas.id}, Type: ${chart.config.type}`);
+        });
+
+        // Проверяем наличие всех необходимых canvas
+        const requiredCanvases = [
+            'competenceRadar',
+            'boxPlotChart',
+            'valueAddedChart',
+            'correlationChart'
+        ];
+
+        requiredCanvases.forEach(id => {
+            const canvas = document.getElementById(id);
+            if (!canvas) {
+                console.warn(`❌ Canvas не найден: ${id}`);
+            } else {
+                console.log(`✅ Canvas найден: ${id}`);
+            }
+        });
+    }
 
 }
+
 
 // Экспортируем класс
 if (typeof module !== 'undefined' && module.exports) {
