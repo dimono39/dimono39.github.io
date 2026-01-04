@@ -7271,6 +7271,36 @@ class AdvancedAnalytics {
         showNotification(`Отчет студента "${studentName}" экспортирован`, 'success');
     }
 
+    // Общий метод экспорта отчета студента
+    exportStudentReports(format, student, index, allData) {
+        return new Promise((resolve, reject) => {
+            try {
+                if (format === 'word') {
+                    this.generateStudentWordReport(student, index, allData)
+                        .then(blob => resolve({ blob, filename: `${student.name}_отчет.docx` }))
+                        .catch(reject);
+                } else if (format === 'excel') {
+                    this.generateStudentExcelReport(student, index, allData)
+                        .then(buffer => resolve({ 
+                            blob: new Blob([buffer], { 
+                                type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+                            }), 
+                            filename: `${student.name}_отчет.xlsx` 
+                        }))
+                        .catch(reject);
+                } else if (format === 'text') {
+                    const report = this.generateIndividualStudentReport(student, index, allData);
+                    const blob = new Blob([report], { type: 'text/plain;charset=utf-8' });
+                    resolve({ blob, filename: `${student.name}_отчет.txt` });
+                } else {
+                    reject(new Error('Неподдерживаемый формат'));
+                }
+            } catch (error) {
+                reject(error);
+            }
+        });
+    }
+
     // Сбор данных студента для экспорта
     collectStudentDataForExportsa(studentIndex) {
         const studentName = appData.students[studentIndex];
@@ -10420,7 +10450,7 @@ class AdvancedAnalytics {
                 ],
             }),
 
-            new Paragraph(this.interpretDistribution(allData.distribution)),
+            new Paragraph(this.textToParagraphs(this.interpretDistribution(allData.distribution))),
 
             new Paragraph({
                 text: "\n"
@@ -12403,53 +12433,44 @@ class AdvancedAnalytics {
     }
 
     // Анализ компетенций студента
-    analyzeStudentCompetences(studentIndex) {
-        if (!appData.tasks)
-            return {};
-
-        const competences = {
-            'Базовый': {
-                scores: [],
-                count: 0
-            },
-            'Применение': {
-                scores: [],
-                count: 0
-            },
-            'Анализ': {
-                scores: [],
-                count: 0
-            },
-            'Творчество': {
-                scores: [],
-                count: 0
-            }
-        };
-
-        appData.tasks.forEach((task, taskIndex) => {
-            const level = Math.min(Math.max(task.level || 1, 1), 4);
-            const competence = this.getCompetenceByLevel(level);
+    analyzeStudentCompetences(student, studentIndex, allData) {
+        const competences = {};
+        
+        // Здесь логика анализа компетенций на основе задач
+        // Например, группировка заданий по темам/компетенциям
+        appData.tasks?.forEach((task, taskIndex) => {
             const score = this.getStudentScore(studentIndex, taskIndex);
             const maxScore = task.maxScore || 1;
             const percentage = maxScore > 0 ? (score / maxScore) * 100 : 0;
-
-            if (competences[competence]) {
-                competences[competence].scores.push(percentage);
-                competences[competence].count++;
+            
+            // Предположим, что у задачи есть тема (или используем заголовок)
+            const competence = task.topic || task.title.split(' ')[0] || 'Общее';
+            
+            if (!competences[competence]) {
+                competences[competence] = {
+                    count: 0,
+                    totalScore: 0,
+                    maxPossible: 0,
+                    tasks: []
+                };
             }
+            
+            competences[competence].count++;
+            competences[competence].totalScore += percentage;
+            competences[competence].maxPossible += 100;
+            competences[competence].tasks.push(taskIndex + 1);
         });
-
-        // Расчет средних
+        
+        // Рассчитываем средние значения
         Object.keys(competences).forEach(key => {
-            if (competences[key].scores.length > 0) {
-                competences[key].average = this.calculateAverage(competences[key].scores);
-            } else {
-                competences[key].average = 0;
-            }
+            const comp = competences[key];
+            comp.average = comp.count > 0 ? comp.totalScore / comp.count : 0;
+            comp.percentage = comp.maxPossible > 0 ? (comp.totalScore / comp.maxPossible) * 100 : 0;
         });
-
+        
         return competences;
     }
+
 
     // Расчет ранга студента
     calculateStudentRank(studentIndex, studentStats) {
@@ -12518,166 +12539,354 @@ class AdvancedAnalytics {
     }
 
     // Генерация Word отчета для студента
-    generateStudentWordReport(studentName, studentData) {
-        const {
-            Document,
-            Paragraph,
-            HeadingLevel,
-            Packer,
-            AlignmentType,
-            Table,
-            TableRow,
-            TableCell,
-            TextRun
-        } = window.docx;
-
-        const doc = new Document({
-            sections: [{
-                properties: {},
-                children: [
-                    // Заголовок
-                    new Paragraph({
-                        text: "ИНДИВИДУАЛЬНЫЙ ОТЧЕТ УЧАЩЕГОСЯ",
-                        heading: HeadingLevel.TITLE,
-                        alignment: AlignmentType.CENTER
-                    }),
-
-                    new Paragraph({
-                        text: studentName,
-                        heading: HeadingLevel.HEADING_1,
-                        alignment: AlignmentType.CENTER
-                    }),
-
-                    // Основная информация
-                    new Paragraph({
-                        text: `Тест: ${appData.test?.subject || "Не указан"}`,
-                        alignment: AlignmentType.CENTER
-                    }),
-
-                    new Paragraph({
-                        text: `Дата: ${studentData.comparison?.testDate || new Date().toLocaleDateString()}`,
-                        alignment: AlignmentType.CENTER
-                    }),
-
-                    // Сводная таблица
-                    new Table({
-                        rows: [
-                            new TableRow({
-                                children: [
-                                    new TableCell({
-                                        children: [new Paragraph("Общий результат")]
-                                    }),
-                                    new TableCell({
-                                        children: [new Paragraph(`${studentData.overallPercentage}%`)]
-                                    })
-                                ]
-                            }),
-                            new TableRow({
-                                children: [
-                                    new TableCell({
-                                        children: [new Paragraph("Место в классе")]
-                                    }),
-                                    new TableCell({
-                                        children: [new Paragraph(`${studentData.comparison.rank} из ${appData.students?.length || 0}`)]
-                                    })
-                                ]
-                            }),
-                            new TableRow({
-                                children: [
-                                    new TableCell({
-                                        children: [new Paragraph("Процентиль")]
-                                    }),
-                                    new TableCell({
-                                        children: [new Paragraph(`${studentData.comparison.percentile}%`)]
-                                    })
-                                ]
-                            }),
-                            new TableRow({
-                                children: [
-                                    new TableCell({
-                                        children: [new Paragraph("Средний балл класса")]
-                                    }),
-                                    new TableCell({
-                                        children: [new Paragraph(`${studentData.comparison.classAverage}%`)]
-                                    })
-                                ]
-                            })
-                        ]
-                    }),
-
-                    // Результаты по заданиям
-                    new Paragraph({
-                        text: "РЕЗУЛЬТАТЫ ПО ЗАДАНИЯМ",
-                        heading: HeadingLevel.HEADING_1,
-                        spacing: {
-                            before: 400
-                        }
-                    }),
-
-                    ...this.createStudentTasksTable(studentData.taskResults),
-
-                    // Анализ компетенций
-                    new Paragraph({
-                        text: "АНАЛИЗ КОМПЕТЕНЦИЙ",
-                        heading: HeadingLevel.HEADING_1,
-                        spacing: {
-                            before: 400
-                        }
-                    }),
-
-                    ...this.createStudentCompetencesTable(studentData.competences),
-
-                    // Сильные и слабые стороны
-                    new Paragraph({
-                        text: "СИЛЬНЫЕ И СЛАБЫЕ СТОРОНЫ",
-                        heading: HeadingLevel.HEADING_1,
-                        spacing: {
-                            before: 400
-                        }
-                    }),
-
-                    ...this.createStrengthsWeaknessesAnalysis(studentData),
-
-                    // Рекомендации
-                    new Paragraph({
-                        text: "РЕКОМЕНДАЦИИ",
-                        heading: HeadingLevel.HEADING_1,
-                        spacing: {
-                            before: 400
-                        }
-                    }),
-
-                    ...this.createStudentRecommendations(studentData),
-
-                    // Подпись
-                    new Paragraph({
-                        text: "________________________________________________________________________",
-                        alignment: AlignmentType.CENTER,
-                        spacing: {
-                            before: 400
-                        }
-                    }),
-
-                    new Paragraph({
-                        text: "Дата формирования отчета: " + new Date().toLocaleDateString(),
-                        alignment: AlignmentType.RIGHT
-                    })
-                ]
+    generateStudentWordReport(student, index, allData) {
+        try {
+            const docx = window.docx;
+            if (!docx) {
+                throw new Error('Библиотека docx не доступна');
             }
-            ]
-        });
 
-        return Packer.toBlob(doc);
+            const { 
+                Document, 
+                Paragraph, 
+                HeadingLevel, 
+                Packer,
+                Table, 
+                TableRow, 
+                TableCell,
+                TextRun
+            } = docx;
+
+            // Определяем константы
+            const AlignmentType = docx.AlignmentType || {
+                CENTER: 'center',
+                LEFT: 'left',
+                RIGHT: 'right'
+            };
+            const WidthType = docx.WidthType || { PERCENTAGE: 2 };
+
+            // Генерируем результаты по заданиям
+            const taskResults = appData.tasks?.map((task, taskIndex) => {
+                const score = this.getStudentScore(index, taskIndex);
+                const maxScore = task.maxScore || 1;
+                const percentage = maxScore > 0 ? (score / maxScore) * 100 : 0;
+
+                return {
+                    taskNumber: taskIndex + 1,
+                    taskTitle: task.title || `Задание ${taskIndex + 1}`,
+                    score: score.toFixed(1),
+                    maxScore: maxScore.toFixed(1),
+                    percentage: percentage.toFixed(1),
+                    level: this.getTaskLevel(percentage)
+                };
+            }) || [];
+
+            // Генерируем данные компетенций
+            const competences = this.analyzeStudentCompetencess(student, index, allData);
+            
+            // Генерируем сильные/слабые стороны
+            const strengthsWeaknesses = this.analyzeStrengthsWeaknesses(student, taskResults, competences);
+            
+            // Создаем документ
+            const doc = new Document({
+                sections: [{
+                    properties: {},
+                    children: [
+                        // Заголовок
+                        new Paragraph({
+                            text: "ИНДИВИДУАЛЬНЫЙ ОТЧЕТ УЧАЩЕГОСЯ",
+                            heading: HeadingLevel.TITLE,
+                            alignment: AlignmentType.CENTER
+                        }),
+
+                        new Paragraph({
+                            text: student.name,
+                            heading: HeadingLevel.HEADING_1,
+                            alignment: AlignmentType.CENTER
+                        }),
+
+                        // Основная информация
+                        new Paragraph({
+                            text: `Тест: ${appData.test?.subject || "Не указан"}`,
+                            alignment: AlignmentType.CENTER
+                        }),
+
+                        new Paragraph({
+                            text: `Дата: ${allData.meta?.date || new Date().toLocaleDateString()}`,
+                            alignment: AlignmentType.CENTER
+                        }),
+
+                        // Сводная таблица
+                        new Table({
+                            rows: [
+                                new TableRow({
+                                    children: [
+                                        new TableCell({
+                                            children: [new Paragraph("Общий результат")]
+                                        }),
+                                        new TableCell({
+                                            children: [new Paragraph(`${student.averageScore.toFixed(1)}%`)]
+                                        })
+                                    ]
+                                }),
+                                new TableRow({
+                                    children: [
+                                        new TableCell({
+                                            children: [new Paragraph("Место в классе")]
+                                        }),
+                                        new TableCell({
+                                            children: [new Paragraph(`${index + 1} из ${allData.studentStats.length}`)]
+                                        })
+                                    ]
+                                }),
+                                new TableRow({
+                                    children: [
+                                        new TableCell({
+                                            children: [new Paragraph("Максимальный балл")]
+                                        }),
+                                        new TableCell({
+                                            children: [new Paragraph(`${student.maxScore.toFixed(1)}%`)]
+                                        })
+                                    ]
+                                }),
+                                new TableRow({
+                                    children: [
+                                        new TableCell({
+                                            children: [new Paragraph("Минимальный балл")]
+                                        }),
+                                        new TableCell({
+                                            children: [new Paragraph(`${student.minScore.toFixed(1)}%`)]
+                                        })
+                                    ]
+                                })
+                            ],
+                            width: { size: 100, type: WidthType.PERCENTAGE }
+                        }),
+
+                        // Результаты по заданиям
+                        new Paragraph({
+                            text: "РЕЗУЛЬТАТЫ ПО ЗАДАНИЯМ",
+                            heading: HeadingLevel.HEADING_1,
+                            spacing: { before: 400 }
+                        }),
+
+                        ...this.createStudentTasksTable(taskResults),
+
+                        // Анализ компетенций (если есть)
+                        ...(Object.keys(competences).length > 0 ? [
+                            new Paragraph({
+                                text: "АНАЛИЗ КОМПЕТЕНЦИЙ",
+                                heading: HeadingLevel.HEADING_1,
+                                spacing: { before: 400 }
+                            }),
+                            ...this.createStudentCompetencesTable(competences)
+                        ] : []),
+
+                        // Сильные и слабые стороны
+                        new Paragraph({
+                            text: "СИЛЬНЫЕ И СЛАБЫЕ СТОРОНЫ",
+                            heading: HeadingLevel.HEADING_1,
+                            spacing: { before: 400 }
+                        }),
+
+                        ...this.createStrengthsWeaknessesAnalysis(strengthsWeaknesses, taskResults),
+
+                        // Рекомендации
+                        new Paragraph({
+                            text: "РЕКОМЕНДАЦИИ",
+                            heading: HeadingLevel.HEADING_1,
+                            spacing: { before: 400 }
+                        }),
+
+                        ...this.createStudentRecommendations(student, competences, strengthsWeaknesses),
+
+                        // Подпись
+                        new Paragraph({
+                            text: "________________________________________________________________________",
+                            alignment: AlignmentType.CENTER,
+                            spacing: { before: 400 }
+                        }),
+
+                        new Paragraph({
+                            text: `Сгенерировано: ${new Date().toLocaleString()}`,
+                            alignment: AlignmentType.RIGHT
+                        }),
+
+                        new Paragraph({
+                            children: [
+                                new TextRun({
+                                    text: "Система Advanced Analytics",
+                                    italics: true,
+                                    color: "666666"
+                                })
+                            ],
+                            alignment: AlignmentType.RIGHT
+                        })
+                    ]
+                }]
+            });
+
+            return Packer.toBlob(doc);
+        } catch (error) {
+            console.error('Ошибка создания Word отчета:', error);
+            throw error;
+        }
     }
 
-    // Создание таблицы заданий студента
+    // Анализ компетенций студента (ИСПРАВЛЕННАЯ ВЕРСИЯ)
+    analyzeStudentCompetencess(student, studentIndex, allData) {
+        const competences = {};
+        
+        // Проверяем наличие задач
+        if (!appData.tasks || appData.tasks.length === 0) {
+            console.warn('Нет данных о задачах для анализа компетенций');
+            return competences;
+        }
+        
+        // Анализируем каждую задачу
+        appData.tasks.forEach((task, taskIndex) => {
+            try {
+                const score = this.getStudentScore(studentIndex, taskIndex);
+                const maxScore = task.maxScore || 1;
+                const percentage = maxScore > 0 ? (score / maxScore) * 100 : 0;
+                
+                // Определяем компетенцию (с проверкой на undefined)
+                let competence = 'Общее';
+                
+                if (task.topic && task.topic.trim()) {
+                    competence = task.topic.trim();
+                } else if (task.title && task.title.trim()) {
+                    // Берем первое слово из заголовка или весь заголовок
+                    const words = task.title.trim().split(' ');
+                    competence = words.length > 0 ? words[0] : 'Общее';
+                } else if (task.question && task.question.trim()) {
+                    // Альтернативный вариант - вопрос задачи
+                    const words = task.question.trim().split(' ');
+                    competence = words.length > 0 ? words[0] : 'Общее';
+                }
+                
+                // Инициализируем объект компетенции, если его еще нет
+                if (!competences[competence]) {
+                    competences[competence] = {
+                        count: 0,
+                        totalScore: 0,
+                        maxPossible: 0,
+                        tasks: [],
+                        taskTitles: []
+                    };
+                }
+                
+                // Добавляем данные
+                competences[competence].count++;
+                competences[competence].totalScore += percentage;
+                competences[competence].maxPossible += 100;
+                competences[competence].tasks.push(taskIndex + 1);
+                
+                // Сохраняем название задачи
+                const taskTitle = task.title || `Задание ${taskIndex + 1}`;
+                competences[competence].taskTitles.push(taskTitle);
+                
+            } catch (error) {
+                console.error(`Ошибка при анализе задачи ${taskIndex}:`, error);
+                // Продолжаем обработку остальных задач
+            }
+        });
+        
+        // Рассчитываем средние значения
+        Object.keys(competences).forEach(key => {
+            const comp = competences[key];
+            comp.average = comp.count > 0 ? comp.totalScore / comp.count : 0;
+            comp.percentage = comp.maxPossible > 0 ? (comp.totalScore / comp.maxPossible) * 100 : 0;
+            
+            // Округляем значения
+            comp.average = parseFloat(comp.average.toFixed(1));
+            comp.percentage = parseFloat(comp.percentage.toFixed(1));
+        });
+        
+        console.log('Анализ компетенций:', competences);
+        return competences;
+    }
+
+
+    // Анализ сильных и слабых сторон
+    analyzeStrengthsWeaknesses(student, taskResults, competences) {
+        const strengths = [];
+        const weaknesses = [];
+        const errors = [];
+        
+        // Анализ заданий
+        taskResults.forEach(task => {
+            const percentage = parseFloat(task.percentage);
+            
+            if (percentage >= 80) {
+                strengths.push({
+                    type: 'task',
+                    description: `Задание ${task.taskNumber}: ${task.taskTitle}`,
+                    score: task.percentage + '%'
+                });
+            } else if (percentage < 50) {
+                weaknesses.push({
+                    type: 'task',
+                    description: `Задание ${task.taskNumber}: ${task.taskTitle}`,
+                    score: task.percentage + '%',
+                    needAttention: true
+                });
+                
+                // Добавляем в ошибки
+                errors.push({
+                    task: task.taskNumber,
+                    type: this.identifyErrorType(percentage),
+                    percentage: percentage
+                });
+            }
+        });
+        
+        // Анализ компетенций
+        Object.entries(competences).forEach(([name, data]) => {
+            if (data.average >= 80) {
+                strengths.push({
+                    type: 'competence',
+                    description: `Компетенция: ${name}`,
+                    score: data.average.toFixed(1) + '%',
+                    tasksCount: data.count
+                });
+            } else if (data.average < 60) {
+                weaknesses.push({
+                    type: 'competence',
+                    description: `Компетенция: ${name}`,
+                    score: data.average.toFixed(1) + '%',
+                    tasksCount: data.count,
+                    needAttention: true,
+                    tasks: data.tasks
+                });
+            }
+        });
+        
+        return { strengths, weaknesses, errors };
+    }
+
+    // Идентификация типа ошибки
+    identifyErrorType(percentage) {
+        if (percentage < 30) return 'conceptual'; // Концептуальные ошибки
+        if (percentage < 50) return 'calculation'; // Вычислительные ошибки
+        return 'attention'; // Ошибки внимания
+    }
+
+    // Определение уровня задания
+    getTaskLevel(percentage) {
+        if (percentage >= 85) return 'Высокий';
+        if (percentage >= 70) return 'Средний';
+        if (percentage >= 50) return 'Удовлетворительный';
+        return 'Низкий';
+    }
+
+
+
+    // Создание таблицы заданий студента (обновленная)
     createStudentTasksTable(taskResults) {
-        const {
-            Table,
-            TableRow,
-            TableCell,
-            Paragraph
-        } = window.docx;
+        const docx = window.docx;
+        const { Table, TableRow, TableCell, Paragraph } = docx;
+        const WidthType = docx.WidthType || { PERCENTAGE: 2 };
 
         if (!taskResults || taskResults.length === 0) {
             return [new Paragraph("Нет данных о результатах")];
@@ -12686,22 +12895,28 @@ class AdvancedAnalytics {
         const headerRow = new TableRow({
             children: [
                 new TableCell({
-                    children: [new Paragraph("№")]
+                    children: [new Paragraph("№")],
+                    width: { size: 10, type: WidthType.PERCENTAGE }
                 }),
                 new TableCell({
-                    children: [new Paragraph("Задание")]
+                    children: [new Paragraph("Задание")],
+                    width: { size: 40, type: WidthType.PERCENTAGE }
                 }),
                 new TableCell({
-                    children: [new Paragraph("Балл")]
+                    children: [new Paragraph("Балл")],
+                    width: { size: 15, type: WidthType.PERCENTAGE }
                 }),
                 new TableCell({
-                    children: [new Paragraph("Максимум")]
+                    children: [new Paragraph("Максимум")],
+                    width: { size: 15, type: WidthType.PERCENTAGE }
                 }),
                 new TableCell({
-                    children: [new Paragraph("Процент")]
+                    children: [new Paragraph("Процент")],
+                    width: { size: 10, type: WidthType.PERCENTAGE }
                 }),
                 new TableCell({
-                    children: [new Paragraph("Уровень")]
+                    children: [new Paragraph("Уровень")],
+                    width: { size: 10, type: WidthType.PERCENTAGE }
                 })
             ]
         });
@@ -12728,40 +12943,39 @@ class AdvancedAnalytics {
                             children: [new Paragraph(task.percentage + "%")]
                         }),
                         new TableCell({
-                            children: [new Paragraph(task.level.toString())]
+                            children: [new Paragraph(task.level)]
                         })
                     ]
                 }));
         });
 
-        return [new Table({
-            rows: rows
-        })];
+        return [new Table({ rows: rows, width: { size: 100, type: WidthType.PERCENTAGE } })];
     }
 
-    // Создание таблицы компетенций студента
+    // Создание таблицы компетенций студента (обновленная)
     createStudentCompetencesTable(competences) {
-        const {
-            Table,
-            TableRow,
-            TableCell,
-            Paragraph
-        } = window.docx;
+        const docx = window.docx;
+        const { Table, TableRow, TableCell, Paragraph } = docx;
+        const WidthType = docx.WidthType || { PERCENTAGE: 2 };
 
         const rows = [
             new TableRow({
                 children: [
                     new TableCell({
-                        children: [new Paragraph("Компетенция")]
+                        children: [new Paragraph("Компетенция")],
+                        width: { size: 40, type: WidthType.PERCENTAGE }
                     }),
                     new TableCell({
-                        children: [new Paragraph("Количество заданий")]
+                        children: [new Paragraph("Количество заданий")],
+                        width: { size: 20, type: WidthType.PERCENTAGE }
                     }),
                     new TableCell({
-                        children: [new Paragraph("Средний результат")]
+                        children: [new Paragraph("Средний результат")],
+                        width: { size: 20, type: WidthType.PERCENTAGE }
                     }),
                     new TableCell({
-                        children: [new Paragraph("Оценка")]
+                        children: [new Paragraph("Оценка")],
+                        width: { size: 20, type: WidthType.PERCENTAGE }
                     })
                 ]
             })
@@ -12787,85 +13001,99 @@ class AdvancedAnalytics {
                 }));
         });
 
-        return [new Table({
-            rows: rows
-        }), new Paragraph("")];
+        return [new Table({ rows: rows, width: { size: 100, type: WidthType.PERCENTAGE } })];
     }
 
     // Оценка компетенции
     getCompetenceRating(average) {
-        if (average >= 85)
-            return "Отлично";
-        if (average >= 70)
-            return "Хорошо";
-        if (average >= 50)
-            return "Удовлетворительно";
-        return "Неудовлетворительно";
+        if (average >= 85) return "Отлично";
+        if (average >= 70) return "Хорошо";
+        if (average >= 50) return "Удовлетворительно";
+        return "Требует внимания";
     }
 
-    // Анализ сильных и слабых сторон
-    createStrengthsWeaknessesAnalysis(studentData) {
-        const {
-            Paragraph,
-            TextRun
-        } = window.docx;
+    // Анализ сильных и слабых сторон (обновленная)
+    createStrengthsWeaknessesAnalysis(analysis, taskResults) {
+        const docx = window.docx;
+        const { Paragraph, TextRun } = docx;
 
         const paragraphs = [];
 
         // Сильные стороны
-        if (studentData.strengths && studentData.strengths.length > 0) {
+        if (analysis.strengths && analysis.strengths.length > 0) {
             paragraphs.push(
                 new Paragraph({
                     children: [
                         new TextRun({
-                            text: "Сильные стороны: ",
-                            bold: true
+                            text: "✅ СИЛЬНЫЕ СТОРОНЫ:",
+                            bold: true,
+                            color: "008000"
                         })
                     ]
                 }));
 
-            studentData.strengths.forEach(strength => {
+            analysis.strengths.forEach((strength, index) => {
                 paragraphs.push(
                     new Paragraph({
-                        text: `• Уровень ${strength.level} (${strength.competence}): ${strength.count} заданий со средним результатом ${strength.averageScore}%`,
-                        indent: {
-                            left: 400
-                        }
+                        text: `${index + 1}. ${strength.description} (${strength.score})`,
+                        indent: { left: 400 }
                     }));
             });
         }
 
         // Слабые стороны
-        if (studentData.weaknesses && studentData.weaknesses.length > 0) {
+        if (analysis.weaknesses && analysis.weaknesses.length > 0) {
             paragraphs.push(
                 new Paragraph({
                     children: [
                         new TextRun({
-                            text: "Слабые стороны: ",
+                            text: "⚠️ СЛАБЫЕ СТОРОНЫ:",
+                            bold: true,
+                            color: "FF0000"
+                        })
+                    ],
+                    spacing: { before: 200 }
+                }));
+
+            analysis.weaknesses.forEach((weakness, index) => {
+                let text = `${index + 1}. ${weakness.description} (${weakness.score})`;
+                if (weakness.tasksCount) {
+                    text += ` [заданий: ${weakness.tasksCount}]`;
+                }
+                paragraphs.push(
+                    new Paragraph({
+                        text: text,
+                        indent: { left: 400 }
+                    }));
+            });
+        }
+
+        // Анализ ошибок
+        if (analysis.errors && analysis.errors.length > 0) {
+            paragraphs.push(
+                new Paragraph({
+                    children: [
+                        new TextRun({
+                            text: "📊 АНАЛИЗ ОШИБОК:",
                             bold: true
                         })
                     ],
-                    spacing: {
-                        before: 200
-                    }
+                    spacing: { before: 200 }
                 }));
 
-            studentData.weaknesses.forEach(weakness => {
-                paragraphs.push(
-                    new Paragraph({
-                        text: `• Уровень ${weakness.level} (${weakness.competence}): ${weakness.count} заданий со средним результатом ${weakness.averageScore}%`,
-                        indent: {
-                            left: 400
-                        }
-                    }));
+            const errorTypes = {
+                conceptual: "Концептуальные ошибки (непонимание темы)",
+                calculation: "Вычислительные ошибки",
+                attention: "Ошибки внимания"
+            };
 
-                if (weakness.tasks && weakness.tasks.length > 0) {
+            Object.entries(errorTypes).forEach(([type, description]) => {
+                const typeErrors = analysis.errors.filter(e => e.type === type);
+                if (typeErrors.length > 0) {
                     paragraphs.push(
                         new Paragraph({
-                            text: `  Проблемные задания: ${weakness.tasks.join(', ')}`,
-                            indent: {
-                                left: 800
-                            }
+                            text: `• ${description}: ${typeErrors.length} заданий`,
+                            indent: { left: 400 }
                         }));
                 }
             });
@@ -12874,60 +13102,63 @@ class AdvancedAnalytics {
         return paragraphs;
     }
 
-    // Рекомендации для студента
-    createStudentRecommendations(studentData) {
-        const {
-            Paragraph,
-            TextRun
-        } = window.docx;
+    // Рекомендации для студента (обновленные)
+    createStudentRecommendations(student, competences, analysis) {
+        const docx = window.docx;
+        const { Paragraph, TextRun } = docx;
 
         const recommendations = [];
-        const overall = parseFloat(studentData.overallPercentage);
+        const paragraphs = [];
 
-        // Общие рекомендации
-        if (overall < 50) {
-            recommendations.push("Требуется повторение основного материала");
-            recommendations.push("Необходима индивидуальная консультация с преподавателем");
-            recommendations.push("Выполнение дополнительных заданий базового уровня");
-        } else if (overall < 70) {
-            recommendations.push("Рекомендуется дополнительная практика по сложным темам");
-            recommendations.push("Работа над устранением типичных ошибок");
-            recommendations.push("Развитие навыков самопроверки");
-        } else if (overall < 85) {
-            recommendations.push("Продолжать в том же темпе, уделить внимание деталям");
-            recommendations.push("Развивать навыки решения нестандартных задач");
-            recommendations.push("Участие в олимпиадных заданиях");
-        } else {
-            recommendations.push("Отличный результат! Можно переходить к более сложным темам");
+        // Общие рекомендации на основе среднего балла
+        if (student.averageScore >= 85) {
+            recommendations.push("Отличный результат! Продолжайте в том же темпе");
+            recommendations.push("Можно переходить к более сложным темам и заданиям");
             recommendations.push("Рекомендуется участие в олимпиадах и конкурсах");
-            recommendations.push("Возможность выполнения исследовательских проектов");
+        } else if (student.averageScore >= 70) {
+            recommendations.push("Хороший результат, есть потенциал для роста");
+            recommendations.push("Рекомендуется дополнительная практика по сложным темам");
+            recommendations.push("Работа над устранением случайных ошибок");
+        } else if (student.averageScore >= 50) {
+            recommendations.push("Удовлетворительный результат, требуется повторение материала");
+            recommendations.push("Необходимо сосредоточиться на основных понятиях");
+            recommendations.push("Тренировка базовых навыков и умений");
+        } else {
+            recommendations.push("Требуется интенсивная работа над материалом");
+            recommendations.push("Необходима индивидуальная помощь преподавателя");
+            recommendations.push("Систематические дополнительные занятия");
         }
 
         // Рекомендации по компетенциям
-        Object.entries(studentData.competences).forEach(([name, data]) => {
+        Object.entries(competences).forEach(([name, data]) => {
             if (data.average < 60) {
-                recommendations.push(`Уделить особое внимание развитию компетенции "${name}"`);
+                recommendations.push(`Особое внимание уделить компетенции "${name}"`);
+                if (data.tasks && data.tasks.length > 0) {
+                    recommendations.push(`Повторить задания: ${data.tasks.join(', ')}`);
+                }
             } else if (data.average >= 85) {
                 recommendations.push(`Компетенция "${name}" развита отлично, можно углублять знания`);
             }
         });
 
         // Рекомендации по ошибкам
-        if (studentData.errors && studentData.errors.length > 0) {
-            const errorTypes = [...new Set(studentData.errors.map(e => e.type))];
-            if (errorTypes.includes('calculation')) {
-                recommendations.push("Тренировать вычислительные навыки, проверку расчетов");
-            }
+        if (analysis.errors && analysis.errors.length > 0) {
+            const errorTypes = [...new Set(analysis.errors.map(e => e.type))];
             if (errorTypes.includes('conceptual')) {
-                recommendations.push("Повторить основные понятия и определения, создать глоссарий");
+                recommendations.push("Повторить основные понятия и определения");
+                recommendations.push("Составить глоссарий ключевых терминов");
+            }
+            if (errorTypes.includes('calculation')) {
+                recommendations.push("Тренировать вычислительные навыки");
+                recommendations.push("Развивать навык проверки расчетов");
             }
             if (errorTypes.includes('attention')) {
-                recommendations.push("Развивать внимательность, читать условия заданий вслух");
+                recommendations.push("Развивать внимательность при чтении заданий");
+                recommendations.push("Выделять ключевые слова в условиях");
             }
         }
 
-        // Форматирование
-        const paragraphs = [];
+        // Формируем параграфы с рекомендациями
         recommendations.forEach((rec, index) => {
             paragraphs.push(
                 new Paragraph({
@@ -12937,154 +13168,139 @@ class AdvancedAnalytics {
                             bold: true
                         }),
                         new TextRun(rec)
-                    ],
-                    spacing: {
-                        after: 50
-                    }
+                    ]
                 }));
         });
 
         return paragraphs;
     }
 
-    // Генерация Excel отчета для студента
-    generateStudentExcelReport(studentName, studentData) {
-        // Используем библиотеку ExcelJS
-        const ExcelJS = window.ExcelJS;
-        const workbook = new ExcelJS.Workbook();
+    // Метод для генерации XLSX отчета (аналогичные параметры)
+    generateStudentExcelReport(student, index, allData) {
+        try {
+            const ExcelJS = window.ExcelJS;
+            if (!ExcelJS) {
+                throw new Error('Библиотека ExcelJS не доступна');
+            }
 
-        // Основной лист
-        const worksheet = workbook.addWorksheet('Результаты');
+            const workbook = new ExcelJS.Workbook();
+            const worksheet = workbook.addWorksheet('Отчет студента');
 
-        // Заголовок
-        worksheet.mergeCells('A1:F1');
-        worksheet.getCell('A1').value = `ИНДИВИДУАЛЬНЫЙ ОТЧЕТ: ${studentName}`;
-        worksheet.getCell('A1').font = {
-            bold: true,
-            size: 16
-        };
-        worksheet.getCell('A1').alignment = {
-            horizontal: 'center'
-        };
+            // Генерация результатов по заданиям
+            const taskResults = appData.tasks?.map((task, taskIndex) => {
+                const score = this.getStudentScore(index, taskIndex);
+                const maxScore = task.maxScore || 1;
+                const percentage = maxScore > 0 ? (score / maxScore) * 100 : 0;
 
-        // Основная информация
-        worksheet.getCell('A3').value = 'Общий результат:';
-        worksheet.getCell('B3').value = `${studentData.overallPercentage}%`;
+                return {
+                    taskNumber: taskIndex + 1,
+                    taskTitle: task.title || `Задание ${taskIndex + 1}`,
+                    score: score,
+                    maxScore: maxScore,
+                    percentage: percentage
+                };
+            }) || [];
 
-        worksheet.getCell('A4').value = 'Место в классе:';
-        worksheet.getCell('B4').value = `${studentData.comparison.rank} из ${appData.students?.length || 0}`;
+            // Заголовок
+            worksheet.mergeCells('A1:F1');
+            worksheet.getCell('A1').value = 'ИНДИВИДУАЛЬНЫЙ ОТЧЕТ УЧАЩЕГОСЯ';
+            worksheet.getCell('A1').font = { size: 16, bold: true };
+            worksheet.getCell('A1').alignment = { horizontal: 'center' };
 
-        worksheet.getCell('A5').value = 'Процентиль:';
-        worksheet.getCell('B5').value = `${studentData.comparison.percentile}%`;
+            worksheet.getCell('A2').value = student.name;
+            worksheet.getCell('A2').font = { size: 14, bold: true };
 
-        worksheet.getCell('A6').value = 'Средний балл класса:';
-        worksheet.getCell('B6').value = `${studentData.comparison.classAverage}%`;
+            // Основная информация
+            worksheet.getCell('A4').value = 'Основная информация';
+            worksheet.getCell('A4').font = { bold: true };
 
-        // Результаты по заданиям
-        worksheet.mergeCells('A8:F8');
-        worksheet.getCell('A8').value = 'РЕЗУЛЬТАТЫ ПО ЗАДАНИЯМ';
-        worksheet.getCell('A8').font = {
-            bold: true
-        };
+            const basicInfo = [
+                ['Тест:', appData.test?.subject || 'Не указан'],
+                ['Дата:', allData.meta?.date || new Date().toLocaleDateString()],
+                ['Общий результат:', `${student.averageScore.toFixed(1)}%`],
+                ['Место в классе:', `${index + 1} из ${allData.studentStats.length}`],
+                ['Максимальный балл:', `${student.maxScore.toFixed(1)}%`],
+                ['Минимальный балл:', `${student.minScore.toFixed(1)}%`]
+            ];
 
-        // Заголовки таблицы
-        const headers = ['№', 'Задание', 'Балл', 'Максимум', 'Процент', 'Уровень'];
-        headers.forEach((header, index) => {
-            worksheet.getCell(10, index + 1).value = header;
-            worksheet.getCell(10, index + 1).font = {
-                bold: true
-            };
-            worksheet.getCell(10, index + 1).fill = {
-                type: 'pattern',
-                pattern: 'solid',
-                fgColor: {
-                    argb: 'FFE0E0E0'
-                }
-            };
-        });
+            basicInfo.forEach(([label, value], i) => {
+                worksheet.getCell(`A${5 + i}`).value = label;
+                worksheet.getCell(`A${5 + i}`).font = { bold: true };
+                worksheet.getCell(`B${5 + i}`).value = value;
+            });
 
-        // Данные
-        studentData.taskResults.forEach((task, index) => {
-            const row = 11 + index;
-            worksheet.getCell(row, 1).value = task.taskNumber;
-            worksheet.getCell(row, 2).value = task.taskTitle;
-            worksheet.getCell(row, 3).value = parseFloat(task.score);
-            worksheet.getCell(row, 4).value = parseFloat(task.maxScore);
-            worksheet.getCell(row, 5).value = {
-                formula: `C${row}/D${row}*100`,
-                result: parseFloat(task.percentage)
-            };
-            worksheet.getCell(row, 6).value = task.level;
+            // Результаты по заданиям
+            let row = 12;
+            worksheet.getCell(`A${row}`).value = 'Результаты по заданиям';
+            worksheet.getCell(`A${row}`).font = { bold: true };
+            worksheet.mergeCells(`A${row}:F${row}`);
 
-            // Форматирование процента
-            worksheet.getCell(row, 5).numFmt = '0.0"%";[Red]-0.0"%";';
-        });
+            const taskHeaders = ['№', 'Задание', 'Балл', 'Максимум', 'Процент', 'Уровень'];
+            taskHeaders.forEach((header, col) => {
+                worksheet.getCell(`${String.fromCharCode(65 + col)}${row + 1}`).value = header;
+                worksheet.getCell(`${String.fromCharCode(65 + col)}${row + 1}`).font = { bold: true };
+                worksheet.getCell(`${String.fromCharCode(65 + col)}${row + 1}`).fill = {
+                    type: 'pattern',
+                    pattern: 'solid',
+                    fgColor: { argb: 'FFE0E0E0' }
+                };
+            });
 
-        // Лист с компетенциями
-        const competencesSheet = workbook.addWorksheet('Компетенции');
+            taskResults.forEach((task, i) => {
+                const currentRow = row + 2 + i;
+                worksheet.getCell(`A${currentRow}`).value = task.taskNumber;
+                worksheet.getCell(`B${currentRow}`).value = task.taskTitle;
+                worksheet.getCell(`C${currentRow}`).value = task.score;
+                worksheet.getCell(`D${currentRow}`).value = task.maxScore;
+                worksheet.getCell(`E${currentRow}`).value = task.percentage;
+                worksheet.getCell(`E${currentRow}`).numFmt = '0.0%';
+                worksheet.getCell(`F${currentRow}`).value = this.getTaskLevel(task.percentage);
+            });
 
-        competencesSheet.getCell('A1').value = 'КОМПЕТЕНЦИИ';
-        competencesSheet.getCell('A1').font = {
-            bold: true,
-            size: 14
-        };
+            // Рекомендации
+            row = row + taskResults.length + 4;
+            worksheet.getCell(`A${row}`).value = 'Рекомендации';
+            worksheet.getCell(`A${row}`).font = { bold: true };
+            worksheet.mergeCells(`A${row}:F${row}`);
 
-        const compHeaders = ['Компетенция', 'Заданий', 'Средний результат', 'Оценка'];
-        compHeaders.forEach((header, index) => {
-            competencesSheet.getCell(3, index + 1).value = header;
-            competencesSheet.getCell(3, index + 1).font = {
-                bold: true
-            };
-        });
+            const recommendations = [];
+            if (student.averageScore >= 85) {
+                recommendations.push('Отличный результат! Продолжайте в том же темпе');
+                recommendations.push('Можно переходить к более сложным темам');
+                recommendations.push('Рекомендуется участие в олимпиадах');
+            } else if (student.averageScore >= 70) {
+                recommendations.push('Хороший результат');
+                recommendations.push('Рекомендуется дополнительная практика');
+                recommendations.push('Работа над устранением ошибок');
+            } else if (student.averageScore >= 50) {
+                recommendations.push('Удовлетворительный результат');
+                recommendations.push('Требуется повторение материала');
+                recommendations.push('Индивидуальные консультации');
+            } else {
+                recommendations.push('Требуется интенсивная работа');
+                recommendations.push('Необходима индивидуальная помощь');
+                recommendations.push('Дополнительные занятия');
+            }
 
-        Object.entries(studentData.competences).forEach(([name, data], index) => {
-            const row = 4 + index;
-            competencesSheet.getCell(row, 1).value = name;
-            competencesSheet.getCell(row, 2).value = data.count;
-            competencesSheet.getCell(row, 3).value = data.average;
-            competencesSheet.getCell(row, 4).value = this.getCompetenceRating(data.average);
+            recommendations.forEach((rec, i) => {
+                worksheet.getCell(`A${row + 2 + i}`).value = rec;
+            });
 
-            // Форматирование
-            competencesSheet.getCell(row, 3).numFmt = '0.0"%";[Red]-0.0"%";';
-        });
+            // Настройка ширины столбцов
+            worksheet.columns = [
+                { width: 10 }, // A
+                { width: 40 }, // B
+                { width: 15 }, // C
+                { width: 15 }, // D
+                { width: 15 }, // E
+                { width: 20 }  // F
+            ];
 
-        // Настройка ширины колонок
-        worksheet.columns = [{
-            width: 5
-        }, // №
-        {
-            width: 40
-        }, // Задание
-        {
-            width: 10
-        }, // Балл
-        {
-            width: 10
-        }, // Максимум
-        {
-            width: 10
-        }, // Процент
-        {
-            width: 8
-        } // Уровень
-        ];
-
-        competencesSheet.columns = [{
-            width: 20
-        }, // Компетенция
-        {
-            width: 10
-        }, // Заданий
-        {
-            width: 15
-        }, // Результат
-        {
-            width: 15
-        } // Оценка
-        ];
-
-        // Сохраняем как blob
-        return workbook.xlsx.writeBuffer();
+            return workbook.xlsx.writeBuffer();
+        } catch (error) {
+            console.error('Ошибка создания Excel отчета:', error);
+            throw error;
+        }
     }
 
     // Экспорт всех графиков как изображений
@@ -15927,7 +16143,7 @@ class AdvancedAnalytics {
     createIndividualReports(zip, baseFolderName, allData) {
         return new Promise((resolve) => {
             const studentsFolder = zip.folder(`${baseFolderName}/индивидуальные_отчеты`);
-            const maxStudents = Math.min(allData.studentStats.length, 10); // Ограничиваем
+            const maxStudents = Math.min(allData.studentStats.length, 35); // Ограничиваем
 
             let createdCount = 0;
 
@@ -15937,11 +16153,27 @@ class AdvancedAnalytics {
                         const student = allData.studentStats[i];
                         const report = this.generateIndividualStudentReport(student, i, allData);
 
+                        // Word отчет
+                        this.exportStudentReports('word', student, i, allData)
+                            .then(({ blob, filename }) => {
+                                studentsFolder.file(filename, blob);
+                            });
+
+                        // Excel отчет  
+                        this.exportStudentReports('excel', student, i, allData)
+                            .then(({ blob, filename }) => {
+                                studentsFolder.file(filename, blob);
+                            });
+
                         if (report) {
                             const fileName = this.sanitizeFileName(`${student.name}_отчет.txt`);
                             studentsFolder.file(fileName, report);
                             createdCount++;
                         }
+
+
+
+
                     } catch (error) {
                         console.warn(`Ошибка создания отчета для студента ${i}:`, error);
                     }

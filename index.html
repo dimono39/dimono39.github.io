@@ -5347,11 +5347,19 @@
 	<script src="modules/advanced-analytics.js"></script>
 	<!-- 1. Хранилище -->
 
-
 	
 	
     <script>
-		
+
+		// Загрузка модуля
+		async function loadReportModule() {
+			const module = await import('modules/report-generator-dynamic.js');
+			
+			// Передача ваших данных в модуль
+			window.generateReportFromAppData = () => {
+				module.generateReportModule(appData);
+			};
+		}		
 	
 		// функции для очистки КЕШа
 		function forceRefresh() {
@@ -18024,7 +18032,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // ==================== ОСНОВНОЙ ФУНКЦИОНАЛ ====================
 
-		window.AdvancedAnalytics = AdvancedAnalytics;
 		
         // Навигация по вкладкам
         function showTab(tabName) {
