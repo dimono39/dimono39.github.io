@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Генератор отчётов</title>
+</head>
+<body>
+    <button id="generateBtn">📄 Создать отчёт</button>
+    <button id="previewBtn">👁️ Предпросмотр</button>
+    <button id="printBtn">🖨️ Печать</button>
+
+    <!-- Подключаем как модуль -->
+    <script type="module">
+        // Импортируем функции из модуля
+        import { 
+            generateReportModule, 
+            previewReportModule, 
+            printReportModule 
+        } from './modules/report-generator-dynamic.js';
+        
+        // Пример данных
+        const testData = {
+            // ... данные теста (как в примере выше)
+        };
+        
+        // Назначаем обработчики
+        document.getElementById('generateBtn').addEventListener('click', () => {
+            generateReportModule(testData);
+        });
+        
+        document.getElementById('previewBtn').addEventListener('click', () => {
+            previewReportModule(testData);
+        });
+        
+        document.getElementById('printBtn').addEventListener('click', () => {
+            printReportModule(testData);
+        });
+    </script>
+</body>
+</html>

@@ -5346,126 +5346,42 @@
 	<script src="modules/dataImportExport.js"></script>
 	<script src="modules/advanced-analytics.js"></script>
 	<!-- 1. Хранилище -->
-
-	<div class="container">
-        <h1>📊 Генератор аналитического отчёта</h1>
-        
-        <div class="data-section">
-            <h3>📋 Текущие данные для анализа</h3>
-            <div id="currentDataInfo">
-                <!-- Информация о данных будет вставлена через JS -->
-            </div>
-        </div>
-        
-        <div class="button-group">
-            <button class="btn btn-primary" onclick="generateReportFromAppData()">
-                <span class="icon">📊</span>
-                Сгенерировать отчёт
-            </button>
-            <button class="btn btn-secondary" onclick="previewReportFromAppData()">
-                <span class="icon">👁️</span>
-                Предпросмотр
-            </button>
-            <button class="btn btn-secondary" onclick="printReportFromAppData()">
-                <span class="icon">🖨️</span>
-                Печать отчёта
-            </button>
-        </div>
-        
-        <div style="margin-top: 30px; padding: 15px; background: #e8f4fc; border-radius: 8px;">
-            <h4>ℹ️ Как это работает:</h4>
-            <p>Отчёт генерируется на основе данных из вашего <code>appData</code>. При нажатии кнопки:</p>
-            <ol>
-                <li>Берутся актуальные данные из <code>appData</code></li>
-                <li>Генерируется HTML-отчёт</li>
-                <li>Открывается в новом окне браузера</li>
-                <li>Готов к печати на 2-х листах А4</li>
-            </ol>
-        </div>
-    </div>
+	<button onclick="showReport()">Показать отчёт</button>
+	<script src="modules/report-generator-dynamic.js"></script>
+	
 	
     <script>
 
 
-        // Показываем информацию о текущих данных
-        function updateDataInfo() {
-            const infoDiv = document.getElementById('currentDataInfo');
-            if (!appData) {
-                infoDiv.innerHTML = '<p style="color: #e74c3c;">❌ appData не найден!</p>';
-                return;
-            }
+		function showReport() {
+            // Создаём пример данных
+            const data = {
+                test: {
+                    subject: "Физика",
+                    class: "10",
+                    theme: "Законы Ньютона",
+                    testDate: new Date().toISOString().split('T')[0],
+                    totalStudents: 20,
+                    presentStudents: 18,
+                    criteria: {
+                        5: { min: 17, max: 20 },
+                        4: { min: 13, max: 16 },
+                        3: { min: 9, max: 12 },
+                        2: { min: 0, max: 8 }
+                    }
+                },
+                students: ["Ученик 1", "Ученик 2", "Ученик 3"],
+                tasks: [
+                    { number: 1, description: "Задача 1", maxScore: 5, level: 2 },
+                    { number: 2, description: "Задача 2", maxScore: 5, level: 3 },
+                ],
+                results: [[4, 3], [5, 4], [2, 3]],
+                errors: []
+            };
             
-            const data = appData;
-            const maxScore = data.tasks.reduce((sum, task) => sum + task.maxScore, 0);
-            const totalScore = data.results.reduce((sum, student) => 
-                sum + student.reduce((s, score) => s + score, 0), 0);
-            const averageScore = totalScore / (data.students.length * data.tasks.length);
-            const overallPercentage = (totalScore / (data.students.length * maxScore)) * 100;
-            
-            infoDiv.innerHTML = `
-                <div class="data-info">
-                    <div class="data-item">
-                        <strong>📚 Предмет:</strong><br>
-                        ${data.test.subject}, ${data.test.class} класс
-                    </div>
-                    <div class="data-item">
-                        <strong>👥 Учащиеся:</strong><br>
-                        ${data.students.length} из ${data.test.totalStudents}
-                    </div>
-                    <div class="data-item">
-                        <strong>📝 Задания:</strong><br>
-                        ${data.tasks.length} заданий (${maxScore} макс. баллов)
-                    </div>
-                    <div class="data-item">
-                        <strong>📈 Средний балл:</strong><br>
-                        ${averageScore.toFixed(2)} (${overallPercentage.toFixed(1)}%)
-                    </div>
-                </div>
-            `;
+            // Вызываем функцию из модуля
+            generateReportModule(data);
         }
-
-        // Импортируем и используем модуль
-        async function loadReportModule() {
-            try {
-                const module = await import('modules/report-generator-dynamic.js');
-                
-                // Делаем функции глобальными
-                window.generateReportFromAppData = () => {
-                    if (!appData) {
-                        alert('Ошибка: appData не найден!');
-                        return;
-                    }
-                    module.generateReportModule(appData);
-                };
-                
-                window.previewReportFromAppData = () => {
-                    if (!appData) {
-                        alert('Ошибка: appData не найден!');
-                        return;
-                    }
-                    module.previewReportModule(appData);
-                };
-                
-                window.printReportFromAppData = () => {
-                    if (!appData) {
-                        alert('Ошибка: appData не найден!');
-                        return;
-                    }
-                    module.printReportModule(appData);
-                };
-                
-                console.log('✅ Модуль загружен успешно');
-            } catch (error) {
-                console.error('❌ Ошибка загрузки модуля:', error);
-                alert('Ошибка загрузки модуля генерации отчёта');
-            }
-        }
-
-        // Инициализация при загрузке
-        document.addEventListener('DOMContentLoaded', () => {
-            updateDataInfo();
-            loadReportModule();
-        });	
 	
 		// функции для очистки КЕШа
 		function forceRefresh() {
