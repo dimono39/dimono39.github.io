@@ -1,5 +1,5 @@
-// report-generator-premium-print-fixed.js
-// Премиум модуль генерации отчётов с расширенной аналитикой - ИСПРАВЛЕНА ПЕЧАТЬ
+// report-generator-premium-fixed.js
+// Премиум модуль генерации отчётов с расширенной аналитикой - ИСПРАВЛЕННАЯ ВЕРСИЯ
 
 (function(global) {
     'use strict';
@@ -18,11 +18,7 @@
             success: '#27ae60',
             warning: '#f39c12',
             danger: '#e74c3c',
-            info: '#9b59b6',
-            present: '#3498db',
-            total: '#2c3e50',
-            absent: '#7f8c8d',
-            maxScore: '#9b59b6'
+            info: '#9b59b6'
         },
         complexity: {
             1: '#27ae60',
@@ -88,10 +84,9 @@
         
         .page-break {
             page-break-before: always;
-            page-break-inside: avoid;
         }
         
-        /* СТРАНИЦА 1 - ОСНОВНЫЕ РЕЗУЛЬТАТЫ */
+        /* СТРАНИЦА 1 - Без изменений */
         .report-container {
             display: grid;
             grid-template-columns: 1.4fr 0.6fr;
@@ -274,54 +269,7 @@
             color: white;
         }
         
-        /* СТИЛИ ДЛЯ АНАЛИЗА ЗАДАНИЙ */
-        .task-desc-item {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            padding: 3px 4px;
-            border-radius: 4px;
-            background: #f8f9fa;
-            margin-bottom: 3px;
-            transition: background-color 0.2s;
-            border-left: 3px solid transparent;
-            page-break-inside: avoid;
-        }
-        
-        .task-desc-item:hover {
-            background: #e8f4fc;
-        }
-        
-        .task-number {
-            font-size: 9px;
-            font-weight: 700;
-            color: #3498db;
-            min-width: 16px;
-            text-align: center;
-        }
-        
-        .task-description {
-            font-size: 7.5px;
-            color: #2c3e50;
-            flex: 1;
-            line-height: 1.2;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-        
-        .task-percentage {
-            font-size: 8px;
-            font-weight: 700;
-            min-width: 30px;
-            text-align: center;
-            padding: 1px 4px;
-            border-radius: 3px;
-            background: white;
-            border: 1px solid #e0e0e0;
-        }
-        
-        /* МИНИ-ДОНУТ ДЛЯ ОЦЕНОК */
+        /* ИСПРАВЛЕННЫЙ МИНИ-ДОНУТ ДЛЯ ОЦЕНОК */
         .mini-donut {
             width: 60px;
             height: 60px;
@@ -381,9 +329,9 @@
             padding: 12px;
             border: 1px solid #e0e0e0;
             box-shadow: 0 4px 6px rgba(0,0,0,0.07);
+            transition: transform 0.2s, box-shadow 0.2s;
             position: relative;
             overflow: hidden;
-            page-break-inside: avoid;
         }
         
         .analytics-card::before {
@@ -409,7 +357,7 @@
             letter-spacing: 0.3px;
         }
         
-        /* 1. КОРИДОР РЕШАЕМОСТИ - ИСПРАВЛЕННЫЙ ДЛЯ ПЕЧАТИ */
+        /* 1. КОРИДОР РЕШАЕМОСТИ - ИСПРАВЛЕННЫЙ */
         .corridor-card {
             grid-column: 1;
             grid-row: 1;
@@ -510,9 +458,10 @@
         .performance-bar {
             width: 20px;
             border-radius: 4px 4px 0 0;
+            transition: height 0.3s ease;
             position: relative;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            min-height: 5px;
+            min-height: 5px; /* Минимальная высота */
         }
         
         .bar-label {
@@ -558,6 +507,7 @@
             border-radius: 6px;
             text-align: center;
             box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            transition: transform 0.2s;
         }
         
         .metric-value {
@@ -576,7 +526,7 @@
             line-height: 1.1;
         }
         
-        /* 3. НОРМАЛЬНОЕ РАСПРЕДЕЛЕНИЕ БАЛЛОВ - ИСПРАВЛЕННОЕ ДЛЯ ПЕЧАТИ */
+        /* 3. НОРМАЛЬНОЕ РАСПРЕДЕЛЕНИЕ - ИСПРАВЛЕННОЕ */
         .distribution-card {
             grid-column: 3;
             grid-row: 1;
@@ -644,7 +594,9 @@
             width: 80%;
             border-radius: 3px 3px 0 0;
             position: relative;
+            transition: height 0.3s ease;
             box-shadow: 0 2px 3px rgba(0,0,0,0.1);
+            min-height: 1px; /* Важно для отображения */
         }
         
         .score-label {
@@ -815,9 +767,10 @@
         .error-fill {
             height: 100%;
             border-radius: 3px;
+            transition: width 0.3s ease;
         }
         
-        /* 6. КОРРЕЛЯЦИЯ СЛОЖНОСТИ И ВЫПОЛНЕНИЯ */
+        /* 6. КОРРЕЛЯЦИЯ СЛОЖНОСТИ И ВЫПОЛНЕНИЯ - ИСПРАВЛЕННАЯ */
         .correlation-card {
             grid-column: 3;
             grid-row: 2;
@@ -930,7 +883,6 @@
             border-radius: 5px;
             background: #f8f9fa;
             border-left: 4px solid #3498db;
-            page-break-inside: avoid;
         }
         
         .priority-high { border-left-color: #e74c3c; background: linear-gradient(to right, rgba(231, 76, 60, 0.05), #f8f9fa); }
@@ -990,6 +942,7 @@
             stroke: #3498db;
             stroke-width: 8;
             stroke-linecap: round;
+            transition: stroke-dasharray 0.5s ease;
         }
         
         .gauge-value {
@@ -1012,143 +965,42 @@
             font-weight: 600;
         }
         
-        /* СТРАНИЦА 3 - ПРОГНОЗЫ И СТРАТЕГИИ */
-        .strategy-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
-            grid-template-rows: auto auto;
-            gap: 12px;
-            padding: 12px;
-            height: calc(210mm - 24px);
-        }
-        
-        .strategy-card {
-            background: white;
-            border-radius: 10px;
-            padding: 12px;
-            border: 1px solid #e0e0e0;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.07);
-            position: relative;
-            overflow: hidden;
-            page-break-inside: avoid;
-        }
-        
-        .strategy-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 4px;
-            background: linear-gradient(90deg, #9b59b6, #8e44ad);
-        }
-        
-        /* ОСОБЫЕ СТИЛИ ДЛЯ БЛОКОВ С ПРОКРУТКОЙ */
-        .scrollable-content {
-            height: 140px;
-            margin-top: 10px;
-            overflow-y: auto;
-            padding-right: 5px;
-        }
-        
-        /* СТИЛИ ДЛЯ ПЕЧАТИ - ИСПРАВЛЕННЫЕ */
+        /* СТИЛИ ДЛЯ ПЕЧАТИ */
         @media print {
             body {
                 background: white !important;
                 -webkit-print-color-adjust: exact !important;
                 print-color-adjust: exact !important;
                 color-adjust: exact !important;
-                width: 100% !important;
-                height: auto !important;
-                margin: 0 !important;
-                padding: 0 !important;
             }
             
-            .page-break {
-                page-break-before: always;
-                break-before: page;
-            }
-            
-            .report-container, .analytics-grid, .strategy-grid {
-                height: auto !important;
-                min-height: 180mm;
-                page-break-inside: avoid;
-                break-inside: avoid;
-            }
-            
-            .analytics-card, .strategy-card {
+            .analytics-card {
                 box-shadow: 0 1px 3px rgba(0,0,0,0.1) !important;
                 border: 1px solid #ddd !important;
-                page-break-inside: avoid !important;
-                break-inside: avoid !important;
-                overflow: visible !important;
+                page-break-inside: avoid;
+                break-inside: avoid;
             }
             
             .analytics-card::before {
                 background: #3498db !important;
             }
             
-            .strategy-card::before {
-                background: #9b59b6 !important;
-            }
-            
-            /* ВАЖНОЕ ИСПРАВЛЕНИЕ: убираем прокрутку при печати */
-            .scrollable-content, 
-            .priority-list,
-            div[style*="overflow-y: auto"],
-            div[style*="overflow-y: scroll"] {
-                overflow: visible !important;
-                height: auto !important;
-                max-height: none !important;
-                padding-right: 0 !important;
-            }
-            
-            /* Обеспечиваем видимость всех элементов */
-            .task-desc-item,
-            .priority-item,
-            .goal-item,
-            .resource-item {
-                page-break-inside: avoid;
-                break-inside: avoid;
-            }
-            
-            /* ИСПРАВЛЕНИЕ ДЛЯ ГРАФИКОВ: убираем transition и animation */
-            .performance-bar,
-            .score-bar,
-            .error-fill {
+            /* Важно для отображения диаграмм при печати */
+            .performance-bar, .score-bar, .error-fill {
                 -webkit-print-color-adjust: exact !important;
                 print-color-adjust: exact !important;
-                color-adjust: exact !important;
-                transition: none !important;
-                animation: none !important;
-            }
-            
-            /* Для donut chart */
-            .mini-donut::before {
-                -webkit-print-color-adjust: exact !important;
-                print-color-adjust: exact !important;
-                color-adjust: exact !important;
+                height: inherit !important;
+                display: block !important;
             }
             
             .metric-card {
                 box-shadow: 0 1px 2px rgba(0,0,0,0.1) !important;
+            }
+            
+            /* Исправление для donut chart */
+            .mini-donut::before {
                 -webkit-print-color-adjust: exact !important;
                 print-color-adjust: exact !important;
-                color-adjust: exact !important;
-            }
-            
-            /* Скрываем ненужные элементы */
-            .task-desc-item:hover {
-                background: #f8f9fa !important;
-            }
-            
-            /* Увеличиваем читаемость при печати */
-            .analytics-title {
-                font-size: 11px !important;
-            }
-            
-            .priority-text, .task-description {
-                font-size: 8px !important;
             }
         }
     </style>
@@ -1216,12 +1068,12 @@
                 <div class="section-title">
                     <span>📊</span> Анализ выполнения заданий
                 </div>
-                <div class="scrollable-content">
+                <div style="max-height: 120px; overflow-y: auto; padding-right: 2px;">
                     ${generateTaskAnalysis(stats.taskPercentages, data.tasks)}
                 </div>
             </div>
             
-            <!-- Распределение оценок -->
+            <!-- Распределение оценок - ИСПРАВЛЕННОЕ -->
             <div class="right-section">
                 <div class="section-title">
                     <span>🎯</span> Распределение оценок
@@ -1268,7 +1120,7 @@
                 <span>📊</span> Коридор решаемости заданий
             </div>
             <div class="corridor-chart">
-                ${generateEnhancedCorridorChart(stats.taskPercentages, true)}
+                ${generateEnhancedCorridorChart(stats.taskPercentages)}
             </div>
         </div>
         
@@ -1288,7 +1140,7 @@
                 <span>📊</span> Распределение баллов
             </div>
             <div class="distribution-chart">
-                ${generateDistributionChart(stats, true)}
+                ${generateDistributionChart(stats)}
             </div>
         </div>
         
@@ -1342,71 +1194,6 @@
             </div>
             <div class="standards-chart">
                 ${generateStandardsGauge(stats)}
-            </div>
-        </div>
-    </div>
-    
-    <!-- СТРАНИЦА 3 - ПРОГНОЗЫ И СТРАТЕГИИ -->
-    <div class="page-break"></div>
-    
-    <div class="strategy-grid">
-        <!-- Прогноз улучшений -->
-        <div class="strategy-card" style="grid-column: 1; grid-row: 1;">
-            <div class="analytics-title">
-                <span>🔮</span> Прогноз улучшений
-            </div>
-            <div style="height: 140px; margin-top: 10px;">
-                ${generateImprovementForecast(stats, data)}
-            </div>
-        </div>
-        
-        <!-- Цели на следующий тест -->
-        <div class="strategy-card" style="grid-column: 2; grid-row: 1;">
-            <div class="analytics-title">
-                <span>🎯</span> Цели на следующий тест
-            </div>
-            <div class="scrollable-content">
-                ${generateNextTestGoals(stats)}
-            </div>
-        </div>
-        
-        <!-- Индивидуальные траектории -->
-        <div class="strategy-card" style="grid-column: 3; grid-row: 1;">
-            <div class="analytics-title">
-                <span>👥</span> Группы учащихся
-            </div>
-            <div style="height: 140px; margin-top: 10px;">
-                ${generateStudentGroups(stats, data)}
-            </div>
-        </div>
-        
-        <!-- Матрица компетенций -->
-        <div class="strategy-card" style="grid-column: 1; grid-row: 2;">
-            <div class="analytics-title">
-                <span>🧩</span> Матрица компетенций
-            </div>
-            <div style="height: 140px; margin-top: 10px;">
-                ${generateCompetencyMatrix(data.tasks)}
-            </div>
-        </div>
-        
-        <!-- Точки роста -->
-        <div class="strategy-card" style="grid-column: 2; grid-row: 2;">
-            <div class="analytics-title">
-                <span>📈</span> Точки роста
-            </div>
-            <div class="scrollable-content">
-                ${generateGrowthPoints(stats.taskPercentages, data.tasks)}
-            </div>
-        </div>
-        
-        <!-- Ресурсы и материалы -->
-        <div class="strategy-card" style="grid-column: 3; grid-row: 2;">
-            <div class="analytics-title">
-                <span>📚</span> Рекомендуемые ресурсы
-            </div>
-            <div class="scrollable-content">
-                ${generateRecommendedResources(stats, data)}
             </div>
         </div>
     </div>
@@ -1485,12 +1272,6 @@
         // Коэффициент вариации
         const coefficientOfVariation = (standardDeviation / averageScore * 100).toFixed(1);
         
-        // Асимметрия
-        const skewness = studentScores.reduce((sum, score) => sum + Math.pow((score - averageScore) / standardDeviation, 3), 0) / studentScores.length;
-        
-        // Эксцесс
-        const kurtosis = studentScores.reduce((sum, score) => sum + Math.pow((score - averageScore) / standardDeviation, 4), 0) / studentScores.length - 3;
-        
         return {
             maxScore,
             taskTotals,
@@ -1505,20 +1286,19 @@
             quality,
             success,
             coefficientOfVariation,
-            skewness: skewness.toFixed(2),
-            kurtosis: kurtosis.toFixed(2),
             studentScores,
             studentCount: data.students.length
         };
     }
 
-    // УЛУЧШЕННЫЙ КОРИДОР РЕШАЕМОСТИ - ИСПРАВЛЕННЫЙ ДЛЯ ПЕЧАТИ
-    function generateEnhancedCorridorChart(taskPercentages, forPrint = false) {
+    // УЛУЧШЕННЫЙ КОРИДОР РЕШАЕМОСТИ - ИСПРАВЛЕННЫЙ
+    function generateEnhancedCorridorChart(taskPercentages) {
         if (!taskPercentages || taskPercentages.length === 0) {
             return '<div style="text-align: center; color: #7f8c8d; padding: 40px 0;">Нет данных</div>';
         }
         
         const sorted = [...taskPercentages].sort((a, b) => a.number - b.number);
+        const maxPercentage = Math.max(...sorted.map(t => t.percentage), 100);
         
         let html = `
             <div class="corridor-axes">
@@ -1536,11 +1316,10 @@
                     <div class="threshold-zone zone-low"></div>
         `;
         
-        // Создаем столбцы
+        // Создаем столбцы - ВАЖНОЕ ИСПРАВЛЕНИЕ
         sorted.forEach((task, index) => {
-            // ВАЖНОЕ ИСПРАВЛЕНИЕ: правильный расчет высоты
-            const heightPercent = Math.max(1, (task.percentage / 100) * 100); // От 1% до 100%
-            const heightPx = (heightPercent / 100) * 110; // 110px - максимальная высота
+            // Исправлено: высота должна быть от 0 до 100% от доступного пространства
+            const heightPercent = (task.percentage * 130) / 100 - 9; // Используем 100% как максимум
             const leftPercent = (index / (sorted.length - 1)) * 100;
             
             // Определяем цвет столбца
@@ -1552,14 +1331,10 @@
             else if (task.percentage >= 10) color = '#e74c3c';
             else color = '#c0392b';
             
-            // Для печати добавляем inline стиль с фиксированной высотой
-            const style = forPrint 
-                ? `style="height: ${heightPx}px; background: ${color}; min-height: 1px;"`
-                : `style="height: ${heightPx}px; background: ${color};"`;
-            
+
             html += `
                 <div class="bar-container" style="left: ${leftPercent}%;">
-                    <div class="performance-bar" ${style}>
+                    <div class="performance-bar" style="height: ${heightPercent}px; background: ${color};">
                         <div class="bar-value">${Math.round(task.percentage)}%</div>
                     </div>
                     <div class="bar-label">${task.number}</div>
@@ -1632,8 +1407,8 @@
         `).join('');
     }
 
-    // НОРМАЛЬНОЕ РАСПРЕДЕЛЕНИЕ БАЛЛОВ - ИСПРАВЛЕННОЕ ДЛЯ ПЕЧАТИ
-    function generateDistributionChart(stats, forPrint = false) {
+    // НОРМАЛЬНОЕ РАСПРЕДЕЛЕНИЕ БАЛЛОВ - ИСПРАВЛЕННОЕ
+    function generateDistributionChart(stats) {
         if (!stats.studentScores || stats.studentScores.length === 0) {
             return '<div style="text-align: center; color: #7f8c8d; padding: 40px 0;">Нет данных</div>';
         }
@@ -1643,7 +1418,7 @@
         const maxScore = Math.max(...stats.studentScores);
         const minScore = Math.min(...stats.studentScores);
         const range = maxScore - minScore;
-        const groupSize = Math.max(1, Math.ceil(range / 6));
+        const groupSize = Math.max(1, Math.ceil(range / 6)); // Уменьшаем количество групп
         
         stats.studentScores.forEach(score => {
             const group = Math.floor(score / groupSize) * groupSize;
@@ -1680,36 +1455,48 @@
         `;
         
         groups.forEach((group, index) => {
-            const heightPercent = (group.count / maxCount) * 100;
-            
-            // Определяем цвет по позиции в распределении
-            let color;
-            const position = index / groups.length;
-            if (position < 0.25) color = '#e74c3c';
-            else if (position < 0.5) color = '#f39c12';
-            else if (position < 0.75) color = '#3498db';
-            else color = '#27ae60';
-            
-            // ВАЖНОЕ ИСПРАВЛЕНИЕ: для печати гарантируем высоту
-            const style = forPrint 
-                ? `style="height: ${heightPercent}%; background: ${color}; min-height: ${group.count > 0 ? '5px' : '1px'};"`
-                : `style="height: ${heightPercent}%; background: ${color};"`;
-            
-            html += `
-                <div class="distribution-bar">
-                    <div class="score-bar" ${style}>
-                        <div class="score-count">${group.count}</div>
+            if (group.count > 0) {
+                const heightPercent = (group.count / maxCount) * 100;
+                
+                // Определяем цвет по позиции в распределении
+                let color;
+                const position = index / groups.length;
+                if (position < 0.25) color = '#e74c3c';
+                else if (position < 0.5) color = '#f39c12';
+                else if (position < 0.75) color = '#3498db';
+                else color = '#27ae60';
+                
+                html += `
+                    <div class="distribution-bar">
+                        <div class="score-bar" style="height: ${heightPercent}%; background: ${color};">
+                            <div class="score-count">${group.count}</div>
+                        </div>
+                        <div class="score-label">${group.label}</div>
                     </div>
-                    <div class="score-label">${group.label}</div>
-                </div>
-            `;
+                `;
+            } else {
+                // Пустой столбец для отсутствующих данных
+                html += `
+                    <div class="distribution-bar">
+                        <div class="score-bar" style="height: 0%;"></div>
+                        <div class="score-label">${group.label}</div>
+                    </div>
+                `;
+            }
         });
+        
+        // // Линия среднего значения - ИСПРАВЛЕНО положение
+        // const meanPosition = ((stats.averageScore - minScore) / range) * 100;
+        // html += `
+        //     <div class="mean-line" style="left: ${25 + meanPosition}%;"></div>
+        //     <div class="mean-label" style="left: ${25 + meanPosition}%;">μ=${stats.averageScore.toFixed(1)}</div>
+        // `;
         
         html += '</div>';
         return html;
     }
 
-    // КОРРЕЛЯЦИЯ СЛОЖНОСТИ И ВЫПОЛНЕНИЯ
+    // КОРРЕЛЯЦИЯ СЛОЖНОСТИ И ВЫПОЛНЕНИЯ - ИСПРАВЛЕННАЯ
     function generateCorrelationChart(tasks, taskPercentages) {
         if (!tasks || tasks.length === 0 || !taskPercentages || taskPercentages.length === 0) {
             return '<div style="text-align: center; color: #7f8c8d; padding: 40px 0;">Нет данных</div>';
@@ -1762,7 +1549,13 @@
             `;
         });
         
-        html += '</div>';
+        // Простая горизонтальная линия для наглядности
+        html += `
+            <div class="trend-line" 
+                 style="left: 0; bottom: 50%; width: 100%; opacity: 0.3;"></div>
+            </div>
+        `;
+        
         return html;
     }
 
@@ -1782,7 +1575,7 @@
         return `--grade-5: ${p5}%; --grade-4: ${p5 + p4}%; --grade-3: ${p5 + p4 + p3}%;`;
     }
 
-    // ОСНОВНЫЕ ФУНКЦИИ
+    // ОСТАЛЬНЫЕ ФУНКЦИИ (оставляем из предыдущей версии)
     function calculateGrade(score, criteria) {
         if (score >= criteria[5].min && score <= criteria[5].max) return 5;
         if (score >= criteria[4].min && score <= criteria[4].max) return 4;
@@ -1800,6 +1593,23 @@
         }
     }
 
+    // Функции для генерации остальных элементов (не изменились)
+    function generateStatsCircles(data, maxScore) {
+        const stats = [
+            { label: 'Писали', value: data.test.presentStudents, color: '#3498db' },
+            { label: 'Всего', value: data.test.totalStudents, color: '#2c3e50' },
+            { label: 'Отсут.', value: data.test.totalStudents - data.test.presentStudents, color: '#7f8c8d' },
+            { label: 'Макс. балл', value: maxScore, color: '#9b59b6' }
+        ];
+        
+        return stats.map(stat => `
+            <div class="stat-circle" style="background: linear-gradient(135deg, ${stat.color}, ${adjustColor(stat.color, -20)});">
+                <div class="stat-value-circle">${stat.value}</div>
+                <div class="stat-label-circle">${stat.label}</div>
+            </div>
+        `).join('');
+    }
+
     function adjustColor(color, amount) {
         if (!color || !color.startsWith('#')) return color;
         
@@ -1811,23 +1621,6 @@
         } catch {
             return color;
         }
-    }
-
-    // ФУНКЦИИ ДЛЯ СТРАНИЦЫ 1
-    function generateStatsCircles(data, maxScore) {
-        const stats = [
-            { label: 'Писали', value: data.test.presentStudents, color: colors.stats.present },
-            { label: 'Всего', value: data.test.totalStudents, color: colors.stats.total },
-            { label: 'Отсут.', value: data.test.totalStudents - data.test.presentStudents, color: colors.stats.absent },
-            { label: 'Макс. балл', value: maxScore, color: colors.stats.maxScore }
-        ];
-        
-        return stats.map(stat => `
-            <div class="stat-circle" style="background: linear-gradient(135deg, ${stat.color}, ${adjustColor(stat.color, -20)});">
-                <div class="stat-value-circle">${stat.value}</div>
-                <div class="stat-label-circle">${stat.label}</div>
-            </div>
-        `).join('');
     }
 
     function generateStudentsTable(data, stats) {
@@ -1868,18 +1661,11 @@
                 task.description.substring(0, 37) + '...' : 
                 task.description;
             
-            // Определяем цвет границы в зависимости от процента выполнения
-            let borderColor = '#e0e0e0';
-            if (task.percentage >= 80) borderColor = '#27ae60';
-            else if (task.percentage >= 60) borderColor = '#3498db';
-            else if (task.percentage >= 40) borderColor = '#f39c12';
-            else borderColor = '#e74c3c';
-            
             return `
-                <div class="task-desc-item" style="border-left-color: ${borderColor};">
+                <div class="task-desc-item">
                     <div class="task-number">${task.number}.</div>
                     <div class="task-description" title="${task.description}">${shortDesc}</div>
-                    <div class="task-percentage" style="color: ${borderColor};">${Math.round(task.percentage)}%</div>
+                    <div class="task-percentage">${Math.round(task.percentage)}%</div>
                 </div>
             `;
         }).join('');
@@ -1957,7 +1743,7 @@
         return html;
     }
 
-    // ФУНКЦИИ ДЛЯ СТРАНИЦЫ 2
+    // Функции для остальных графиков (не изменялись)
     function generateRadialComplexityChart(tasks) {
         if (!tasks || tasks.length === 0) {
             return '<div style="text-align: center; color: #7f8c8d; padding: 40px 0;">Нет данных</div>';
@@ -2149,14 +1935,6 @@
             });
         }
         
-        // Приоритет MEDIUM: Высокое стандартное отклонение
-        if (parseFloat(stats.standardDeviation) > stats.averageScore * 0.3) {
-            recommendations.push({
-                priority: 'medium',
-                text: 'Снизить разброс результатов между учащимися'
-            });
-        }
-        
         // Приоритет LOW: Общие рекомендации
         recommendations.push({
             priority: 'low',
@@ -2224,209 +2002,6 @@
         `;
     }
 
-    // ФУНКЦИИ ДЛЯ СТРАНИЦЫ 3
-    function generateImprovementForecast(stats, data) {
-        const currentQuality = parseFloat(stats.quality);
-        const currentSuccess = parseFloat(stats.success);
-        const currentAverage = parseFloat(stats.averageScore);
-        
-        // Прогноз улучшений
-        const forecastQuality = Math.min(100, currentQuality * 1.15).toFixed(1);
-        const forecastSuccess = Math.min(100, currentSuccess * 1.08).toFixed(1);
-        const forecastAverage = (currentAverage * 1.1).toFixed(1);
-        
-        return `
-            <div style="display: flex; flex-direction: column; gap: 8px; padding: 5px;">
-                <div style="display: flex; align-items: center; gap: 10px;">
-                    <div style="width: 60%;">
-                        <div style="font-size: 7px; color: #7f8c8d; margin-bottom: 2px;">Качество знаний</div>
-                        <div style="display: flex; align-items: center; gap: 5px;">
-                            <div style="font-size: 9px; font-weight: 700; color: #e74c3c;">${currentQuality}%</div>
-                            <div style="font-size: 8px; color: #7f8c8d;">→</div>
-                            <div style="font-size: 9px; font-weight: 700; color: #27ae60;">${forecastQuality}%</div>
-                        </div>
-                    </div>
-                    <div style="flex: 1; height: 8px; background: #ecf0f1; border-radius: 4px; overflow: hidden;">
-                        <div style="height: 100%; width: ${currentQuality}%; background: #e74c3c; border-radius: 4px;"></div>
-                        <div style="height: 100%; width: ${Math.max(0, forecastQuality - currentQuality)}%; background: #27ae60; border-radius: 4px; margin-left: ${currentQuality}%;"></div>
-                    </div>
-                </div>
-                
-                <div style="display: flex; align-items: center; gap: 10px;">
-                    <div style="width: 60%;">
-                        <div style="font-size: 7px; color: #7f8c8d; margin-bottom: 2px;">Успеваемость</div>
-                        <div style="display: flex; align-items: center; gap: 5px;">
-                            <div style="font-size: 9px; font-weight: 700; color: #f39c12;">${currentSuccess}%</div>
-                            <div style="font-size: 8px; color: #7f8c8d;">→</div>
-                            <div style="font-size: 9px; font-weight: 700; color: #2ecc71;">${forecastSuccess}%</div>
-                        </div>
-                    </div>
-                    <div style="flex: 1; height: 8px; background: #ecf0f1; border-radius: 4px; overflow: hidden;">
-                        <div style="height: 100%; width: ${currentSuccess}%; background: #f39c12; border-radius: 4px;"></div>
-                        <div style="height: 100%; width: ${Math.max(0, forecastSuccess - currentSuccess)}%; background: #2ecc71; border-radius: 4px; margin-left: ${currentSuccess}%;"></div>
-                    </div>
-                </div>
-                
-                <div style="display: flex; align-items: center; gap: 10px;">
-                    <div style="width: 60%;">
-                        <div style="font-size: 7px; color: #7f8c8d; margin-bottom: 2px;">Средний балл</div>
-                        <div style="display: flex; align-items: center; gap: 5px;">
-                            <div style="font-size: 9px; font-weight: 700; color: #3498db;">${currentAverage}</div>
-                            <div style="font-size: 8px; color: #7f8c8d;">→</div>
-                            <div style="font-size: 9px; font-weight: 700; color: #9b59b6;">${forecastAverage}</div>
-                        </div>
-                    </div>
-                    <div style="flex: 1; height: 8px; background: #ecf0f1; border-radius: 4px; overflow: hidden;">
-                        <div style="height: 100%; width: ${(currentAverage / stats.maxScore * 100)}%; background: #3498db; border-radius: 4px;"></div>
-                        <div style="height: 100%; width: ${Math.max(0, (forecastAverage - currentAverage) / stats.maxScore * 100)}%; background: #9b59b6; border-radius: 4px; margin-left: ${(currentAverage / stats.maxScore * 100)}%;"></div>
-                    </div>
-                </div>
-            </div>
-        `;
-    }
-
-    function generateNextTestGoals(stats) {
-        const goals = [
-            { text: 'Увеличить качество знаний на 10%', priority: 'high' },
-            { text: 'Снизить количество оценок "2" на 30%', priority: 'high' },
-            { text: 'Повысить выполнение сложных заданий на 15%', priority: 'medium' },
-            { text: 'Улучшить средний балл на 0.5 пункта', priority: 'medium' },
-            { text: 'Провести 2 дополнительные консультации', priority: 'low' },
-            { text: 'Создать банк типовых задач по слабым темам', priority: 'low' }
-        ];
-        
-        return goals.map(goal => `
-            <div class="goal-item" style="display: flex; align-items: flex-start; gap: 5px; margin-bottom: 5px; padding: 4px; background: #f8f9fa; border-radius: 4px; page-break-inside: avoid;">
-                <div style="width: 6px; height: 6px; border-radius: 50%; background: ${goal.priority === 'high' ? '#e74c3c' : goal.priority === 'medium' ? '#f39c12' : '#3498db'}; margin-top: 3px;"></div>
-                <div style="font-size: 8px; color: #2c3e50; line-height: 1.3; flex: 1;">${goal.text}</div>
-            </div>
-        `).join('');
-    }
-
-    function generateStudentGroups(stats, data) {
-        // Группируем учащихся по результатам
-        const groups = [
-            { name: 'Отличники', min: 4.5, color: '#27ae60', count: 0 },
-            { name: 'Хорошисты', min: 3.5, color: '#3498db', count: 0 },
-            { name: 'Удовлетворительно', min: 2.5, color: '#f39c12', count: 0 },
-            { name: 'Требуют внимания', min: 0, color: '#e74c3c', count: 0 }
-        ];
-        
-        // Считаем учащихся в группах
-        data.results.forEach((studentResults, index) => {
-            const total = studentResults.reduce((sum, score) => sum + score, 0);
-            const maxScore = data.tasks.reduce((sum, task) => sum + task.maxScore, 0);
-            const percentage = (total / maxScore) * 100;
-            
-            if (percentage >= 85) groups[0].count++;
-            else if (percentage >= 70) groups[1].count++;
-            else if (percentage >= 50) groups[2].count++;
-            else groups[3].count++;
-        });
-        
-        const totalStudents = groups.reduce((sum, g) => sum + g.count, 0);
-        
-        return `
-            <div style="display: flex; flex-direction: column; gap: 6px; padding: 5px;">
-                ${groups.map(group => {
-                    const percentage = totalStudents > 0 ? (group.count / totalStudents * 100).toFixed(0) : 0;
-                    return `
-                        <div style="display: flex; align-items: center; gap: 8px;">
-                            <div style="width: 10px; height: 10px; border-radius: 50%; background: ${group.color};"></div>
-                            <div style="font-size: 8px; color: #2c3e50; font-weight: 600; flex: 1;">${group.name}</div>
-                            <div style="font-size: 9px; font-weight: 800; color: ${group.color};">${group.count}</div>
-                            <div style="width: 50px; height: 6px; background: #ecf0f1; border-radius: 3px; overflow: hidden;">
-                                <div style="height: 100%; width: ${percentage}%; background: ${group.color}; border-radius: 3px;"></div>
-                            </div>
-                            <div style="font-size: 7px; color: #7f8c8d; min-width: 20px; text-align: right;">${percentage}%</div>
-                        </div>
-                    `;
-                }).join('')}
-            </div>
-        `;
-    }
-
-    function generateCompetencyMatrix(tasks) {
-        // Анализ типов компетенций
-        const competencies = {
-            knowledge: { name: 'Знание', count: 0, color: '#3498db' },
-            application: { name: 'Применение', count: 0, color: '#2ecc71' },
-            analysis: { name: 'Анализ', count: 0, color: '#f39c12' },
-            synthesis: { name: 'Синтез', count: 0, color: '#9b59b6' }
-        };
-        
-        // Простой анализ по уровням сложности
-        tasks.forEach(task => {
-            const level = task.level || 1;
-            if (level === 1) competencies.knowledge.count++;
-            else if (level === 2) competencies.application.count++;
-            else if (level === 3) competencies.analysis.count++;
-            else competencies.synthesis.count++;
-        });
-        
-        return `
-            <div style="display: grid; grid-template-columns: repeat(2, 1fr); grid-template-rows: repeat(2, 1fr); gap: 6px; height: 100%; padding: 5px;">
-                ${Object.values(competencies).map(comp => {
-                    const percentage = tasks.length > 0 ? (comp.count / tasks.length * 100).toFixed(0) : 0;
-                    return `
-                        <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; background: ${comp.color}; border-radius: 6px; padding: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                            <div style="font-size: 14px; font-weight: 800; color: white; margin-bottom: 3px;">${comp.count}</div>
-                            <div style="font-size: 7px; color: rgba(255,255,255,0.95); font-weight: 600; text-align: center; line-height: 1.1;">${comp.name}</div>
-                            <div style="font-size: 6px; color: rgba(255,255,255,0.8); margin-top: 2px;">${percentage}%</div>
-                        </div>
-                    `;
-                }).join('')}
-            </div>
-        `;
-    }
-
-    function generateGrowthPoints(taskPercentages, tasks) {
-        if (!taskPercentages || taskPercentages.length === 0) {
-            return '<div style="text-align: center; color: #7f8c8d; padding: 40px 0;">Нет данных</div>';
-        }
-        
-        // Находим задания с наибольшим потенциалом роста
-        const growthTasks = [...taskPercentages]
-            .filter(t => t.percentage > 30 && t.percentage < 70)
-            .sort((a, b) => b.percentage - a.percentage)
-            .slice(0, 5);
-        
-        return growthTasks.map(task => {
-            const taskDesc = tasks.find(t => t.number === task.number)?.description || 'Задание';
-            const shortDesc = taskDesc.length > 50 ? taskDesc.substring(0, 47) + '...' : taskDesc;
-            const growthPotential = Math.max(0, (70 - task.percentage)).toFixed(0);
-            
-            return `
-                <div class="goal-item" style="display: flex; align-items: center; gap: 6px; margin-bottom: 5px; padding: 4px; background: #f8f9fa; border-radius: 4px; page-break-inside: avoid;">
-                    <div style="font-size: 9px; font-weight: 800; color: #3498db; min-width: 20px; text-align: center;">${task.number}</div>
-                    <div style="font-size: 7px; color: #2c3e50; flex: 1; line-height: 1.2;">${shortDesc}</div>
-                    <div style="display: flex; flex-direction: column; align-items: flex-end;">
-                        <div style="font-size: 8px; font-weight: 700; color: #e74c3c;">${Math.round(task.percentage)}%</div>
-                        <div style="font-size: 6px; color: #27ae60;">+${growthPotential}% потенциал</div>
-                    </div>
-                </div>
-            `;
-        }).join('');
-    }
-
-    function generateRecommendedResources(stats, data) {
-        const resources = [
-            { type: '📚', text: 'Сборник задач повышенной сложности' },
-            { type: '🎥', text: 'Видеоуроки по темам с низким выполнением' },
-            { type: '📝', text: 'Тренировочные тесты с автоматической проверкой' },
-            { type: '👥', text: 'Групповые консультации для отстающих' },
-            { type: '📊', text: 'Аналитические материалы по типичным ошибкам' },
-            { type: '🎯', text: 'Индивидуальные карточки-тренажеры' }
-        ];
-        
-        return resources.map(res => `
-            <div class="resource-item" style="display: flex; align-items: flex-start; gap: 6px; margin-bottom: 5px; padding: 4px; background: #f8f9fa; border-radius: 4px; page-break-inside: avoid;">
-                <div style="font-size: 10px;">${res.type}</div>
-                <div style="font-size: 7px; color: #2c3e50; line-height: 1.3; flex: 1;">${res.text}</div>
-            </div>
-        `).join('');
-    }
-
     // ЭКСПОРТИРУЕМЫЕ ФУНКЦИИ
     function generateReportModule(data) {
         if (!data) {
@@ -2445,15 +2020,6 @@
             reportWindow.document.write(generateReportHTML(data));
             reportWindow.document.close();
             reportWindow.focus();
-            
-            // Добавляем обработчик для печати после загрузки
-            reportWindow.onload = function() {
-                // Даем время на рендеринг графиков
-                setTimeout(() => {
-                    // Автоматически запускаем диалог печати
-                    reportWindow.print();
-                }, 500);
-            };
             
             return reportWindow;
         } catch (error) {
@@ -2474,7 +2040,7 @@
         errorTypes: errorTypes,
         
         // Версия
-        version: '3.1.0'
+        version: '2.1.0'
     };
 
     // Экспортируем в глобальную область видимости
@@ -2484,4 +2050,4 @@
 
 })(window || global || this);
 
-console.log('ReportGenerator Premium v3.1.0 загружен и готов к использованию');
+console.log('ReportGenerator Premium v2.1.0 загружен и готов к использованию');
