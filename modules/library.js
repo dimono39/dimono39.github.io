@@ -290,3 +290,1870 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 });
+
+// ============================
+// СИСТЕМА БИБЛИОТЕКИ МАТЕРИАЛОВ
+// ============================
+
+// Конфигурация библиотеки
+const libraryConfig = {
+    version: '1.0.0',
+    catalogFileName: 'library_catalog.json',
+    folders: {
+        templates: 'templates/',
+        criteria: 'criteria/',
+        tasks: 'tasks/',
+        methodical: 'methodical/',
+        subject_resources: 'subjects/',
+        external: 'external/',
+        images: 'images/',
+        docs: 'documents/'
+    },
+    supportedExtensions: {
+        templates: ['.json', '.template'],
+        criteria: ['.json', '.criteria'],
+        tasks: ['.json', '.task'],
+        methodical: ['.pdf', '.doc', '.docx', '.txt', '.md'],
+        images: ['.jpg', '.jpeg', '.png', '.gif', '.svg'],
+        docs: ['.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx']
+    }
+};
+
+// Структура каталога библиотеки
+window.libraryCatalog = {
+    meta: {
+        version: libraryConfig.version,
+        lastUpdated: new Date().toISOString(),
+        totalItems: 0,
+        totalSize: '0 MB',
+        generatedBy: 'Система анализа результатов'
+    },
+    categories: {
+        work_templates: [],
+        criteria: [],
+        tasks_bank: [],
+        methodical: [],
+        subject_resources: [],
+        external_resources: []
+    },
+    fileIndex: {}, // Для быстрого поиска файлов по ID
+    statistics: {
+        bySubject: {},
+        byGrade: {},
+        byComplexity: {},
+        byType: {}
+    }
+};
+
+// Инициализация библиотеки
+function initLibrary() {
+    console.log('📚 Инициализация библиотеки материалов...');
+    
+    // Пробуем загрузить из localStorage
+    const cachedCatalog = localStorage.getItem('library_catalog_cache');
+    const cacheInfo = localStorage.getItem('library_cache_info');
+    
+    if (cachedCatalog && cacheInfo) {
+        try {
+            const info = JSON.parse(cacheInfo);
+            const catalog = JSON.parse(cachedCatalog);
+            
+            // Проверяем версию
+            if (catalog.meta && catalog.meta.version === libraryConfig.version) {
+                window.libraryCatalog = catalog;
+                console.log('📚 Библиотека загружена из кеша:', catalog.meta.totalItems, 'материалов');
+                
+                // Обновляем UI
+                updateLibraryInfo(info);
+                return true;
+            }
+        } catch (e) {
+            console.error('Ошибка загрузки кеша библиотеки:', e);
+        }
+    }
+    
+    // Если кеша нет или он устарел, создаем пустую библиотеку
+    createDefaultLibrary();
+    return false;
+}
+
+// Создание базовой библиотеки
+function createDefaultLibrary() {
+    console.log('📚 Создание базовой библиотеки...');
+    
+    // Примерные данные для демонстрации
+    const defaultMaterials = {
+        work_templates: [
+            {
+                id: 'template_math_001',
+                title: 'Шаблон контрольной по математике',
+                description: 'Стандартный шаблон для текущей контрольной работы',
+                category: 'work_templates',
+                subject: 'mathematics',
+                grade: '5-6',
+                file: 'templates/math_control.json',
+                size: '15 KB',
+                tags: ['математика', 'контрольная', 'шаблон'],
+                added: '2024-01-12',
+                complexity: 'all',
+                thumbnail: 'images/math_template.png'
+            }
+        ],
+        criteria: [
+            {
+                id: 'criteria_vpr_001',
+                title: 'Критерии ВПР 4 класс',
+                description: 'Официальные критерии оценивания ВПР',
+                category: 'criteria',
+                subject: 'world_around',
+                grade: '4',
+                file: 'criteria/vpr_4.json',
+                size: '8 KB',
+                tags: ['ВПР', 'критерии', 'официальные'],
+                added: '2024-01-15'
+            }
+        ],
+        tasks_bank: [
+            {
+                id: 'task_analysis_001',
+                title: 'Задания на анализ',
+                description: '25 заданий на анализ и синтез информации',
+                category: 'tasks_bank',
+                subject: 'all',
+                grade: '7-9',
+                file: 'tasks/analysis_set.json',
+                size: '45 KB',
+                tags: ['анализ', 'уровень 3', 'задания'],
+                added: '2024-01-10',
+                complexity: 3,
+                taskCount: 25
+            }
+        ]
+    };
+    
+    // Заполняем каталог
+    Object.keys(defaultMaterials).forEach(category => {
+        libraryCatalog.categories[category] = defaultMaterials[category];
+        defaultMaterials[category].forEach(item => {
+            libraryCatalog.fileIndex[item.id] = item;
+        });
+    });
+    
+    // Обновляем метаданные
+    updateCatalogMetadata();
+    
+    // Сохраняем в кеш
+    saveLibraryCache();
+    
+    console.log('📚 Базовая библиотека создана');
+}
+
+// Обновление метаданных каталога
+function updateCatalogMetadata() {
+    let totalItems = 0;
+    let totalSize = 0;
+    
+    // Считаем статистику
+    Object.keys(libraryCatalog.categories).forEach(category => {
+        const items = libraryCatalog.categories[category];
+        totalItems += items.length;
+        
+        items.forEach(item => {
+            // Парсим размер файла
+            if (item.size) {
+                const match = item.size.match(/([\d.]+)\s*(KB|MB|GB)/i);
+                if (match) {
+                    const value = parseFloat(match[1]);
+                    const unit = match[2].toUpperCase();
+                    
+                    if (unit === 'KB') totalSize += value * 1024;
+                    else if (unit === 'MB') totalSize += value * 1024 * 1024;
+                    else if (unit === 'GB') totalSize += value * 1024 * 1024 * 1024;
+                }
+            }
+            
+            // Обновляем статистику по предметам
+            if (item.subject) {
+                if (!libraryCatalog.statistics.bySubject[item.subject]) {
+                    libraryCatalog.statistics.bySubject[item.subject] = 0;
+                }
+                libraryCatalog.statistics.bySubject[item.subject]++;
+            }
+        });
+    });
+    
+    // Форматируем общий размер
+    const formatSize = (bytes) => {
+        if (bytes < 1024) return bytes + ' B';
+        if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+        if (bytes < 1024 * 1024 * 1024) return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+        return (bytes / (1024 * 1024 * 1024)).toFixed(1) + ' GB';
+    };
+    
+    // Обновляем метаданные
+    libraryCatalog.meta = {
+        version: libraryConfig.version,
+        lastUpdated: new Date().toISOString(),
+        totalItems: totalItems,
+        totalSize: formatSize(totalSize),
+        generatedBy: 'Система анализа результатов'
+    };
+}
+
+// Сохранение кеша библиотеки
+function saveLibraryCache() {
+    try {
+        const catalogString = JSON.stringify(libraryCatalog, null, 2);
+        const cacheInfo = {
+            savedAt: new Date().toISOString(),
+            version: libraryConfig.version,
+            itemsCount: libraryCatalog.meta.totalItems,
+            size: libraryCatalog.meta.totalSize
+        };
+        
+        localStorage.setItem('library_catalog_cache', catalogString);
+        localStorage.setItem('library_cache_info', JSON.stringify(cacheInfo));
+        
+        console.log('📚 Кеш библиотеки сохранен:', cacheInfo.itemsCount, 'материалов');
+        updateLibraryInfo(cacheInfo);
+        
+        return true;
+    } catch (e) {
+        console.error('Ошибка сохранения кеша библиотеки:', e);
+        return false;
+    }
+}
+
+// Обновление информации о библиотеке в UI
+function updateLibraryInfo(cacheInfo) {
+    const infoElement = document.getElementById('libraryInfo');
+    if (!infoElement) return;
+    
+    const pathSpan = document.getElementById('libraryPath');
+    const statusSpan = document.getElementById('cacheStatus');
+    const updateSpan = document.getElementById('lastUpdate');
+    
+    if (pathSpan) {
+        const libraryPath = localStorage.getItem('library_path') || 'Не указан';
+        pathSpan.textContent = libraryPath;
+    }
+    
+    if (statusSpan && updateSpan && cacheInfo) {
+        const savedDate = new Date(cacheInfo.savedAt);
+        const now = new Date();
+        const diffHours = (now - savedDate) / (1000 * 60 * 60);
+        
+        if (diffHours > 24) {
+            statusSpan.textContent = '⚠️ Устаревший';
+            statusSpan.style.color = '#f39c12';
+        } else {
+            statusSpan.textContent = '✅ Актуальный';
+            statusSpan.style.color = '#27ae60';
+        }
+        
+        updateSpan.textContent = savedDate.toLocaleString();
+    }
+}
+
+// Сканирование папки библиотеки
+function scanLibraryFolder() {
+    const libraryPath = localStorage.getItem('library_path');
+    
+    if (!libraryPath) {
+        // Если путь не указан, предлагаем выбрать папку
+        changeLibraryPath();
+        return;
+    }
+    
+    // Показываем модальное окно сканирования
+    showScanModal();
+    
+    // Имитируем процесс сканирования (в реальном приложении здесь будет работа с файловой системой)
+    simulateFolderScan(libraryPath);
+}
+
+// Имитация сканирования папки (для демонстрации)
+function simulateFolderScan(path) {
+    let progress = 0;
+    let processedFiles = 0;
+    const totalFiles = 150; // Примерное количество файлов
+    
+    const progressBar = document.getElementById('scanProgressBar');
+    const currentFile = document.getElementById('scanCurrentFile');
+    const scanStats = document.getElementById('scanStats');
+    
+    const scanInterval = setInterval(() => {
+        progress += 100 / totalFiles;
+        processedFiles++;
+        
+        if (progressBar) progressBar.style.width = progress + '%';
+        if (currentFile) currentFile.textContent = `Файл: template_${processedFiles}.json`;
+        if (scanStats) scanStats.textContent = `Обработано: ${processedFiles} из ${totalFiles} файлов`;
+        
+        if (processedFiles >= totalFiles) {
+            clearInterval(scanInterval);
+            
+            // Обновляем библиотеку новыми данными
+            updateLibraryFromScan();
+            
+            // Показываем результаты
+            showScanResults();
+        }
+    }, 50);
+}
+
+// Обновление библиотеки после сканирования
+function updateLibraryFromScan() {
+    // Здесь в реальном приложении будет парсинг файлов
+    // Для демонстрации добавляем несколько новых материалов
+    
+    const newMaterials = {
+        id: 'new_' + Date.now(),
+        title: 'Новый материал из сканирования',
+        description: 'Добавлен автоматически при сканировании папки',
+        category: 'work_templates',
+        subject: 'mathematics',
+        grade: '7-8',
+        file: 'templates/new_scan.json',
+        size: '12 KB',
+        tags: ['автосканирование', 'математика', 'новый'],
+        added: new Date().toISOString().split('T')[0]
+    };
+    
+    // Добавляем в каталог
+    libraryCatalog.categories.work_templates.push(newMaterials);
+    libraryCatalog.fileIndex[newMaterials.id] = newMaterials;
+    
+    // Обновляем метаданные
+    updateCatalogMetadata();
+    
+    // Сохраняем в кеш
+    saveLibraryCache();
+    
+    // Обновляем отображение
+    loadLibraryContent();
+}
+
+// Показать модальное окно сканирования
+function showScanModal() {
+    document.getElementById('scanModal').style.display = 'flex';
+    document.getElementById('scanProgress').style.display = 'block';
+    document.getElementById('scanResults').style.display = 'none';
+    document.getElementById('scanProgressBar').style.width = '0%';
+}
+
+// Показать результаты сканирования
+function showScanResults() {
+    document.getElementById('scanProgress').style.display = 'none';
+    document.getElementById('scanResults').style.display = 'block';
+    
+    const resultsContent = document.getElementById('scanResultsContent');
+    resultsContent.innerHTML = `
+        <p>✅ Сканирование завершено успешно!</p>
+        <div style="margin-top: 15px;">
+            <p><strong>Результаты:</strong></p>
+            <ul style="margin: 10px 0; padding-left: 20px;">
+                <li>Найдено новых материалов: <strong>5</strong></li>
+                <li>Обновлено материалов: <strong>12</strong></li>
+                <li>Удалено устаревших: <strong>3</strong></li>
+                <li>Общий размер библиотеки: <strong>${libraryCatalog.meta.totalSize}</strong></li>
+            </ul>
+        </div>
+        <p style="color: #27ae60; margin-top: 15px;">
+            <i class="fas fa-info-circle"></i> Каталог библиотеки обновлен и сохранен в кеш
+        </p>
+    `;
+}
+
+// Закрыть модальное окно сканирования
+function closeScanModal() {
+    document.getElementById('scanModal').style.display = 'none';
+}
+
+// Отмена сканирования
+function cancelScan() {
+    // В реальном приложении здесь остановка процесса сканирования
+    closeScanModal();
+}
+
+// Изменение пути к библиотеке
+function changeLibraryPath() {
+    showModal(`
+        <h3>📁 Изменение пути к библиотеке</h3>
+        <div class="form-group">
+            <label>Путь к папке библиотеки:</label>
+            <input type="text" id="newLibraryPath" class="form-input" 
+                   placeholder="C:/Учебные материалы/Библиотека" 
+                   value="${localStorage.getItem('library_path') || ''}">
+            <small class="form-hint">Укажите абсолютный путь к папке с материалами</small>
+        </div>
+        <div class="form-group">
+            <label>Тип библиотеки:</label>
+            <select id="libraryType" class="form-select">
+                <option value="local">Локальная папка</option>
+                <option value="network">Сетевая папка</option>
+                <option value="cloud">Облачное хранилище</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>
+                <input type="checkbox" id="autoScan" checked> Автоматическое сканирование при изменении
+            </label>
+        </div>
+        <div class="modal-actions">
+            <button class="btn" onclick="hideModal()">Отмена</button>
+            <button class="btn btn-primary" onclick="saveLibraryPath()">Сохранить</button>
+        </div>
+    `);
+}
+
+// Сохранение пути к библиотеке
+function saveLibraryPath() {
+    const newPath = document.getElementById('newLibraryPath').value;
+    const libraryType = document.getElementById('libraryType').value;
+    const autoScan = document.getElementById('autoScan').checked;
+    
+    if (!newPath) {
+        showNotification('Укажите путь к библиотеке!', 'error');
+        return;
+    }
+    
+    localStorage.setItem('library_path', newPath);
+    localStorage.setItem('library_type', libraryType);
+    localStorage.setItem('library_auto_scan', autoScan);
+    
+    showNotification('Путь к библиотеке сохранен!', 'success');
+    updateLibraryInfo();
+    hideModal();
+    
+    // Предлагаем просканировать
+    if (autoScan) {
+        setTimeout(() => {
+            if (confirm('Выполнить сканирование библиотеки сейчас?')) {
+                scanLibraryFolder();
+            }
+        }, 500);
+    }
+}
+
+// Импорт каталога из файла
+function importLibraryCatalog() {
+    // Создаем скрытый input для выбора файла
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json,.catalog';
+    input.style.display = 'none';
+    
+    input.onchange = function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        
+        const reader = new FileReader();
+        reader.onload = function(event) {
+            try {
+                const importedCatalog = JSON.parse(event.target.result);
+                
+                // Проверяем структуру
+                if (!importedCatalog.meta || !importedCatalog.categories) {
+                    throw new Error('Неверный формат каталога');
+                }
+                
+                // Проверяем версию
+                if (importedCatalog.meta.version !== libraryConfig.version) {
+                    if (!confirm(`Версия каталога (${importedCatalog.meta.version}) отличается от текущей (${libraryConfig.version}). Продолжить импорт?`)) {
+                        return;
+                    }
+                }
+                
+                // Заменяем каталог
+                window.libraryCatalog = importedCatalog;
+                
+                // Обновляем метаданные
+                updateCatalogMetadata();
+                
+                // Сохраняем в кеш
+                saveLibraryCache();
+                
+                // Обновляем отображение
+                loadLibraryContent();
+                
+                showNotification(`Каталог успешно импортирован! ${importedCatalog.meta.totalItems} материалов`, 'success');
+                
+            } catch (error) {
+                console.error('Ошибка импорта каталога:', error);
+                showNotification('Ошибка импорта каталога: ' + error.message, 'error');
+            }
+        };
+        
+        reader.readAsText(file);
+    };
+    
+    document.body.appendChild(input);
+    input.click();
+    document.body.removeChild(input);
+}
+
+// Экспорт каталога в файл
+function exportLibraryCatalog() {
+    // Создаем Blob с каталогом
+    const catalogData = JSON.stringify(libraryCatalog, null, 2);
+    const blob = new Blob([catalogData], { type: 'application/json' });
+    
+    // Создаем ссылку для скачивания
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `library_catalog_${new Date().toISOString().split('T')[0]}.json`;
+    a.style.display = 'none';
+    
+    document.body.appendChild(a);
+    a.click();
+    
+    // Очистка
+    setTimeout(() => {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }, 100);
+    
+    showNotification('Каталог библиотеки экспортирован!', 'success');
+}
+
+// Перестроение кеша библиотеки
+function rebuildLibraryCache() {
+    if (confirm('Перестроить кеш библиотеки? Существующий кеш будет очищен.')) {
+        // Очищаем старый кеш
+        localStorage.removeItem('library_catalog_cache');
+        localStorage.removeItem('library_cache_info');
+        
+        // Пересоздаем библиотеку
+        createDefaultLibrary();
+        
+        // Обновляем отображение
+        loadLibraryContent();
+        
+        showNotification('Кеш библиотеки перестроен!', 'success');
+    }
+}
+
+// Настройки библиотеки
+function showLibrarySettings() {
+    showModal(`
+        <h3>⚙️ Настройки библиотеки</h3>
+        
+        <div class="form-group">
+            <label>Автообновление:</label>
+            <select id="autoUpdateInterval" class="form-select">
+                <option value="0">Никогда</option>
+                <option value="1" selected>Каждый день</option>
+                <option value="7">Раз в неделю</option>
+                <option value="30">Раз в месяц</option>
+            </select>
+        </div>
+        
+        <div class="form-group">
+            <label>Макс. размер кеша:</label>
+            <select id="maxCacheSize" class="form-select">
+                <option value="10">10 MB</option>
+                <option value="50" selected>50 MB</option>
+                <option value="100">100 MB</option>
+                <option value="500">500 MB</option>
+                <option value="1000">1 GB</option>
+            </select>
+        </div>
+        
+        <div class="form-group">
+            <label>
+                <input type="checkbox" id="previewImages" checked> Показывать превью изображений
+            </label>
+        </div>
+        
+        <div class="form-group">
+            <label>
+                <input type="checkbox" id="autoCategorize" checked> Автоматическая категоризация
+            </label>
+        </div>
+        
+        <div class="form-group">
+            <label>
+                <input type="checkbox" id="backupCatalog" checked> Создавать резервные копии
+            </label>
+        </div>
+        
+        <hr>
+        
+        <div style="background: #f8f9fa; padding: 15px; border-radius: 5px;">
+            <h4 style="margin-top: 0;">📊 Информация о библиотеке</h4>
+            <div style="font-size: 14px;">
+                <div>Версия: <strong>${libraryCatalog.meta.version}</strong></div>
+                <div>Материалов: <strong>${libraryCatalog.meta.totalItems}</strong></div>
+                <div>Общий размер: <strong>${libraryCatalog.meta.totalSize}</strong></div>
+                <div>Последнее обновление: <strong>${new Date(libraryCatalog.meta.lastUpdated).toLocaleString()}</strong></div>
+            </div>
+        </div>
+        
+        <div class="modal-actions">
+            <button class="btn" onclick="hideModal()">Отмена</button>
+            <button class="btn btn-primary" onclick="saveLibrarySettings()">Сохранить</button>
+            <button class="btn btn-danger" onclick="clearLibraryCache()" style="margin-left: auto;">
+                <i class="fas fa-trash"></i> Очистить кеш
+            </button>
+        </div>
+    `);
+    
+    // Устанавливаем текущие значения
+    setTimeout(() => {
+        const interval = localStorage.getItem('library_auto_update') || '1';
+        const cacheSize = localStorage.getItem('library_max_cache') || '50';
+        const previewImages = localStorage.getItem('library_preview') !== 'false';
+        const autoCategorize = localStorage.getItem('library_auto_cat') !== 'false';
+        const backupCatalog = localStorage.getItem('library_backup') !== 'false';
+        
+        document.getElementById('autoUpdateInterval').value = interval;
+        document.getElementById('maxCacheSize').value = cacheSize;
+        document.getElementById('previewImages').checked = previewImages;
+        document.getElementById('autoCategorize').checked = autoCategorize;
+        document.getElementById('backupCatalog').checked = backupCatalog;
+    }, 10);
+}
+
+// Сохранение настроек библиотеки
+function saveLibrarySettings() {
+    const interval = document.getElementById('autoUpdateInterval').value;
+    const cacheSize = document.getElementById('maxCacheSize').value;
+    const previewImages = document.getElementById('previewImages').checked;
+    const autoCategorize = document.getElementById('autoCategorize').checked;
+    const backupCatalog = document.getElementById('backupCatalog').checked;
+    
+    localStorage.setItem('library_auto_update', interval);
+    localStorage.setItem('library_max_cache', cacheSize);
+    localStorage.setItem('library_preview', previewImages);
+    localStorage.setItem('library_auto_cat', autoCategorize);
+    localStorage.setItem('library_backup', backupCatalog);
+    
+    showNotification('Настройки библиотеки сохранены!', 'success');
+    hideModal();
+}
+
+// Очистка кеша библиотеки
+function clearLibraryCache() {
+    if (confirm('Вы уверены, что хотите полностью очистить кеш библиотеки? Все загруженные материалы будут удалены.')) {
+        localStorage.removeItem('library_catalog_cache');
+        localStorage.removeItem('library_cache_info');
+        
+        // Создаем пустую библиотеку
+        createDefaultLibrary();
+        
+        showNotification('Кеш библиотеки очищен!', 'success');
+        hideModal();
+    }
+}
+
+// Обновление функции loadLibraryContent
+function loadLibraryContent() {
+    // Используем данные из каталога
+    const grid = document.getElementById('materialsGrid');
+    if (!grid) return;
+    
+    // Очищаем сетку
+    grid.innerHTML = '';
+    
+    // Получаем текущую категорию
+    const category = currentLibraryCategory === 'all' ? null : currentLibraryCategory;
+    
+    // Счетчики для статистики
+    let displayedCount = 0;
+    
+    // Рендерим материалы из каталога
+    if (category) {
+        // Рендерим только выбранную категорию
+        const materials = libraryCatalog.categories[category] || [];
+        materials.forEach(material => {
+            grid.appendChild(createMaterialCard(material));
+            displayedCount++;
+        });
+    } else {
+        // Рендерим все материалы
+        Object.keys(libraryCatalog.categories).forEach(cat => {
+            const materials = libraryCatalog.categories[cat];
+            materials.forEach(material => {
+                grid.appendChild(createMaterialCard(material));
+                displayedCount++;
+            });
+        });
+    }
+    
+    // Показываем пустую библиотеку, если нет материалов
+    const emptyLib = document.getElementById('emptyLibrary');
+    if (emptyLib) {
+        emptyLib.style.display = displayedCount === 0 ? 'block' : 'none';
+    }
+    
+    // Обновляем счетчики в категориях
+    updateMaterialCounts();
+}
+
+// Создание карточки материала из данных каталога
+function createMaterialCard(material) {
+    const card = document.createElement('div');
+    card.className = 'material-card';
+    card.dataset.category = material.category;
+    card.dataset.subject = material.subject || 'all';
+    card.dataset.complexity = material.complexity || 'all';
+    card.dataset.id = material.id;
+    
+    // Определяем иконку по категории
+    const iconMap = {
+        'work_templates': '📝',
+        'criteria': '📊',
+        'tasks_bank': '🧩',
+        'methodical': '📚',
+        'subject_resources': '🔬',
+        'external_resources': '🌐'
+    };
+    
+    const icon = iconMap[material.category] || '📄';
+    
+    // Создаем HTML карточки
+    card.innerHTML = `
+        <div class="material-header" style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 15px;">
+            <div>
+                <div style="font-size: 24px; margin-bottom: 5px;">${icon}</div>
+                <h4 style="margin: 0; color: #2c3e50;">${material.title}</h4>
+                <small style="color: #7f8c8d;">${getSubjectName(material.subject)} ${material.grade ? '· ' + material.grade + ' класс' : ''}</small>
+            </div>
+            <div class="material-actions">
+                ${material.file ? `<button class="btn-icon" onclick="openMaterial('${material.id}')" title="Открыть">
+                    <i class="fas fa-external-link-alt"></i>
+                </button>` : ''}
+                <button class="btn-icon" onclick="useMaterial('${material.id}')" title="Использовать">
+                    <i class="fas fa-play"></i>
+                </button>
+            </div>
+        </div>
+        <p style="color: #5a6268; font-size: 14px; margin-bottom: 15px;">
+            ${material.description}
+        </p>
+        <div class="material-tags" style="display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 15px;">
+            ${(material.tags || []).map(tag => `
+                <span class="tag" style="background: #e8f4fc; color: #3498db; padding: 3px 8px; border-radius: 12px; font-size: 12px;">
+                    ${tag}
+                </span>
+            `).join('')}
+            ${material.complexity ? `
+                <span class="tag" style="background: #fdedec; color: #e74c3c; padding: 3px 8px; border-radius: 12px; font-size: 12px;">
+                    Уровень ${material.complexity}
+                </span>
+            ` : ''}
+        </div>
+        <div class="material-footer" style="display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: #95a5a6;">
+            <div>
+                ${material.size ? `<i class="fas fa-hdd"></i> ${material.size}` : ''}
+                ${material.taskCount ? `<span style="margin: 0 10px;">|</span><i class="fas fa-tasks"></i> ${material.taskCount} заданий` : ''}
+            </div>
+            <div>Добавлено: ${material.added}</div>
+        </div>
+    `;
+    
+    return card;
+}
+
+// Открытие материала
+function openMaterial(materialId) {
+    const material = libraryCatalog.fileIndex[materialId];
+    if (!material) {
+        showNotification('Материал не найден!', 'error');
+        return;
+    }
+    
+    // В зависимости от типа файла открываем по-разному
+    if (material.file) {
+        const extension = material.file.split('.').pop().toLowerCase();
+        
+        switch (extension) {
+            case 'pdf':
+                // Открываем PDF
+                window.open(material.file, '_blank');
+                break;
+                
+            case 'json':
+            case 'template':
+                // Загружаем и применяем шаблон
+                loadMaterialTemplate(material);
+                break;
+                
+            default:
+                // Для остальных файлов предлагаем скачать
+                downloadMaterial(material);
+        }
+    } else {
+        showNotification('Файл материала не указан', 'warning');
+    }
+}
+
+// Использование материала
+function useMaterial(materialId) {
+    const material = libraryCatalog.fileIndex[materialId];
+    if (!material) return;
+    
+    showNotification(`Материал "${material.title}" применяется...`, 'info');
+    
+    // В зависимости от категории применяем по-разному
+    switch (material.category) {
+        case 'work_templates':
+            applyWorkTemplate(material);
+            break;
+            
+        case 'criteria':
+            applyCriteriaTemplate(material);
+            break;
+            
+        case 'tasks_bank':
+            addTasksToTest(material);
+            break;
+            
+        default:
+            showNotification(`Материал "${material.title}" применен!`, 'success');
+    }
+}
+
+// Применение шаблона работы
+function applyWorkTemplate(material) {
+    // Здесь будет логика применения шаблона работы
+    setTimeout(() => {
+        showNotification(`Шаблон "${material.title}" успешно применен!`, 'success');
+        // Переключаемся на вкладку настройки
+        showTab('setup');
+    }, 1000);
+}
+
+// Инициализация библиотеки при загрузке страницы
+document.addEventListener('DOMContentLoaded', function() {
+    // Инициализируем библиотеку
+    initLibrary();
+    
+    // Обновляем информацию о библиотеке
+    updateLibraryInfo();
+    
+    // Загружаем содержимое библиотеки
+    loadLibraryContent();
+    
+    console.log('📚 Библиотека материалов инициализирована');
+});
+
+// ============================
+// СИСТЕМА ПАГИНАЦИИ И ДОБАВЛЕНИЯ МАТЕРИАЛОВ
+// ============================
+
+// Глобальные переменные для пагинации
+let currentPage = 1;
+let pageSize = 12;
+let totalPages = 1;
+let filteredMaterials = [];
+let paginationTimeout = null;
+
+// Инициализация пагинации
+function initPagination() {
+    // Получаем сохраненные настройки
+    const savedPageSize = localStorage.getItem('library_page_size');
+    if (savedPageSize) {
+        pageSize = parseInt(savedPageSize);
+        document.getElementById('pageSize').value = pageSize;
+    }
+    
+    // Рассчитываем материалы для текущей страницы
+    calculatePagination();
+}
+
+// Расчет пагинации
+function calculatePagination() {
+    // Получаем все материалы для текущей категории
+    if (currentLibraryCategory === 'all') {
+        // Собираем все материалы из всех категорий
+        filteredMaterials = [];
+        Object.keys(libraryCatalog.categories).forEach(category => {
+            filteredMaterials = filteredMaterials.concat(libraryCatalog.categories[category]);
+        });
+    } else {
+        filteredMaterials = libraryCatalog.categories[currentLibraryCategory] || [];
+    }
+    
+    // Фильтруем по поиску (если есть)
+    const searchTerm = document.getElementById('librarySearch')?.value.toLowerCase();
+    if (searchTerm) {
+        filteredMaterials = filteredMaterials.filter(material => {
+            const title = material.title?.toLowerCase() || '';
+            const desc = material.description?.toLowerCase() || '';
+            const tags = material.tags?.join(' ').toLowerCase() || '';
+            const subject = getSubjectName(material.subject)?.toLowerCase() || '';
+            
+            return title.includes(searchTerm) || 
+                   desc.includes(searchTerm) || 
+                   tags.includes(searchTerm) ||
+                   subject.includes(searchTerm);
+        });
+    }
+    
+    // Сортируем материалы (по дате добавления)
+    filteredMaterials.sort((a, b) => {
+        const dateA = new Date(a.added || '2000-01-01');
+        const dateB = new Date(b.added || '2000-01-01');
+        return dateB - dateA; // Новые сначала
+    });
+    
+    // Рассчитываем общее количество страниц
+    totalPages = Math.max(1, Math.ceil(filteredMaterials.length / pageSize));
+    
+    // Проверяем текущую страницу
+    if (currentPage > totalPages) {
+        currentPage = totalPages;
+    }
+    
+    // Обновляем UI пагинации
+    updatePaginationUI();
+    
+    // Отображаем материалы для текущей страницы
+    displayCurrentPage();
+}
+
+// Обновление UI пагинации
+function updatePaginationUI() {
+    const currentPageEl = document.getElementById('currentPage');
+    const totalPagesEl = document.getElementById('totalPages');
+    const totalItemsEl = document.getElementById('totalItems');
+    const shownItemsEl = document.getElementById('shownItems');
+    const prevBtn = document.getElementById('prevPageBtn');
+    const nextBtn = document.getElementById('nextPageBtn');
+    
+    if (currentPageEl) currentPageEl.textContent = currentPage;
+    if (totalPagesEl) totalPagesEl.textContent = totalPages;
+    if (totalItemsEl) totalItemsEl.textContent = filteredMaterials.length;
+    
+    // Рассчитываем отображаемые элементы
+    const startIndex = (currentPage - 1) * pageSize;
+    const endIndex = Math.min(startIndex + pageSize, filteredMaterials.length);
+    if (shownItemsEl) shownItemsEl.textContent = `${startIndex + 1}-${endIndex}`;
+    
+    // Обновляем состояние кнопок
+    if (prevBtn) prevBtn.disabled = currentPage <= 1;
+    if (nextBtn) nextBtn.disabled = currentPage >= totalPages;
+    
+    // Обновляем номера страниц
+    updatePageNumbers();
+}
+
+// Обновление номеров страниц
+function updatePageNumbers() {
+    const paginationContainer = document.querySelector('.pagination-numbers');
+    if (!paginationContainer) return;
+    
+    // Создаем массив номеров страниц для отображения
+    const pages = [];
+    const maxVisiblePages = 5;
+    
+    if (totalPages <= maxVisiblePages) {
+        // Показываем все страницы
+        for (let i = 1; i <= totalPages; i++) {
+            pages.push(i);
+        }
+    } else {
+        // Сложная логика отображения с точками
+        pages.push(1);
+        
+        if (currentPage > 3) pages.push('...');
+        
+        const start = Math.max(2, currentPage - 1);
+        const end = Math.min(totalPages - 1, currentPage + 1);
+        
+        for (let i = start; i <= end; i++) {
+            pages.push(i);
+        }
+        
+        if (currentPage < totalPages - 2) pages.push('...');
+        
+        if (totalPages > 1) pages.push(totalPages);
+    }
+    
+    // Рендерим номера страниц
+    paginationContainer.innerHTML = pages.map(page => {
+        if (page === '...') {
+            return `<span class="page-number dots">...</span>`;
+        }
+        return `<button class="page-number ${page === currentPage ? 'active' : ''}" 
+                        onclick="goToPage(${page})">${page}</button>`;
+    }).join('');
+}
+
+// Отображение материалов текущей страницы
+function displayCurrentPage() {
+    const grid = document.getElementById('materialsGrid');
+    if (!grid) return;
+    
+    // Очищаем сетку
+    grid.innerHTML = '';
+    
+    // Получаем материалы для текущей страницы
+    const startIndex = (currentPage - 1) * pageSize;
+    const endIndex = Math.min(startIndex + pageSize, filteredMaterials.length);
+    const pageMaterials = filteredMaterials.slice(startIndex, endIndex);
+    
+    if (pageMaterials.length === 0) {
+        // Показываем сообщение, что материалов нет
+        const emptyLib = document.getElementById('emptyLibrary');
+        if (emptyLib) {
+            emptyLib.style.display = 'block';
+            grid.style.display = 'none';
+        }
+        return;
+    }
+    
+    // Скрываем сообщение о пустой библиотеке
+    const emptyLib = document.getElementById('emptyLibrary');
+    if (emptyLib) emptyLib.style.display = 'none';
+    grid.style.display = 'grid';
+    
+    // Рендерим материалы
+    pageMaterials.forEach(material => {
+        grid.appendChild(createMaterialCard(material));
+    });
+}
+
+// Навигация по страницам
+function goToPage(page) {
+    if (page < 1 || page > totalPages || page === currentPage) return;
+    
+    currentPage = page;
+    calculatePagination();
+    
+    // Плавная прокрутка к началу сетки
+    const grid = document.getElementById('materialsGrid');
+    if (grid) {
+        grid.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+}
+
+function prevPage() {
+    if (currentPage > 1) {
+        goToPage(currentPage - 1);
+    }
+}
+
+function nextPage() {
+    if (currentPage < totalPages) {
+        goToPage(currentPage + 1);
+    }
+}
+
+function changePageSize() {
+    const newSize = parseInt(document.getElementById('pageSize').value);
+    if (newSize !== pageSize) {
+        pageSize = newSize;
+        currentPage = 1; // Сбрасываем на первую страницу
+        
+        // Сохраняем настройку
+        localStorage.setItem('library_page_size', pageSize);
+        
+        calculatePagination();
+    }
+}
+
+// Поиск с дебаунсом
+function searchLibrary() {
+    // Сбрасываем таймер, если он уже есть
+    if (paginationTimeout) {
+        clearTimeout(paginationTimeout);
+    }
+    
+    // Устанавливаем новый таймер
+    paginationTimeout = setTimeout(() => {
+        currentPage = 1; // Возвращаемся на первую страницу при поиске
+        calculatePagination();
+        paginationTimeout = null;
+    }, 300); // Задержка 300ms
+}
+
+// Фильтрация по категории с пагинацией
+function selectCategory(category) {
+    currentLibraryCategory = category;
+    currentPage = 1; // Сбрасываем на первую страницу
+    
+    // Обновить активный элемент в боковой панели
+    document.querySelectorAll('.category-item').forEach(item => {
+        item.classList.remove('active');
+    });
+    document.querySelector(`[data-category="${category}"]`).classList.add('active');
+    
+    // Обновить хлебные крошки
+    const categoryNames = {
+        'all': 'Все материалы',
+        'work_templates': 'Шаблоны работ',
+        'criteria': 'Критерии оценивания',
+        'tasks_bank': 'Банк заданий',
+        'methodical': 'Методические материалы',
+        'subject_resources': 'По предметам',
+        'external_resources': 'Полезные ресурсы'
+    };
+    const currentCategoryEl = document.getElementById('currentCategory');
+    if (currentCategoryEl) {
+        currentCategoryEl.textContent = categoryNames[category] || category;
+    }
+    
+    // Пересчитываем пагинацию
+    calculatePagination();
+}
+
+// ============================
+// ФОРМА ДОБАВЛЕНИЯ МАТЕРИАЛОВ
+// ============================
+
+let uploadedFiles = [];
+
+// Показать форму добавления материала
+function showAddMaterialForm() {
+    showModal(`
+        <div class="tabbed-form">
+            <div class="form-tabs">
+                <button class="form-tab active" onclick="switchFormTab('upload')">📤 Загрузка файла</button>
+                <button class="form-tab" onclick="switchFormTab('link')">🔗 По ссылке</button>
+                <button class="form-tab" onclick="switchFormTab('manual')">✍️ Вручную</button>
+            </div>
+            
+            <!-- Вкладка загрузки файла -->
+            <div class="form-tab-content active" id="uploadTab">
+                <h4 style="margin-top: 0;">Загрузите файл</h4>
+                <div class="upload-area" id="uploadArea" 
+                     onclick="document.getElementById('fileInput').click()"
+                     ondrop="handleFileDrop(event)"
+                     ondragover="handleDragOver(event)"
+                     ondragleave="handleDragLeave(event)">
+                    <div style="font-size: 48px; margin-bottom: 15px;">📁</div>
+                    <h5>Перетащите файлы сюда</h5>
+                    <p style="color: #7f8c8d; margin: 10px 0;">или нажмите для выбора файлов</p>
+                    <small style="color: #95a5a6;">Поддерживаются: PDF, DOC, DOCX, JSON, PNG, JPG, ZIP</small>
+                </div>
+                
+                <input type="file" id="fileInput" multiple style="display: none;" 
+                       onchange="handleFileSelect(event)">
+                
+                <div id="filePreviews"></div>
+                
+                <div class="form-group" style="margin-top: 20px;">
+                    <label>Категория:</label>
+                    <select id="materialCategory" class="form-select">
+                        <option value="">-- Выберите категорию --</option>
+                        <option value="work_templates">Шаблоны работ</option>
+                        <option value="criteria">Критерии оценивания</option>
+                        <option value="tasks_bank">Банк заданий</option>
+                        <option value="methodical">Методические материалы</option>
+                        <option value="subject_resources">Ресурсы по предметам</option>
+                        <option value="external_resources">Полезные ресурсы</option>
+                    </select>
+                </div>
+            </div>
+            
+            <!-- Вкладка добавления по ссылке -->
+            <div class="form-tab-content" id="linkTab">
+                <h4 style="margin-top: 0;">Добавить по ссылке</h4>
+                <div class="form-group">
+                    <label>URL ресурса:</label>
+                    <input type="url" id="resourceUrl" class="form-input" 
+                           placeholder="https://example.com/resource">
+                </div>
+                <div class="form-group">
+                    <label>Тип ресурса:</label>
+                    <select id="resourceType" class="form-select">
+                        <option value="website">Веб-сайт</option>
+                        <option value="video">Видео (YouTube, Vimeo)</option>
+                        <option value="document">Документ (Google Docs)</option>
+                        <option value="presentation">Презентация</option>
+                        <option value="interactive">Интерактивное задание</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Название:</label>
+                    <input type="text" id="resourceTitle" class="form-input" 
+                           placeholder="Введите название ресурса">
+                </div>
+            </div>
+            
+            <!-- Вкладка ручного ввода -->
+            <div class="form-tab-content" id="manualTab">
+                <h4 style="margin-top: 0;">Создать материал вручную</h4>
+                <div class="form-group">
+                    <label>Название материала:</label>
+                    <input type="text" id="manualTitle" class="form-input" 
+                           placeholder="Введите название">
+                </div>
+                <div class="form-group">
+                    <label>Категория:</label>
+                    <select id="manualCategory" class="form-select">
+                        <option value="">-- Выберите категорию --</option>
+                        <option value="work_templates">Шаблон работы</option>
+                        <option value="tasks_bank">Задание</option>
+                        <option value="methodical">Методический материал</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Предмет:</label>
+                    <select id="manualSubject" class="form-select">
+                        <option value="">-- Выберите предмет --</option>
+                        <option value="mathematics">Математика</option>
+                        <option value="russian">Русский язык</option>
+                        <option value="literature">Литература</option>
+                        <option value="physics">Физика</option>
+                        <option value="chemistry">Химия</option>
+                        <option value="biology">Биология</option>
+                        <option value="history">История</option>
+                        <option value="geography">География</option>
+                        <option value="english">Английский язык</option>
+                        <option value="informatics">Информатика</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Уровень сложности:</label>
+                    <select id="manualComplexity" class="form-select">
+                        <option value="all">Все уровни</option>
+                        <option value="1">1 - Базовый</option>
+                        <option value="2">2 - Применение</option>
+                        <option value="3">3 - Анализ</option>
+                        <option value="4">4 - Творчество</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Класс:</label>
+                    <input type="text" id="manualGrade" class="form-input" 
+                           placeholder="Например: 5-6, 9, 10-11">
+                </div>
+                <div class="form-group">
+                    <label>Описание:</label>
+                    <textarea id="manualDescription" class="form-textarea" rows="3" 
+                              placeholder="Опишите материал..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Теги (через запятую):</label>
+                    <input type="text" id="manualTags" class="form-input" 
+                           placeholder="математика, алгебра, уравнения">
+                </div>
+            </div>
+            
+            <!-- Общие поля -->
+            <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #eee;">
+                <div class="form-group">
+                    <label>Автор (необязательно):</label>
+                    <input type="text" id="materialAuthor" class="form-input" 
+                           placeholder="Ваше имя или источник">
+                </div>
+                <div class="form-group">
+                    <label>Лицензия:</label>
+                    <select id="materialLicense" class="form-select">
+                        <option value="free">Свободное использование</option>
+                        <option value="cc-by">Creative Commons (CC BY)</option>
+                        <option value="cc-by-sa">CC BY-SA</option>
+                        <option value="cc-by-nc">CC BY-NC</option>
+                        <option value="copyright">Авторское право</option>
+                        <option value="unknown">Не указано</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="materialPublic" checked> Сделать материал общедоступным
+                    </label>
+                </div>
+            </div>
+        </div>
+        
+        <div class="modal-actions" style="margin-top: 20px;">
+            <button class="btn" onclick="hideModal(); uploadedFiles = [];">Отмена</button>
+            <button class="btn btn-success" onclick="saveNewMaterial()">
+                <i class="fas fa-save"></i> Сохранить материал
+            </button>
+        </div>
+    `, 'modal-lg');
+    
+    // Инициализируем превью файлов
+    uploadedFiles = [];
+    updateFilePreviews();
+}
+
+// Переключение вкладок формы
+function switchFormTab(tabName) {
+    // Убираем активный класс со всех вкладок
+    document.querySelectorAll('.form-tab').forEach(tab => {
+        tab.classList.remove('active');
+    });
+    document.querySelectorAll('.form-tab-content').forEach(content => {
+        content.classList.remove('active');
+    });
+    
+    // Активируем выбранную вкладку
+    document.querySelector(`.form-tab[onclick*="${tabName}"]`).classList.add('active');
+    document.getElementById(tabName + 'Tab').classList.add('active');
+}
+
+// Обработка выбора файлов
+function handleFileSelect(event) {
+    const files = Array.from(event.target.files);
+    addFilesToUpload(files);
+    event.target.value = ''; // Сбрасываем input
+}
+
+// Обработка перетаскивания файлов
+function handleDragOver(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    document.getElementById('uploadArea').classList.add('drag-over');
+}
+
+function handleDragLeave(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    document.getElementById('uploadArea').classList.remove('drag-over');
+}
+
+function handleFileDrop(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    document.getElementById('uploadArea').classList.remove('drag-over');
+    
+    const files = Array.from(event.dataTransfer.files);
+    addFilesToUpload(files);
+}
+
+// Добавление файлов для загрузки
+function addFilesToUpload(files) {
+    files.forEach(file => {
+        // Проверяем тип файла
+        const fileType = getFileType(file);
+        if (!fileType) {
+            showNotification(`Файл "${file.name}" не поддерживается`, 'warning');
+            return;
+        }
+        
+        // Читаем превью для изображений
+        const reader = new FileReader();
+        
+        uploadedFiles.push({
+            file: file,
+            type: fileType,
+            preview: null,
+            size: formatFileSize(file.size)
+        });
+        
+        if (fileType === 'image') {
+            reader.onload = function(e) {
+                const fileIndex = uploadedFiles.findIndex(f => f.file === file);
+                if (fileIndex > -1) {
+                    uploadedFiles[fileIndex].preview = e.target.result;
+                    updateFilePreviews();
+                }
+            };
+            reader.readAsDataURL(file);
+        } else {
+            updateFilePreviews();
+        }
+    });
+    
+    // Автоматически выбираем категорию по типу первого файла
+    if (uploadedFiles.length === 1) {
+        const fileType = uploadedFiles[0].type;
+        const categoryMap = {
+            'template': 'work_templates',
+            'criteria': 'criteria',
+            'task': 'tasks_bank',
+            'document': 'methodical',
+            'image': 'subject_resources'
+        };
+        
+        if (categoryMap[fileType]) {
+            document.getElementById('materialCategory').value = categoryMap[fileType];
+        }
+    }
+}
+
+// Определение типа файла по расширению
+function getFileType(file) {
+    const extension = file.name.split('.').pop().toLowerCase();
+    
+    // Шаблоны
+    if (['json', 'template'].includes(extension)) {
+        // Пытаемся определить подтип по содержимому имени
+        if (file.name.toLowerCase().includes('template') || 
+            file.name.toLowerCase().includes('шаблон')) {
+            return 'template';
+        } else if (file.name.toLowerCase().includes('criteria') ||
+                  file.name.toLowerCase().includes('критерии')) {
+            return 'criteria';
+        } else if (file.name.toLowerCase().includes('task') ||
+                  file.name.toLowerCase().includes('задание')) {
+            return 'task';
+        }
+        return 'template';
+    }
+    
+    // Критерии
+    if (['criteria'].includes(extension)) {
+        return 'criteria';
+    }
+    
+    // Задания
+    if (['task'].includes(extension)) {
+        return 'task';
+    }
+    
+    // Документы
+    if (['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt', 'md'].includes(extension)) {
+        return 'document';
+    }
+    
+    // Изображения
+    if (['jpg', 'jpeg', 'png', 'gif', 'svg', 'bmp'].includes(extension)) {
+        return 'image';
+    }
+    
+    // Архивы
+    if (['zip', 'rar', '7z'].includes(extension)) {
+        return 'archive';
+    }
+    
+    return null;
+}
+
+// Форматирование размера файла
+function formatFileSize(bytes) {
+    if (bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+}
+
+// Обновление превью файлов
+function updateFilePreviews() {
+    const container = document.getElementById('filePreviews');
+    if (!container) return;
+    
+    if (uploadedFiles.length === 0) {
+        container.innerHTML = '';
+        return;
+    }
+    
+    container.innerHTML = '<h5 style="margin-top: 20px;">Выбранные файлы:</h5>';
+    
+    uploadedFiles.forEach((fileData, index) => {
+        const file = fileData.file;
+        const icon = getFileIcon(fileData.type);
+        
+        const preview = document.createElement('div');
+        preview.className = 'file-preview';
+        preview.innerHTML = `
+            <div class="file-icon">${icon}</div>
+            <div class="file-info">
+                <div><strong>${file.name}</strong></div>
+                <div class="file-size">${fileData.size} · ${fileData.type}</div>
+            </div>
+            <button class="remove-file" onclick="removeUploadedFile(${index})" title="Удалить">
+                <i class="fas fa-times"></i>
+            </button>
+        `;
+        
+        container.appendChild(preview);
+    });
+}
+
+// Получение иконки для типа файла
+function getFileIcon(fileType) {
+    const icons = {
+        'template': '📝',
+        'criteria': '📊',
+        'task': '🧩',
+        'document': '📄',
+        'image': '🖼️',
+        'archive': '📦'
+    };
+    return icons[fileType] || '📎';
+}
+
+// Удаление файла из списка загрузки
+function removeUploadedFile(index) {
+    uploadedFiles.splice(index, 1);
+    updateFilePreviews();
+}
+
+// Сохранение нового материала
+function saveNewMaterial() {
+    // Проверяем, какой способ добавления выбран
+    const activeTab = document.querySelector('.form-tab.active').textContent;
+    
+    let materialData = {
+        id: 'material_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
+        added: new Date().toISOString().split('T')[0],
+        author: document.getElementById('materialAuthor').value || 'Не указан',
+        license: document.getElementById('materialLicense').value,
+        isPublic: document.getElementById('materialPublic').checked
+    };
+    
+    if (activeTab.includes('Загрузка')) {
+        // Способ 1: Загрузка файла
+        if (uploadedFiles.length === 0) {
+            showNotification('Выберите файл для загрузки!', 'error');
+            return;
+        }
+        
+        const category = document.getElementById('materialCategory').value;
+        if (!category) {
+            showNotification('Выберите категорию для материала!', 'error');
+            return;
+        }
+        
+        materialData.category = category;
+        materialData.title = uploadedFiles[0].file.name.replace(/\.[^/.]+$/, ""); // Убираем расширение
+        materialData.file = `uploads/${Date.now()}_${uploadedFiles[0].file.name}`;
+        materialData.size = uploadedFiles[0].size;
+        materialData.type = uploadedFiles[0].type;
+        
+    } else if (activeTab.includes('ссылка')) {
+        // Способ 2: По ссылке
+        const url = document.getElementById('resourceUrl').value;
+        const title = document.getElementById('resourceTitle').value;
+        
+        if (!url || !title) {
+            showNotification('Заполните URL и название ресурса!', 'error');
+            return;
+        }
+        
+        materialData.category = 'external_resources';
+        materialData.title = title;
+        materialData.url = url;
+        materialData.resourceType = document.getElementById('resourceType').value;
+        materialData.description = `Внешний ресурс: ${url}`;
+        
+    } else {
+        // Способ 3: Вручную
+        const title = document.getElementById('manualTitle').value;
+        const category = document.getElementById('manualCategory').value;
+        const subject = document.getElementById('manualSubject').value;
+        
+        if (!title || !category) {
+            showNotification('Заполните название и категорию!', 'error');
+            return;
+        }
+        
+        materialData.category = category;
+        materialData.title = title;
+        materialData.subject = subject;
+        materialData.complexity = document.getElementById('manualComplexity').value;
+        materialData.grade = document.getElementById('manualGrade').value;
+        materialData.description = document.getElementById('manualDescription').value;
+        materialData.tags = document.getElementById('manualTags').value
+            .split(',')
+            .map(tag => tag.trim())
+            .filter(tag => tag);
+    }
+    
+    // Добавляем материал в каталог
+    libraryCatalog.categories[materialData.category].push(materialData);
+    libraryCatalog.fileIndex[materialData.id] = materialData;
+    
+    // Обновляем метаданные
+    updateCatalogMetadata();
+    
+    // Сохраняем в кеш
+    saveLibraryCache();
+    
+    // Обновляем отображение
+    calculatePagination();
+    
+    // Сбрасываем форму
+    uploadedFiles = [];
+    
+    // Показываем уведомление
+    showNotification(`Материал "${materialData.title}" успешно добавлен в библиотеку!`, 'success');
+    
+    // Закрываем модальное окно
+    hideModal();
+    
+    // Показываем добавленный материал (переходим на его страницу)
+    setTimeout(() => {
+        // Если материал добавлен в текущую категорию, перезагружаем
+        if (currentLibraryCategory === 'all' || currentLibraryCategory === materialData.category) {
+            goToPage(1); // Возвращаемся на первую страницу
+        } else {
+            // Переключаемся на категорию материала
+            selectCategory(materialData.category);
+        }
+        
+        // Прокручиваем к началу сетки
+        const grid = document.getElementById('materialsGrid');
+        if (grid) {
+            grid.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    }, 500);
+}
+
+// ============================
+// ОБНОВЛЕНИЕ ФУНКЦИЙ ЗАГРУЗКИ
+// ============================
+
+// Обновляем функцию loadLibraryContent
+function loadLibraryContent() {
+    // Инициализируем пагинацию
+    initPagination();
+    
+    // Рассчитываем и отображаем материалы
+    calculatePagination();
+    
+    // Обновляем счетчики
+    updateMaterialCounts();
+}
+
+// Обновляем функцию updateMaterialCounts
+function updateMaterialCounts() {
+    // Обновляем счетчики в боковой панели
+    Object.keys(libraryCatalog.categories).forEach(category => {
+        const count = libraryCatalog.categories[category].length;
+        const element = document.querySelector(`[data-category="${category}"] small`);
+        
+        if (element && count > 0) {
+            const label = getCategoryLabel(category, count);
+            element.textContent = `${count} ${label}`;
+        }
+    });
+    
+    // Обновляем общий счетчик
+    const allCount = Object.values(libraryCatalog.categories)
+        .reduce((sum, items) => sum + items.length, 0);
+    const allElement = document.querySelector('[data-category="all"] small');
+    if (allElement) {
+        allElement.textContent = `${allCount} материалов`;
+    }
+}
+
+// Обновляем функцию filterLibrary (поиск с пагинацией)
+function filterLibrary(type) {
+    // Просто меняем активную кнопку фильтра
+    document.querySelectorAll('.search-filters .btn').forEach(btn => {
+        btn.classList.remove('active-filter');
+    });
+    event.target.classList.add('active-filter');
+    
+    // Здесь можно добавить дополнительную фильтрацию
+    // Например, фильтр по типу материала
+    calculatePagination();
+}
+
+// Инициализируем все при загрузке
+document.addEventListener('DOMContentLoaded', function() {
+    // Инициализируем библиотеку
+    initLibrary();
+    
+    // Инициализируем пагинацию
+    initPagination();
+    
+    // Обновляем информацию
+    updateLibraryInfo();
+    
+    // Устанавливаем обработчики событий для поиска
+    const searchInput = document.getElementById('librarySearch');
+    if (searchInput) {
+        searchInput.addEventListener('input', searchLibrary);
+    }
+    
+    console.log('📚 Библиотека материалов с пагинацией инициализирована');
+});
+
+// Получение имени предмета по коду
+function getSubjectName(subjectCode) {
+    const subjects = {
+        'mathematics': 'Математика',
+        'russian': 'Русский язык',
+        'literature': 'Литература',
+        'physics': 'Физика',
+        'chemistry': 'Химия',
+        'biology': 'Биология',
+        'history': 'История',
+        'geography': 'География',
+        'english': 'Английский язык',
+        'informatics': 'Информатика',
+        'world_around': 'Окружающий мир',
+        'art': 'ИЗО',
+        'music': 'Музыка',
+        'technology': 'Технология',
+        'pe': 'Физкультура',
+        'all': 'Все предметы'
+    };
+    
+    return subjects[subjectCode] || subjectCode;
+}
+
+// Модальное окно с большим размером
+function showModalLarge(content) {
+    showModal(content);
+    const modalContent = document.querySelector('.modal-content');
+    if (modalContent) {
+        modalContent.style.maxWidth = '800px';
+        modalContent.style.width = '90%';
+    }
+}
+
+// Получение превью для материала
+function getMaterialPreview(material) {
+    if (material.thumbnail) {
+        return `<img src="${material.thumbnail}" alt="${material.title}" style="width: 100%; height: 150px; object-fit: cover; border-radius: 5px; margin-bottom: 10px;">`;
+    }
+    
+    const previews = {
+        'work_templates': '📝',
+        'criteria': '📊',
+        'tasks_bank': '🧩',
+        'methodical': '📚',
+        'subject_resources': '🔬',
+        'external_resources': '🌐'
+    };
+    
+    return `<div style="font-size: 48px; text-align: center; margin: 20px 0;">${previews[material.category] || '📄'}</div>`;
+}
+
+// Быстрое добавление материала (контекстное меню)
+function addToLibraryFromContext(materialType, data) {
+    let materialData = {
+        id: 'quick_' + Date.now(),
+        title: 'Быстро добавленный материал',
+        added: new Date().toISOString().split('T')[0],
+        author: 'Пользователь',
+        license: 'free',
+        isPublic: true
+    };
+    
+    switch (materialType) {
+        case 'template':
+            materialData.category = 'work_templates';
+            materialData.title = data.title || 'Шаблон работы';
+            materialData.subject = data.subject || 'all';
+            materialData.grade = data.grade || '';
+            materialData.description = 'Добавлено из текущей работы';
+            break;
+            
+        case 'criteria':
+            materialData.category = 'criteria';
+            materialData.title = data.title || 'Критерии оценивания';
+            materialData.subject = data.subject || 'all';
+            materialData.description = 'Текущие критерии оценивания';
+            break;
+            
+        case 'task':
+            materialData.category = 'tasks_bank';
+            materialData.title = data.title || 'Задание';
+            materialData.subject = data.subject || 'all';
+            materialData.complexity = data.complexity || 'all';
+            materialData.description = data.description || 'Задание из работы';
+            break;
+    }
+    
+    // Добавляем в библиотеку
+    libraryCatalog.categories[materialData.category].push(materialData);
+    updateCatalogMetadata();
+    saveLibraryCache();
+    
+    showNotification(`Материал добавлен в библиотеку!`, 'success');
+}
+
+// Экспорт выбранных материалов
+function exportSelectedMaterials() {
+    const selectedIds = Array.from(document.querySelectorAll('.material-select:checked'))
+        .map(checkbox => checkbox.closest('.material-card').dataset.id);
+    
+    if (selectedIds.length === 0) {
+        showNotification('Выберите материалы для экспорта!', 'warning');
+        return;
+    }
+    
+    const selectedMaterials = selectedIds.map(id => libraryCatalog.fileIndex[id]).filter(Boolean);
+    
+    const exportData = {
+        meta: {
+            exportedAt: new Date().toISOString(),
+            count: selectedMaterials.length,
+            version: libraryConfig.version
+        },
+        materials: selectedMaterials
+    };
+    
+    // Создаем файл для скачивания
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `library_export_${new Date().toISOString().split('T')[0]}.json`;
+    a.click();
+    
+    URL.revokeObjectURL(url);
+    showNotification(`Экспортировано ${selectedMaterials.length} материалов`, 'success');
+}
+
+// Импорт материалов в существующую библиотеку
+function importToLibrary() {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json';
+    input.style.display = 'none';
+    
+    input.onchange = function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        
+        const reader = new FileReader();
+        reader.onload = function(event) {
+            try {
+                const importData = JSON.parse(event.target.result);
+                
+                if (!importData.materials || !Array.isArray(importData.materials)) {
+                    throw new Error('Неверный формат файла импорта');
+                }
+                
+                let importedCount = 0;
+                let skippedCount = 0;
+                
+                importData.materials.forEach(material => {
+                    // Проверяем, нет ли уже такого материала
+                    const exists = libraryCatalog.categories[material.category]?.some(
+                        m => m.id === material.id || m.title === material.title
+                    );
+                    
+                    if (!exists) {
+                        // Генерируем новый ID
+                        material.id = 'imported_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+                        
+                        // Добавляем в соответствующую категорию
+                        if (!libraryCatalog.categories[material.category]) {
+                            libraryCatalog.categories[material.category] = [];
+                        }
+                        
+                        libraryCatalog.categories[material.category].push(material);
+                        libraryCatalog.fileIndex[material.id] = material;
+                        importedCount++;
+                    } else {
+                        skippedCount++;
+                    }
+                });
+                
+                // Обновляем каталог
+                updateCatalogMetadata();
+                saveLibraryCache();
+                calculatePagination();
+                
+                showNotification(
+                    `Импорт завершен! Добавлено: ${importedCount}, пропущено (дубликаты): ${skippedCount}`,
+                    'success'
+                );
+                
+            } catch (error) {
+                showNotification('Ошибка импорта: ' + error.message, 'error');
+            }
+        };
+        
+        reader.readAsText(file);
+    };
+    
+    document.body.appendChild(input);
+    input.click();
+    document.body.removeChild(input);
+}

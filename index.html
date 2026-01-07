@@ -3767,6 +3767,151 @@
 			background: #3498db;
 			color: white;
 			transform: scale(1.1);
+		}		
+		/* Стили для пагинации */
+		.pagination-numbers {
+			display: flex;
+			gap: 5px;
+			margin: 0 15px;
+		}
+
+		.page-number {
+			width: 36px;
+			height: 36px;
+			border: 1px solid #ddd;
+			background: white;
+			border-radius: 4px;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			cursor: pointer;
+			transition: all 0.2s;
+		}
+
+		.page-number:hover {
+			border-color: #3498db;
+			background: #f8f9fa;
+		}
+
+		.page-number.active {
+			background: #3498db;
+			color: white;
+			border-color: #3498db;
+		}
+
+		.page-number.dots {
+			cursor: default;
+			border: none;
+			background: transparent;
+		}
+
+		.page-number.dots:hover {
+			background: transparent;
+		}
+
+		/* Стили для формы добавления */
+		.upload-area {
+			border: 2px dashed #3498db;
+			border-radius: 10px;
+			padding: 40px 20px;
+			text-align: center;
+			background: #f8f9fa;
+			cursor: pointer;
+			transition: all 0.3s;
+			margin-bottom: 20px;
+		}
+
+		.upload-area:hover {
+			background: #e8f4fc;
+			border-color: #2980b9;
+		}
+
+		.upload-area.drag-over {
+			background: #d6eaf8;
+			border-color: #1f618d;
+		}
+
+		.file-preview {
+			display: flex;
+			align-items: center;
+			gap: 10px;
+			padding: 10px;
+			background: white;
+			border: 1px solid #ddd;
+			border-radius: 8px;
+			margin-top: 10px;
+		}
+
+		.file-icon {
+			font-size: 24px;
+		}
+
+		.file-info {
+			flex: 1;
+		}
+
+		.file-size {
+			font-size: 12px;
+			color: #7f8c8d;
+		}
+
+		.remove-file {
+			background: none;
+			border: none;
+			color: #e74c3c;
+			cursor: pointer;
+			font-size: 18px;
+		}
+
+		.tabbed-form {
+			border: 1px solid #dee2e6;
+			border-radius: 8px;
+			overflow: hidden;
+		}
+
+		.form-tabs {
+			display: flex;
+			background: #f8f9fa;
+			border-bottom: 1px solid #dee2e6;
+		}
+
+		.form-tab {
+			padding: 12px 20px;
+			background: none;
+			border: none;
+			border-right: 1px solid #dee2e6;
+			cursor: pointer;
+			transition: all 0.3s;
+			flex: 1;
+			text-align: center;
+		}
+
+		.form-tab:hover {
+			background: #e9ecef;
+		}
+
+		.form-tab.active {
+			background: #3498db;
+			color: white;
+		}
+
+		.form-tab-content {
+			padding: 20px;
+			display: none;
+		}
+
+		.form-tab-content.active {
+			display: block;
+		}
+
+		/* Анимации */
+		@keyframes slideIn {
+			from { transform: translateX(20px); opacity: 0; }
+			to { transform: translateX(0); opacity: 1; }
+		}
+
+		.material-card {
+			animation: slideIn 0.3s ease;
 		}					
     </style>
 </head>
@@ -3874,6 +4019,7 @@
 				<button class="tab-btn" onclick="showTab('builder')">🧩 Конструктор заданий</button>
 				<button class="tab-btn" onclick="showTab('monitoring')">🏫 Школьный мониторинг</button>
 				<button class="tab-btn" onclick="showTab('calendar')">📅 Календарь диагностик</button>
+				<button class="tab-btn" onclick="showTrainingTab()">🎮 Тренажеры</button>
 			</div>
 			
 			
@@ -5426,15 +5572,33 @@
 							</div>
 							
 							<!-- Пагинация -->
-							<div class="library-pagination" style="display: flex; justify-content: center; margin-top: 40px;">
-								<nav aria-label="Навигация по страницам">
-									<ul class="pagination" style="display: flex; list-style: none; padding: 0; margin: 0;">
-										<li class="page-item"><button class="page-link" onclick="changePage(1)" style="padding: 8px 12px; border: 1px solid #ddd; background: white; cursor: pointer;">1</button></li>
-										<li class="page-item"><button class="page-link active" onclick="changePage(2)" style="padding: 8px 12px; border: 1px solid #3498db; background: #3498db; color: white; cursor: pointer;">2</button></li>
-										<li class="page-item"><button class="page-link" onclick="changePage(3)" style="padding: 8px 12px; border: 1px solid #ddd; background: white; cursor: pointer;">3</button></li>
-										<li class="page-item"><button class="page-link" onclick="changePage(4)" style="padding: 8px 12px; border: 1px solid #ddd; background: white; cursor: pointer;">4</button></li>
-									</ul>
-								</nav>
+							<div class="library-pagination" style="margin-top: 40px; display: flex; justify-content: center; align-items: center; gap: 20px;">
+								<button class="btn btn-outline" onclick="prevPage()" id="prevPageBtn" disabled>
+									<i class="fas fa-chevron-left"></i> Назад
+								</button>
+								
+								<div class="page-info" style="text-align: center;">
+									<div>Страница <span id="currentPage">1</span> из <span id="totalPages">1</span></div>
+									<div style="font-size: 12px; color: #7f8c8d;">
+										Показано <span id="shownItems">0</span> из <span id="totalItems">0</span> материалов
+									</div>
+								</div>
+								
+								<button class="btn btn-outline" onclick="nextPage()" id="nextPageBtn" disabled>
+									Вперед <i class="fas fa-chevron-right"></i>
+								</button>
+								
+								<div class="page-size-selector" style="margin-left: 20px;">
+									<label style="font-size: 14px;">На странице:</label>
+									<select id="pageSize" class="form-select" style="width: auto; padding: 5px 10px; margin-left: 5px;" 
+											onchange="changePageSize()">
+										<option value="6">6</option>
+										<option value="12" selected>12</option>
+										<option value="24">24</option>
+										<option value="48">48</option>
+										<option value="100">100</option>
+									</select>
+								</div>
 							</div>
 						</div>
 					</div>
@@ -5464,6 +5628,75 @@
 						</div>
 					</div>
 				</div>
+
+				<!-- Панель управления библиотекой -->
+				<div class="library-controls" style="background: #f8f9fa; padding: 15px; border-radius: 10px; margin: 20px 0;">
+					<h4 style="margin-top: 0;">⚙️ Управление библиотекой</h4>
+					<div style="display: flex; gap: 10px; flex-wrap: wrap;">
+						<button class="btn btn-success" onclick="showAddMaterialForm()">
+							<i class="fas fa-plus-circle"></i> Добавить материал
+						</button>						
+						<button class="btn btn-success" onclick="scanLibraryFolder()">
+							<i class="fas fa-sync-alt"></i> Сканировать папку
+						</button>
+						<button class="btn btn-primary" onclick="importLibraryCatalog()">
+							<i class="fas fa-file-import"></i> Импорт каталога
+						</button>
+						<button class="btn btn-warning" onclick="exportLibraryCatalog()">
+							<i class="fas fa-file-export"></i> Экспорт каталога
+						</button>
+						<button class="btn btn-info" onclick="rebuildLibraryCache()">
+							<i class="fas fa-database"></i> Перестроить кеш
+						</button>
+						<button class="btn btn-outline" onclick="showLibrarySettings()">
+							<i class="fas fa-cog"></i> Настройки
+						</button>
+					</div>
+					
+					<!-- Информация о библиотеке -->
+					<div id="libraryInfo" style="margin-top: 15px; padding: 10px; background: white; border-radius: 5px; font-size: 14px;">
+						<div style="display: flex; justify-content: space-between; align-items: center;">
+							<span>📁 Путь к библиотеке: <span id="libraryPath">Не указан</span></span>
+							<button class="btn btn-sm" onclick="changeLibraryPath()">
+								<i class="fas fa-folder-open"></i> Изменить
+							</button>
+						</div>
+						<div style="margin-top: 5px;">
+							📊 Состояние кеша: <span id="cacheStatus" style="color: #27ae60;">✅ Актуальный</span>
+							<span style="margin: 0 10px;">|</span>
+							Последнее обновление: <span id="lastUpdate">—</span>
+						</div>
+					</div>
+				</div>
+
+				<!-- Модальное окно сканирования -->
+				<div id="scanModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); z-index: 10000; justify-content: center; align-items: center;">
+					<div style="background: white; padding: 30px; border-radius: 15px; max-width: 500px; width: 90%; max-height: 80vh; overflow-y: auto;">
+						<h3 style="margin-top: 0;">🔄 Сканирование библиотеки</h3>
+						<div id="scanProgress">
+							<p>Подготовка к сканированию...</p>
+							<div class="progress" style="height: 20px; background: #eee; border-radius: 10px; overflow: hidden; margin: 20px 0;">
+								<div id="scanProgressBar" style="height: 100%; background: #3498db; width: 0%; transition: width 0.3s;"></div>
+							</div>
+							<div id="scanDetails" style="font-size: 14px; color: #666;">
+								<div id="scanCurrentFile">—</div>
+								<div id="scanStats">Обработано: 0 файлов</div>
+							</div>
+						</div>
+						<div id="scanResults" style="display: none;">
+							<h4 style="color: #27ae60;">✅ Сканирование завершено!</h4>
+							<div id="scanResultsContent"></div>
+							<button class="btn btn-primary" onclick="closeScanModal()" style="margin-top: 20px; width: 100%;">
+								Закрыть
+							</button>
+						</div>
+						<div style="margin-top: 20px; text-align: center;">
+							<button class="btn btn-outline" onclick="cancelScan()">
+								Отмена
+							</button>
+						</div>
+					</div>
+				</div>				
 			</div>
 
 			<!-- Вкладка тренажеров -->
@@ -6682,7 +6915,6 @@
 			<!-- Вкладка календаря -->
 			<div id="calendar" class="tab-content">
 				<div class="calendar-container" style="max-width: 1200px; margin: 0 auto;">
-					
 					<!-- Заголовок с анимацией -->
 					<div class="calendar-header" style="text-align: center; margin-bottom: 30px;">
 						<h1 style="color: #2c3e50; margin-bottom: 15px; font-size: 2.2em;">
@@ -7947,12 +8179,13 @@
 	<script src="modules/report-generator-dynamic.js"></script>
 	<script src="modules/library.js"></script>
 	<script src="modules/groups.js"></script>
-	<script src="modules/training.js"></script>
+	//<script src="modules/trainings.js"></script>
 	<script src="modules/integrations.js"></script>
 	<script src="modules/mobile.js"></script>
 	<script src="modules/builder.js"></script>
 	<script src="modules/monitoring.js"></script>
 	<script src="modules/calendar.js"></script>
+	<script src="modules/training.js"></script>
     <script>
 
 
@@ -17824,7 +18057,7 @@ document.addEventListener('DOMContentLoaded', () => {
 		}
 
 
-        function showModals(title, content) {
+        function showModal(title, content) {
             const modalOverlay = document.getElementById('modalOverlay');
             const modalContent = document.getElementById('modalContent');
             
@@ -17840,7 +18073,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 		
 		// Обновленная функция showModal с поддержкой callback
-		function showModal(title, content, onConfirm, onCancel, onDelete = null) {
+		function showModals(title, content, onConfirm, onCancel, onDelete = null) {
 			// Создаем модальное окно
 			const modalOverlay = document.createElement('div');
 			modalOverlay.className = 'modal-overlay show';
@@ -20791,7 +21024,7 @@ document.addEventListener('DOMContentLoaded', () => {
 				initializeTaskBuilder();
 			}
 
-			if (tabName === 'training') {
+			if (tabName === 'trainings') {
 				setTimeout(initializeTrainingTab, 100);
 			}
 			if (tabName === 'calendar') {

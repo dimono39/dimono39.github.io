@@ -329,7 +329,7 @@ function showDayEvents(date, events) {
         `;
     });
     
-    showModal(`События на ${dateStr}`, html, 'Закрыть');
+    showModals(`События на ${dateStr}`, html, 'Закрыть');
 }
 
 // Добавление события на конкретную дату
@@ -338,7 +338,7 @@ function addEventForDate(date) {
     console.log('Добавление события на дату:', dateStr);
     
     // Показываем модальное окно с предзаполненной датой
-    showModal('Добавить диагностическую работу', `
+    showModals('Добавить диагностическую работу', `
         <div class="form-group">
             <label class="required">Название работы</label>
             <input type="text" id="diagnosticTitle" class="form-input" placeholder="Контрольная работа">
@@ -437,8 +437,8 @@ function changeCalendarView(view) {
 
 // Добавление новой диагностики
 function addNewDiagnostic(prefilledDate = null) {
-    // Используем существующую функцию showModal из системы
-    showModal('Добавить диагностическую работу', `
+    // Используем существующую функцию showModals из системы
+    showModals('Добавить диагностическую работу', `
         <div class="form-group">
             <label class="required">Название работы</label>
             <input type="text" id="diagnosticTitle" class="form-input" placeholder="Контрольная работа по алгебре">
@@ -745,7 +745,7 @@ function showEventDetails(eventId) {
         other: 'Другой'
     };
     
-    const modal = showModal(event.title, `
+    const modal = showModals(event.title, `
         <div class="event-details">
             <div style="display: flex; gap: 20px; margin-bottom: 20px; flex-wrap: wrap;">
                 <div style="flex: 1; min-width: 250px;">
@@ -846,7 +846,7 @@ function editDiagnostic(eventId) {
     }
     
     // Создаем модальное окно редактирования
-    showModal('Редактировать диагностику', `
+    showModals('Редактировать диагностику', `
         <div class="form-group">
             <label class="required">Название работы</label>
             <input type="text" id="editDiagnosticTitle" class="form-input" value="${escapeHtml(event.title)}" autofocus>
@@ -1172,7 +1172,7 @@ function showQuarterEvents(quarterName, startDate, endDate) {
         html += '</div>';
     }
     
-    showModal(`События в ${quarterName}`, html, 'Закрыть');
+    showModals(`События в ${quarterName}`, html, 'Закрыть');
 }
 
 // Генерация годового вида
@@ -1642,7 +1642,7 @@ function generateWorkloadChart() {
 
 // Импорт школьного расписания
 function importSchoolSchedule() {
-    showModal('Импорт расписания', `
+    showModals('Импорт расписания', `
         <div class="form-group">
             <label>Выберите файл с расписанием (.json)</label>
             <input type="file" id="scheduleFile" class="form-input" accept=".json" onchange="handleScheduleFile(event)">
@@ -2111,7 +2111,7 @@ function generatePrintStats() {
 
 // Общий доступ к календарю
 function shareCalendar() {
-    showModal('Поделиться календарем', `
+    showModals('Поделиться календарем', `
         <div class="form-group">
             <label>Ссылка для доступа:</label>
             <div style="display: flex; gap: 5px;">

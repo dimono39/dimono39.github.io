@@ -1,0 +1,41 @@
+﻿{
+    "version":  "1.0.0",
+    "name":  "Библиотека учебных материалов",
+    "description":  "Каталог учебных материалов и ресурсов",
+    "statistics":  {
+                       "total_images":  0,
+                       "total_tasks":  0,
+                       "total_methodical":  0,
+                       "total_documents":  0,
+                       "total_templates":  0
+                   },
+    "created_date":  "2026-01-07",
+    "subjects":  [
+                     "mathematics",
+                     "russian",
+                     "physics",
+                     "chemistry",
+                     "biology",
+                     "geography",
+                     "history",
+                     "social_studies",
+                     "english",
+                     "literature",
+                     "informatics",
+                     "technology",
+                     "art",
+                     "music",
+                     "physical_education",
+                     "obzh",
+                     "economics",
+                     "law",
+                     "astronomy",
+                     "natural_science",
+                     "world_culture",
+                     "foreign_language",
+                     "local_history",
+                     "robotics",
+                     "programming",
+                     "psychology"
+                 ]
+}

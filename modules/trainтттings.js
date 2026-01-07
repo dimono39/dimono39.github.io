@@ -599,47 +599,32 @@ class AdvancedExerciseGenerator {
     }
     
     fixQuestionStructure(question) {
-		// Гарантируем наличие type
-		if (!question.type) {
-			// Определяем тип по наличию полей
-			if (question.options && Array.isArray(question.options)) {
-				if (question.options.length === 2 && question.options.includes('true') && question.options.includes('false')) {
-					question.type = 'true_false';
-				} else {
-					question.type = 'multiple_choice';
-				}
-			} else if (question.correctAnswer && typeof question.correctAnswer === 'string') {
-				question.type = 'fill_blank';
-			} else {
-				question.type = 'multiple_choice';
-			}
-		}
-		
-		// Для вопросов типа word, logic, riddle - устанавливаем как multiple_choice
-		if (question.type === 'word' || question.type === 'logic' || question.type === 'riddle') {
-			question.type = 'multiple_choice';
-		}
-		
-		// Гарантируем наличие options для вопросов с выбором
-		if (question.type === 'multiple_choice' || question.type === 'true_false') {
-			if (!question.options || !Array.isArray(question.options) || question.options.length < 2) {
-				question.options = this.generateOptions(question.correctAnswer, 4);
-			}
-		}
-		
-		// Гарантируем наличие correctAnswer
-		if (question.correctAnswer === undefined || question.correctAnswer === null) {
-			console.warn('Question missing correctAnswer:', question);
-			question.correctAnswer = question.options ? question.options[0] : 'Ответ';
-		}
-		
-		// Гарантируем наличие text
-		if (!question.text && question.question) {
-			question.text = question.question;
-		}
-		
-		return question;
-	}
+        // Гарантируем наличие type
+        if (!question.type) {
+            question.type = 'multiple_choice';
+        }
+        
+        // Гарантируем наличие options для вопросов с выбором
+        if (question.type === 'multiple_choice' || question.type === 'true_false') {
+            if (!question.options || !Array.isArray(question.options) || question.options.length < 2) {
+                question.options = this.generateOptions(question.correctAnswer, 4);
+            }
+        }
+        
+        // Гарантируем наличие correctAnswer
+        if (question.correctAnswer === undefined) {
+            console.warn('Question missing correctAnswer:', question);
+            question.correctAnswer = question.options ? question.options[0] : 'Ответ';
+        }
+        
+        // Гарантируем наличие text
+        if (!question.text && question.question) {
+            question.text = question.question;
+        }
+        
+        return question;
+    }
+    
     // ГЕНЕРАЦИЯ РАЗЛИЧНЫХ ТИПОВ ВОПРОСОВ
     
     generateQuestions(type, count, difficulty) {
@@ -1957,26 +1942,6 @@ class EnhancedTrainingUI {
                 }, question.delay || 3000);
                 break;
                 
-			case 'word': // ДОБАВЛЕНО: обработка словесных вопросов
-			case 'logic': // ДОБАВЛЕНО: обработка логических вопросов
-				if (!question.options || !Array.isArray(question.options) || question.options.length === 0) {
-					console.error('Invalid options for word/logic question:', question);
-					question.options = ['Вариант А', 'Вариант Б', 'Вариант В', 'Вариант Г'];
-				}
-				
-				optionsHTML = question.options.map((option, index) => {
-					const safeOption = String(option).replace(/"/g, '&quot;').replace(/'/g, '&#039;');
-					return `
-						<button class="option-btn" 
-								onclick="trainingUI.submitAnswer('${question.id}', '${safeOption}')"
-								data-index="${index}">
-							<span class="option-letter">${String.fromCharCode(65 + index)}</span>
-							<span class="option-text">${option}</span>
-						</button>
-					`;
-				}).join('');
-				break;
-				
             case 'matching':
                 if (question.options && Array.isArray(question.options) && question.correctAnswer) {
                     optionsHTML = question.options.map((option, index) => {
@@ -2003,35 +1968,18 @@ class EnhancedTrainingUI {
                 break;
                 
             default:
-				console.warn('Unknown question type:', question.type, 'for question:', question);
-				// Пытаемся показать имеющиеся опции или генерируем запасные
-				if (question.options && Array.isArray(question.options) && question.options.length > 0) {
-					// Используем реальные опции вопроса
-					optionsHTML = question.options.map((option, index) => {
-						const safeOption = String(option).replace(/"/g, '&quot;').replace(/'/g, '&#039;');
-						return `
-							<button class="option-btn" 
-									onclick="trainingUI.submitAnswer('${question.id}', '${safeOption}')"
-									data-index="${index}">
-								<span class="option-letter">${String.fromCharCode(65 + index)}</span>
-								<span class="option-text">${option}</span>
-							</button>
-						`;
-					}).join('');
-				} else {
-					// Запасной вариант
-					optionsHTML = `
-						<div class="fallback-options">
-							<p>Выберите правильный ответ:</p>
-							${['А', 'Б', 'В', 'Г'].map((letter, index) => `
-								<button class="option-btn" onclick="trainingUI.submitAnswer('${question.id}', '${letter}')">
-									<span class="option-letter">${letter}</span>
-									<span class="option-text">Вариант ${letter}</span>
-								</button>
-							`).join('')}
-						</div>
-					`;
-				}
+                // Запасной вариант для неизвестных типов вопросов
+                optionsHTML = `
+                    <div class="fallback-options">
+                        <p>Выберите правильный ответ:</p>
+                        ${['А', 'Б', 'В', 'Г'].map((letter, index) => `
+                            <button class="option-btn" onclick="trainingUI.submitAnswer('${question.id}', '${letter}')">
+                                <span class="option-letter">${letter}</span>
+                                <span class="option-text">Вариант ${letter}</span>
+                            </button>
+                        `).join('')}
+                    </div>
+                `;
         }
         
         return `
