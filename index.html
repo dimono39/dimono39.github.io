@@ -3231,7 +3231,543 @@
 			.cluster-card {
 				padding: 15px;
 			}
+		}	
+		
+		/* Анимация появления */
+		@keyframes fadeIn {
+			from { opacity: 0; transform: translateY(20px); }
+			to { opacity: 1; transform: translateY(0); }
+		}
+
+		/* Эффект наведения на карточки тренажеров */
+		.training-card:hover {
+			transform: translateY(-5px);
+			box-shadow: 0 15px 30px rgba(0, 0, 0, 0.15);
+			border-color: #3498db !important;
+		}
+
+		/* Анимация загрузки */
+		@keyframes pulse {
+			0% { transform: scale(1); }
+			50% { transform: scale(1.05); }
+			100% { transform: scale(1); }
+		}
+
+		.loading-pulse {
+			animation: pulse 1.5s infinite;
 		}		
+		/* Стили для конструктора заданий */
+		.tool-btn, .format-btn, .lib-btn {
+			background: rgba(255, 255, 255, 0.1);
+			border: 1px solid rgba(255, 255, 255, 0.2);
+			color: white;
+			padding: 10px;
+			border-radius: 6px;
+			cursor: pointer;
+			transition: all 0.3s;
+			text-align: left;
+			font-size: 14px;
+		}
+
+		.tool-btn:hover, .format-btn:hover, .lib-btn:hover {
+			background: rgba(255, 255, 255, 0.2);
+			transform: translateX(5px);
+		}
+
+		.complexity-option {
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+			cursor: pointer;
+		}
+
+		.complexity-badge {
+			width: 40px;
+			height: 40px;
+			border-radius: 50%;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			color: white;
+			font-weight: bold;
+			font-size: 18px;
+			margin-bottom: 5px;
+			transition: transform 0.3s;
+		}
+
+		.complexity-option input[type="radio"]:checked + .complexity-badge {
+			transform: scale(1.2);
+			box-shadow: 0 0 10px rgba(0,0,0,0.3);
+		}
+
+		.editor-toolbar .btn-sm {
+			padding: 5px 10px;
+			font-size: 12px;
+			min-width: 30px;
+		}
+
+		.option-item {
+			animation: slideIn 0.3s ease;
+		}
+
+		@keyframes slideIn {
+			from { opacity: 0; transform: translateY(-10px); }
+			to { opacity: 1; transform: translateY(0); }
+		}
+
+		.task-card {
+			background: white;
+			border: 2px solid #e9ecef;
+			border-radius: 10px;
+			padding: 15px;
+			cursor: pointer;
+			transition: all 0.3s;
+		}
+
+		.task-card:hover {
+			border-color: #3498db;
+			transform: translateY(-5px);
+			box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+		}
+
+		.task-card h4 {
+			margin: 0 0 10px 0;
+			color: #2c3e50;
+		}
+
+		.task-meta {
+			display: flex;
+			gap: 10px;
+			margin-top: 10px;
+			font-size: 12px;
+		}
+
+		.task-tag {
+			background: #e8f4fc;
+			color: #3498db;
+			padding: 3px 8px;
+			border-radius: 12px;
+		}		
+		/* Стили для календаря */
+		.calendar-view {
+			transition: all 0.3s ease;
+		}
+
+		.calendar-day {
+			min-height: 80px;
+			border: 1px solid #e9ecef;
+			border-radius: 8px;
+			padding: 8px;
+			transition: all 0.2s;
+			background: white;
+			position: relative;
+		}
+
+		.calendar-day:hover {
+			background: #f8f9fa;
+			transform: translateY(-2px);
+			box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+		}
+
+		.calendar-day.other-month {
+			background: #f8f9fa;
+			color: #bdc3c7;
+		}
+
+		.calendar-day.today {
+			border: 2px solid #3498db;
+			background: #e8f4fc;
+		}
+
+		.calendar-day-number {
+			font-weight: bold;
+			font-size: 1.1em;
+			margin-bottom: 5px;
+			color: #2c3e50;
+		}
+
+		.calendar-event {
+			font-size: 11px;
+			padding: 2px 5px;
+			margin: 2px 0;
+			border-radius: 4px;
+			cursor: pointer;
+			overflow: hidden;
+			text-overflow: ellipsis;
+			white-space: nowrap;
+			transition: all 0.2s;
+		}
+
+		.calendar-event:hover {
+			transform: scale(1.02);
+			box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+		}
+
+		.event-type-current { background: #e8f4fc; border-left: 3px solid #3498db; }
+		.event-type-milestone { background: #fff8e1; border-left: 3px solid #f39c12; }
+		.event-type-final { background: #d4edda; border-left: 3px solid #28a745; }
+		.event-type-oge { background: #e3f2fd; border-left: 3px solid #2196f3; }
+		.event-type-ege { background: #f3e5f5; border-left: 3px solid #9c27b0; }
+		.event-type-vpr { background: #e8f5e8; border-left: 3px solid #4caf50; }
+		.event-type-literacy { background: #e0f2f1; border-left: 3px solid #26a69a; }
+		.event-type-diagnostic { background: #fff3cd; border-left: 3px solid #ffc107; }
+
+		.upcoming-event-item {
+			display: flex;
+			align-items: center;
+			gap: 15px;
+			padding: 12px;
+			border-radius: 8px;
+			margin-bottom: 8px;
+			background: #f8f9fa;
+			transition: all 0.2s;
+			cursor: pointer;
+		}
+
+		.upcoming-event-item:hover {
+			background: #e9ecef;
+			transform: translateX(5px);
+		}
+
+		.upcoming-event-date {
+			background: #3498db;
+			color: white;
+			width: 50px;
+			height: 50px;
+			border-radius: 8px;
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+			justify-content: center;
+			font-weight: bold;
+			flex-shrink: 0;
+		}
+
+		.upcoming-event-date .day {
+			font-size: 1.5em;
+			line-height: 1;
+		}
+
+		.upcoming-event-date .month {
+			font-size: 0.8em;
+			opacity: 0.9;
+		}
+
+		.upcoming-event-info {
+			flex: 1;
+			overflow: hidden;
+		}
+
+		.upcoming-event-info h5 {
+			margin: 0 0 5px 0;
+			color: #2c3e50;
+			font-size: 0.95em;
+			white-space: nowrap;
+			overflow: hidden;
+			text-overflow: ellipsis;
+		}
+
+		.upcoming-event-info p {
+			margin: 0;
+			color: #7f8c8d;
+			font-size: 0.85em;
+		}
+
+		.upcoming-event-status {
+			padding: 3px 8px;
+			border-radius: 12px;
+			font-size: 0.75em;
+			font-weight: bold;
+		}
+
+		.status-planned { background: #fff3cd; color: #f39c12; }
+		.status-completed { background: #d4edda; color: #28a745; }
+		.status-analyzed { background: #cce5ff; color: #004085; }
+		.status-pending { background: #f8d7da; color: #721c24; }
+
+		.quarter-grid {
+			display: grid;
+			grid-template-columns: repeat(3, 1fr);
+			gap: 20px;
+		}
+
+		.quarter-card {
+			background: white;
+			border: 2px solid #e9ecef;
+			border-radius: 10px;
+			padding: 15px;
+			transition: all 0.3s;
+		}
+
+		.quarter-card:hover {
+			border-color: #3498db;
+			transform: translateY(-5px);
+			box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+		}
+
+		.quarter-header {
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+			margin-bottom: 15px;
+			padding-bottom: 10px;
+			border-bottom: 2px solid #f1f1f1;
+		}
+
+		.quarter-title {
+			font-weight: bold;
+			color: #2c3e50;
+			font-size: 1.2em;
+		}
+
+		.quarter-count {
+			background: #3498db;
+			color: white;
+			width: 30px;
+			height: 30px;
+			border-radius: 50%;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			font-weight: bold;
+		}
+
+		.timeline-event {
+			display: flex;
+			align-items: center;
+			gap: 15px;
+			padding: 15px;
+			margin: 10px 0;
+			background: white;
+			border-left: 4px solid #3498db;
+			border-radius: 8px;
+			box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+			transition: all 0.3s;
+		}
+
+		.timeline-event:hover {
+			transform: translateX(10px);
+			box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+		}
+
+		.timeline-date {
+			min-width: 100px;
+			text-align: center;
+			font-weight: bold;
+			color: #3498db;
+		}
+
+		.timeline-content {
+			flex: 1;
+		}
+
+		.timeline-content h5 {
+			margin: 0 0 5px 0;
+			color: #2c3e50;
+		}
+
+		.timeline-content p {
+			margin: 0;
+			color: #7f8c8d;
+			font-size: 0.9em;
+		}
+
+		/* Адаптивность */
+		@media (max-width: 992px) {
+			.calendar-main {
+				grid-template-columns: 1fr;
+			}
+			
+			.calendar-sidebar {
+				order: 2;
+			}
+			
+			.calendar-content {
+				order: 1;
+			}
+			
+			.quarter-grid {
+				grid-template-columns: 1fr;
+			}
+		}
+
+		@media (max-width: 768px) {
+			.calendar-controls {
+				flex-direction: column;
+				gap: 15px;
+				align-items: stretch;
+			}
+			
+			.calendar-weekdays,
+			.calendar-days {
+				gap: 2px;
+			}
+			
+			.calendar-day {
+				min-height: 60px;
+				padding: 4px;
+			}
+			
+			.calendar-event {
+				font-size: 9px;
+				padding: 1px 3px;
+			}
+		}
+		/* Добавьте в существующие стили */
+		.workload-chart {
+			position: relative;
+			height: 250px; /* Фиксированная высота */
+			overflow: hidden;
+			background: white;
+			border-radius: 10px;
+			padding: 15px;
+		}
+
+		.workload-chart h4 {
+			margin-top: 0;
+			margin-bottom: 15px;
+		}
+
+		#workloadChart {
+			width: 100% !important;
+			height: 200px !important;
+			display: block;
+		}
+
+		/* Стили для дней календаря */
+		.calendar-day {
+			min-height: 100px;
+			max-height: 150px;
+			overflow-y: auto;
+			position: relative;
+		}
+
+		.calendar-day::-webkit-scrollbar {
+			width: 4px;
+		}
+
+		.calendar-day::-webkit-scrollbar-track {
+			background: #f1f1f1;
+		}
+
+		.calendar-day::-webkit-scrollbar-thumb {
+			background: #888;
+			border-radius: 2px;
+		}
+
+		.calendar-day::-webkit-scrollbar-thumb:hover {
+			background: #555;
+		}		
+		/* Стили для кнопок модального окна */
+		.modal-actions {
+			display: flex;
+			gap: 10px;
+			justify-content: flex-end;
+			margin-top: 20px;
+			padding-top: 15px;
+			border-top: 1px solid #eee;
+		}
+
+		.modal-actions .btn {
+			min-width: 100px;
+			padding: 8px 16px;
+		}
+
+		.modal-actions .btn-primary {
+			background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+			color: white;
+			border: none;
+		}
+
+		.modal-actions .btn-danger {
+			background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+			color: white;
+			border: none;
+		}
+
+		.modal-actions .btn:hover {
+			transform: translateY(-2px);
+			box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+		}	
+		/* Стили для событий в календаре */
+		.day-events-container {
+			margin-top: 5px;
+			max-height: 60px;
+			overflow-y: auto;
+		}
+
+		.calendar-event {
+			font-size: 10px;
+			padding: 2px 4px;
+			margin: 1px 0;
+			border-radius: 3px;
+			cursor: pointer;
+			overflow: hidden;
+			text-overflow: ellipsis;
+			white-space: nowrap;
+			border-left: 3px solid;
+			transition: all 0.2s;
+			background: rgba(255, 255, 255, 0.9);
+		}
+
+		.calendar-event:hover {
+			transform: translateX(2px);
+			box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+		}
+
+		/* Цвета для разных типов событий */
+		.event-type-current { border-left-color: #3498db; background: #e8f4fc; }
+		.event-type-milestone { border-left-color: #f39c12; background: #fef9e7; }
+		.event-type-final { border-left-color: #2ecc71; background: #d4efdf; }
+		.event-type-oge { border-left-color: #9b59b6; background: #f4ecf7; }
+		.event-type-ege { border-left-color: #e74c3c; background: #fdedec; }
+		.event-type-vpr { border-left-color: #1abc9c; background: #e8f8f5; }
+		.event-type-literacy { border-left-color: #34495e; background: #ecf0f1; }
+		.event-type-diagnostic { border-left-color: #d35400; background: #fdebd0; }
+
+		.calendar-event-more {
+			font-size: 9px;
+			color: #7f8c8d;
+			padding: 1px 3px;
+			cursor: pointer;
+			text-align: center;
+			background: #f8f9fa;
+			border-radius: 2px;
+			margin-top: 2px;
+		}
+
+		.calendar-event-more:hover {
+			background: #e9ecef;
+			color: #3498db;
+		}
+
+		.add-event-btn {
+			position: absolute;
+			bottom: 5px;
+			right: 5px;
+			width: 20px;
+			height: 20px;
+			background: rgba(52, 152, 219, 0.1);
+			color: #3498db;
+			border-radius: 50%;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			cursor: pointer;
+			font-size: 10px;
+			opacity: 0;
+			transition: all 0.2s;
+		}
+
+		.calendar-day:hover .add-event-btn {
+			opacity: 1;
+		}
+
+		.add-event-btn:hover {
+			background: #3498db;
+			color: white;
+			transform: scale(1.1);
+		}					
     </style>
 </head>
 <body>
@@ -3329,8 +3865,15 @@
 				<button class="tab-btn" onclick="showTab('recommendations')">💡 Рекомендации</button>
 				<button class="tab-btn" onclick="showTab('export')">💾 Экспорт</button>
 				<button class="tab-btn" onclick="showTab('reports')">📄 Генератор отчетов</button>
+				<button class="tab-btn" onclick="showTab('groups')">👥 Групповой анализ</button>
 				<button class="tab-btn" onclick="showTab('feedback')">💬 Обратная связь</button>
-				
+				<button class="tab-btn" onclick="showTab('library')">📚 Библиотека материалов</button>
+				<button class="tab-btn" onclick="showTab('training')">🎮 Тренажеры</button>
+				<button class="tab-btn" onclick="showTab('integrations')">🔧 Интеграции</button>
+				<button class="tab-btn" onclick="showTab('mobile')">📱 Для родителей/учеников</button>
+				<button class="tab-btn" onclick="showTab('builder')">🧩 Конструктор заданий</button>
+				<button class="tab-btn" onclick="showTab('monitoring')">🏫 Школьный мониторинг</button>
+				<button class="tab-btn" onclick="showTab('calendar')">📅 Календарь диагностик</button>
 			</div>
 			
 			
@@ -4038,6 +4581,217 @@
 				
 			</div>
 
+			<!-- НОВАЯ ВКЛАДКА: Групповой анализ -->
+			<div id="groups" class="tab-content">
+				<h2 class="section-title">👥 Групповой анализ и формирование учебных групп</h2>
+				
+				<!-- БЫСТРЫЙ СТАРТ -->
+				<div class="quick-actions" style="padding: 15px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 10px; margin-bottom: 20px;">
+					<h3 style="color: white; margin: 0;">🚀 Быстрый старт:</h3>
+					<div style="display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap;">
+						<button class="btn btn-light" onclick="autoFormGroups()">
+							🤖 Автоформирование групп
+						</button>
+						<button class="btn btn-light" onclick="analyzeGroupDynamics()">
+							📈 Анализ динамики групп
+						</button>
+						<button class="btn btn-light" onclick="compareGroups()">
+							⚖️ Сравнить группы
+						</button>
+						<button class="btn btn-light" onclick="exportGroupReport()">
+							📊 Отчет по группам
+						</button>
+					</div>
+				</div>
+				
+				<div class="group-analysis-container" style="display: grid; grid-template-columns: 300px 1fr; gap: 20px;">
+					
+					<!-- ЛЕВАЯ ПАНЕЛЬ: Настройки группировки -->
+					<div class="group-settings" style="background: #f8f9fa; border-radius: 10px; padding: 20px;">
+						<h3>⚙️ Настройки группировки</h3>
+						
+						<div class="form-group">
+							<label>🎯 Критерий группировки:</label>
+							<select id="groupingCriteria" class="form-select" onchange="updateGroupingPreview()">
+								<option value="level">По уровню подготовки</option>
+								<option value="score">По баллам за работу</option>
+								<option value="taxonomy">По таксономическим уровням</option>
+								<option value="errors">По типу ошибок</option>
+								<option value="learning_style">По стилю обучения</option>
+								<option value="mixed">Смешанный критерий</option>
+								<option value="custom">Ручная настройка</option>
+							</select>
+						</div>
+						
+						<div class="form-group">
+							<label>👥 Количество групп:</label>
+							<div style="display: flex; align-items: center; gap: 10px;">
+								<input type="range" id="groupCount" min="2" max="6" value="3" 
+									oninput="document.getElementById('groupCountValue').textContent = this.value; updateGroupingPreview()"
+									style="flex: 1;">
+								<span id="groupCountValue" style="min-width: 30px; text-align: center; font-weight: bold;">3</span>
+							</div>
+							<small>Рекомендуется 3-4 группы для эффективной работы</small>
+						</div>
+						
+						<div class="form-group">
+							<label>🎯 Тип групп:</label>
+							<select id="groupType" class="form-select" onchange="updateGroupingPreview()">
+								<option value="homogeneous">Однородные (одинаковый уровень)</option>
+								<option value="heterogeneous">Разнородные (смешанный уровень)</option>
+								<option value="dynamic">Динамические (меняются)</option>
+								<option value="project">Проектные группы</option>
+							</select>
+						</div>
+						
+						<div class="form-group">
+							<label>📊 Критерии распределения:</label>
+							<div style="max-height: 200px; overflow-y: auto; padding: 10px; background: white; border-radius: 5px; border: 1px solid #ddd;">
+								<label style="display: block; margin: 5px 0;">
+									<input type="checkbox" name="distributionCriteria" value="total_score" checked> 
+									Общий балл
+								</label>
+								<label style="display: block; margin: 5px 0;">
+									<input type="checkbox" name="distributionCriteria" value="complexity"> 
+									Уровень сложности заданий
+								</label>
+								<label style="display: block; margin: 5px 0;">
+									<input type="checkbox" name="distributionCriteria" value="errors_count"> 
+									Количество ошибок
+								</label>
+								<label style="display: block; margin: 5px 0;">
+									<input type="checkbox" name="distributionCriteria" value="progress"> 
+									Динамика прогресса
+								</label>
+								<label style="display: block; margin: 5px 0;">
+									<input type="checkbox" name="distributionCriteria" value="motivation"> 
+									Уровень мотивации
+								</label>
+								<label style="display: block; margin: 5px 0;">
+									<input type="checkbox" name="distributionCriteria" value="social"> 
+									Социальные связи
+								</label>
+							</div>
+						</div>
+						
+						<div class="form-group">
+							<label>⚖️ Баланс групп:</label>
+							<select id="groupBalance" class="form-select" onchange="updateGroupingPreview()">
+								<option value="equal_size">Равное количество</option>
+								<option value="equal_level">Равный уровень</option>
+								<option value="mixed_ability">Смешанные способности</option>
+								<option value="leader_each">Лидер в каждой группе</option>
+							</select>
+						</div>
+						
+						<div style="margin-top: 20px;">
+							<button class="btn btn-primary" onclick="applyGrouping()" style="width: 100%;">
+								👥 Применить группировку
+							</button>
+							<button class="btn btn-outline" onclick="saveGroupSettings()" style="width: 100%; margin-top: 10px;">
+								💾 Сохранить настройки
+							</button>
+						</div>
+						
+						<!-- ПРЕДПРОСМОТР ГРУПП -->
+						<div class="group-preview" style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #ddd;">
+							<h4>👁️ Предпросмотр распределения:</h4>
+							<div id="groupPreviewStats"></div>
+						</div>
+					</div>
+					
+					<!-- ПРАВАЯ ПАНЕЛЬ: Результаты и анализ -->
+					<div class="group-results" style="display: flex; flex-direction: column; gap: 20px;">
+						
+						<!-- ВИЗУАЛИЗАЦИЯ ГРУПП -->
+						<div class="chart-container">
+							<h3>📊 Визуализация групп</h3>
+							<div style="height: 300px;" id="groupsChartContainer">
+								<canvas id="groupsChart"></canvas>
+							</div>
+						</div>
+						
+						<!-- ТАБЛИЦА ГРУПП -->
+						<div class="chart-container">
+							<h3>👥 Состав групп</h3>
+							<div class="table-container">
+								<table id="groupsTable" style="width: 100%;">
+									<thead>
+										<tr>
+											<th>Группа</th>
+											<th>Ученики</th>
+											<th>Средний балл</th>
+											<th>Уровень</th>
+											<th>Рекомендации</th>
+											<th>Действия</th>
+										</tr>
+									</thead>
+									<tbody id="groupsTableBody">
+										<!-- Заполнится динамически -->
+									</tbody>
+								</table>
+							</div>
+						</div>
+						
+						<!-- АНАЛИЗ ДИНАМИКИ -->
+						<div class="chart-container">
+							<h3>📈 Анализ динамики групп</h3>
+							<div style="display: flex; gap: 15px; margin-bottom: 15px;">
+								<button class="btn btn-sm" onclick="showGroupTrends()">📊 Тренды</button>
+								<button class="btn btn-sm" onclick="showGroupComparison()">⚖️ Сравнение</button>
+								<button class="btn btn-sm" onclick="showGroupProgress()">📈 Прогресс</button>
+							</div>
+							<div id="groupDynamicsChartContainer">
+								<canvas id="groupDynamicsChart"></canvas>
+							</div>
+						</div>
+						
+						<!-- РЕКОМЕНДАЦИИ ДЛЯ РАБОТЫ -->
+						<div class="recommendations-container" style="background: #e8f4fc; padding: 20px; border-radius: 10px;">
+							<h3>💡 Рекомендации для групповой работы</h3>
+							<div id="groupRecommendations">
+								<div class="recommendation-card">
+									<h4>👥 Для преподавателя:</h4>
+									<ul id="teacherRecommendations"></ul>
+								</div>
+								
+								<div class="recommendation-card">
+									<h4>🎯 Для каждой группы:</h4>
+									<div id="perGroupRecommendations"></div>
+								</div>
+							</div>
+						</div>
+						
+						<!-- ИНСТРУМЕНТЫ -->
+						<div class="group-tools" style="display: flex; gap: 10px; flex-wrap: wrap;">
+							<button class="btn btn-success" onclick="exportGroupsToExcel()">
+								📊 Экспорт групп в Excel
+							</button>
+							<button class="btn btn-primary" onclick="printGroupCards()">
+								🖨️ Печать карточек групп
+							</button>
+							<button class="btn btn-info" onclick="shareGroupsWithStudents()">
+								🔗 Поделиться с учениками
+							</button>
+							<button class="btn btn-warning" onclick="generateGroupAssignments()">
+								📝 Сгенерировать задания
+							</button>
+							<button class="btn btn-danger" onclick="resetGroups()">
+								🔄 Сбросить группы
+							</button>
+						</div>
+					</div>
+				</div>
+				
+				<!-- ИСТОРИЯ ГРУППИРОВОК -->
+				<div class="group-history" style="margin-top: 30px; background: white; padding: 20px; border-radius: 10px;">
+					<h3>🕰️ История группировок</h3>
+					<div id="groupHistoryList">
+						<!-- Заполнится динамически -->
+					</div>
+				</div>
+			</div>
+
 			<!-- Вкладка обратной связи с Telegram -->
 			<div id="feedback" class="tab-content">
 				<div class="feedback-container" style="max-width: 1200px; margin: 0 auto;">
@@ -4336,6 +5090,1837 @@
 				</div>
 			</div>
 			
+			<!-- Вкладка библиотеки материалов -->
+			<div id="library" class="tab-content">
+				<div class="library-container" style="max-width: 1200px; margin: 0 auto;">
+					
+					<!-- Заголовок -->
+					<div class="library-header" style="text-align: center; margin-bottom: 40px;">
+						<h1 style="color: #2c3e50; margin-bottom: 15px; font-size: 2.5em;">📚 Библиотека материалов</h1>
+						<p style="color: #7f8c8d; font-size: 1.1em; max-width: 800px; margin: 0 auto 30px;">
+							Коллекция шаблонов работ, методических материалов, заданий и полезных ресурсов
+						</p>
+						
+						<!-- Быстрый поиск -->
+						<div class="search-container" style="max-width: 600px; margin: 30px auto;">
+							<div class="input-group" style="display: flex; gap: 10px;">
+								<input type="text" id="librarySearch" 
+									placeholder="Поиск по материалам, темам, предметам..." 
+									style="flex: 1; padding: 12px 20px; border: 2px solid #3498db; border-radius: 25px; font-size: 16px;">
+								<button class="btn btn-primary" onclick="searchLibrary()" style="padding: 12px 25px;">
+									<i class="fas fa-search"></i> Поиск
+								</button>
+							</div>
+							<div class="search-filters" style="display: flex; gap: 15px; justify-content: center; margin-top: 15px; flex-wrap: wrap;">
+								<button class="btn btn-sm btn-outline active-filter" onclick="filterLibrary('all')">Все</button>
+								<button class="btn btn-sm btn-outline" onclick="filterLibrary('templates')">Шаблоны</button>
+								<button class="btn btn-sm btn-outline" onclick="filterLibrary('tasks')">Задания</button>
+								<button class="btn btn-sm btn-outline" onclick="filterLibrary('methodical')">Методички</button>
+								<button class="btn btn-sm btn-outline" onclick="filterLibrary('resources')">Ресурсы</button>
+							</div>
+						</div>
+					</div>
+					
+					<!-- Основной контент -->
+					<div class="library-main" style="display: grid; grid-template-columns: 250px 1fr; gap: 30px; min-height: 600px;">
+						
+						<!-- Боковая панель - категории -->
+						<div class="library-sidebar" style="background: #f8f9fa; border-radius: 15px; padding: 20px; height: fit-content;">
+							<h4 style="color: #2c3e50; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid #3498db;">
+								<i class="fas fa-folder-open me-2"></i>Категории
+							</h4>
+							
+							<div class="category-list">
+								<div class="category-item active" data-category="all" onclick="selectCategory('all')">
+									<div style="display: flex; align-items: center; gap: 10px; padding: 12px; border-radius: 8px; background: #e8f4fc; cursor: pointer;">
+										<div style="font-size: 20px;">📁</div>
+										<div>
+											<div style="font-weight: 600; color: #2c3e50;">Все материалы</div>
+											<small style="color: #7f8c8d;">156 файлов</small>
+										</div>
+									</div>
+								</div>
+								
+								<div class="category-item" data-category="work_templates" onclick="selectCategory('work_templates')">
+									<div style="display: flex; align-items: center; gap: 10px; padding: 12px; border-radius: 8px; cursor: pointer; transition: background 0.3s;">
+										<div style="font-size: 20px;">📝</div>
+										<div>
+											<div style="font-weight: 600; color: #2c3e50;">Шаблоны работ</div>
+											<small style="color: #7f8c8d;">42 шаблона</small>
+										</div>
+									</div>
+								</div>
+								
+								<div class="category-item" data-category="criteria" onclick="selectCategory('criteria')">
+									<div style="display: flex; align-items: center; gap: 10px; padding: 12px; border-radius: 8px; cursor: pointer; transition: background 0.3s;">
+										<div style="font-size: 20px;">📊</div>
+										<div>
+											<div style="font-weight: 600; color: #2c3e50;">Критерии оценивания</div>
+											<small style="color: #7f8c8d;">18 наборов</small>
+										</div>
+									</div>
+								</div>
+								
+								<div class="category-item" data-category="tasks_bank" onclick="selectCategory('tasks_bank')">
+									<div style="display: flex; align-items: center; gap: 10px; padding: 12px; border-radius: 8px; cursor: pointer; transition: background 0.3s;">
+										<div style="font-size: 20px;">🧩</div>
+										<div>
+											<div style="font-weight: 600; color: #2c3e50;">Банк заданий</div>
+											<small style="color: #7f8c8d;">320+ заданий</small>
+										</div>
+									</div>
+								</div>
+								
+								<div class="category-item" data-category="methodical" onclick="selectCategory('methodical')">
+									<div style="display: flex; align-items: center; gap: 10px; padding: 12px; border-radius: 8px; cursor: pointer; transition: background 0.3s;">
+										<div style="font-size: 20px;">📚</div>
+										<div>
+											<div style="font-weight: 600; color: #2c3e50;">Методические материалы</div>
+											<small style="color: #7f8c8d;">56 файлов</small>
+										</div>
+									</div>
+								</div>
+								
+								<div class="category-item" data-category="subject_resources" onclick="selectCategory('subject_resources')">
+									<div style="display: flex; align-items: center; gap: 10px; padding: 12px; border-radius: 8px; cursor: pointer; transition: background 0.3s;">
+										<div style="font-size: 20px;">🔬</div>
+										<div>
+											<div style="font-weight: 600; color: #2c3e50;">По предметам</div>
+											<small style="color: #7f8c8d;">8 предметов</small>
+										</div>
+									</div>
+								</div>
+								
+								<div class="category-item" data-category="external_resources" onclick="selectCategory('external_resources')">
+									<div style="display: flex; align-items: center; gap: 10px; padding: 12px; border-radius: 8px; cursor: pointer; transition: background 0.3s;">
+										<div style="font-size: 20px;">🌐</div>
+										<div>
+											<div style="font-weight: 600; color: #2c3e50;">Полезные ресурсы</div>
+											<small style="color: #7f8c8d;">24 ссылки</small>
+										</div>
+									</div>
+								</div>
+							</div>
+							
+							<!-- Быстрые действия -->
+							<div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd;">
+								<h5 style="color: #2c3e50; margin-bottom: 15px;">⚡ Быстрые действия</h5>
+								<button class="btn btn-sm btn-outline" onclick="uploadNewMaterial()" style="width: 100%; margin: 5px 0;">
+									<i class="fas fa-upload"></i> Загрузить материал
+								</button>
+								<button class="btn btn-sm btn-outline" onclick="importFromExternal()" style="width: 100%; margin: 5px 0;">
+									<i class="fas fa-cloud-download-alt"></i> Импорт из сети
+								</button>
+								<button class="btn btn-sm btn-outline" onclick="exportLibrary()" style="width: 100%; margin: 5px 0;">
+									<i class="fas fa-download"></i> Экспорт библиотеки
+								</button>
+							</div>
+						</div>
+						
+						<!-- Основная область - материалы -->
+						<div class="library-content">
+							<!-- Хлебные крошки -->
+							<div class="breadcrumbs" style="margin-bottom: 20px; font-size: 14px; color: #7f8c8d;">
+								<span onclick="selectCategory('all')" style="cursor: pointer;">Библиотека</span> 
+								<span style="margin: 0 5px;">›</span>
+								<span id="currentCategory" style="color: #2c3e50; font-weight: 600;">Все материалы</span>
+							</div>
+							
+							<!-- Карточки материалов -->
+							<div class="materials-grid" id="materialsGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px;">
+								
+								<!-- ШАБЛОНЫ РАБОТ -->
+								<div class="material-card" data-category="work_templates" data-subject="all" data-complexity="all">
+									<div class="material-header" style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 15px;">
+										<div>
+											<div style="font-size: 24px; margin-bottom: 5px;">📝</div>
+											<h4 style="margin: 0; color: #2c3e50;">Шаблон контрольной работы</h4>
+											<small style="color: #7f8c8d;">Математика 5-6 класс</small>
+										</div>
+										<div class="material-actions">
+											<button class="btn-icon" onclick="useTemplate(this)" title="Использовать">
+												<i class="fas fa-play"></i>
+											</button>
+										</div>
+									</div>
+									<p style="color: #5a6268; font-size: 14px; margin-bottom: 15px;">
+										Стандартный шаблон для текущей контрольной работы по математике
+									</p>
+									<div class="material-tags" style="display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 15px;">
+										<span class="tag" style="background: #e8f4fc; color: #3498db; padding: 3px 8px; border-radius: 12px; font-size: 12px;">математика</span>
+										<span class="tag" style="background: #f0f8ff; color: #2980b9; padding: 3px 8px; border-radius: 12px; font-size: 12px;">5-6 класс</span>
+										<span class="tag" style="background: #f9f9f9; color: #7f8c8d; padding: 3px 8px; border-radius: 12px; font-size: 12px;">контрольная</span>
+									</div>
+									<div class="material-footer" style="display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: #95a5a6;">
+										<div>
+											<i class="far fa-clock"></i> 45 мин
+											<span style="margin: 0 10px;">|</span>
+											<i class="fas fa-tasks"></i> 15 заданий
+										</div>
+										<div>Добавлено: 12.01.2024</div>
+									</div>
+								</div>
+								
+								<!-- КРИТЕРИИ ОЦЕНИВАНИЯ -->
+								<div class="material-card" data-category="criteria" data-subject="all" data-complexity="all">
+									<div class="material-header" style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 15px;">
+										<div>
+											<div style="font-size: 24px; margin-bottom: 5px;">📊</div>
+											<h4 style="margin: 0; color: #2c3e50;">Критерии ВПР</h4>
+											<small style="color: #7f8c8d;">Окружающий мир 4 класс</small>
+										</div>
+										<div class="material-actions">
+											<button class="btn-icon" onclick="useCriteria(this)" title="Применить">
+												<i class="fas fa-check"></i>
+											</button>
+										</div>
+									</div>
+									<p style="color: #5a6268; font-size: 14px; margin-bottom: 15px;">
+										Официальные критерии оценивания Всероссийской проверочной работы
+									</p>
+									<div class="material-tags" style="display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 15px;">
+										<span class="tag" style="background: #e8f6f3; color: #27ae60; padding: 3px 8px; border-radius: 12px; font-size: 12px;">ВПР</span>
+										<span class="tag" style="background: #fef9e7; color: #f39c12; padding: 3px 8px; border-radius: 12px; font-size: 12px;">4 класс</span>
+										<span class="tag" style="background: #f9f9f9; color: #7f8c8d; padding: 3px 8px; border-radius: 12px; font-size: 12px;">оценивание</span>
+									</div>
+									<div class="material-footer" style="display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: #95a5a6;">
+										<div>
+											<i class="fas fa-star"></i> Официальный
+										</div>
+										<div>Обновлено: 15.01.2024</div>
+									</div>
+								</div>
+								
+								<!-- БАНК ЗАДАНИЙ -->
+								<div class="material-card" data-category="tasks_bank" data-subject="mathematics" data-complexity="3">
+									<div class="material-header" style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 15px;">
+										<div>
+											<div style="font-size: 24px; margin-bottom: 5px;">🧩</div>
+											<h4 style="margin: 0; color: #2c3e50;">Задания на анализ</h4>
+											<small style="color: #7f8c8d;">Уровень 3 сложности</small>
+										</div>
+										<div class="material-actions">
+											<button class="btn-icon" onclick="addToTest(this)" title="Добавить в работу">
+												<i class="fas fa-plus"></i>
+											</button>
+										</div>
+									</div>
+									<p style="color: #5a6268; font-size: 14px; margin-bottom: 15px;">
+										25 заданий на анализ и синтез информации для 7-9 классов
+									</p>
+									<div class="material-tags" style="display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 15px;">
+										<span class="tag" style="background: #fdedec; color: #e74c3c; padding: 3px 8px; border-radius: 12px; font-size: 12px;">уровень 3</span>
+										<span class="tag" style="background: #f0ebf9; color: #8e44ad; padding: 3px 8px; border-radius: 12px; font-size: 12px;">анализ</span>
+										<span class="tag" style="background: #f9f9f9; color: #7f8c8d; padding: 3px 8px; border-radius: 12px; font-size: 12px;">7-9 класс</span>
+									</div>
+									<div class="material-footer" style="display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: #95a5a6;">
+										<div>
+											<i class="fas fa-puzzle-piece"></i> 25 заданий
+										</div>
+										<div>Добавлено: 10.01.2024</div>
+									</div>
+								</div>
+								
+								<!-- МЕТОДИЧЕСКИЕ МАТЕРИАЛЫ -->
+								<div class="material-card" data-category="methodical" data-subject="all" data-complexity="all">
+									<div class="material-header" style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 15px;">
+										<div>
+											<div style="font-size: 24px; margin-bottom: 5px;">📚</div>
+											<h4 style="margin: 0; color: #2c3e50;">Таксономия Блума</h4>
+											<small style="color: #7f8c8d;">Методическое пособие</small>
+										</div>
+										<div class="material-actions">
+											<button class="btn-icon" onclick="openMaterial(this)" title="Открыть">
+												<i class="fas fa-external-link-alt"></i>
+											</button>
+										</div>
+									</div>
+									<p style="color: #5a6268; font-size: 14px; margin-bottom: 15px;">
+										Подробное описание таксономии образовательных целей Блума с примерами
+									</p>
+									<div class="material-tags" style="display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 15px;">
+										<span class="tag" style="background: #e3f2fd; color: #2196f3; padding: 3px 8px; border-radius: 12px; font-size: 12px;">таксономия</span>
+										<span class="tag" style="background: #f1f8e9; color: #7cb342; padding: 3px 8px; border-radius: 12px; font-size: 12px;">методика</span>
+										<span class="tag" style="background: #f9f9f9; color: #7f8c8d; padding: 3px 8px; border-radius: 12px; font-size: 12px;">педагогика</span>
+									</div>
+									<div class="material-footer" style="display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: #95a5a6;">
+										<div>
+											<i class="far fa-file-pdf"></i> PDF, 24 стр.
+										</div>
+										<div>Добавлено: 05.01.2024</div>
+									</div>
+								</div>
+								
+								<!-- РЕСУРСЫ ПО ПРЕДМЕТАМ -->
+								<div class="material-card" data-category="subject_resources" data-subject="physics" data-complexity="all">
+									<div class="material-header" style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 15px;">
+										<div>
+											<div style="font-size: 24px; margin-bottom: 5px;">🔬</div>
+											<h4 style="margin: 0; color: #2c3e50;">Физика 7-9 класс</h4>
+											<small style="color: #7f8c8d;">Лабораторные работы</small>
+										</div>
+										<div class="material-actions">
+											<button class="btn-icon" onclick="openSubjectResources('physics')" title="Открыть">
+												<i class="fas fa-external-link-alt"></i>
+											</button>
+										</div>
+									</div>
+									<p style="color: #5a6268; font-size: 14px; margin-bottom: 15px;">
+										Коллекция лабораторных работ, демонстраций и опытов по физике
+									</p>
+									<div class="material-tags" style="display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 15px;">
+										<span class="tag" style="background: #e3f2fd; color: #2196f3; padding: 3px 8px; border-radius: 12px; font-size: 12px;">физика</span>
+										<span class="tag" style="background: #fce4ec; color: #e91e63; padding: 3px 8px; border-radius: 12px; font-size: 12px;">лабораторные</span>
+										<span class="tag" style="background: #f9f9f9; color: #7f8c8d; padding: 3px 8px; border-radius: 12px; font-size: 12px;">7-9 класс</span>
+									</div>
+									<div class="material-footer" style="display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: #95a5a6;">
+										<div>
+											<i class="fas fa-flask"></i> 18 работ
+										</div>
+										<div>Добавлено: 08.01.2024</div>
+									</div>
+								</div>
+								
+								<!-- ВНЕШНИЕ РЕСУРСЫ -->
+								<div class="material-card" data-category="external_resources" data-subject="all" data-complexity="all">
+									<div class="material-header" style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 15px;">
+										<div>
+											<div style="font-size: 24px; margin-bottom: 5px;">🌐</div>
+											<h4 style="margin: 0; color: #2c3e50;">ФИПИ Банк заданий</h4>
+											<small style="color: #7f8c8d;">Официальный ресурс</small>
+										</div>
+										<div class="material-actions">
+											<button class="btn-icon" onclick="window.open('https://fipi.ru/', '_blank')" title="Открыть сайт">
+												<i class="fas fa-external-link-alt"></i>
+											</button>
+										</div>
+									</div>
+									<p style="color: #5a6268; font-size: 14px; margin-bottom: 15px;">
+										Официальный банк заданий ФИПИ для ОГЭ и ЕГЭ по всем предметам
+									</p>
+									<div class="material-tags" style="display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 15px;">
+										<span class="tag" style="background: #fff8e1; color: #ff8f00; padding: 3px 8px; border-radius: 12px; font-size: 12px;">ФИПИ</span>
+										<span class="tag" style="background: #e8f4fc; color: #3498db; padding: 3px 8px; border-radius: 12px; font-size: 12px;">ОГЭ/ЕГЭ</span>
+										<span class="tag" style="background: #f9f9f9; color: #7f8c8d; padding: 3px 8px; border-radius: 12px; font-size: 12px;">официальный</span>
+									</div>
+									<div class="material-footer" style="display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: #95a5a6;">
+										<div>
+											<i class="fas fa-link"></i> fipi.ru
+										</div>
+										<div>Рекомендовано</div>
+									</div>
+								</div>
+								
+							</div>
+							
+							<!-- Пустая библиотека -->
+							<div id="emptyLibrary" style="display: none; text-align: center; padding: 80px 20px;">
+								<div style="font-size: 4em; margin-bottom: 20px; color: #bdc3c7;">📚</div>
+								<h3 style="color: #95a5a6;">Библиотека пуста</h3>
+								<p style="color: #bdc3c7; max-width: 500px; margin: 10px auto 30px;">
+									Добавьте свои материалы или импортируйте готовые шаблоны
+								</p>
+								<button class="btn btn-primary" onclick="uploadNewMaterial()">
+									<i class="fas fa-plus"></i> Добавить первый материал
+								</button>
+							</div>
+							
+							<!-- Пагинация -->
+							<div class="library-pagination" style="display: flex; justify-content: center; margin-top: 40px;">
+								<nav aria-label="Навигация по страницам">
+									<ul class="pagination" style="display: flex; list-style: none; padding: 0; margin: 0;">
+										<li class="page-item"><button class="page-link" onclick="changePage(1)" style="padding: 8px 12px; border: 1px solid #ddd; background: white; cursor: pointer;">1</button></li>
+										<li class="page-item"><button class="page-link active" onclick="changePage(2)" style="padding: 8px 12px; border: 1px solid #3498db; background: #3498db; color: white; cursor: pointer;">2</button></li>
+										<li class="page-item"><button class="page-link" onclick="changePage(3)" style="padding: 8px 12px; border: 1px solid #ddd; background: white; cursor: pointer;">3</button></li>
+										<li class="page-item"><button class="page-link" onclick="changePage(4)" style="padding: 8px 12px; border: 1px solid #ddd; background: white; cursor: pointer;">4</button></li>
+									</ul>
+								</nav>
+							</div>
+						</div>
+					</div>
+					
+					<!-- Статистика библиотеки -->
+					<div class="library-stats" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 15px; padding: 25px; margin-top: 40px;">
+						<h3 style="color: white; margin-bottom: 25px; text-align: center;">
+							<i class="fas fa-chart-bar me-2"></i>Статистика библиотеки
+						</h3>
+						<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
+							<div style="text-align: center;">
+								<div style="font-size: 2.5em; font-weight: bold; margin-bottom: 5px;">156</div>
+								<div>Всего материалов</div>
+							</div>
+							<div style="text-align: center;">
+								<div style="font-size: 2.5em; font-weight: bold; margin-bottom: 5px;">42</div>
+								<div>Шаблонов работ</div>
+							</div>
+							<div style="text-align: center;">
+								<div style="font-size: 2.5em; font-weight: bold; margin-bottom: 5px;">320</div>
+								<div>Заданий в банке</div>
+							</div>
+							<div style="text-align: center;">
+								<div style="font-size: 2.5em; font-weight: bold; margin-bottom: 5px;">8</div>
+								<div>Предметных областей</div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+
+			<!-- Вкладка тренажеров -->
+			<div id="training" class="tab-content">
+				<div class="training-container" style="max-width: 1200px; margin: 0 auto;">
+					
+					<!-- Заголовок с мотивацией -->
+					<div class="training-header" style="text-align: center; margin-bottom: 40px; animation: fadeIn 0.8s ease;">
+						<h1 style="color: #2c3e50; margin-bottom: 15px; font-size: 2.5em;">🎮 Интерактивные тренажеры</h1>
+						<p style="color: #7f8c8d; font-size: 1.1em; max-width: 800px; margin: 0 auto 30px;">
+							Отрабатывайте ошибки в игровой форме! Персонализированные задания на основе ваших результатов
+						</p>
+						<div class="training-badge" style="display: inline-flex; align-items: center; gap: 10px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; padding: 12px 25px; border-radius: 50px; font-weight: bold; box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);">
+							<i class="fas fa-gamepad" style="font-size: 1.5em;"></i>
+							<span>Адаптивное обучение с элементами геймификации</span>
+						</div>
+					</div>
+					
+					<!-- Статистика прогресса -->
+					<div class="progress-stats" style="background: linear-gradient(135deg, #e3f2fd, #bbdefb); border-radius: 15px; padding: 25px; margin-bottom: 30px;">
+						<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
+							<div class="stat-card" style="text-align: center;">
+								<div class="stat-value" id="trainingLevel" style="font-size: 2.5em; color: #3498db;">1</div>
+								<div class="stat-label" style="color: #2c3e50; font-weight: bold;">Уровень</div>
+							</div>
+							<div class="stat-card" style="text-align: center;">
+								<div class="stat-value" id="trainingPoints" style="font-size: 2.5em; color: #27ae60;">0</div>
+								<div class="stat-label" style="color: #2c3e50; font-weight: bold;">Очки опыта</div>
+							</div>
+							<div class="stat-card" style="text-align: center;">
+								<div class="stat-value" id="trainingStreak" style="font-size: 2.5em; color: #f39c12;">0</div>
+								<div class="stat-label" style="color: #2c3e50; font-weight: bold;">Дней подряд</div>
+							</div>
+							<div class="stat-card" style="text-align: center;">
+								<div class="stat-value" id="trainingAccuracy" style="font-size: 2.5em; color: #e74c3c;">0%</div>
+								<div class="stat-label" style="color: #2c3e50; font-weight: bold;">Точность</div>
+							</div>
+						</div>
+					</div>
+					
+					<!-- Типы тренажеров -->
+					<div class="training-types" style="margin-bottom: 40px;">
+						<h3 style="color: #2c3e50; margin-bottom: 25px; font-size: 1.8em;">
+							<i class="fas fa-dumbbell me-2"></i>Виды тренажеров
+						</h3>
+						
+						<div class="training-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 25px;">
+							
+							<!-- Тренажер 1: Адаптивные задания -->
+							<div class="training-card" onclick="startAdaptiveTraining()" style="background: white; border-radius: 15px; padding: 25px; box-shadow: 0 8px 25px rgba(0,0,0,0.1); cursor: pointer; transition: all 0.3s; border: 2px solid #e9ecef;">
+								<div style="display: flex; align-items: center; gap: 15px; margin-bottom: 15px;">
+									<div style="width: 60px; height: 60px; background: linear-gradient(135deg, #4CAF50, #8BC34A); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; color: white;">
+										🔄
+									</div>
+									<h4 style="margin: 0; color: #2c3e50;">Адаптивные задания</h4>
+								</div>
+								<p style="color: #7f8c8d; margin-bottom: 20px;">
+									Автоматическая подборка заданий на основе ваших ошибок. Сложность меняется в зависимости от прогресса.
+								</p>
+								<div style="display: flex; justify-content: space-between; align-items: center;">
+									<span class="badge" style="background: #e8f4fc; color: #3498db; padding: 5px 12px; border-radius: 20px; font-size: 12px;">
+										🎯 Персонализировано
+									</span>
+									<button class="btn btn-sm btn-primary">Начать →</button>
+								</div>
+							</div>
+							
+							<!-- Тренажер 2: Игровые задания -->
+							<div class="training-card" onclick="startGameTraining()" style="background: white; border-radius: 15px; padding: 25px; box-shadow: 0 8px 25px rgba(0,0,0,0.1); cursor: pointer; transition: all 0.3s; border: 2px solid #e9ecef;">
+								<div style="display: flex; align-items: center; gap: 15px; margin-bottom: 15px;">
+									<div style="width: 60px; height: 60px; background: linear-gradient(135deg, #FFC107, #FF9800); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; color: white;">
+										🎮
+									</div>
+									<h4 style="margin: 0; color: #2c3e50;">Игровые задания</h4>
+								</div>
+								<p style="color: #7f8c8d; margin-bottom: 20px;">
+									Решайте задачи в формате игры: викторины, головоломки, соревнования с другими учениками.
+								</p>
+								<div style="display: flex; justify-content: space-between; align-items: center;">
+									<span class="badge" style="background: #fff8e1; color: #f39c12; padding: 5px 12px; border-radius: 20px; font-size: 12px;">
+										🏆 Соревнование
+									</span>
+									<button class="btn btn-sm btn-primary">Играть →</button>
+								</div>
+							</div>
+							
+							<!-- Тренажер 3: Визуальные симуляторы -->
+							<div class="training-card" onclick="startVisualTraining()" style="background: white; border-radius: 15px; padding: 25px; box-shadow: 0 8px 25px rgba(0,0,0,0.1); cursor: pointer; transition: all 0.3s; border: 2px solid #e9ecef;">
+								<div style="display: flex; align-items: center; gap: 15px; margin-bottom: 15px;">
+									<div style="width: 60px; height: 60px; background: linear-gradient(135deg, #9C27B0, #673AB7); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; color: white;">
+										🎨
+									</div>
+									<h4 style="margin: 0; color: #2c3e50;">Визуальные симуляторы</h4>
+								</div>
+								<p style="color: #7f8c8d; margin-bottom: 20px;">
+									Интерактивные модели и визуализации для лучшего понимания сложных концепций.
+								</p>
+								<div style="display: flex; justify-content: space-between; align-items: center;">
+									<span class="badge" style="background: #f3e5f5; color: #9C27B0; padding: 5px 12px; border-radius: 20px; font-size: 12px;">
+										👁️ Визуально
+									</span>
+									<button class="btn btn-sm btn-primary">Исследовать →</button>
+								</div>
+							</div>
+							
+						</div>
+					</div>
+					
+					<!-- Рекомендации на основе ошибок -->
+					<div class="error-based-training" style="background: #fef9e7; border-radius: 15px; padding: 30px; margin-bottom: 40px;">
+						<h3 style="color: #2c3e50; margin-bottom: 25px; font-size: 1.8em;">
+							<i class="fas fa-bullseye me-2"></i>Тренажеры на основе ваших ошибок
+						</h3>
+						
+						<div id="errorBasedExercises" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
+							<!-- Динамически заполнится на основе ошибок -->
+							<div class="empty-message" style="text-align: center; padding: 40px; color: #bdc3c7;">
+								<div style="font-size: 4em; margin-bottom: 20px;">📊</div>
+								<h4 style="color: #95a5a6;">Анализируем ваши ошибки...</h4>
+								<p>После анализа контрольной работы здесь появятся персонализированные тренажеры</p>
+								<button class="btn btn-primary mt-3" onclick="analyzeErrorsForTraining()">
+									Проанализировать ошибки
+								</button>
+							</div>
+						</div>
+					</div>
+					
+					<!-- Система достижений -->
+					<div class="achievements-system" style="background: white; border-radius: 15px; padding: 30px; box-shadow: 0 8px 25px rgba(0,0,0,0.1); margin-bottom: 40px;">
+						<h3 style="color: #2c3e50; margin-bottom: 25px; font-size: 1.8em;">
+							<i class="fas fa-trophy me-2"></i>Система достижений
+						</h3>
+						
+						<div class="achievements-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 20px;">
+							<div class="achievement-card" style="text-align: center;">
+								<div style="width: 80px; height: 80px; background: #f1f1f1; border-radius: 50%; margin: 0 auto 15px; display: flex; align-items: center; justify-content: center; font-size: 32px;">
+									🏁
+								</div>
+								<h5 style="margin: 0 0 5px 0; color: #2c3e50;">Первый шаг</h5>
+								<p style="color: #7f8c8d; font-size: 12px;">Выполните первое задание</p>
+							</div>
+							
+							<div class="achievement-card" style="text-align: center;">
+								<div style="width: 80px; height: 80px; background: #f1f1f1; border-radius: 50%; margin: 0 auto 15px; display: flex; align-items: center; justify-content: center; font-size: 32px;">
+									🔥
+								</div>
+								<h5 style="margin: 0 0 5px 0; color: #2c3e50;">Серия успехов</h5>
+								<p style="color: #7f8c8d; font-size: 12px;">5 правильных ответов подряд</p>
+							</div>
+							
+							<div class="achievement-card" style="text-align: center;">
+								<div style="width: 80px; height: 80px; background: #f1f1f1; border-radius: 50%; margin: 0 auto 15px; display: flex; align-items: center; justify-content: center; font-size: 32px;">
+									📚
+								</div>
+								<h5 style="margin: 0 0 5px 0; color: #2c3e50;">Эрудит</h5>
+								<p style="color: #7f8c8d; font-size: 12px;">Изучите 3 разных типа заданий</p>
+							</div>
+							
+							<div class="achievement-card" style="text-align: center;">
+								<div style="width: 80px; height: 80px; background: #f1f1f1; border-radius: 50%; margin: 0 auto 15px; display: flex; align-items: center; justify-content: center; font-size: 32px;">
+									💎
+								</div>
+								<h5 style="margin: 0 0 5px 0; color: #2c3e50;">Безупречно</h5>
+								<p style="color: #7f8c8d; font-size: 12px;">100% точность в тренировке</p>
+							</div>
+						</div>
+					</div>
+					
+					<!-- История тренировок -->
+					<div class="training-history" style="background: white; border-radius: 15px; padding: 30px; box-shadow: 0 8px 25px rgba(0,0,0,0.1);">
+						<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
+							<h3 style="color: #2c3e50; font-size: 1.8em;">
+								<i class="fas fa-history me-2"></i>История тренировок
+							</h3>
+							<button class="btn btn-sm btn-outline" onclick="clearTrainingHistory()">
+								Очистить историю
+							</button>
+						</div>
+						
+						<div id="trainingHistoryList" style="max-height: 300px; overflow-y: auto;">
+							<div class="empty-history" style="text-align: center; padding: 40px; color: #bdc3c7;">
+								<div style="font-size: 4em; margin-bottom: 20px;">📝</div>
+								<h4 style="color: #95a5a6;">История тренировок пуста</h4>
+								<p>Здесь будет отображаться ваш прогресс в тренажерах</p>
+							</div>
+						</div>
+					</div>
+					
+				</div>
+			</div>			
+
+			<!-- В разделе с содержимым вкладок добавьте новую вкладку: -->
+			<div id="integrations" class="tab-content">
+				<h2 class="section-title">🔧 Интеграции с внешними системами</h2>
+				
+				<div class="integrations-container" style="max-width: 1200px; margin: 0 auto;">
+					
+					<!-- Введение -->
+					<div class="intro-section" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 25px; border-radius: 15px; margin-bottom: 30px;">
+						<h3 style="color: white; margin-bottom: 15px;">🌐 Центр подключений</h3>
+						<p>Подключайте систему анализа результатов к вашим рабочим платформам для автоматического обмена данными.</p>
+					</div>
+					
+					<div class="integrations-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 25px; margin-bottom: 40px;">
+						
+						<!-- Электронные дневники -->
+						<div class="integration-card" style="background: white; border-radius: 15px; padding: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); border-left: 5px solid #3498db;">
+							<div style="display: flex; align-items: center; gap: 15px; margin-bottom: 20px;">
+								<div style="font-size: 2.5em;">📒</div>
+								<div>
+									<h3 style="margin: 0; color: #2c3e50;">Электронные дневники</h3>
+									<small style="color: #7f8c8d;">Автоматический экспорт оценок</small>
+								</div>
+							</div>
+							
+							<div class="platforms-list" style="margin-bottom: 20px;">
+								<div class="platform-item" style="padding: 12px; background: #f8f9fa; border-radius: 10px; margin-bottom: 10px; display: flex; align-items: center; gap: 15px;">
+									<div style="font-size: 1.5em;">🏫</div>
+									<div style="flex: 1;">
+										<div style="font-weight: 600; color: #34495e;">МЭШ (Московская электронная школа)</div>
+										<small style="color: #7f8c8d;">API интеграция с журналом</small>
+									</div>
+									<button class="btn btn-sm btn-outline" onclick="connectMESH()" style="padding: 8px 15px;">Подключить</button>
+								</div>
+								
+								<div class="platform-item" style="padding: 12px; background: #f8f9fa; border-radius: 10px; margin-bottom: 10px; display: flex; align-items: center; gap: 15px;">
+									<div style="font-size: 1.5em;">📱</div>
+									<div style="flex: 1;">
+										<div style="font-weight: 600; color: #34495e;">Дневник.ру</div>
+										<small style="color: #7f8c8d;">Синхронизация оценок и посещаемости</small>
+									</div>
+									<button class="btn btn-sm btn-outline" onclick="connectDnevnik()" style="padding: 8px 15px;">Подключить</button>
+								</div>
+								
+								<div class="platform-item" style="padding: 12px; background: #f8f9fa; border-radius: 10px; margin-bottom: 10px; display: flex; align-items: center; gap: 15px;">
+									<div style="font-size: 1.5em;">🎓</div>
+									<div style="flex: 1;">
+										<div style="font-weight: 600; color: #34495e;">ЭлЖур</div>
+										<small style="color: #7f8c8d;">Электронный журнал и дневник</small>
+									</div>
+									<button class="btn btn-sm btn-outline" onclick="connectEljur()" style="padding: 8px 15px;">Подключить</button>
+								</div>
+							</div>
+							
+							<div class="integration-status">
+								<div style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px;">
+									<span style="font-size: 0.9em; color: #7f8c8d;">Статус: <span id="diaryStatus" style="color: #e74c3c; font-weight: 600;">Не подключено</span></span>
+									<button class="btn btn-sm" onclick="configureAutoSync()" style="padding: 8px 15px;">
+										<i class="fas fa-sync-alt"></i> Настроить автосинхронизацию
+									</button>
+								</div>
+							</div>
+						</div>
+						
+						<!-- Платформы для тестирования -->
+						<div class="integration-card" style="background: white; border-radius: 15px; padding: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); border-left: 5px solid #2ecc71;">
+							<div style="display: flex; align-items: center; gap: 15px; margin-bottom: 20px;">
+								<div style="font-size: 2.5em;">🧪</div>
+								<div>
+									<h3 style="margin: 0; color: #2c3e50;">Платформы для тестирования</h3>
+									<small style="color: #7f8c8d;">Импорт результатов тестирования</small>
+								</div>
+							</div>
+							
+							<div class="platforms-list" style="margin-bottom: 20px;">
+								<div class="platform-item" style="padding: 12px; background: #f8f9fa; border-radius: 10px; margin-bottom: 10px; display: flex; align-items: center; gap: 15px;">
+									<div style="font-size: 1.5em;">🐻</div>
+									<div style="flex: 1;">
+										<div style="font-weight: 600; color: #34495e;">ЯКласс</div>
+										<small style="color: #7f8c8d;">Импорт результатов цифровых заданий</small>
+									</div>
+									<button class="btn btn-sm btn-outline" onclick="connectYaClass()" style="padding: 8px 15px;">Подключить</button>
+								</div>
+								
+								<div class="platform-item" style="padding: 12px; background: #f8f9fa; border-radius: 10px; margin-bottom: 10px; display: flex; align-items: center; gap: 15px;">
+									<div style="font-size: 1.5em;">👨‍🏫</div>
+									<div style="flex: 1;">
+										<div style="font-weight: 600; color: #34495e;">Учи.ру</div>
+										<small style="color: #7f8c8d;">Анализ интерактивных заданий</small>
+									</div>
+									<button class="btn btn-sm btn-outline" onclick="connectUchiRu()" style="padding: 8px 15px;">Подключить</button>
+								</div>
+								
+								<div class="platform-item" style="padding: 12px; background: #f8f9fa; border-radius: 10px; margin-bottom: 10px; display: flex; align-items: center; gap: 15px;">
+									<div style="font-size: 1.5em;">📚</div>
+									<div style="flex: 1;">
+										<div style="font-weight: 600; color: #34495e;">Знаника / Foxford</div>
+										<small style="color: #7f8c8d;">Олимпиады и конкурсы</small>
+									</div>
+									<button class="btn btn-sm btn-outline" onclick="connectZnanka()" style="padding: 8px 15px;">Подключить</button>
+								</div>
+							</div>
+							
+							<div class="integration-status">
+								<div style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px;">
+									<span style="font-size: 0.9em; color: #7f8c8d;">Статус: <span id="testingStatus" style="color: #e74c3c; font-weight: 600;">Не подключено</span></span>
+									<button class="btn btn-sm" onclick="importTestResults()" style="padding: 8px 15px;">
+										<i class="fas fa-file-import"></i> Импорт результатов
+									</button>
+								</div>
+							</div>
+						</div>
+						
+						<!-- Образовательные платформы -->
+						<div class="integration-card" style="background: white; border-radius: 15px; padding: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); border-left: 5px solid #9b59b6;">
+							<div style="display: flex; align-items: center; gap: 15px; margin-bottom: 20px;">
+								<div style="font-size: 2.5em;">🏫</div>
+								<div>
+									<h3 style="margin: 0; color: #2c3e50;">Образовательные платформы</h3>
+									<small style="color: #7f8c8d;">Работа в LMS системах</small>
+								</div>
+							</div>
+							
+							<div class="platforms-list" style="margin-bottom: 20px;">
+								<div class="platform-item" style="padding: 12px; background: #f8f9fa; border-radius: 10px; margin-bottom: 10px; display: flex; align-items: center; gap: 15px;">
+									<div style="font-size: 1.5em;">📊</div>
+									<div style="flex: 1;">
+										<div style="font-weight: 600; color: #34495e;">Google Classroom</div>
+										<small style="color: #7f8c8d;">Синхронизация заданий и оценок</small>
+									</div>
+									<button class="btn btn-sm btn-outline" onclick="connectGoogleClassroom()" style="padding: 8px 15px;">Подключить</button>
+								</div>
+								
+								<div class="platform-item" style="padding: 12px; background: #f8f9fa; border-radius: 10px; margin-bottom: 10px; display: flex; align-items: center; gap: 15px;">
+									<div style="font-size: 1.5em;">💼</div>
+									<div style="flex: 1;">
+										<div style="font-weight: 600; color: #34495e;">Microsoft Teams</div>
+										<small style="color: #7f8c8d;">Интеграция с Teams for Education</small>
+									</div>
+									<button class="btn btn-sm btn-outline" onclick="connectMicrosoftTeams()" style="padding: 8px 15px;">Подключить</button>
+								</div>
+								
+								<div class="platform-item" style="padding: 12px; background: #f8f9fa; border-radius: 10px; margin-bottom: 10px; display: flex; align-items: center; gap: 15px;">
+									<div style="font-size: 1.5em;">🎯</div>
+									<div style="flex: 1;">
+										<div style="font-weight: 600; color: #34495e;">Moodle / Open edX</div>
+										<small style="color: #7f8c8d;">LMS системы для дистанционного обучения</small>
+									</div>
+									<button class="btn btn-sm btn-outline" onclick="connectMoodle()" style="padding: 8px 15px;">Подключить</button>
+								</div>
+							</div>
+							
+							<div class="integration-status">
+								<div style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px;">
+									<span style="font-size: 0.9em; color: #7f8c8d;">Статус: <span id="lmsStatus" style="color: #e74c3c; font-weight: 600;">Не подключено</span></span>
+									<button class="btn btn-sm" onclick="configureLmsSync()" style="padding: 8px 15px;">
+										<i class="fas fa-cogs"></i> Настройки синхронизации
+									</button>
+								</div>
+							</div>
+						</div>
+						
+						<!-- API и разработчики -->
+						<div class="integration-card" style="background: white; border-radius: 15px; padding: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); border-left: 5px solid #f39c12;">
+							<div style="display: flex; align-items: center; gap: 15px; margin-bottom: 20px;">
+								<div style="font-size: 2.5em;">🔌</div>
+								<div>
+									<h3 style="margin: 0; color: #2c3e50;">API и кастомные интеграции</h3>
+									<small style="color: #7f8c8d;">Для разработчиков и технических специалистов</small>
+								</div>
+							</div>
+							
+							<div class="api-features" style="margin-bottom: 20px;">
+								<div style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px;">
+									<div style="color: #27ae60; font-size: 1.2em;">✓</div>
+									<span>REST API для обмена данными</span>
+								</div>
+								<div style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px;">
+									<div style="color: #27ae60; font-size: 1.2em;">✓</div>
+									<span>Webhooks для уведомлений</span>
+								</div>
+								<div style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px;">
+									<div style="color: #27ae60; font-size: 1.2em;">✓</div>
+									<span>OAuth 2.0 аутентификация</span>
+								</div>
+								<div style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px;">
+									<div style="color: #27ae60; font-size: 1.2em;">✓</div>
+									<span>Документация Swagger/OpenAPI</span>
+								</div>
+							</div>
+							
+							<div class="api-controls">
+								<div style="display: flex; gap: 10px; flex-wrap: wrap;">
+									<button class="btn btn-sm btn-outline" onclick="generateApiKey()" style="padding: 8px 15px;">
+										<i class="fas fa-key"></i> Создать API ключ
+									</button>
+									<button class="btn btn-sm btn-outline" onclick="showApiDocumentation()" style="padding: 8px 15px;">
+										<i class="fas fa-book"></i> Документация API
+									</button>
+									<button class="btn btn-sm btn-outline" onclick="testApiConnection()" style="padding: 8px 15px;">
+										<i class="fas fa-plug"></i> Проверить соединение
+									</button>
+								</div>
+							</div>
+							
+							<div class="api-status" style="margin-top: 20px;">
+								<div style="background: #f8f9fa; padding: 15px; border-radius: 10px;">
+									<div style="font-weight: 600; margin-bottom: 10px;">Статус API:</div>
+									<div style="display: flex; justify-content: space-between; align-items: center;">
+										<span style="color: #7f8c8d;">Базовая URL:</span>
+										<code style="background: #e9ecef; padding: 3px 8px; border-radius: 4px;">/api/v1/</code>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+					
+					<!-- Настройки синхронизации -->
+					<div class="sync-settings" style="background: white; border-radius: 15px; padding: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); margin-bottom: 30px;">
+						<h3 style="color: #2c3e50; margin-bottom: 20px;">🔄 Настройки синхронизации</h3>
+						
+						<div class="sync-options" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px;">
+							<div class="sync-option">
+								<label style="display: block; margin-bottom: 10px; font-weight: 600;">
+									<input type="checkbox" id="autoSync" checked> Автоматическая синхронизация
+								</label>
+								<small style="color: #7f8c8d;">Автоматически отправлять оценки в подключенные системы</small>
+							</div>
+							
+							<div class="sync-option">
+								<label style="display: block; margin-bottom: 10px; font-weight: 600;">Интервал синхронизации:</label>
+								<select id="syncInterval" class="form-select" style="width: 100%;">
+									<option value="5">Каждые 5 минут</option>
+									<option value="15" selected>Каждые 15 минут</option>
+									<option value="30">Каждые 30 минут</option>
+									<option value="60">Каждый час</option>
+									<option value="manual">Вручную</option>
+								</select>
+							</div>
+							
+							<div class="sync-option">
+								<label style="display: block; margin-bottom: 10px; font-weight: 600;">Формат данных:</label>
+								<select id="dataFormat" class="form-select" style="width: 100%;">
+									<option value="json">JSON (рекомендуется)</option>
+									<option value="xml">XML</option>
+									<option value="csv">CSV</option>
+								</select>
+							</div>
+						</div>
+						
+						<div style="display: flex; gap: 15px; margin-top: 25px;">
+							<button class="btn btn-primary" onclick="saveSyncSettings()">
+								<i class="fas fa-save"></i> Сохранить настройки
+							</button>
+							<button class="btn" onclick="forceSyncNow()">
+								<i class="fas fa-sync"></i> Синхронизировать сейчас
+							</button>
+							<button class="btn btn-outline" onclick="viewSyncLog()">
+								<i class="fas fa-history"></i> Показать лог
+							</button>
+						</div>
+					</div>
+					
+					<!-- Лог подключений -->
+					<div class="connection-log" style="background: white; border-radius: 15px; padding: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.08);">
+						<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+							<h3 style="color: #2c3e50; margin: 0;">📋 История подключений</h3>
+							<button class="btn btn-sm btn-outline" onclick="clearConnectionLog()">
+								<i class="fas fa-trash"></i> Очистить лог
+							</button>
+						</div>
+						
+						<div id="connectionLog" style="max-height: 300px; overflow-y: auto; background: #f8f9fa; border-radius: 10px; padding: 15px;">
+							<div class="log-entry" style="padding: 10px; border-bottom: 1px solid #e9ecef;">
+								<div style="display: flex; justify-content: space-between;">
+									<span><strong>Сегодня 10:30</strong> - Попытка подключения к МЭШ</span>
+									<span style="color: #27ae60;">Успешно</span>
+								</div>
+							</div>
+							<div class="log-entry" style="padding: 10px; border-bottom: 1px solid #e9ecef;">
+								<div style="display: flex; justify-content: space-between;">
+									<span><strong>Сегодня 10:15</strong> - Автосинхронизация с Дневник.ру</span>
+									<span style="color: #f39c12;">Частично (5 из 10 оценок)</span>
+								</div>
+							</div>
+							<div class="log-entry" style="padding: 10px;">
+								<div style="display: flex; justify-content: space-between;">
+									<span><strong>Вчера 15:45</strong> - Экспорт в Google Classroom</span>
+									<span style="color: #27ae60;">Успешно</span>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+
+			<!-- Вкладка мобильной статистики -->
+			<div id="mobile" class="tab-content">
+				<div class="mobile-dashboard-container">
+					<div class="dashboard-header" style="text-align: center; margin-bottom: 30px;">
+						<h1 class="section-title">📱 Мобильная статистика</h1>
+						<p class="subtitle">Упрощенный интерфейс для родителей и учеников</p>
+					</div>
+
+					<!-- Быстрый доступ по QR-коду -->
+					<div class="qr-access-section" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 25px; border-radius: 15px; color: white; margin-bottom: 30px;">
+						<div style="display: flex; align-items: center; gap: 20px; flex-wrap: wrap;">
+							<div style="flex: 1;">
+								<h3 style="color: white; margin-bottom: 15px;">🔐 Быстрый доступ по QR-коду</h3>
+								<p>Отсканируйте QR-код, чтобы открыть личный кабинет на мобильном устройстве</p>
+								<div style="display: flex; gap: 15px; margin-top: 20px;">
+									<button class="btn btn-light" onclick="generateStudentQR()">
+										📱 QR для ученика
+									</button>
+									<button class="btn btn-light" onclick="generateParentQR()">
+										👪 QR для родителя
+									</button>
+								</div>
+							</div>
+							<div id="mobileQrCode" style="background: white; padding: 15px; border-radius: 10px;">
+								<!-- QR-код появится здесь -->
+								<div style="text-align: center; color: #666; padding: 40px;">
+									<i class="fas fa-qrcode" style="font-size: 3em; margin-bottom: 10px;"></i>
+									<p>QR-код не сгенерирован</p>
+								</div>
+							</div>
+						</div>
+					</div>
+
+					<div class="dashboard-content" style="display: grid; grid-template-columns: 1fr 1fr; gap: 25px;">
+						<!-- ЛЕВАЯ КОЛОНКА: Личные кабинеты -->
+						<div class="student-cabinet-section">
+							<h3 class="section-title">👤 Личные кабинеты учеников</h3>
+							
+							<div class="student-selector" style="margin-bottom: 20px;">
+								<label>Выберите ученика:</label>
+								<select id="studentSelector" class="form-select" onchange="loadStudentDashboard()">
+									<option value="">-- Выберите ученика --</option>
+								</select>
+							</div>
+
+							<div id="studentDashboard" style="background: #f8f9fa; padding: 20px; border-radius: 10px; min-height: 400px;">
+								<div style="text-align: center; padding: 50px 20px; color: #7f8c8d;">
+									<i class="fas fa-user-graduate" style="font-size: 3em; margin-bottom: 15px;"></i>
+									<h4>Выберите ученика для просмотра статистики</h4>
+									<p>Отобразятся оценки, прогресс и рекомендации</p>
+								</div>
+							</div>
+
+							<!-- Быстрые действия ученика -->
+							<div class="quick-actions" style="margin-top: 20px;">
+								<h4>⚡ Быстрые действия:</h4>
+								<div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px;">
+									<button class="btn btn-sm btn-outline" onclick="viewStudentProgress()">
+										📈 Прогресс
+									</button>
+									<button class="btn btn-sm btn-outline" onclick="viewStudentGrades()">
+										📊 Все оценки
+									</button>
+									<button class="btn btn-sm btn-outline" onclick="downloadStudentReport()">
+										📄 Скачать отчет
+									</button>
+									<button class="btn btn-sm btn-outline" onclick="sendToParent()">
+										📤 Отправить родителям
+									</button>
+								</div>
+							</div>
+						</div>
+
+						<!-- ПРАВАЯ КОЛОНКА: Статистика для родителей -->
+						<div class="parent-dashboard-section">
+							<h3 class="section-title">👪 Статистика для родителей</h3>
+							
+							<div class="parent-access" style="background: #e8f4fc; padding: 20px; border-radius: 10px; margin-bottom: 20px;">
+								<h4 style="margin-top: 0;">🔑 Доступ для родителей</h4>
+								<p>Родители могут просматривать успеваемость своего ребенка через защищенную ссылку</p>
+								<button class="btn btn-primary" onclick="generateParentAccess()">
+									🔗 Создать ссылку для родителей
+								</button>
+							</div>
+
+							<div id="parentDashboard" style="background: white; border: 2px solid #e9ecef; border-radius: 10px; padding: 20px;">
+								<h4>📊 Общая статистика класса</h4>
+								<div class="class-stats" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin: 15px 0;">
+									<div class="stat-card" style="background: #f8f9fa; padding: 15px; border-radius: 8px; text-align: center;">
+										<div class="stat-value" style="font-size: 1.8em; font-weight: bold; color: #2c3e50;">0%</div>
+										<div class="stat-label" style="color: #7f8c8d;">Успеваемость</div>
+									</div>
+									<div class="stat-card" style="background: #f8f9fa; padding: 15px; border-radius: 8px; text-align: center;">
+										<div class="stat-value" style="font-size: 1.8em; font-weight: bold; color: #2c3e50;">0</div>
+										<div class="stat-label" style="color: #7f8c8d;">Средний балл</div>
+									</div>
+									<div class="stat-card" style="background: #f8f9fa; padding: 15px; border-radius: 8px; text-align: center;">
+										<div class="stat-value" style="font-size: 1.8em; font-weight: bold; color: #2c3e50;">0</div>
+										<div class="stat-label" style="color: #7f8c8d;">Лучших оценок</div>
+									</div>
+									<div class="stat-card" style="background: #f8f9fa; padding: 15px; border-radius: 8px; text-align: center;">
+										<div class="stat-value" style="font-size: 1.8em; font-weight: bold; color: #2c3e50;">0</div>
+										<div class="stat-label" style="color: #7f8c8d;">Нуждаются в помощи</div>
+									</div>
+								</div>
+
+								<!-- Рекомендации для родителей -->
+								<div class="parent-recommendations" style="margin-top: 20px; padding: 15px; background: #fff8e1; border-radius: 8px;">
+									<h5>💡 Рекомендации для родителей</h5>
+									<ul id="parentRecommendations" style="margin: 10px 0 0 20px;">
+										<li>Загрузите данные об учениках для получения рекомендаций</li>
+									</ul>
+								</div>
+							</div>
+						</div>
+					</div>
+
+					<!-- Push-уведомления -->
+					<div class="notifications-section" style="margin-top: 30px; background: white; border-radius: 10px; padding: 25px; border: 2px solid #e9ecef;">
+						<h3 class="section-title">🔔 Push-уведомления о результатах</h3>
+						
+						<div class="notification-controls" style="display: flex; gap: 20px; align-items: center; margin-top: 20px;">
+							<div style="flex: 1;">
+								<h5>Настройка уведомлений</h5>
+								<p>Родители и ученики могут получать уведомления о новых оценках и отчетах</p>
+							</div>
+							
+							<div class="notification-switches">
+								<div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+									<label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+										<div class="toggle-switch" style="position: relative; width: 50px; height: 25px; background: #ddd; border-radius: 12.5px;">
+											<div class="toggle-circle" style="position: absolute; top: 2.5px; left: 2.5px; width: 20px; height: 20px; background: white; border-radius: 50%; transition: all 0.3s;"></div>
+										</div>
+										<input type="checkbox" id="notifyNewGrades" checked hidden>
+										<span>Новые оценки</span>
+									</label>
+								</div>
+								
+								<div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+									<label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+										<div class="toggle-switch" style="position: relative; width: 50px; height: 25px; background: #ddd; border-radius: 12.5px;">
+											<div class="toggle-circle" style="position: absolute; top: 2.5px; left: 2.5px; width: 20px; height: 20px; background: white; border-radius: 50%; transition: all 0.3s;"></div>
+										</div>
+										<input type="checkbox" id="notifyReports" checked hidden>
+										<span>Новые отчеты</span>
+									</label>
+								</div>
+							</div>
+						</div>
+
+						<div style="display: flex; gap: 15px; margin-top: 20px;">
+							<button class="btn btn-primary" onclick="testNotification()">
+								🔔 Тестовое уведомление
+							</button>
+							<button class="btn btn-outline" onclick="configureNotificationSchedule()">
+								⏰ Настроить расписание
+							</button>
+							<button class="btn btn-success" onclick="sendBulkNotifications()">
+								📤 Отправить всем
+							</button>
+						</div>
+					</div>
+
+					<!-- Мобильная оптимизация -->
+					<div class="mobile-optimization" style="margin-top: 30px; padding: 20px; background: #e8f4fc; border-radius: 10px;">
+						<h4>📱 Мобильная оптимизация</h4>
+						<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-top: 15px;">
+							<div class="feature-card" style="text-align: center; padding: 15px; background: white; border-radius: 8px;">
+								<div style="font-size: 2em; margin-bottom: 10px;">📲</div>
+								<h5>Адаптивный дизайн</h5>
+								<p style="font-size: 13px; color: #666;">Корректное отображение на любых устройствах</p>
+							</div>
+							<div class="feature-card" style="text-align: center; padding: 15px; background: white; border-radius: 8px;">
+								<div style="font-size: 2em; margin-bottom: 10px;">⚡</div>
+								<h5>Быстрая загрузка</h5>
+								<p style="font-size: 13px; color: #666;">Оптимизировано для медленных соединений</p>
+							</div>
+							<div class="feature-card" style="text-align: center; padding: 15px; background: white; border-radius: 8px;">
+								<div style="font-size: 2em; margin-bottom: 10px;">🔒</div>
+								<h5>Безопасность</h5>
+								<p style="font-size: 13px; color: #666;">Защищенные личные кабинеты</p>
+							</div>
+							<div class="feature-card" style="text-align: center; padding: 15px; background: white; border-radius: 8px;">
+								<div style="font-size: 2em; margin-bottom: 10px;">📊</div>
+								<h5>Офлайн-доступ</h5>
+								<p style="font-size: 13px; color: #666;">Просмотр данных без интернета</p>
+							</div>
+						</div>
+					</div>
+
+					<!-- Экспорт для мобильных -->
+					<div class="mobile-export" style="margin-top: 30px; text-align: center;">
+						<h4>📤 Экспорт для мобильных устройств</h4>
+						<div style="display: flex; gap: 10px; justify-content: center; margin-top: 15px; flex-wrap: wrap;">
+							<button class="btn btn-outline" onclick="exportMobileApp()">
+								📱 Мобильное приложение
+							</button>
+							<button class="btn btn-outline" onclick="exportPWA()">
+								🌐 PWA (Веб-приложение)
+							</button>
+							<button class="btn btn-outline" onclick="exportTelegramBot()">
+								🤖 Telegram бот
+							</button>
+							<button class="btn btn-outline" onclick="exportAPK()">
+								📦 APK файл
+							</button>
+						</div>
+					</div>
+				</div>
+			</div>			
+
+			<!-- Вкладка конструктора заданий -->
+			<div id="builder" class="tab-content">
+				<h2 class="section-title">🧩 Конструктор заданий</h2>
+				
+				<!-- Быстрые действия -->
+				<div class="quick-actions" style="padding: 15px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 10px; margin-bottom: 20px;">
+					<h3 style="color: white; margin: 0;">🚀 Быстрый старт:</h3>
+					<div style="display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap;">
+						<button class="btn btn-light" onclick="createNewTask()">
+							✨ Новое задание
+						</button>
+						<button class="btn btn-light" onclick="importFromLibrary()">
+							📚 Из библиотеки
+						</button>
+						<button class="btn btn-light" onclick="generateVariants()">
+							🔄 Сгенерировать варианты
+						</button>
+						<button class="btn btn-light" onclick="analyzeTaskComplexity()">
+							🧠 Анализ сложности
+						</button>
+					</div>
+				</div>
+				
+				<div class="task-builder-container" style="display: grid; grid-template-columns: 300px 1fr; gap: 20px; min-height: 600px;">
+					
+					<!-- Левая панель - Инструменты -->
+					<div class="builder-tools" style="background: #2c3e50; color: white; border-radius: 10px; padding: 20px;">
+						<h3 style="color: white; margin-top: 0;">🛠️ Инструменты</h3>
+						
+						<div class="tools-section" style="margin-bottom: 20px;">
+							<h4 style="color: #3498db; margin-bottom: 10px;">📝 Типы заданий</h4>
+							<div class="tool-buttons" style="display: flex; flex-direction: column; gap: 8px;">
+								<button class="tool-btn" onclick="selectTaskType('choice')">
+									🔘 Выбор ответа
+								</button>
+								<button class="tool-btn" onclick="selectTaskType('short')">
+									✏️ Краткий ответ
+								</button>
+								<button class="tool-btn" onclick="selectTaskType('extended')">
+									📝 Развернутый ответ
+								</button>
+								<button class="tool-btn" onclick="selectTaskType('matching')">
+									↔️ Соответствие
+								</button>
+								<button class="tool-btn" onclick="selectTaskType('sequence')">
+									🔢 Последовательность
+								</button>
+								<button class="tool-btn" onclick="selectTaskType('open')">
+									💭 Открытый вопрос
+								</button>
+							</div>
+						</div>
+						
+						<div class="tools-section" style="margin-bottom: 20px;">
+							<h4 style="color: #3498db; margin-bottom: 10px;">🎨 Форматирование</h4>
+							<div class="format-tools" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px;">
+								<button class="format-btn" onclick="insertMath()" title="Математическая формула">
+									∑ Математика
+								</button>
+								<button class="format-btn" onclick="insertImage()" title="Изображение">
+									🖼️ Изображение
+								</button>
+								<button class="format-btn" onclick="insertTable()" title="Таблица">
+									📊 Таблица
+								</button>
+								<button class="format-btn" onclick="insertCode()" title="Код">
+									</> Код
+								</button>
+								<button class="format-btn" onclick="insertGraph()" title="График">
+									📈 График
+								</button>
+								<button class="format-btn" onclick="insertAudio()" title="Аудио">
+									🔊 Аудио
+								</button>
+							</div>
+						</div>
+						
+						<div class="tools-section">
+							<h4 style="color: #3498db; margin-bottom: 10px;">📚 Библиотека</h4>
+							<div style="display: flex; flex-direction: column; gap: 8px;">
+								<button class="lib-btn" onclick="browseLibrary()">
+									📖 Обзор шаблонов
+								</button>
+								<button class="lib-btn" onclick="saveToLibrary()">
+									💾 Сохранить шаблон
+								</button>
+								<button class="lib-btn" onclick="importTasksFromFile()">
+									📥 Импорт заданий
+								</button>
+							</div>
+						</div>
+						
+						<!-- Быстрые шаблоны -->
+						<div class="tools-section" style="margin-top: 30px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.1);">
+							<h4 style="color: #3498db; margin-bottom: 10px;">⚡ Быстрые шаблоны</h4>
+							<select id="quickTemplates" class="form-select" style="background: rgba(255,255,255,0.1); color: white; border-color: #3498db; width: 100%;" onchange="loadQuickTemplate(this.value)">
+								<option value="">-- Выберите шаблон --</option>
+								<option value="math_problem">Математическая задача</option>
+								<option value="reading_text">Текст для чтения</option>
+								<option value="multiple_choice">Тест с выбором ответа</option>
+								<option value="experiment">Лабораторная работа</option>
+								<option value="essay">Эссе</option>
+							</select>
+						</div>
+					</div>
+					
+					<!-- Правая панель - Редактор -->
+					<div class="builder-editor" style="background: white; border-radius: 10px; padding: 25px; display: flex; flex-direction: column;">
+						<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+							<h3 style="margin: 0;">📝 Редактор задания</h3>
+							<div class="editor-actions">
+								<button class="btn btn-sm btn-outline" onclick="previewTask()" title="Предпросмотр">
+									👁️ Предпросмотр
+								</button>
+								<button class="btn btn-sm btn-primary" onclick="saveTask()" title="Сохранить">
+									💾 Сохранить
+								</button>
+							</div>
+						</div>
+						
+						<!-- Форма задания -->
+						<div class="task-form" style="flex: 1; display: flex; flex-direction: column; gap: 20px;">
+							
+							<!-- Основная информация -->
+							<div class="form-group">
+								<label>📌 Название задания:</label>
+								<input type="text" id="taskTitle" class="form-input" placeholder="Введите название задания" style="width: 100%;">
+							</div>
+							
+							<!-- Уровень сложности -->
+							<div class="form-group">
+								<label>🎯 Уровень сложности:</label>
+								<div style="display: flex; gap: 15px; margin-top: 10px;">
+									<label class="complexity-option">
+										<input type="radio" name="complexity" value="1" checked>
+										<div class="complexity-badge" style="background: #27ae60;">1</div>
+										<div style="font-size: 12px;">Базовый</div>
+									</label>
+									<label class="complexity-option">
+										<input type="radio" name="complexity" value="2">
+										<div class="complexity-badge" style="background: #3498db;">2</div>
+										<div style="font-size: 12px;">Применение</div>
+									</label>
+									<label class="complexity-option">
+										<input type="radio" name="complexity" value="3">
+										<div class="complexity-badge" style="background: #f39c12;">3</div>
+										<div style="font-size: 12px;">Анализ</div>
+									</label>
+									<label class="complexity-option">
+										<input type="radio" name="complexity" value="4">
+										<div class="complexity-badge" style="background: #e74c3c;">4</div>
+										<div style="font-size: 12px;">Творчество</div>
+									</label>
+								</div>
+							</div>
+							
+							<!-- Формулировка задания -->
+							<div class="form-group" style="flex: 1;">
+								<label>📝 Формулировка задания:</label>
+								<div id="taskEditor" contenteditable="true" style="width: 100%; height: 200px; padding: 15px; border: 2px solid #ddd; border-radius: 8px; background: #f8f9fa; overflow-y: auto;"></div>
+								<div class="editor-toolbar" style="display: flex; gap: 5px; margin-top: 10px; flex-wrap: wrap;">
+									<button class="btn btn-sm" onclick="formatText('bold')" title="Жирный"><b>B</b></button>
+									<button class="btn btn-sm" onclick="formatText('italic')" title="Курсив"><i>I</i></button>
+									<button class="btn btn-sm" onclick="formatText('underline')" title="Подчеркивание"><u>U</u></button>
+									<button class="btn btn-sm" onclick="insertBulletList()" title="Список">•</button>
+									<button class="btn btn-sm" onclick="insertNumberedList()" title="Нумерованный список">1.</button>
+								</div>
+							</div>
+							
+							<!-- Варианты ответов (для тестов) -->
+							<div class="form-group" id="answerOptions" style="display: none;">
+								<label>🔘 Варианты ответов:</label>
+								<div id="optionsContainer" style="margin-top: 10px;">
+									<div class="option-item" style="display: flex; gap: 10px; margin-bottom: 10px;">
+										<input type="radio" name="correctAnswer" value="1">
+										<input type="text" class="form-input option-text" placeholder="Вариант ответа 1" style="flex: 1;">
+										<button class="btn btn-sm btn-danger" onclick="removeOption(this)">×</button>
+									</div>
+								</div>
+								<button class="btn btn-sm btn-outline" onclick="addOption()" style="margin-top: 10px;">
+									+ Добавить вариант
+								</button>
+							</div>
+							
+							<!-- Критерии оценивания -->
+							<div class="form-group">
+								<label>📊 Критерии оценивания (макс. баллов):</label>
+								<input type="number" id="maxScore" min="1" max="100" value="1" class="form-input" style="width: 100px;">
+							</div>
+							
+							<!-- Метки и теги -->
+							<div class="form-group">
+								<label>🏷️ Метки (теги):</label>
+								<input type="text" id="taskTags" class="form-input" placeholder="математика, алгебра, уравнения" style="width: 100%;">
+								<small style="color: #666;">Через запятую</small>
+							</div>
+						</div>
+						
+						<!-- Предпросмотр -->
+						<div id="taskPreview" style="margin-top: 30px; padding: 20px; background: #f8f9fa; border-radius: 8px; display: none;">
+							<h4>👁️ Предпросмотр задания</h4>
+							<div id="previewContent"></div>
+						</div>
+					</div>
+				</div>
+				
+				<!-- Генератор вариантов -->
+				<div class="variant-generator" style="margin-top: 30px; background: white; border-radius: 10px; padding: 25px; display: none;" id="variantGenerator">
+					<h3>🔄 Генератор вариантов</h3>
+					<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px;">
+						
+						<!-- Настройки генерации -->
+						<div class="generator-settings">
+							<h4>⚙️ Настройки</h4>
+							<div class="form-group">
+								<label>Количество вариантов:</label>
+								<input type="number" id="variantCount" min="1" max="50" value="10" class="form-input">
+							</div>
+							<div class="form-group">
+								<label>Способ генерации:</label>
+								<select id="generationMethod" class="form-select">
+									<option value="random">Случайный порядок</option>
+									<option value="shuffle">Перемешивание ответов</option>
+									<option value="parametrized">Параметрический</option>
+									<option value="template">По шаблону</option>
+								</select>
+							</div>
+							<div class="form-group" id="paramControls" style="display: none;">
+								<label>Параметры для изменения:</label>
+								<div id="parameterList"></div>
+							</div>
+							<button class="btn btn-primary" onclick="generateTaskVariants()">
+								🌀 Сгенерировать варианты
+							</button>
+						</div>
+						
+						<!-- Предпросмотр вариантов -->
+						<div class="variants-preview">
+							<h4>📋 Предпросмотр вариантов</h4>
+							<div id="variantsList" style="max-height: 300px; overflow-y: auto; padding: 10px; background: #f8f9fa; border-radius: 5px;">
+								<!-- Сюда будут добавляться варианты -->
+							</div>
+							<div style="margin-top: 15px;">
+								<button class="btn btn-success" onclick="exportVariants('docx')">
+									📝 Word
+								</button>
+								<button class="btn btn-danger" onclick="exportVariants('pdf')">
+									📄 PDF
+								</button>
+								<button class="btn btn-info" onclick="exportVariants('html')">
+									🌐 HTML
+								</button>
+								<button class="btn btn-warning" onclick="exportVariants('json')">
+									💾 JSON
+								</button>
+							</div>
+						</div>
+					</div>
+				</div>
+				
+				<!-- Библиотека заданий -->
+				<div class="task-library" style="margin-top: 40px; background: white; border-radius: 10px; padding: 25px;">
+					<h3>📚 Библиотека заданий</h3>
+					
+					<div style="display: flex; gap: 15px; margin: 20px 0;">
+						<input type="text" id="librarySearch" placeholder="🔍 Поиск по названию, тегам, сложности..." style="flex: 1; padding: 10px; border: 2px solid #3498db; border-radius: 5px;">
+						<select id="libraryFilter" class="form-select" style="width: 200px;">
+							<option value="all">Все типы</option>
+							<option value="choice">Выбор ответа</option>
+							<option value="short">Краткий ответ</option>
+							<option value="extended">Развернутый ответ</option>
+							<option value="matching">Соответствие</option>
+						</select>
+						<select id="complexityFilter" class="form-select" style="width: 150px;">
+							<option value="all">Любая сложность</option>
+							<option value="1">Уровень 1</option>
+							<option value="2">Уровень 2</option>
+							<option value="3">Уровень 3</option>
+							<option value="4">Уровень 4</option>
+						</select>
+					</div>
+					
+					<div id="libraryContent" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; margin-top: 20px;">
+						<!-- Задания будут загружаться динамически -->
+					</div>
+					
+					<div style="text-align: center; margin-top: 30px;">
+						<button class="btn btn-outline" onclick="loadMoreTasks()">
+							📥 Загрузить еще
+						</button>
+					</div>
+				</div>
+			</div>
+
+			<!-- Вкладка школьного мониторинга -->
+			<div id="monitoring" class="tab-content">
+				<div class="monitoring-container" style="max-width: 1200px; margin: 0 auto;">
+					<!-- Заголовок -->
+					<div class="monitoring-header" style="text-align: center; margin-bottom: 40px;">
+						<h1 style="color: #2c3e50; margin-bottom: 15px; font-size: 2.5em;">🏫 Школьный мониторинг</h1>
+						<p style="color: #7f8c8d; font-size: 1.1em; max-width: 800px; margin: 0 auto 30px;">
+							Панель управления для администрации: сводные отчеты, аналитика качества образования и подготовка данных
+						</p>
+						<div class="admin-badge" style="display: inline-flex; align-items: center; gap: 10px; background: linear-gradient(135deg, #34495e, #2c3e50); color: white; padding: 12px 25px; border-radius: 50px; font-weight: bold; box-shadow: 0 5px 15px rgba(52, 73, 94, 0.3);">
+							<i class="fas fa-chart-line" style="font-size: 1.5em;"></i>
+							<span>Панель администратора</span>
+						</div>
+					</div>
+
+					<!-- Быстрые действия -->
+					<div class="quick-actions" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 30px;">
+						<button class="btn btn-primary" onclick="generateParallelReport()">
+							<i class="fas fa-school"></i> Отчет по параллелям
+						</button>
+						<button class="btn btn-success" onclick="generateSubjectReport()">
+							<i class="fas fa-book"></i> Отчет по предметам
+						</button>
+						<button class="btn btn-info" onclick="showTeacherMonitoring()">
+							<i class="fas fa-chalkboard-teacher"></i> Мониторинг педагогов
+						</button>
+						<button class="btn btn-warning" onclick="generateRegulatoryReport()">
+							<i class="fas fa-file-contract"></i> Отчет для органов
+						</button>
+						<button class="btn btn-secondary" onclick="showQualityDashboard()">
+							<i class="fas fa-tachometer-alt"></i> Дашборд качества
+						</button>
+					</div>
+
+					<div class="monitoring-main" style="display: grid; grid-template-columns: 300px 1fr; gap: 30px; margin-bottom: 40px;">
+						
+						<!-- Левая панель: Фильтры и настройки -->
+						<div class="monitoring-sidebar" style="background: #f8f9fa; border-radius: 15px; padding: 25px;">
+							<h3 style="color: #2c3e50; margin-bottom: 20px;">
+								<i class="fas fa-filter"></i> Фильтры
+							</h3>
+							
+							<!-- Период -->
+							<div class="filter-group" style="margin-bottom: 25px;">
+								<label style="display: block; margin-bottom: 10px; font-weight: 600; color: #34495e;">
+									<i class="fas fa-calendar-alt me-2"></i>Период
+								</label>
+								<div style="display: flex; gap: 10px;">
+									<input type="date" id="monitoringDateFrom" class="form-input" style="flex: 1;">
+									<input type="date" id="monitoringDateTo" class="form-input" style="flex: 1;">
+								</div>
+							</div>
+							
+							<!-- Параллели -->
+							<div class="filter-group" style="margin-bottom: 25px;">
+								<label style="display: block; margin-bottom: 10px; font-weight: 600; color: #34495e;">
+									<i class="fas fa-layer-group me-2"></i>Параллели
+								</label>
+								<div style="max-height: 200px; overflow-y: auto;">
+									<label style="display: block; margin: 5px 0;">
+										<input type="checkbox" id="parallelAll" checked> Все параллели
+									</label>
+									<div id="parallelList"></div>
+								</div>
+							</div>
+							
+							<!-- Предметы -->
+							<div class="filter-group" style="margin-bottom: 25px;">
+								<label style="display: block; margin-bottom: 10px; font-weight: 600; color: #34495e;">
+									<i class="fas fa-book me-2"></i>Предметы
+								</label>
+								<div style="max-height: 200px; overflow-y: auto;">
+									<label style="display: block; margin: 5px 0;">
+										<input type="checkbox" id="subjectAll" checked> Все предметы
+									</label>
+									<div id="subjectList"></div>
+								</div>
+							</div>
+							
+							<!-- Кнопки фильтрации -->
+							<button class="btn btn-primary" onclick="applyMonitoringFilters()" style="width: 100%; margin-bottom: 10px;">
+								<i class="fas fa-sync-alt"></i> Применить фильтры
+							</button>
+							<button class="btn btn-outline" onclick="resetMonitoringFilters()" style="width: 100%;">
+								<i class="fas fa-undo"></i> Сбросить
+							</button>
+						</div>
+
+						<!-- Правая панель: Контент -->
+						<div class="monitoring-content">
+							<!-- Дашборд метрик -->
+							<div class="metrics-dashboard" style="margin-bottom: 30px;">
+								<h3 style="color: #2c3e50; margin-bottom: 20px;">
+									<i class="fas fa-tachometer-alt"></i> Ключевые показатели
+								</h3>
+								<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px;">
+									<div class="metric-card" style="background: white; padding: 20px; border-radius: 10px; text-align: center; border-left: 4px solid #3498db;">
+										<div class="metric-value" style="font-size: 2em; font-weight: bold; color: #2c3e50;">85%</div>
+										<div class="metric-label" style="color: #7f8c8d;">Средняя успеваемость</div>
+									</div>
+									<div class="metric-card" style="background: white; padding: 20px; border-radius: 10px; text-align: center; border-left: 4px solid #2ecc71;">
+										<div class="metric-value" style="font-size: 2em; font-weight: bold; color: #2c3e50;">92%</div>
+										<div class="metric-label" style="color: #7f8c8d;">Качество знаний</div>
+									</div>
+									<div class="metric-card" style="background: white; padding: 20px; border-radius: 10px; text-align: center; border-left: 4px solid #f39c12;">
+										<div class="metric-value" style="font-size: 2em; font-weight: bold; color: #2c3e50;">15</div>
+										<div class="metric-label" style="color: #7f8c8d;">Количество работ</div>
+									</div>
+									<div class="metric-card" style="background: white; padding: 20px; border-radius: 10px; text-align: center; border-left: 4px solid #e74c3c;">
+										<div class="metric-value" style="font-size: 2em; font-weight: bold; color: #2c3e50;">3.2%</div>
+										<div class="metric-label" style="color: #7f8c8d;">Неуспевающие</div>
+									</div>
+								</div>
+							</div>
+
+							<!-- Графики -->
+							<div class="charts-section" style="margin-bottom: 30px;">
+								<h3 style="color: #2c3e50; margin-bottom: 20px;">
+									<i class="fas fa-chart-bar"></i> Визуализация данных
+								</h3>
+								<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+									<div style="background: white; padding: 20px; border-radius: 10px;">
+										<h4>Распределение по параллелям</h4>
+										<canvas id="parallelChart" height="200"></canvas>
+									</div>
+									<div style="background: white; padding: 20px; border-radius: 10px;">
+										<h4>Сравнение предметов</h4>
+										<canvas id="subjectChart" height="200"></canvas>
+									</div>
+								</div>
+							</div>
+
+							<!-- Таблица данных -->
+							<div class="data-table" style="margin-bottom: 30px;">
+								<h3 style="color: #2c3e50; margin-bottom: 20px;">
+									<i class="fas fa-table"></i> Сводная таблица
+								</h3>
+								<div style="background: white; border-radius: 10px; overflow: hidden;">
+									<div id="monitoringTableContainer"></div>
+								</div>
+							</div>
+
+							<!-- Экспорт отчетов -->
+							<div class="export-section" style="background: #e8f4fc; padding: 25px; border-radius: 15px;">
+								<h3 style="color: #2c3e50; margin-bottom: 20px;">
+									<i class="fas fa-file-export"></i> Генерация отчетов
+								</h3>
+								<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+									<button class="btn btn-outline" onclick="exportParallelExcel()">
+										<i class="fas fa-file-excel"></i> Excel по параллелям
+									</button>
+									<button class="btn btn-outline" onclick="exportSubjectPDF()">
+										<i class="fas fa-file-pdf"></i> PDF по предметам
+									</button>
+									<button class="btn btn-outline" onclick="exportTeacherReport()">
+										<i class="fas fa-chalkboard-teacher"></i> Отчет по педагогам
+									</button>
+									<button class="btn btn-outline" onclick="exportRegulatoryData()">
+										<i class="fas fa-balance-scale"></i> Данные для органов
+									</button>
+								</div>
+							</div>
+						</div>
+					</div>
+
+					<!-- Информационные карточки -->
+					<div class="info-cards" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-bottom: 40px;">
+						<div class="info-card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 25px; border-radius: 15px;">
+							<div style="font-size: 2.5em; margin-bottom: 15px;">
+								<i class="fas fa-chart-line"></i>
+							</div>
+							<h4 style="color: white; margin-bottom: 10px;">Анализ динамики</h4>
+							<p style="color: rgba(255,255,255,0.9); font-size: 14px;">
+								Отслеживание изменений успеваемости по периодам, выявление тенденций и прогнозирование результатов
+							</p>
+						</div>
+						
+						<div class="info-card" style="background: linear-gradient(135deg, #4CAF50 0%, #8BC34A 100%); color: white; padding: 25px; border-radius: 15px;">
+							<div style="font-size: 2.5em; margin-bottom: 15px;">
+								<i class="fas fa-user-tie"></i>
+							</div>
+							<h4 style="color: white; margin-bottom: 10px;">Мониторинг педагогов</h4>
+							<p style="color: rgba(255,255,255,0.9); font-size: 14px;">
+								Анализ эффективности работы учителей, выявление лучших практик и точек роста
+							</p>
+						</div>
+						
+						<div class="info-card" style="background: linear-gradient(135deg, #FF9800 0%, #FF5722 100%); color: white; padding: 25px; border-radius: 15px;">
+							<div style="font-size: 2.5em; margin-bottom: 15px;">
+								<i class="fas fa-file-contract"></i>
+							</div>
+							<h4 style="color: white; margin-bottom: 10px;">Регуляторная отчетность</h4>
+							<p style="color: rgba(255,255,255,0.9); font-size: 14px;">
+								Автоматическая подготовка данных для отчетов в вышестоящие организации и контролирующие органы
+							</p>
+						</div>
+					</div>
+
+					<!-- Футер с инструкцией -->
+					<div class="monitoring-footer" style="text-align: center; padding: 30px; background: #f8f9fa; border-radius: 15px;">
+						<h4 style="color: #2c3e50; margin-bottom: 15px;">
+							<i class="fas fa-info-circle"></i> Инструкция по использованию
+						</h4>
+						<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-top: 20px;">
+							<div style="text-align: center;">
+								<div style="font-size: 2em; color: #3498db; margin-bottom: 10px;">1</div>
+								<div style="font-weight: 600; color: #2c3e50;">Выберите период и фильтры</div>
+								<div style="color: #7f8c8d; font-size: 14px;">Настройте данные для анализа</div>
+							</div>
+							<div style="text-align: center;">
+								<div style="font-size: 2em; color: #3498db; margin-bottom: 10px;">2</div>
+								<div style="font-weight: 600; color: #2c3e50;">Просмотрите аналитику</div>
+								<div style="color: #7f8c8d; font-size: 14px;">Изучите графики и показатели</div>
+							</div>
+							<div style="text-align: center;">
+								<div style="font-size: 2em; color: #3498db; margin-bottom: 10px;">3</div>
+								<div style="font-weight: 600; color: #2c3e50;">Сгенерируйте отчет</div>
+								<div style="color: #7f8c8d; font-size: 14px;">Выберите формат и экспортируйте</div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+			
+			<!-- Вкладка календаря -->
+			<div id="calendar" class="tab-content">
+				<div class="calendar-container" style="max-width: 1200px; margin: 0 auto;">
+					
+					<!-- Заголовок с анимацией -->
+					<div class="calendar-header" style="text-align: center; margin-bottom: 30px;">
+						<h1 style="color: #2c3e50; margin-bottom: 15px; font-size: 2.2em;">
+							📅 Календарь образовательных диагностик
+						</h1>
+						<p style="color: #7f8c8d; font-size: 1.1em;">
+							Планируйте, отслеживайте и анализируйте все диагностические работы на учебный год
+						</p>
+					</div>
+
+					<!-- Основная панель -->
+					<div class="calendar-main" style="display: grid; grid-template-columns: 300px 1fr; gap: 25px;">
+						
+						<!-- Левая панель: Навигация и фильтры -->
+						<div class="calendar-sidebar" style="background: #f8f9fa; border-radius: 15px; padding: 20px; height: fit-content;">
+							
+							<!-- Быстрые действия -->
+							<div class="quick-actions" style="margin-bottom: 25px;">
+								<h4 style="color: #2c3e50; margin-bottom: 15px;">⚡ Быстрые действия</h4>
+								<button class="btn btn-primary" onclick="addNewDiagnostic()" 
+										style="width: 100%; margin-bottom: 10px; padding: 12px;">
+									<i class="fas fa-plus me-2"></i>Новая диагностика
+								</button>
+								<button class="btn btn-outline" onclick="importSchoolSchedule()"
+										style="width: 100%; margin-bottom: 10px; padding: 12px;">
+									<i class="fas fa-upload me-2"></i>Импорт расписания
+								</button>
+								<button class="btn btn-outline" onclick="exportCalendar()"
+										style="width: 100%; margin-bottom: 10px; padding: 12px;">
+									<i class="fas fa-download me-2"></i>Экспорт календаря
+								</button>
+							</div>
+
+							<!-- Просмотр -->
+							<div class="view-selector" style="margin-bottom: 25px;">
+								<h4 style="color: #2c3e50; margin-bottom: 15px;">👁️ Вид календаря</h4>
+								<div class="view-buttons" style="display: flex; flex-direction: column; gap: 8px;">
+									<button class="btn btn-sm" onclick="changeCalendarView('month')" id="viewMonth">
+										<i class="fas fa-calendar-alt me-2"></i>Месяц
+									</button>
+									<button class="btn btn-sm btn-outline" onclick="changeCalendarView('week')" id="viewWeek">
+										<i class="fas fa-calendar-week me-2"></i>Неделя
+									</button>
+									<button class="btn btn-sm btn-outline" onclick="changeCalendarView('quarter')" id="viewQuarter">
+										<i class="fas fa-chart-bar me-2"></i>Четверть
+									</button>
+									<button class="btn btn-sm btn-outline" onclick="changeCalendarView('year')" id="viewYear">
+										<i class="fas fa-calendar me-2"></i>Год
+									</button>
+									<button class="btn btn-sm btn-outline" onclick="changeCalendarView('timeline')" id="viewTimeline">
+										<i class="fas fa-stream me-2"></i>Таймлайн
+									</button>
+								</div>
+							</div>
+
+							<!-- Фильтры -->
+							<div class="calendar-filters" style="margin-bottom: 25px;">
+								<h4 style="color: #2c3e50; margin-bottom: 15px;">🔍 Фильтры</h4>
+								
+								<div class="filter-group" style="margin-bottom: 15px;">
+									<label style="display: block; margin-bottom: 8px; font-weight: 500;">Предмет:</label>
+									<select class="form-select" id="filterSubject" onchange="filterCalendar()">
+										<option value="all">Все предметы</option>
+										<option value="math">Математика</option>
+										<option value="russian">Русский язык</option>
+										<option value="literature">Литература</option>
+										<option value="physics">Физика</option>
+										<option value="chemistry">Химия</option>
+										<option value="biology">Биология</option>
+										<option value="history">История</option>
+										<option value="english">Английский язык</option>
+									</select>
+								</div>
+
+								<div class="filter-group" style="margin-bottom: 15px;">
+									<label style="display: block; margin-bottom: 8px; font-weight: 500;">Тип работы:</label>
+									<select class="form-select" id="filterType" onchange="filterCalendar()">
+										<option value="all">Все типы</option>
+										<option value="current">Текущая</option>
+										<option value="milestone">Рубежная</option>
+										<option value="final">Итоговая</option>
+										<option value="oge">ОГЭ</option>
+										<option value="ege">ЕГЭ</option>
+										<option value="vpr">ВПР</option>
+										<option value="literacy">Грамотность</option>
+										<option value="diagnostic">Диагностика</option>
+									</select>
+								</div>
+
+								<div class="filter-group" style="margin-bottom: 15px;">
+									<label style="display: block; margin-bottom: 8px; font-weight: 500;">Класс:</label>
+									<select class="form-select" id="filterClass" onchange="filterCalendar()">
+										<option value="all">Все классы</option>
+										<option value="5">5 класс</option>
+										<option value="6">6 класс</option>
+										<option value="7">7 класс</option>
+										<option value="8">8 класс</option>
+										<option value="9">9 класс</option>
+										<option value="10">10 класс</option>
+										<option value="11">11 класс</option>
+									</select>
+								</div>
+
+								<div class="filter-group" style="margin-bottom: 15px;">
+									<label style="display: block; margin-bottom: 8px; font-weight: 500;">Статус:</label>
+									<select class="form-select" id="filterStatus" onchange="filterCalendar()">
+										<option value="all">Все статусы</option>
+										<option value="planned">Запланировано</option>
+										<option value="completed">Проведено</option>
+										<option value="analyzed">Проанализировано</option>
+										<option value="pending">Ожидает анализа</option>
+									</select>
+								</div>
+							</div>
+
+							<!-- Статистика -->
+							<div class="calendar-stats" style="background: white; padding: 15px; border-radius: 10px; border: 1px solid #e9ecef;">
+								<h4 style="color: #2c3e50; margin-bottom: 15px;">📊 Статистика</h4>
+									<div id="calendarStats">
+										<div style="margin-bottom: 10px;">
+											<span style="color: #7f8c8d;">Всего работ:</span>
+											<strong style="float: right;" id="totalWorks">0</strong>
+										</div>
+										<div style="margin-bottom: 10px;">
+											<span style="color: #7f8c8d;">В этом месяце:</span>
+											<strong style="float: right;" id="monthWorks">0</strong>
+										</div>
+										<div style="margin-bottom: 10px;">
+											<span style="color: #7f8c8d;">Следующая:</span>
+											<strong style="float: right;" id="nextWork">нет</strong>
+										</div>
+										<div>
+											<div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+												<span style="color: #7f8c8d;">Загруженность:</span>
+												<small id="workloadText">0%</small>
+											</div>
+											<div class="progress" style="height: 8px; background: #eee; border-radius: 4px; overflow: hidden;">
+												<div id="workloadBar" class="progress-bar" style="width: 0%; height: 100%;"></div>
+											</div>
+										</div>
+									</div>
+							</div>
+						</div>
+
+						<!-- Правая панель: Календарь и события -->
+						<div class="calendar-content">
+							
+							<!-- Панель управления календарем -->
+							<div class="calendar-controls" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding: 15px; background: white; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
+								<div class="navigation" style="display: flex; align-items: center; gap: 10px;">
+									<button class="btn btn-sm btn-outline" onclick="prevPeriod()">
+										<i class="fas fa-chevron-left"></i>
+									</button>
+									<h3 id="currentPeriod" style="margin: 0; min-width: 200px; text-align: center;">
+										Сентябрь 2024
+									</h3>
+									<button class="btn btn-sm btn-outline" onclick="nextPeriod()">
+										<i class="fas fa-chevron-right"></i>
+									</button>
+									<button class="btn btn-sm btn-outline" onclick="goToToday()">
+										Сегодня
+									</button>
+								</div>
+								
+								<div class="actions" style="display: flex; gap: 10px;">
+									<button class="btn btn-sm btn-success" onclick="addNewDiagnostic()">
+										<i class="fas fa-plus"></i> Добавить
+									</button>
+									<button class="btn btn-sm btn-outline" onclick="printCalendar()">
+										<i class="fas fa-print"></i> Печать
+									</button>
+									<button class="btn btn-sm btn-outline" onclick="shareCalendar()">
+										<i class="fas fa-share-alt"></i> Поделиться
+									</button>
+								</div>
+							</div>
+
+							<!-- Месячный календарь -->
+							<div id="monthCalendar" class="calendar-view" style="background: white; border-radius: 15px; padding: 20px; box-shadow: 0 5px 20px rgba(0,0,0,0.05);">
+								<!-- Заголовки дней недели -->
+								<div class="calendar-weekdays" style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; margin-bottom: 10px; text-align: center; font-weight: 600; color: #34495e;">
+									<div>Пн</div>
+									<div>Вт</div>
+									<div>Ср</div>
+									<div>Чт</div>
+									<div>Пт</div>
+									<div style="color: #e74c3c;">Сб</div>
+									<div style="color: #3498db;">Вс</div>
+								</div>
+								
+								<!-- Дни месяца -->
+								<div id="calendarDays" class="calendar-days" style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; min-height: 400px;">
+									<!-- Динамически заполнится JavaScript -->
+								</div>
+							</div>
+
+							<!-- Вид по неделям (скрыт по умолчанию) -->
+							<div id="weekCalendar" class="calendar-view" style="display: none; background: white; border-radius: 15px; padding: 20px; box-shadow: 0 5px 20px rgba(0,0,0,0.05);">
+								<div id="weekView"></div>
+							</div>
+
+							<!-- Вид по четвертям (скрыт по умолчанию) -->
+							<div id="quarterCalendar" class="calendar-view" style="display: none; background: white; border-radius: 15px; padding: 20px; box-shadow: 0 5px 20px rgba(0,0,0,0.05);">
+								<div id="quarterView"></div>
+							</div>
+
+							<!-- Годовой план (скрыт по умолчанию) -->
+							<div id="yearCalendar" class="calendar-view" style="display: none; background: white; border-radius: 15px; padding: 20px; box-shadow: 0 5px 20px rgba(0,0,0,0.05);">
+								<div id="yearView"></div>
+							</div>
+
+							<!-- Таймлайн (скрыт по умолчанию) -->
+							<div id="timelineView" class="calendar-view" style="display: none; background: white; border-radius: 15px; padding: 20px; box-shadow: 0 5px 20px rgba(0,0,0,0.05);">
+								<div id="timelineContainer"></div>
+							</div>
+
+							<!-- Список предстоящих событий -->
+							<div class="upcoming-events" style="margin-top: 25px; background: white; border-radius: 15px; padding: 20px; box-shadow: 0 5px 20px rgba(0,0,0,0.05);">
+								<h4 style="color: #2c3e50; margin-bottom: 20px;">
+									<i class="fas fa-clock me-2"></i>Ближайшие события
+								</h4>
+								<div id="upcomingEventsList" style="max-height: 300px; overflow-y: auto;">
+									<!-- Динамически заполнится -->
+								</div>
+							</div>
+
+							<!-- График загруженности -->
+							<div class="workload-chart" style="margin-top: 25px; background: white; border-radius: 15px; padding: 20px; box-shadow: 0 5px 20px rgba(0,0,0,0.05);">
+								<h4 style="color: #2c3e50; margin-bottom: 20px;">
+									<i class="fas fa-chart-line me-2"></i>График загруженности по месяцам
+								</h4>
+								<canvas id="workloadChart" style="width: 100%; height: 200px;"></canvas>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+
 			<!-- Вкладка генератора отчетов -->
 			<div id="reports" class="tab-content">
 				<h2 class="section-title">📄 Умный генератор отчетов с AI</h2>
@@ -5360,8 +7945,14 @@
 	<!-- 1. Хранилище -->
 	
 	<script src="modules/report-generator-dynamic.js"></script>
-	
-	
+	<script src="modules/library.js"></script>
+	<script src="modules/groups.js"></script>
+	<script src="modules/training.js"></script>
+	<script src="modules/integrations.js"></script>
+	<script src="modules/mobile.js"></script>
+	<script src="modules/builder.js"></script>
+	<script src="modules/monitoring.js"></script>
+	<script src="modules/calendar.js"></script>
     <script>
 
 
@@ -10757,27 +13348,7 @@ document.addEventListener('DOMContentLoaded', () => {
 			showNotification('🎓 Обучение завершено! Начните работу с настройки теста.', 'success');
 		}
 
-		// Автозапуск тура для новых пользователей
-		<!-- document.addEventListener('DOMContentLoaded', function() { -->
-			<!-- const tourCompleted = localStorage.getItem('tourCompleted'); -->
-			<!-- const firstVisit = !localStorage.getItem('firstVisitTime'); -->
-			
-			<!-- if (firstVisit) { -->
-				<!-- localStorage.setItem('firstVisitTime', new Date().toISOString()); -->
-			<!-- } -->
-			
-			<!-- // Показываем тур если пользователь новый или прошло много времени -->
-			<!-- if (!tourCompleted || (firstVisit && !tourCompleted)) { -->
-				<!-- setTimeout(() => { -->
-					<!-- if (confirm('Хотите пройти краткое обучение по работе с системой?')) { -->
-						<!-- startTour(); -->
-					<!-- } else { -->
-						<!-- localStorage.setItem('tourCompleted', 'true'); -->
-					<!-- } -->
-				<!-- }, 1000); -->
-			<!-- } -->
-		<!-- });		 -->
-		
+
 		// ==================== ШАБЛОНЫ ОТЧЕТОВ ====================
 
 		const reportTemplatesss = {
@@ -15253,7 +17824,7 @@ document.addEventListener('DOMContentLoaded', () => {
 		}
 
 
-        function showModal(title, content) {
+        function showModals(title, content) {
             const modalOverlay = document.getElementById('modalOverlay');
             const modalContent = document.getElementById('modalContent');
             
@@ -15267,6 +17838,98 @@ document.addEventListener('DOMContentLoaded', () => {
             
             modalOverlay.classList.add('show');
         }
+		
+		// Обновленная функция showModal с поддержкой callback
+		function showModal(title, content, onConfirm, onCancel, onDelete = null) {
+			// Создаем модальное окно
+			const modalOverlay = document.createElement('div');
+			modalOverlay.className = 'modal-overlay show';
+			modalOverlay.id = 'calendarModalOverlay';
+			
+			const modalContent = document.createElement('div');
+			modalContent.className = 'modal-content';
+			
+			// Содержимое
+			modalContent.innerHTML = `
+				<h3>${title}</h3>
+				<div class="modal-body">
+					${content}
+				</div>
+				<div class="modal-actions">
+					${onDelete ? `
+						<button class="btn btn-danger" id="modalDeleteBtn">Удалить</button>
+					` : ''}
+					<button class="btn" id="modalCancelBtn">${onCancel || 'Отмена'}</button>
+					<button class="btn btn-primary" id="modalConfirmBtn">${onConfirm || 'OK'}</button>
+				</div>
+			`;
+			
+			modalOverlay.appendChild(modalContent);
+			document.body.appendChild(modalOverlay);
+			
+			// Обработчики событий
+			const confirmBtn = document.getElementById('modalConfirmBtn');
+			const cancelBtn = document.getElementById('modalCancelBtn');
+			const deleteBtn = document.getElementById('modalDeleteBtn');
+			
+			if (confirmBtn && typeof onConfirm === 'function') {
+				confirmBtn.onclick = function(e) {
+					e.stopPropagation();
+					if (onConfirm() !== false) {
+						modalOverlay.remove();
+					}
+				};
+			}
+			
+			if (cancelBtn) {
+				cancelBtn.onclick = function() {
+					if (typeof onCancel === 'function') {
+						onCancel();
+					}
+					modalOverlay.remove();
+				};
+			}
+			
+			if (deleteBtn && onDelete) {
+				deleteBtn.onclick = function() {
+					if (typeof onDelete === 'function') {
+						onDelete();
+					}
+					modalOverlay.remove();
+				};
+			}
+			
+			// Закрытие по клику на оверлей
+			modalOverlay.onclick = function(e) {
+				if (e.target === modalOverlay) {
+					modalOverlay.remove();
+				}
+			};
+			
+			// Закрытие по Escape
+			const closeOnEscape = function(e) {
+				if (e.key === 'Escape') {
+					modalOverlay.remove();
+					document.removeEventListener('keydown', closeOnEscape);
+				}
+			};
+			document.addEventListener('keydown', closeOnEscape);
+			
+			// Удаляем обработчик при закрытии
+			modalOverlay.addEventListener('remove', () => {
+				document.removeEventListener('keydown', closeOnEscape);
+			});
+			
+			return modalContent;
+		}
+
+		// Функция скрытия модального окна
+		function hideModal() {
+			const modal = document.getElementById('calendarModalOverlay');
+			if (modal) {
+				modal.remove();
+			}
+		}		
 
         function hideModal() {
             document.getElementById('modalOverlay').classList.remove('show');
@@ -16718,6 +19381,7 @@ document.addEventListener('DOMContentLoaded', () => {
 			if (tabId === 'results') {
 				renderResults();
 			}
+			
 		}
 
 		
@@ -18118,7 +20782,21 @@ document.addEventListener('DOMContentLoaded', () => {
 					grid.style.display = 'none';
 				}
 			}			
-			
+			if (tabName === 'mobile') {
+				initMobileDashboard();
+			}			
+
+			if (tabName === 'builder') {
+				// Инициализация конструктора при первом открытии
+				initializeTaskBuilder();
+			}
+
+			if (tabName === 'training') {
+				setTimeout(initializeTrainingTab, 100);
+			}
+			if (tabName === 'calendar') {
+				initCalendar();
+			}
         }
 		
 		// 3. Вспомогательная функция для получения цвета корреляции
@@ -20319,6 +22997,10 @@ document.addEventListener('DOMContentLoaded', () => {
             renderStudents();
             renderResults();
 			renderCriteriaSettings(); // Добавляем эту строку
+			// Обновляем содержимое вкладок при переключении
+			updateAnalytics();
+
+
         }
 
         // Рендер настроек теста
