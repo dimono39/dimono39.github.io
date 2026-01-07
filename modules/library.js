@@ -996,12 +996,17 @@ function loadLibraryContent() {
 function createMaterialCard(material) {
     const card = document.createElement('div');
     card.className = 'material-card';
-    card.dataset.category = material.category;
-    card.dataset.subject = material.subject || 'all';
-    card.dataset.complexity = material.complexity || 'all';
     card.dataset.id = material.id;
     
-    // Определяем иконку по категории
+    // Добавляем обработчик клика на всю карточку
+    card.onclick = function(e) {
+        // Не открываем просмотр если кликнули на кнопки действий
+        if (!e.target.closest('.material-actions')) {
+            viewMaterial(material.id);
+        }
+    };
+    
+    // Остальной код создания карточки остается таким же...
     const iconMap = {
         'work_templates': '📝',
         'criteria': '📊',
@@ -1013,7 +1018,6 @@ function createMaterialCard(material) {
     
     const icon = iconMap[material.category] || '📄';
     
-    // Создаем HTML карточки
     card.innerHTML = `
         <div class="material-header" style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 15px;">
             <div>
@@ -1021,17 +1025,20 @@ function createMaterialCard(material) {
                 <h4 style="margin: 0; color: #2c3e50;">${material.title}</h4>
                 <small style="color: #7f8c8d;">${getSubjectName(material.subject)} ${material.grade ? '· ' + material.grade + ' класс' : ''}</small>
             </div>
-            <div class="material-actions">
-                ${material.file ? `<button class="btn-icon" onclick="openMaterial('${material.id}')" title="Открыть">
+            <div class="material-actions" onclick="event.stopPropagation()">
+                ${material.file ? `<button class="btn-icon" onclick="downloadMaterial('${material.id}')" title="Скачать">
+                    <i class="fas fa-download"></i>
+                </button>` : ''}
+                ${material.url ? `<button class="btn-icon" onclick="window.open('${material.url}', '_blank')" title="Открыть ссылку">
                     <i class="fas fa-external-link-alt"></i>
                 </button>` : ''}
-                <button class="btn-icon" onclick="useMaterial('${material.id}')" title="Использовать">
+                <button class="btn-icon" onclick="quickUseMaterial('${material.id}')" title="Быстро использовать">
                     <i class="fas fa-play"></i>
                 </button>
             </div>
         </div>
         <p style="color: #5a6268; font-size: 14px; margin-bottom: 15px;">
-            ${material.description}
+            ${material.description || 'Нет описания'}
         </p>
         <div class="material-tags" style="display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 15px;">
             ${(material.tags || []).map(tag => `
@@ -1039,7 +1046,7 @@ function createMaterialCard(material) {
                     ${tag}
                 </span>
             `).join('')}
-            ${material.complexity ? `
+            ${material.complexity && material.complexity !== 'all' ? `
                 <span class="tag" style="background: #fdedec; color: #e74c3c; padding: 3px 8px; border-radius: 12px; font-size: 12px;">
                     Уровень ${material.complexity}
                 </span>
@@ -1049,8 +1056,9 @@ function createMaterialCard(material) {
             <div>
                 ${material.size ? `<i class="fas fa-hdd"></i> ${material.size}` : ''}
                 ${material.taskCount ? `<span style="margin: 0 10px;">|</span><i class="fas fa-tasks"></i> ${material.taskCount} заданий` : ''}
+                ${material.pages ? `<span style="margin: 0 10px;">|</span><i class="fas fa-file-alt"></i> ${material.pages} стр.` : ''}
             </div>
-            <div>Добавлено: ${material.added}</div>
+            <div>Добавлено: ${formatDate(material.added)}</div>
         </div>
     `;
     
@@ -2156,4 +2164,1002 @@ function importToLibrary() {
     document.body.appendChild(input);
     input.click();
     document.body.removeChild(input);
+}
+
+// ============================
+// ПРОСМОТР И РАБОТА С МАТЕРИАЛАМИ
+// ============================
+
+let currentViewingMaterial = null;
+
+// Открыть просмотр материала
+function viewMaterial(materialId) {
+    const material = libraryCatalog.fileIndex[materialId];
+    if (!material) {
+        showNotification('Материал не найден!', 'error');
+        return;
+    }
+    
+    currentViewingMaterial = material;
+    
+    // Загружаем контент в модальное окно
+    const modalContent = document.getElementById('materialViewContent');
+    if (!modalContent) return;
+    
+    modalContent.innerHTML = generateMaterialViewHTML(material);
+    
+    // Показываем модальное окно
+    document.getElementById('materialViewModal').style.display = 'flex';
+    
+    // Загружаем дополнительную информацию если нужно
+    loadMaterialPreview(material);
+}
+
+// Генерация HTML для просмотра материала
+function generateMaterialViewHTML(material) {
+    const iconMap = {
+        'work_templates': '📝',
+        'criteria': '📊',
+        'tasks_bank': '🧩',
+        'methodical': '📚',
+        'subject_resources': '🔬',
+        'external_resources': '🌐'
+    };
+    
+    const icon = iconMap[material.category] || '📄';
+    
+    return `
+        <div style="display: flex; gap: 30px; margin-bottom: 20px;">
+            <!-- Левая колонка - основная информация -->
+            <div style="flex: 1;">
+                <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 20px;">
+                    <div style="font-size: 48px;">${icon}</div>
+                    <div>
+                        <h2 style="margin: 0; color: #2c3e50;">${material.title}</h2>
+                        <div style="color: #7f8c8d;">
+                            ${getCategoryName(material.category)} · 
+                            ${getSubjectName(material.subject)} · 
+                            ${material.grade ? material.grade + ' класс' : 'Все классы'}
+                        </div>
+                    </div>
+                </div>
+                
+                <div style="background: #f8f9fa; padding: 20px; border-radius: 10px; margin-bottom: 20px;">
+                    <h4 style="margin-top: 0; color: #2c3e50;">📝 Описание</h4>
+                    <p style="margin: 0; line-height: 1.6;">${material.description || 'Описание отсутствует'}</p>
+                </div>
+                
+                <div id="materialPreview" style="margin-bottom: 20px;">
+                    <!-- Превью будет загружено отдельно -->
+                </div>
+                
+                <!-- Детальная информация -->
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px;">
+                    ${material.size ? `
+                        <div style="background: white; padding: 15px; border-radius: 8px; border: 1px solid #e9ecef;">
+                            <div style="font-size: 12px; color: #7f8c8d; margin-bottom: 5px;">Размер</div>
+                            <div style="font-weight: bold; color: #2c3e50;">${material.size}</div>
+                        </div>
+                    ` : ''}
+                    
+                    ${material.complexity && material.complexity !== 'all' ? `
+                        <div style="background: white; padding: 15px; border-radius: 8px; border: 1px solid #e9ecef;">
+                            <div style="font-size: 12px; color: #7f8c8d; margin-bottom: 5px;">Сложность</div>
+                            <div style="font-weight: bold; color: #2c3e50;">
+                                Уровень ${material.complexity} - ${getComplexityName(material.complexity)}
+                            </div>
+                        </div>
+                    ` : ''}
+                    
+                    ${material.taskCount ? `
+                        <div style="background: white; padding: 15px; border-radius: 8px; border: 1px solid #e9ecef;">
+                            <div style="font-size: 12px; color: #7f8c8d; margin-bottom: 5px;">Заданий</div>
+                            <div style="font-weight: bold; color: #2c3e50;">${material.taskCount}</div>
+                        </div>
+                    ` : ''}
+                    
+                    <div style="background: white; padding: 15px; border-radius: 8px; border: 1px solid #e9ecef;">
+                        <div style="font-size: 12px; color: #7f8c8d; margin-bottom: 5px;">Добавлен</div>
+                        <div style="font-weight: bold; color: #2c3e50;">${formatDate(material.added)}</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Правая колонка - метаданные и действия -->
+            <div style="width: 300px;">
+                <!-- Метаданные -->
+                <div style="background: #e8f4fc; padding: 20px; border-radius: 10px; margin-bottom: 20px;">
+                    <h4 style="margin-top: 0; color: #2c3e50;">📋 Метаданные</h4>
+                    
+                    <div style="margin-bottom: 10px;">
+                        <div style="font-size: 12px; color: #7f8c8d;">Автор</div>
+                        <div>${material.author || 'Не указан'}</div>
+                    </div>
+                    
+                    <div style="margin-bottom: 10px;">
+                        <div style="font-size: 12px; color: #7f8c8d;">Лицензия</div>
+                        <div>${getLicenseName(material.license)}</div>
+                    </div>
+                    
+                    <div style="margin-bottom: 10px;">
+                        <div style="font-size: 12px; color: #7f8c8d;">Доступ</div>
+                        <div>${material.isPublic ? '🔓 Общедоступный' : '🔒 Только для меня'}</div>
+                    </div>
+                    
+                    ${material.file ? `
+                        <div style="margin-bottom: 10px;">
+                            <div style="font-size: 12px; color: #7f8c8d;">Файл</div>
+                            <div style="word-break: break-all;">${material.file}</div>
+                        </div>
+                    ` : ''}
+                    
+                    ${material.url ? `
+                        <div style="margin-bottom: 10px;">
+                            <div style="font-size: 12px; color: #7f8c8d;">Ссылка</div>
+                            <a href="${material.url}" target="_blank" style="color: #3498db; word-break: break-all;">
+                                ${material.url}
+                            </a>
+                        </div>
+                    ` : ''}
+                </div>
+                
+                <!-- Теги -->
+                ${material.tags && material.tags.length > 0 ? `
+                    <div style="background: #f8f9fa; padding: 20px; border-radius: 10px; margin-bottom: 20px;">
+                        <h4 style="margin-top: 0; color: #2c3e50;">🏷️ Теги</h4>
+                        <div style="display: flex; flex-wrap: wrap; gap: 5px;">
+                            ${material.tags.map(tag => `
+                                <span style="background: #e9ecef; color: #495057; padding: 5px 10px; border-radius: 15px; font-size: 12px;">
+                                    ${tag}
+                                </span>
+                            `).join('')}
+                        </div>
+                    </div>
+                ` : ''}
+                
+                <!-- Быстрые действия -->
+                <div style="background: white; padding: 20px; border-radius: 10px; border: 2px solid #3498db;">
+                    <h4 style="margin-top: 0; color: #2c3e50;">⚡ Быстрые действия</h4>
+                    <div style="display: flex; flex-direction: column; gap: 10px;">
+                        <button class="btn btn-primary" onclick="useMaterialFromView('${material.id}')" style="width: 100%;">
+                            <i class="fas fa-play"></i> Использовать сейчас
+                        </button>
+                        
+                        ${material.file ? `
+                            <button class="btn btn-outline" onclick="downloadMaterial('${material.id}')" style="width: 100%;">
+                                <i class="fas fa-download"></i> Скачать файл
+                            </button>
+                        ` : ''}
+                        
+                        ${material.url ? `
+                            <button class="btn btn-outline" onclick="window.open('${material.url}', '_blank')" style="width: 100%;">
+                                <i class="fas fa-external-link-alt"></i> Открыть в браузере
+                            </button>
+                        ` : ''}
+                        
+                        <button class="btn btn-outline" onclick="duplicateMaterial('${material.id}')" style="width: 100%;">
+                            <i class="fas fa-copy"></i> Создать копию
+                        </button>
+                        
+                        <button class="btn btn-outline" onclick="shareMaterial('${material.id}')" style="width: 100%;">
+                            <i class="fas fa-share-alt"></i> Поделиться
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Дополнительные вкладки -->
+        <div class="material-tabs" style="margin-top: 30px;">
+            <div style="display: flex; border-bottom: 2px solid #e9ecef; margin-bottom: 20px;">
+                <button class="material-tab-btn active" onclick="switchMaterialTab('content', '${material.id}')">📄 Содержание</button>
+                <button class="material-tab-btn" onclick="switchMaterialTab('usage', '${material.id}')">📊 Использование</button>
+                <button class="material-tab-btn" onclick="switchMaterialTab('related', '${material.id}')">🔗 Похожие</button>
+                <button class="material-tab-btn" onclick="switchMaterialTab('info', '${material.id}')">ℹ️ Тех. информация</button>
+            </div>
+            
+            <div id="materialTabContent">
+                <!-- Контент вкладок будет загружен динамически -->
+            </div>
+        </div>
+    `;
+}
+
+// Загрузка превью материала
+function loadMaterialPreview(material) {
+    const previewContainer = document.getElementById('materialPreview');
+    if (!previewContainer) return;
+    
+    // Очищаем контейнер
+    previewContainer.innerHTML = '<div style="text-align: center; padding: 20px; color: #7f8c8d;">Загрузка превью...</div>';
+    
+    setTimeout(() => {
+        if (material.file) {
+            const extension = material.file.split('.').pop().toLowerCase();
+            
+            if (['jpg', 'jpeg', 'png', 'gif', 'svg'].includes(extension)) {
+                // Превью изображения
+                previewContainer.innerHTML = `
+                    <h4 style="color: #2c3e50; margin-bottom: 10px;">🖼️ Превью</h4>
+                    <div style="text-align: center;">
+                        <img src="${material.file}" alt="Превью" 
+                             style="max-width: 100%; max-height: 300px; border-radius: 8px; box-shadow: 0 3px 10px rgba(0,0,0,0.1);">
+                    </div>
+                `;
+            } else if (extension === 'pdf') {
+                // Превью PDF
+                previewContainer.innerHTML = `
+                    <h4 style="color: #2c3e50; margin-bottom: 10px;">📄 PDF документ</h4>
+                    <div style="background: #f8f9fa; padding: 30px; border-radius: 8px; text-align: center;">
+                        <div style="font-size: 48px; margin-bottom: 15px;">📄</div>
+                        <div>PDF документ: ${material.file.split('/').pop()}</div>
+                        <div style="margin-top: 10px;">
+                            <button class="btn btn-primary" onclick="window.open('${material.file}', '_blank')">
+                                <i class="fas fa-external-link-alt"></i> Открыть PDF
+                            </button>
+                        </div>
+                    </div>
+                `;
+            } else if (['doc', 'docx'].includes(extension)) {
+                // Документ Word
+                previewContainer.innerHTML = `
+                    <h4 style="color: #2c3e50; margin-bottom: 10px;">📝 Документ Word</h4>
+                    <div style="background: #f8f9fa; padding: 30px; border-radius: 8px; text-align: center;">
+                        <div style="font-size: 48px; margin-bottom: 15px;">📝</div>
+                        <div>Документ Microsoft Word</div>
+                        <div style="margin-top: 10px;">
+                            <button class="btn btn-primary" onclick="downloadMaterial('${material.id}')">
+                                <i class="fas fa-download"></i> Скачать
+                            </button>
+                        </div>
+                    </div>
+                `;
+            } else if (extension === 'json') {
+                // JSON файл - показываем содержимое
+                previewContainer.innerHTML = `
+                    <h4 style="color: #2c3e50; margin-bottom: 10px;">📊 Структура данных</h4>
+                    <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; font-family: monospace; font-size: 12px;">
+                        <div>JSON файл: ${material.file.split('/').pop()}</div>
+                        <div style="margin-top: 10px; color: #7f8c8d;">
+                            Нажмите "Использовать" чтобы применить этот шаблон
+                        </div>
+                    </div>
+                `;
+            } else {
+                // Общий превью для других типов файлов
+                previewContainer.innerHTML = `
+                    <h4 style="color: #2c3e50; margin-bottom: 10px;">📎 Файл</h4>
+                    <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; text-align: center;">
+                        <div style="font-size: 48px; margin-bottom: 15px;">${getFileIcon(material.type)}</div>
+                        <div>${material.file.split('/').pop()}</div>
+                        <div style="color: #7f8c8d; margin-top: 5px;">${material.size}</div>
+                    </div>
+                `;
+            }
+        } else if (material.url) {
+            // Ссылка на внешний ресурс
+            previewContainer.innerHTML = `
+                <h4 style="color: #2c3e50; margin-bottom: 10px;">🔗 Внешний ресурс</h4>
+                <div style="background: #f8f9fa; padding: 20px; border-radius: 8px;">
+                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+                        <div style="font-size: 24px;">🌐</div>
+                        <div>
+                            <div><strong>${material.resourceType ? getResourceTypeName(material.resourceType) : 'Веб-ресурс'}</strong></div>
+                            <a href="${material.url}" target="_blank" style="color: #3498db; word-break: break-all;">
+                                ${material.url}
+                            </a>
+                        </div>
+                    </div>
+                    <button class="btn btn-primary" onclick="window.open('${material.url}', '_blank')" style="width: 100%;">
+                        <i class="fas fa-external-link-alt"></i> Перейти к ресурсу
+                    </button>
+                </div>
+            `;
+        } else {
+            // Материал без файла
+            previewContainer.innerHTML = `
+                <h4 style="color: #2c3e50; margin-bottom: 10px;">📋 Ручной материал</h4>
+                <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; text-align: center;">
+                    <div style="font-size: 48px; margin-bottom: 15px;">✍️</div>
+                    <div>Материал создан вручную</div>
+                    <div style="color: #7f8c8d; margin-top: 5px;">Используйте кнопки ниже для работы с ним</div>
+                </div>
+            `;
+        }
+        
+        // Загружаем контент первой вкладки
+        loadMaterialTabContent('content', material);
+    }, 300);
+}
+
+// Загрузка контента вкладки
+function loadMaterialTabContent(tabName, material) {
+    const tabContent = document.getElementById('materialTabContent');
+    if (!tabContent) return;
+    
+    switch (tabName) {
+        case 'content':
+            loadContentTab(material, tabContent);
+            break;
+        case 'usage':
+            loadUsageTab(material, tabContent);
+            break;
+        case 'related':
+            loadRelatedTab(material, tabContent);
+            break;
+        case 'info':
+            loadInfoTab(material, tabContent);
+            break;
+    }
+}
+
+// Вкладка "Содержание"
+function loadContentTab(material, container) {
+    let content = '';
+    
+    if (material.category === 'tasks_bank' && material.taskCount) {
+        content = `
+            <div style="background: white; padding: 20px; border-radius: 8px; border: 1px solid #e9ecef;">
+                <h4 style="margin-top: 0;">🧩 Содержание заданий (${material.taskCount})</h4>
+                <div style="max-height: 200px; overflow-y: auto;">
+                    ${generateTaskList(material)}
+                </div>
+            </div>
+        `;
+    } else if (material.file && material.file.endsWith('.json')) {
+        content = `
+            <div style="background: white; padding: 20px; border-radius: 8px; border: 1px solid #e9ecef;">
+                <h4 style="margin-top: 0;">📊 Структура данных</h4>
+                <pre style="background: #f8f9fa; padding: 15px; border-radius: 5px; overflow-x: auto; font-size: 12px;">
+${JSON.stringify(getMaterialStructure(material), null, 2)}
+                </pre>
+            </div>
+        `;
+    } else {
+        content = `
+            <div style="text-align: center; padding: 40px; color: #7f8c8d;">
+                <div style="font-size: 48px; margin-bottom: 15px;">📄</div>
+                <div>Откройте файл для просмотра содержимого</div>
+                ${material.file ? `
+                    <button class="btn btn-primary" onclick="openMaterialFile('${material.id}')" style="margin-top: 15px;">
+                        <i class="fas fa-external-link-alt"></i> Открыть файл
+                    </button>
+                ` : ''}
+            </div>
+        `;
+    }
+    
+    container.innerHTML = content;
+}
+
+// Вкладка "Использование"
+function loadUsageTab(material, container) {
+    const usageStats = getMaterialUsageStats(material.id);
+    
+    container.innerHTML = `
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px;">
+            <div style="background: white; padding: 20px; border-radius: 8px; border: 1px solid #e9ecef; text-align: center;">
+                <div style="font-size: 24px; margin-bottom: 10px;">📊</div>
+                <div style="font-size: 12px; color: #7f8c8d;">Использований</div>
+                <div style="font-size: 24px; font-weight: bold; color: #2c3e50;">${usageStats.totalUses || 0}</div>
+            </div>
+            
+            <div style="background: white; padding: 20px; border-radius: 8px; border: 1px solid #e9ecef; text-align: center;">
+                <div style="font-size: 24px; margin-bottom: 10px;">👥</div>
+                <div style="font-size: 12px; color: #7f8c8d;">Пользователей</div>
+                <div style="font-size: 24px; font-weight: bold; color: #2c3e50;">${usageStats.uniqueUsers || 1}</div>
+            </div>
+            
+            <div style="background: white; padding: 20px; border-radius: 8px; border: 1px solid #e9ecef; text-align: center;">
+                <div style="font-size: 24px; margin-bottom: 10px;">⭐</div>
+                <div style="font-size: 12px; color: #7f8c8d;">Рейтинг</div>
+                <div style="font-size: 24px; font-weight: bold; color: #f39c12;">${usageStats.rating || '—'}</div>
+            </div>
+            
+            <div style="background: white; padding: 20px; border-radius: 8px; border: 1px solid #e9ecef; text-align: center;">
+                <div style="font-size: 24px; margin-bottom: 10px;">📅</div>
+                <div style="font-size: 12px; color: #7f8c8d;">Последнее</div>
+                <div style="font-size: 14px; color: #2c3e50;">${usageStats.lastUsed || 'Никогда'}</div>
+            </div>
+        </div>
+        
+        <div style="background: white; padding: 20px; border-radius: 8px; border: 1px solid #e9ecef;">
+            <h4 style="margin-top: 0;">📈 История использования</h4>
+            ${usageStats.history && usageStats.history.length > 0 ? `
+                <div style="max-height: 200px; overflow-y: auto;">
+                    <table style="width: 100%; font-size: 14px;">
+                        <thead>
+                            <tr>
+                                <th style="text-align: left; padding: 8px; border-bottom: 1px solid #e9ecef;">Дата</th>
+                                <th style="text-align: left; padding: 8px; border-bottom: 1px solid #e9ecef;">Действие</th>
+                                <th style="text-align: left; padding: 8px; border-bottom: 1px solid #e9ecef;">Пользователь</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${usageStats.history.map(record => `
+                                <tr>
+                                    <td style="padding: 8px; border-bottom: 1px solid #f8f9fa;">${formatDate(record.date)}</td>
+                                    <td style="padding: 8px; border-bottom: 1px solid #f8f9fa;">${record.action}</td>
+                                    <td style="padding: 8px; border-bottom: 1px solid #f8f9fa;">${record.user || 'Вы'}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            ` : `
+                <div style="text-align: center; padding: 20px; color: #7f8c8d;">
+                    <div style="font-size: 48px; margin-bottom: 15px;">📊</div>
+                    <div>Еще никто не использовал этот материал</div>
+                    <div style="color: #95a5a6; margin-top: 5px;">Будьте первым!</div>
+                </div>
+            `}
+        </div>
+    `;
+}
+
+// Вкладка "Похожие"
+function loadRelatedTab(material, container) {
+    const relatedMaterials = findRelatedMaterials(material);
+    
+    container.innerHTML = `
+        <div style="background: white; padding: 20px; border-radius: 8px; border: 1px solid #e9ecef;">
+            <h4 style="margin-top: 0;">🔗 Похожие материалы</h4>
+            
+            ${relatedMaterials.length > 0 ? `
+                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 15px; margin-top: 15px;">
+                    ${relatedMaterials.slice(0, 4).map(related => `
+                        <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; cursor: pointer;" 
+                             onclick="viewMaterial('${related.id}')">
+                            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+                                <div style="font-size: 20px;">${getCategoryIcon(related.category)}</div>
+                                <div style="font-weight: bold; color: #2c3e50;">${related.title}</div>
+                            </div>
+                            <div style="font-size: 12px; color: #7f8c8d;">
+                                ${getSubjectName(related.subject)} · 
+                                ${related.grade ? related.grade + ' класс' : ''}
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            ` : `
+                <div style="text-align: center; padding: 20px; color: #7f8c8d;">
+                    <div style="font-size: 48px; margin-bottom: 15px;">🔍</div>
+                    <div>Похожие материалы не найдены</div>
+                </div>
+            `}
+            
+            <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #e9ecef;">
+                <h5 style="margin-top: 0;">🎯 Поиск похожих</h5>
+                <div style="display: flex; gap: 10px;">
+                    <input type="text" id="searchSimilar" class="form-input" 
+                           placeholder="Введите ключевые слова..." style="flex: 1;">
+                    <button class="btn btn-primary" onclick="searchSimilarMaterials('${material.id}')">
+                        <i class="fas fa-search"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+// Вкладка "Тех. информация"
+function loadInfoTab(material, container) {
+    container.innerHTML = `
+        <div style="background: white; padding: 20px; border-radius: 8px; border: 1px solid #e9ecef;">
+            <h4 style="margin-top: 0;">ℹ️ Техническая информация</h4>
+            
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
+                <div>
+                    <h5 style="color: #2c3e50; margin-bottom: 10px;">📋 Основные данные</h5>
+                    <table style="width: 100%; font-size: 14px;">
+                        <tr>
+                            <td style="padding: 8px; color: #7f8c8d;">ID материала:</td>
+                            <td style="padding: 8px; font-family: monospace;">${material.id}</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 8px; color: #7f8c8d;">Категория:</td>
+                            <td style="padding: 8px;">${getCategoryName(material.category)}</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 8px; color: #7f8c8d;">Версия:</td>
+                            <td style="padding: 8px;">${material.version || '1.0'}</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 8px; color: #7f8c8d;">Создан:</td>
+                            <td style="padding: 8px;">${formatDateTime(material.added)}</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 8px; color: #7f8c8d;">Изменен:</td>
+                            <td style="padding: 8px;">${material.modified ? formatDateTime(material.modified) : 'Не изменялся'}</td>
+                        </tr>
+                    </table>
+                </div>
+                
+                <div>
+                    <h5 style="color: #2c3e50; margin-bottom: 10px;">🔧 Системная информация</h5>
+                    <table style="width: 100%; font-size: 14px;">
+                        <tr>
+                            <td style="padding: 8px; color: #7f8c8d;">В каталоге:</td>
+                            <td style="padding: 8px;">${material.category}</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 8px; color: #7f8c8d;">Индекс в каталоге:</td>
+                            <td style="padding: 8px;">${libraryCatalog.categories[material.category]?.indexOf(material) + 1 || '—'}</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 8px; color: #7f8c8d;">Статус:</td>
+                            <td style="padding: 8px;">
+                                <span style="color: ${material.isPublic ? '#27ae60' : '#e74c3c'};">
+                                    ${material.isPublic ? '✅ Опубликован' : '🔒 Черновик'}
+                                </span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 8px; color: #7f8c8d;">Проверен:</td>
+                            <td style="padding: 8px;">
+                                ${material.verified ? '✅ Проверен' : '⚠️ Не проверен'}
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+            
+            <div style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 5px;">
+                <h5 style="color: #2c3e50; margin-bottom: 10px;">🛠️ Действия</h5>
+                <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                    <button class="btn btn-sm btn-outline" onclick="validateMaterial('${material.id}')">
+                        <i class="fas fa-check-circle"></i> Проверить
+                    </button>
+                    <button class="btn btn-sm btn-outline" onclick="exportMaterialJSON('${material.id}')">
+                        <i class="fas fa-code"></i> Экспорт JSON
+                    </button>
+                    <button class="btn btn-sm btn-outline" onclick="showMaterialRaw('${material.id}')">
+                        <i class="fas fa-eye"></i> Исходные данные
+                    </button>
+                    <button class="btn btn-sm btn-danger" onclick="deleteMaterialPermanently('${material.id}')">
+                        <i class="fas fa-trash"></i> Удалить навсегда
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+// Переключение вкладок материала
+function switchMaterialTab(tabName, materialId) {
+    // Обновляем активную кнопку
+    document.querySelectorAll('.material-tab-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    event.target.classList.add('active');
+    
+    // Загружаем контент вкладки
+    const material = libraryCatalog.fileIndex[materialId];
+    if (material) {
+        loadMaterialTabContent(tabName, material);
+    }
+}
+
+// Закрыть просмотр материала
+function closeMaterialView() {
+    document.getElementById('materialViewModal').style.display = 'none';
+    currentViewingMaterial = null;
+}
+
+// Использовать материал из просмотра
+function useMaterialFromView(materialId) {
+    const material = libraryCatalog.fileIndex[materialId];
+    if (!material) return;
+    
+    closeMaterialView();
+    
+    // В зависимости от типа материала, используем по-разному
+    switch (material.category) {
+        case 'work_templates':
+            useWorkTemplate(material);
+            break;
+        case 'criteria':
+            useCriteriaTemplate(material);
+            break;
+        case 'tasks_bank':
+            useTasksBank(material);
+            break;
+        default:
+            quickUseMaterial(materialId);
+    }
+}
+
+// Быстрое использование (без открытия просмотра)
+function quickUseMaterial(materialId) {
+    const material = libraryCatalog.fileIndex[materialId];
+    if (!material) return;
+    
+    showNotification(`Материал "${material.title}" применяется...`, 'info');
+    
+    // Регистрируем использование
+    registerMaterialUsage(materialId, 'quick_use');
+    
+    // В зависимости от категории
+    switch (material.category) {
+        case 'work_templates':
+            setTimeout(() => {
+                showNotification(`Шаблон "${material.title}" загружен!`, 'success');
+                // Здесь можно добавить логику применения шаблона
+            }, 1000);
+            break;
+            
+        case 'criteria':
+            setTimeout(() => {
+                showNotification(`Критерии "${material.title}" применены!`, 'success');
+                // Здесь можно добавить логику применения критериев
+            }, 1000);
+            break;
+            
+        case 'tasks_bank':
+            setTimeout(() => {
+                showNotification(`Задания "${material.title}" добавлены в работу!`, 'success');
+                // Здесь можно добавить логику добавления заданий
+            }, 1000);
+            break;
+            
+        default:
+            setTimeout(() => {
+                showNotification(`Материал "${material.title}" использован!`, 'success');
+            }, 1000);
+    }
+}
+
+// Открыть файл материала
+function openMaterialFile(materialId) {
+    const material = libraryCatalog.fileIndex[materialId];
+    if (!material || !material.file) return;
+    
+    // В зависимости от типа файла открываем по-разному
+    const extension = material.file.split('.').pop().toLowerCase();
+    
+    if (['pdf', 'jpg', 'jpeg', 'png', 'gif'].includes(extension)) {
+        // Открываем в новой вкладке
+        window.open(material.file, '_blank');
+    } else if (extension === 'json') {
+        // Показываем содержимое JSON
+        showJSONContent(material);
+    } else {
+        // Предлагаем скачать
+        downloadMaterial(materialId);
+    }
+}
+
+// Показать содержимое JSON
+function showJSONContent(material) {
+    showModal(`
+        <h3>📊 Содержимое файла: ${material.file?.split('/').pop() || material.title}</h3>
+        <div style="max-height: 500px; overflow-y: auto; background: #f8f9fa; padding: 15px; border-radius: 5px;">
+            <pre style="margin: 0; font-family: monospace; font-size: 12px;">
+${JSON.stringify(getMaterialContent(material), null, 2)}
+            </pre>
+        </div>
+        <div class="modal-actions" style="margin-top: 15px;">
+            <button class="btn" onclick="hideModal()">Закрыть</button>
+            <button class="btn btn-primary" onclick="useMaterialContent('${material.id}')">
+                Использовать эти данные
+            </button>
+        </div>
+    `, 'modal-lg');
+}
+
+// Скачать материал
+function downloadMaterial(materialId) {
+    const material = libraryCatalog.fileIndex[materialId];
+    if (!material) return;
+    
+    if (material.file) {
+        // Создаем ссылку для скачивания
+        const link = document.createElement('a');
+        link.href = material.file;
+        link.download = material.file.split('/').pop();
+        link.click();
+        
+        showNotification(`Файл "${material.file.split('/').pop()}" скачивается...`, 'info');
+    } else if (material.url) {
+        // Открываем ссылку
+        window.open(material.url, '_blank');
+    } else {
+        // Экспортируем JSON с данными материала
+        exportMaterialAsJSON(material);
+    }
+    
+    // Регистрируем использование
+    registerMaterialUsage(materialId, 'download');
+}
+
+// Экспорт материала как JSON
+function exportMaterialAsJSON(material) {
+    const exportData = {
+        material: material,
+        exportedAt: new Date().toISOString(),
+        system: 'Анализ образовательных результатов',
+        version: libraryConfig.version
+    };
+    
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${material.title.replace(/[^a-z0-9]/gi, '_')}_${new Date().toISOString().split('T')[0]}.json`;
+    a.click();
+    
+    URL.revokeObjectURL(url);
+    showNotification(`Материал экспортирован как JSON`, 'success');
+}
+
+// Редактировать материал
+function editCurrentMaterial() {
+    if (!currentViewingMaterial) return;
+    
+    closeMaterialView();
+    
+    // Показываем форму редактирования
+    showEditMaterialForm(currentViewingMaterial.id);
+}
+
+// Удалить материал
+function deleteCurrentMaterial() {
+    if (!currentViewingMaterial) return;
+    
+    if (confirm(`Вы уверены, что хотите удалить материал "${currentViewingMaterial.title}"?`)) {
+        deleteMaterial(currentViewingMaterial.id);
+        closeMaterialView();
+    }
+}
+
+// ============================
+// ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
+// ============================
+
+// Получение имени категории
+function getCategoryName(category) {
+    const names = {
+        'work_templates': 'Шаблоны работ',
+        'criteria': 'Критерии оценивания',
+        'tasks_bank': 'Банк заданий',
+        'methodical': 'Методические материалы',
+        'subject_resources': 'Ресурсы по предметам',
+        'external_resources': 'Полезные ресурсы'
+    };
+    return names[category] || category;
+}
+
+// Получение иконки категории
+function getCategoryIcon(category) {
+    const icons = {
+        'work_templates': '📝',
+        'criteria': '📊',
+        'tasks_bank': '🧩',
+        'methodical': '📚',
+        'subject_resources': '🔬',
+        'external_resources': '🌐'
+    };
+    return icons[category] || '📄';
+}
+
+// Получение имени уровня сложности
+function getComplexityName(level) {
+    const names = {
+        '1': 'Базовый',
+        '2': 'Применение',
+        '3': 'Анализ',
+        '4': 'Творчество'
+    };
+    return names[level] || level;
+}
+
+// Получение имени лицензии
+function getLicenseName(license) {
+    const names = {
+        'free': 'Свободное использование',
+        'cc-by': 'Creative Commons (CC BY)',
+        'cc-by-sa': 'CC BY-SA',
+        'cc-by-nc': 'CC BY-NC',
+        'copyright': 'Авторское право',
+        'unknown': 'Не указано'
+    };
+    return names[license] || license;
+}
+
+// Получение имени типа ресурса
+function getResourceTypeName(type) {
+    const names = {
+        'website': 'Веб-сайт',
+        'video': 'Видео',
+        'document': 'Документ',
+        'presentation': 'Презентация',
+        'interactive': 'Интерактивное задание'
+    };
+    return names[type] || type;
+}
+
+// Форматирование даты
+function formatDate(dateString) {
+    if (!dateString) return '—';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('ru-RU');
+}
+
+// Форматирование даты и времени
+function formatDateTime(dateString) {
+    if (!dateString) return '—';
+    const date = new Date(dateString);
+    return date.toLocaleString('ru-RU');
+}
+
+// Генерация списка заданий
+function generateTaskList(material) {
+    // Для демонстрации создаем фиктивные задания
+    const tasks = [];
+    const count = Math.min(material.taskCount || 5, 10);
+    
+    for (let i = 1; i <= count; i++) {
+        tasks.push(`Задание ${i}: Пример задания по теме`);
+    }
+    
+    return tasks.map(task => `
+        <div style="padding: 8px; border-bottom: 1px solid #e9ecef; display: flex; align-items: center; gap: 10px;">
+            <span style="color: #3498db;">${i}</span>
+            <span>${task}</span>
+        </div>
+    `).join('');
+}
+
+// Получение структуры материала
+function getMaterialStructure(material) {
+    return {
+        title: material.title,
+        category: material.category,
+        subject: material.subject,
+        grade: material.grade,
+        complexity: material.complexity,
+        size: material.size,
+        hasFile: !!material.file,
+        hasUrl: !!material.url,
+        tags: material.tags || [],
+        metadata: {
+            author: material.author,
+            license: material.license,
+            isPublic: material.isPublic
+        }
+    };
+}
+
+// Получение содержимого материала
+function getMaterialContent(material) {
+    // Здесь можно добавить реальную загрузку содержимого файла
+    return {
+        info: "Содержимое файла будет загружено при необходимости",
+        material: getMaterialStructure(material),
+        note: "Для реальных файлов здесь будет их содержимое"
+    };
+}
+
+// Регистрация использования материала
+function registerMaterialUsage(materialId, action) {
+    const usageKey = 'material_usage_' + materialId;
+    let usage = JSON.parse(localStorage.getItem(usageKey)) || {
+        totalUses: 0,
+        lastUsed: new Date().toISOString(),
+        history: []
+    };
+    
+    usage.totalUses++;
+    usage.lastUsed = new Date().toISOString();
+    usage.history.unshift({
+        date: new Date().toISOString(),
+        action: action,
+        user: 'current'
+    });
+    
+    // Ограничиваем историю 50 записями
+    if (usage.history.length > 50) {
+        usage.history = usage.history.slice(0, 50);
+    }
+    
+    localStorage.setItem(usageKey, JSON.stringify(usage));
+}
+
+// Получение статистики использования
+function getMaterialUsageStats(materialId) {
+    const usageKey = 'material_usage_' + materialId;
+    const usage = JSON.parse(localStorage.getItem(usageKey)) || {
+        totalUses: 0,
+        lastUsed: null,
+        history: []
+    };
+    
+    return {
+        totalUses: usage.totalUses,
+        uniqueUsers: new Set(usage.history.map(h => h.user)).size,
+        rating: usage.totalUses > 10 ? '4.5' : '—',
+        lastUsed: usage.lastUsed ? formatDate(usage.lastUsed) : 'Никогда',
+        history: usage.history
+    };
+}
+
+// Поиск похожих материалов
+function findRelatedMaterials(material) {
+    const related = [];
+    
+    Object.keys(libraryCatalog.categories).forEach(category => {
+        libraryCatalog.categories[category].forEach(item => {
+            if (item.id === material.id) return; // Пропускаем сам материал
+            
+            let score = 0;
+            
+            // Совпадение категории
+            if (item.category === material.category) score += 3;
+            
+            // Совпадение предмета
+            if (item.subject === material.subject) score += 2;
+            
+            // Совпадение класса
+            if (item.grade === material.grade) score += 1;
+            
+            // Совпадение тегов
+            if (item.tags && material.tags) {
+                const commonTags = item.tags.filter(tag => material.tags.includes(tag));
+                score += commonTags.length;
+            }
+            
+            if (score > 2) {
+                related.push({ ...item, relevance: score });
+            }
+        });
+    });
+    
+    // Сортируем по релевантности
+    return related.sort((a, b) => b.relevance - a.relevance);
+}
+
+// Поиск похожих материалов по запросу
+function searchSimilarMaterials(materialId) {
+    const material = libraryCatalog.fileIndex[materialId];
+    const query = document.getElementById('searchSimilar').value;
+    
+    if (!query) return;
+    
+    // Ищем материалы с похожими ключевыми словами
+    const results = findRelatedMaterials(material).filter(item => {
+        const searchText = (item.title + ' ' + (item.description || '') + ' ' + (item.tags?.join(' ') || '')).toLowerCase();
+        return searchText.includes(query.toLowerCase());
+    });
+    
+    if (results.length > 0) {
+        // Обновляем вкладку с результатами
+        const container = document.getElementById('materialTabContent');
+        if (container) {
+            container.innerHTML = `
+                <div style="background: white; padding: 20px; border-radius: 8px; border: 1px solid #e9ecef;">
+                    <h4 style="margin-top: 0;">🔍 Результаты поиска: "${query}"</h4>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 15px; margin-top: 15px;">
+                        ${results.slice(0, 6).map(item => `
+                            <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; cursor: pointer;" 
+                                 onclick="viewMaterial('${item.id}')">
+                                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+                                    <div style="font-size: 20px;">${getCategoryIcon(item.category)}</div>
+                                    <div style="font-weight: bold; color: #2c3e50;">${item.title}</div>
+                                </div>
+                                <div style="font-size: 12px; color: #7f8c8d;">
+                                    ${getSubjectName(item.subject)} · 
+                                    ${item.grade ? item.grade + ' класс' : ''}
+                                </div>
+                                <div style="margin-top: 5px; font-size: 11px; color: #95a5a6;">
+                                    Релевантность: ${item.relevance}/5
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        }
+    } else {
+        showNotification('Похожие материалы не найдены', 'info');
+    }
 }
