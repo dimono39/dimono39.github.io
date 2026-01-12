@@ -2038,7 +2038,7 @@
                                     }
                                     
                                     const cellC = firstSheet[XLSX.utils.encode_cell({r: row, c: 2})];
-                                    if (cellC && cellC.v && cellC.v.toString().includes('Рудновская')) {
+                                    if (cellC && cellC.v && cellC.v.toString().includes('Сказочная')) {
                                         hasTemplateStructure = true;
                                     }
                                 }
@@ -2332,7 +2332,7 @@
             // Ищем название школы и возрастную категорию
             for (let i = 0; i < Math.min(10, data.length); i++) {
                 const row = data[i];
-                if (row && row[2] && row[2].toString().includes('Рудновская')) {
+                if (row && row[2] && row[2].toString().includes('Сказочная')) {
                     templateMenuData.schoolName = row[2].toString().trim();
                     schoolNameInput.value = templateMenuData.schoolName;
                 }
@@ -4180,7 +4180,7 @@
                     </div>
                     <div style="margin-top: 20px; padding: 15px; background: linear-gradient(135deg, #f0f7ff 0%, #e1f0ff 100%); border-radius: var(--border-radius); border: 2px solid #cce0ff;">
                         <p><strong><i class="fas fa-chart-bar"></i> Всего:</strong> 2 недели, 7 дней, 47 блюд</p>
-                        <p><strong><i class="fas fa-school"></i> Школа:</strong> МОУ "Рудновская ООШ"</p>
+                        <p><strong><i class="fas fa-school"></i> Школа:</strong> МОУ "Сказочная ООШ"</p>
                         <p><strong><i class="fas fa-user-friends"></i> Возрастная категория:</strong> 7-11 лет</p>
                         <p><strong><i class="fas fa-utensils"></i> Приемы пищи:</strong> Завтрак (З), Завтрак 2 (З2), Обед (О), Полдник (П), Ужин (У), Ужин 2 (У2)</p>
                     </div>
