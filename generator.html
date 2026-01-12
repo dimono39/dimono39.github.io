@@ -1421,8 +1421,8 @@
             </div>
             <h3 class="guide-title">Требования к файлам</h3>
             <ul class="guide-list">
-                <li><i class="fas fa-check-circle"></i> Календарь: <span class="highlight">kp2025.xlsx</span></li>
-                <li><i class="fas fa-check-circle"></i> Типовое меню: <span class="highlight">tm2025-sm.xlsx</span></li>
+                <li><i class="fas fa-check-circle"></i> Календарь: <span class="highlight">kp2026.xlsx</span></li>
+                <li><i class="fas fa-check-circle"></i> Типовое меню: <span class="highlight">tm2026-sm.xlsx</span></li>
                 <li><i class="fas fa-check-circle"></i> Ежедневное меню: <span class="highlight">ГГГГ-ММ-ДД-sm.xlsx</span></li>
                 <li><i class="fas fa-check-circle"></i> Формат: Excel (.xlsx или .xls)</li>
             </ul>
@@ -1501,18 +1501,18 @@
                 <h2 class="card-title"><i class="fas fa-cog"></i> Настройки генерации</h2>
                 
                 <div class="year-selector">
-                    <div class="year-badge" id="calendarYear">2025</div>
+                    <div class="year-badge" id="calendarYear">2026</div>
                     <div>Выберите период в пределах календарного года</div>
                 </div>
                 
                 <div class="form-group">
                     <label for="startDate"><i class="fas fa-calendar-alt"></i> Начальная дата</label>
-                    <input type="date" id="startDate" value="2025-01-01" min="2025-01-01" max="2025-12-31">
+                    <input type="date" id="startDate" value="2026-01-01" min="2026-01-01" max="2026-12-31">
                 </div>
                 
                 <div class="form-group">
                     <label for="endDate"><i class="fas fa-calendar-alt"></i> Конечная дата</label>
-                    <input type="date" id="endDate" value="2025-01-31" min="2025-01-01" max="2025-12-31">
+                    <input type="date" id="endDate" value="2026-01-31" min="2026-01-01" max="2026-12-31">
                 </div>
                 
                 <div class="accordion" id="advancedSettings">
@@ -1579,9 +1579,9 @@
             <div class="data-preview" id="calendarPreview">
                 <div class="preview-title">
                     <span>Календарь питания</span>
-                    <span id="calendarYearBadge" class="year-badge" style="display: none;">2025</span>
+                    <span id="calendarYearBadge" class="year-badge" style="display: none;">2026</span>
                 </div>
-                <div id="calendarData">Загрузите файл календаря питания (kp2025.xlsx)</div>
+                <div id="calendarData">Загрузите файл календаря питания (kp2026.xlsx)</div>
             </div>
             
             <div class="data-preview" id="menuPreview">
@@ -1591,7 +1591,7 @@
                         <i class="fas fa-th"></i> Сетка
                     </button>
                 </div>
-                <div id="menuData">Загрузите файл типового меню (tm2025-sm.xlsx)</div>
+                <div id="menuData">Загрузите файл типового меню (tm2026-sm.xlsx)</div>
             </div>
             
             <div class="meal-structure-info">
@@ -1770,7 +1770,7 @@
         let dailyMenus = [];
         let uploadedFiles = [];
         let currentMenuIndex = 0;
-        let currentYear = 2025;
+        let currentYear = 2026;
         let isGridView = true;
         let isMenuGridView = false;
         let currentMealFilter = 'all';
@@ -1877,7 +1877,7 @@
         const colorSchemeInput = document.getElementById('colorScheme');
         const quickGuide = document.getElementById('quickGuide');
         
-        // Настройка начальных дат для 2025 года
+        // Настройка начальных дат для 2026 года
         function setDefaultDates() {
             const year = currentYear;
             const today = new Date();
@@ -2491,9 +2491,9 @@
                 generateBtn.disabled = true;
                 
                 if (hasCalendar && !hasTemplate) {
-                    showStatus('Загрузите файл типового меню (tm2025-sm.xlsx)', 'info');
+                    showStatus('Загрузите файл типового меню (tm2026-sm.xlsx)', 'info');
                 } else if (!hasCalendar && hasTemplate) {
-                    showStatus('Загрузите файл календаря питания (kp2025.xlsx)', 'info');
+                    showStatus('Загрузите файл календаря питания (kp2026.xlsx)', 'info');
                 } else {
                     showStatus('Загрузите файлы календаря питания и типового меню', 'info');
                 }
@@ -3951,7 +3951,7 @@
                 templateMenuData = parsedData.templateMenuData;
                 dailyMenus = parsedData.dailyMenus || [];
                 uploadedFiles = parsedData.uploadedFiles || [];
-                currentYear = parsedData.currentYear || 2025;
+                currentYear = parsedData.currentYear || 2026;
                 schoolNameInput.value = parsedData.schoolName || '';
                 ageCategoryInput.value = parsedData.ageCategory || '7-11';
                 
@@ -4081,7 +4081,7 @@
             if (!calendarData && !templateMenuData) {
                 // Демо календарь в виде таблицы
                 let calendarHtml = '<div style="margin-bottom: 20px;">';
-                calendarHtml += `<p><strong><i class="fas fa-calendar"></i> Год:</strong> 2025</p>`;
+                calendarHtml += `<p><strong><i class="fas fa-calendar"></i> Год:</strong> 2026</p>`;
                 calendarHtml += `<p><strong><i class="fas fa-layer-group"></i> Месяцев с данными:</strong> 5</p>`;
                 calendarHtml += `<p><strong><i class="fas fa-check-circle"></i> Дней с меню:</strong> 23 из 31</p>`;
                 calendarHtml += '</div>';
@@ -4138,12 +4138,12 @@
                         </div>
                     </div>
                     <p style="margin-top: 15px; color: #6c757d; padding: 10px; background: #f8f9fa; border-radius: 4px;">
-                        <i class="fas fa-info-circle"></i> <em>Демо-данные. Загрузите файл календаря питания (kp2025.xlsx)</em>
+                        <i class="fas fa-info-circle"></i> <em>Демо-данные. Загрузите файл календаря питания (kp2026.xlsx)</em>
                     </p>
                 `;
                 
                 calendarPreview.innerHTML = calendarHtml;
-                calendarYearBadge.textContent = '2025';
+                calendarYearBadge.textContent = '2026';
                 calendarYearBadge.style.display = 'inline-block';
                 
                 // Демо меню
@@ -4185,7 +4185,7 @@
                         <p><strong><i class="fas fa-utensils"></i> Приемы пищи:</strong> Завтрак (З), Завтрак 2 (З2), Обед (О), Полдник (П), Ужин (У), Ужин 2 (У2)</p>
                     </div>
                     <p style="margin-top: 15px; color: #6c757d; padding: 10px; background: #f8f9fa; border-radius: 4px;">
-                        <i class="fas fa-info-circle"></i> <em>Демо-данные. Загрузите файл типового меню (tm2025-sm.xlsx)</em>
+                        <i class="fas fa-info-circle"></i> <em>Демо-данные. Загрузите файл типового меню (tm2026-sm.xlsx)</em>
                     </p>
                 `;
             }
