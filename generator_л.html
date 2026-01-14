@@ -5,9 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Генератор ежедневных меню школьного питания (ФЦМПО-совместимый)</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-	<script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
-	<script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
-	<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <style>
         :root {
             --primary-color: #2c3e50;
@@ -3517,7 +3514,7 @@
 					school: 'cfe2f3',
 					header: 'e0e0e0',
 					breakfast: 'fff2cc',
-					breakfast2: 'ffe699',
+					breakfast2: 'fff2cc',
 					lunch: 'd9d2e9',
 					afternoonSnack: 'd0e0e3',
 					dinner: 'f4cccc',
@@ -3559,163 +3556,189 @@
 		}
         
         // Создание рабочей книги с цветовым форматированием и правильной структурой ФЦМПО
-		async function createDailyMenuWorkbookWithFormatting(menu) {
-			console.log('Создание Excel файла с помощью ExcelJS...');
-			
+		function createDailyMenuWorkbookWithFormatting(menu) {
 			const data = createExcelDataWithProperStructure(menu);
 			
-			const workbook = new ExcelJS.Workbook();
-			workbook.creator = 'Генератор школьного питания ФЦМПО';
-			workbook.created = new Date();
+			const ws = XLSX.utils.aoa_to_sheet(data);
 			
-			const worksheet = workbook.addWorksheet('Меню', {
-				properties: { defaultRowHeight: 20 },
-				pageSetup: { fitToPage: true }
-			});
-			
-			// Добавляем данные
-			worksheet.addRows(data);
-			
-			// Настройка ширины колонок
-			worksheet.columns = [
-				{ key: 'A', width: 12 },  // Прием пищи
-				{ key: 'B', width: 15 },  // Раздел
-				{ key: 'C', width: 8 },   // № рец.
-				{ key: 'D', width: 35 },  // Блюдо
-				{ key: 'E', width: 10 },  // Выход, г
-				{ key: 'F', width: 10 },  // Цена
-				{ key: 'G', width: 15 },  // Калорийность
-				{ key: 'H', width: 8 },   // Белки
-				{ key: 'I', width: 8 },   // Жиры
-				{ key: 'J', width: 10 }   // Углеводы
+			// Настраиваем ширину столбцов
+			const colWidths = [
+				{wch: 12},  // A: Прием пищи
+				{wch: 15},  // B: Раздел
+				{wch: 8},   // C: № рец.
+				{wch: 35},  // D: Блюдо
+				{wch: 10},  // E: Выход, г (целое число, 0 знаков)
+				{wch: 10},  // F: Цена (два знака)
+				{wch: 15},  // G: Калорийность (целое число, 0 знаков)
+				{wch: 8},   // H: Белки (целое число, 0 знаков)
+				{wch: 8},   // I: Жиры (целое число, 0 знаков)
+				{wch: 10}   // J: Углеводы (целое число, 0 знаков)
 			];
+			ws['!cols'] = colWidths;
 			
-			// ПРИМЕНЯЕМ ЧИСЛОВОЕ ФОРМАТИРОВАНИЕ
-			worksheet.getColumn('F').numFmt = '0.00';  // Цена - 2 знака
-			worksheet.getColumn('F').alignment = { horizontal: 'right' };
-			
-			// Целые числа, 0 знаков
-			['E', 'G', 'H', 'I', 'J'].forEach(col => {
-				worksheet.getColumn(col).numFmt = '0';
-				worksheet.getColumn(col).alignment = { horizontal: 'right' };
+			// Объединяем ячейки B1-D1 для названия школы
+			if (!ws['!merges']) ws['!merges'] = [];
+			ws['!merges'].push({
+				s: {r: 0, c: 1}, // B1
+				e: {r: 0, c: 3}  // D1
 			});
 			
 			// Получаем цветовую схему
 			const colorScheme = colorSchemeInput.value || 'default';
 			const colors = getColorScheme(colorScheme);
 			
-			// Переменная для отслеживания текущего приема пищи
-			let currentMealType = null;
-			let isFirstRowOfMeal = true;
-			
-			// Применяем цвета и форматирование
-			worksheet.eachRow((row, rowNumber) => {
-				// СКРЫВАЕМ ВТОРУЮ СТРОКУ (пустую строку) - установим высоту 0
-				if (rowNumber === 2) {
-					row.height = 0;  // Полностью скрываем строку
-					row.hidden = true;
-					return;  // Пропускаем дальнейшее форматирование
-				}
-				
-				if (rowNumber === 1) {
-					// Строка с информацией о школе
-					row.eachCell(cell => {
-						cell.fill = {
-							type: 'pattern',
-							pattern: 'solid',
-							fgColor: { argb: hexToArgb(colors.school || '#cfe2f3') }
-						};
-						cell.font = { bold: true };
-					});
-					
-					// Объединяем ячейки B1:D1 для названия школы
-					worksheet.mergeCells('B1:D1');
-				} 
-				else if (rowNumber === 3) {
-					// Заголовки таблицы
-					row.eachCell(cell => {
-						cell.fill = {
-							type: 'pattern',
-							pattern: 'solid',
-							fgColor: { argb: hexToArgb(colors.header || '#e0e0e0') }
-						};
-						cell.font = { bold: true };
-						cell.alignment = { horizontal: 'center', vertical: 'middle' };
-					});
-				} 
-				else if (rowNumber > 3) {
-					// Проверяем ячейку A (столбец "Прием пищи")
-					const mealCell = row.getCell('A');
-					const mealValue = mealCell.value ? mealCell.value.toString().trim() : '';
-					
-					// Если есть значение в столбце A - это новый прием пищи
-					if (mealValue) {
-						currentMealType = getMealTypeFromName(mealValue);
-						isFirstRowOfMeal = true;
-					}
-					
-					// Применяем цвет фона ко ВСЕМ ячейкам строки
-					if (currentMealType && colors[currentMealType]) {
-						row.eachCell(cell => {
-							cell.fill = {
-								type: 'pattern',
-								pattern: 'solid',
-								fgColor: { argb: hexToArgb(colors[currentMealType]) }
-							};
-						});
-					}
-					
-					// Форматирование для первой строки приема пищи
-					if (isFirstRowOfMeal && mealValue) {
-						mealCell.font = { bold: true };
-						isFirstRowOfMeal = false;
-					}
-				}
-				
-				// Добавляем границы для всех ячеек (начиная с 3 строки)
-				if (rowNumber >= 3 && rowNumber !== 2) {  // Пропускаем скрытую строку 2
-					row.eachCell(cell => {
-						cell.border = {
-							top: { style: 'thin', color: { argb: 'FFCCCCCC' } },
-							left: { style: 'thin', color: { argb: 'FFCCCCCC' } },
-							bottom: { style: 'thin', color: { argb: 'FFCCCCCC' } },
-							right: { style: 'thin', color: { argb: 'FFCCCCCC' } }
-						};
-					});
-				}
-			});
-			
-			console.log('Excel файл создан успешно');
-			return workbook;
-		}
-		
-		// Вспомогательная функция для определения типа приема пищи по названию
-		function getMealTypeFromName(mealName) {
-			switch(mealName) {
-				case 'Завтрак': return 'breakfast';
-				case 'Завтрак 2': return 'breakfast2';
-				case 'Обед': return 'lunch';
-				case 'Полдник': return 'afternoonSnack';
-				case 'Ужин': return 'dinner';
-				case 'Ужин 2': return 'dinner2';
-				default: return null;
-			}
-		}
-
-		// Вспомогательная функция для преобразования HEX в ARGB
-		function hexToArgb(hexColor) {
-			if (!hexColor) return 'FFFFFFFF';
-			
-			// Убираем # если есть
-			let hex = hexColor.replace('#', '');
-			
-			// Если короткий формат (например, #f00), расширяем
-			if (hex.length === 3) {
-				hex = hex.split('').map(c => c + c).join('');
+			// Преобразуем цвета в правильный формат (без #)
+			const colorMap = {};
+			for (const key in colors) {
+				colorMap[key] = colors[key].replace(/^#/, '');
 			}
 			
-			// Добавляем альфа-канал (FF = непрозрачный)
-			return 'FF' + hex.toUpperCase();
+			// Получаем диапазон данных
+			const range = XLSX.utils.decode_range(ws['!ref']);
+			
+			// Проходим по всем строкам и столбцам
+			for (let R = 0; R <= range.e.r; R++) {
+				for (let C = 0; C <= range.e.c; C++) {
+					const cellAddress = XLSX.utils.encode_cell({r: R, c: C});
+					
+					// Если ячейка не существует, создаем ее
+					if (!ws[cellAddress]) {
+						ws[cellAddress] = {t: 's', v: ''};
+					}
+					
+					let backgroundColor = null;
+					let currentMealType = null;
+					
+					// Определяем тип приема пищи для текущей строки
+					// Проверяем столбец A (Прием пищи)
+					const cellA = ws[XLSX.utils.encode_cell({r: R, c: 0})];
+					
+					if (cellA && cellA.v && typeof cellA.v === 'string') {
+						const mealName = cellA.v.toString().trim();
+						if (mealName === 'Завтрак') {
+							currentMealType = 'breakfast';
+						} else if (mealName === 'Завтрак 2') {
+							currentMealType = 'breakfast2';
+						} else if (mealName === 'Обед') {
+							currentMealType = 'lunch';
+						} else if (mealName === 'Полдник') {
+							currentMealType = 'afternoonSnack';
+						} else if (mealName === 'Ужин') {
+							currentMealType = 'dinner';
+						} else if (mealName === 'Ужин 2') {
+							currentMealType = 'dinner2';
+						}
+					} else {
+						// Если в столбце A пусто, ищем предыдущий прием пищи
+						for (let i = R - 1; i >= 0; i--) {
+							const prevCell = ws[XLSX.utils.encode_cell({r: i, c: 0})];
+							if (prevCell && prevCell.v && typeof prevCell.v === 'string') {
+								const prevMealName = prevCell.v.toString().trim();
+								if (prevMealName === 'Завтрак') {
+									currentMealType = 'breakfast';
+									break;
+								} else if (prevMealName === 'Завтрак 2') {
+									currentMealType = 'breakfast2';
+									break;
+								} else if (prevMealName === 'Обед') {
+									currentMealType = 'lunch';
+									break;
+								} else if (prevMealName === 'Полдник') {
+									currentMealType = 'afternoonSnack';
+									break;
+								} else if (prevMealName === 'Ужин') {
+									currentMealType = 'dinner';
+									break;
+								} else if (prevMealName === 'Ужин 2') {
+									currentMealType = 'dinner2';
+									break;
+								}
+							}
+						}
+					}
+					
+					// Определяем цвет фона на основе строки и типа приема пищи
+					if (R === 0) {
+						// Первая строка - информация о школе
+						backgroundColor = colorMap.school || 'cfe2f3';
+					} else if (R === 2) {
+						// Третья строка - заголовки таблицы
+						backgroundColor = colorMap.header || 'e0e0e0';
+					} else if (R > 2 && currentMealType && colorMap[currentMealType]) {
+						// Строки с данными меню
+						backgroundColor = colorMap[currentMealType];
+					}
+					
+					// Применяем форматирование, если определен цвет
+					if (backgroundColor) {
+						// Инициализируем объект стиля, если его нет
+						if (!ws[cellAddress].s) {
+							ws[cellAddress].s = {};
+						}
+						
+						// Устанавливаем цвет фона
+						ws[cellAddress].s.fill = {
+							fgColor: {rgb: backgroundColor},
+							patternType: 'solid'
+						};
+						
+						// Устанавливаем шрифт
+						if (!ws[cellAddress].s.font) {
+							ws[cellAddress].s.font = {};
+						}
+						ws[cellAddress].s.font.sz = 11;
+						ws[cellAddress].s.font.color = {rgb: '000000'};
+						
+						// Добавляем границы для лучшей читаемости
+						if (!ws[cellAddress].s.border) {
+							ws[cellAddress].s.border = {};
+						}
+						ws[cellAddress].s.border.top = {style: 'thin', color: {rgb: 'cccccc'}};
+						ws[cellAddress].s.border.bottom = {style: 'thin', color: {rgb: 'cccccc'}};
+						ws[cellAddress].s.border.left = {style: 'thin', color: {rgb: 'cccccc'}};
+						ws[cellAddress].s.border.right = {style: 'thin', color: {rgb: 'cccccc'}};
+					}
+					
+					// ПРИМЕНЯЕМ ЧИСЛОВОЕ ФОРМАТИРОВАНИЕ ДЛЯ ОПРЕДЕЛЕННЫХ СТОЛБЦОВ
+					if (R > 2) { // Пропускаем заголовки
+						const cellValue = ws[cellAddress].v;
+						const isNumeric = cellValue !== '' && !isNaN(cellValue) && cellValue !== null;
+						
+						if (isNumeric) {
+							if (!ws[cellAddress].s) ws[cellAddress].s = {};
+							
+							// Столбец F (5) - Цена - 2 знака после запятой
+							if (C === 5) {
+								ws[cellAddress].s.numFmt = '0.00';
+							}
+							// Столбцы E, G, H, I, J (4, 6, 7, 8, 9) - целые числа, 0 знаков
+							else if (C === 4 || C === 6 || C === 7 || C === 8 || C === 9) {
+								ws[cellAddress].s.numFmt = '0';
+							}
+						}
+					}
+				}
+			}
+			
+			// Специальное форматирование для заголовков
+			// Делаем заголовки жирными
+			for (let C = 0; C <= range.e.c; C++) {
+				const cellAddress = XLSX.utils.encode_cell({r: 2, c: C});
+				if (ws[cellAddress]) {
+					if (!ws[cellAddress].s) ws[cellAddress].s = {};
+					if (!ws[cellAddress].s.font) ws[cellAddress].s.font = {};
+					ws[cellAddress].s.font.bold = true;
+					ws[cellAddress].s.alignment = { horizontal: 'center', vertical: 'center' };
+				}
+			}
+			
+			// Удаляем старый код форматирования, так как теперь форматирование применяется выше
+			// при проходе по всем ячейкам
+			
+			const wb = XLSX.utils.book_new();
+			XLSX.utils.book_append_sheet(wb, ws, "Меню");
+			
+			return wb;
 		}
      
         
@@ -4373,81 +4396,59 @@
         }
         
         // Экспорт всех меню в ZIP архиве с цветовым форматированием
-		async function exportAllMenusAsZip() {
-			if (dailyMenus.length === 0) {
-				showStatus('Нет меню для экспорта', 'error');
-				return;
-			}
-			
-			try {
-				showStatus(`Создание ZIP архива с ${dailyMenus.length} файлами...`, 'info');
-				exportAllBtn.innerHTML = '<span class="loading"></span> Архивация...';
-				exportAllBtn.disabled = true;
-				
-				const zip = new JSZip();
-				
-				// Создаем каждый файл меню
-				for (let i = 0; i < dailyMenus.length; i++) {
-					const menu = dailyMenus[i];
-					
-					try {
-						const workbook = await createDailyMenuWorkbookWithFormatting(menu);
-						const buffer = await workbook.xlsx.writeBuffer();
-						zip.file(menu.fileName, buffer);
-						
-						// Обновляем прогресс
-						const progressPercent = Math.round(((i + 1) / dailyMenus.length) * 100);
-						showStatus(`Создание файлов: ${progressPercent}%`, 'info');
-					} catch (error) {
-						console.error(`Ошибка при создании файла ${menu.fileName}:`, error);
-					}
-				}
-				
-				// Генерируем ZIP архив
-				const content = await zip.generateAsync({ type: "blob" });
-				const zipFileName = `school-menus-${currentYear}-${formatDate(new Date(), 'file')}.zip`;
-				saveAs(content, zipFileName);
-				
-				showStatus(`ZIP архив "${zipFileName}" успешно создан`, 'success');
-			} catch (error) {
-				console.error('Ошибка при создании ZIP архива:', error);
-				showStatus(`Ошибка при создании архива: ${error.message}`, 'error');
-			} finally {
-				exportAllBtn.innerHTML = '<i class="fas fa-download"></i> Экспорт всех меню (ZIP)';
-				exportAllBtn.disabled = false;
-			}
-		}
+        async function exportAllMenusAsZip() {
+            if (dailyMenus.length === 0) {
+                showStatus('Нет меню для экспорта', 'error');
+                return;
+            }
+            
+            showStatus(`Создание ZIP архива с ${dailyMenus.length} файлами...`, 'info');
+            exportAllBtn.innerHTML = '<span class="loading"></span> Архивация...';
+            exportAllBtn.disabled = true;
+            
+            try {
+                const zip = new JSZip();
+                
+                dailyMenus.forEach((menu, index) => {
+                    const workbook = createDailyMenuWorkbookWithFormatting(menu);
+                    
+                    const excelData = XLSX.write(workbook, {bookType: 'xlsx', type: 'binary'});
+                    
+                    const blob = new Blob([s2ab(excelData)], {type: "application/octet-stream"});
+                    
+                    zip.file(menu.fileName, blob);
+                });
+                
+                const content = await zip.generateAsync({type: "blob"});
+                
+                const zipFileName = `school-menus-${currentYear}-${formatDate(new Date(), 'file')}.zip`;
+                saveAs(content, zipFileName);
+                
+                showStatus(`ZIP архив "${zipFileName}" успешно создан и скачан`, 'success');
+            } catch (error) {
+                console.error('Ошибка при создании ZIP архива:', error);
+                showStatus(`Ошибка при создании архива: ${error.message}`, 'error');
+            } finally {
+                exportAllBtn.innerHTML = '<i class="fas fa-download"></i> Экспорт всех меню (ZIP)';
+                exportAllBtn.disabled = false;
+            }
+        }
         
         // Экспорт текущего меню в Excel с цветовым форматированием
-		async function exportCurrentMenuAsExcel() {
-			if (dailyMenus.length === 0 || currentMenuIndex >= dailyMenus.length) {
-				showStatus('Нет текущего меню для экспорта', 'error');
-				return;
-			}
-			
-			try {
-				const menu = dailyMenus[currentMenuIndex];
-				showStatus('Создание Excel файла...', 'info');
-				exportCurrentBtn.innerHTML = '<span class="loading"></span> Экспорт...';
-				exportCurrentBtn.disabled = true;
-				
-				// Создаем рабочую книгу с ExcelJS
-				const workbook = await createDailyMenuWorkbookWithFormatting(menu);
-				
-				// Сохраняем файл
-				const buffer = await workbook.xlsx.writeBuffer();
-				const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-				saveAs(blob, menu.fileName);
-				
-				showStatus(`Меню экспортировано в файл ${menu.fileName}`, 'success');
-			} catch (error) {
-				console.error('Ошибка экспорта:', error);
-				showStatus(`Ошибка экспорта: ${error.message}`, 'error');
-			} finally {
-				exportCurrentBtn.innerHTML = '<i class="fas fa-file-excel"></i> Экспорт текущего меню';
-				exportCurrentBtn.disabled = false;
-			}
-		}
+        function exportCurrentMenuAsExcel() {
+            if (dailyMenus.length === 0 || currentMenuIndex >= dailyMenus.length) {
+                showStatus('Нет текущего меню для экспорта', 'error');
+                return;
+            }
+            
+            const menu = dailyMenus[currentMenuIndex];
+            
+            const workbook = createDailyMenuWorkbookWithFormatting(menu);
+            
+            XLSX.writeFile(workbook, menu.fileName);
+            
+            showStatus(`Меню экспортировано в файл ${menu.fileName}`, 'success');
+        }
         
         // Загрузка шаблона меню ФЦМПО
         function downloadTemplate() {
