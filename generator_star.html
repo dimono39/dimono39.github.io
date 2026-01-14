@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Генератор ежедневных меню школьного питания (ФЦМПО-совместимый)</title>
+    <title>Генератор ежедневных меню школьного питания</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
@@ -1022,6 +1022,7 @@
             font-size: 0.9rem;
         }
         
+        /* Новые стили для улучшений */
         .quick-guide {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -1398,133 +1399,27 @@
             -webkit-text-fill-color: transparent;
             background-clip: text;
         }
-        
-        .meal-connection {
-            position: absolute;
-            width: 2px;
-            background: linear-gradient(to bottom, var(--secondary-color), transparent);
-            left: 20px;
-            z-index: 0;
-        }
-        
-        .meal-connection-top {
-            top: 0;
-            height: 20px;
-        }
-        
-        .meal-connection-bottom {
-            bottom: 0;
-            height: 20px;
-        }
-        
-        .animated-bg {
-            background: linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab);
-            background-size: 400% 400%;
-            animation: gradient 15s ease infinite;
-        }
-        
-        @keyframes gradient {
-            0% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; }
-            100% { background-position: 0% 50%; }
-        }
-        
-        .glow-effect {
-            position: relative;
-        }
-        
-        .glow-effect::after {
-            content: '';
-            position: absolute;
-            top: -2px;
-            left: -2px;
-            right: -2px;
-            bottom: -2px;
-            background: linear-gradient(45deg, var(--secondary-color), var(--success-color), var(--warning-color), var(--accent-color));
-            border-radius: calc(var(--border-radius) + 2px);
-            z-index: -1;
-            opacity: 0;
-            transition: opacity 0.3s ease;
-        }
-        
-        .glow-effect:hover::after {
-            opacity: 0.5;
-        }
-        
-        .floating {
-            animation: floating 3s ease-in-out infinite;
-        }
-        
-        @keyframes floating {
-            0% { transform: translateY(0px); }
-            50% { transform: translateY(-10px); }
-            100% { transform: translateY(0px); }
-        }
-        
-        .pulse {
-            animation: pulse 2s infinite;
-        }
-        
-        @keyframes pulse {
-            0% { box-shadow: 0 0 0 0 rgba(52, 152, 219, 0.7); }
-            70% { box-shadow: 0 0 0 10px rgba(52, 152, 219, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(52, 152, 219, 0); }
-        }
-        
-        .text-shadow {
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
-        }
-        
-        .glass-effect {
-            background: rgba(255, 255, 255, 0.2);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-        }
-        
-        .shine-effect {
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .shine-effect::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-            transition: left 0.5s ease;
-        }
-        
-        .shine-effect:hover::before {
-            left: 100%;
-        }
-        
-        .neon-border {
-            border: 2px solid;
-            border-image: linear-gradient(45deg, var(--secondary-color), var(--success-color)) 1;
-            box-shadow: 0 0 10px rgba(52, 152, 219, 0.3);
-        }
     </style>
 </head>
 <body>
-    <button class="floating-action-btn pulse" id="quickHelpBtn">
+    <!-- Кнопка быстрой справки -->
+    <button class="floating-action-btn" id="quickHelpBtn">
         <i class="fas fa-question"></i>
     </button>
     
     <header>
-        <h1 class="text-shadow"><i class="fas fa-utensils"></i> Генератор ежедневных меню школьного питания (ФЦМПО-совместимый)</h1>
-        <p class="subtitle">Загрузите календарь питания и типовое меню в формате ФЦМПО, выберите период и создайте готовые ежедневные меню для школьной столовой</p>
-        <div class="ribbon">Версия 3.0 (ФЦМПО)</div>
+        <h1><i class="fas fa-utensils"></i> Генератор ежедневных меню школьного питания</h1>
+        <p class="subtitle">Загрузите календарь питания и типовое меню, выберите период и создайте готовые ежедневные меню для школьной столовой</p>
+        <div class="ribbon">Версия 2.0</div>
     </header>
     
+    <!-- Мини-справочник -->
     <div class="quick-guide" id="quickGuide">
-        <div class="guide-card shine-effect">
-            <div class="guide-icon floating">
+        <div class="guide-card">
+            <div class="guide-icon">
                 <i class="fas fa-file-excel"></i>
             </div>
-            <h3 class="guide-title">Требования к файлам ФЦМПО</h3>
+            <h3 class="guide-title">Требования к файлам</h3>
             <ul class="guide-list">
                 <li><i class="fas fa-check-circle"></i> Календарь: <span class="highlight">kp2026.xlsx</span></li>
                 <li><i class="fas fa-check-circle"></i> Типовое меню: <span class="highlight">tm2026-sm.xlsx</span></li>
@@ -1533,8 +1428,8 @@
             </ul>
         </div>
         
-        <div class="guide-card shine-effect">
-            <div class="guide-icon floating" style="background: linear-gradient(135deg, var(--success-color), #219653);">
+        <div class="guide-card">
+            <div class="guide-icon" style="background: linear-gradient(135deg, var(--success-color), #219653);">
                 <i class="fas fa-clock"></i>
             </div>
             <h3 class="guide-title">Время обработки</h3>
@@ -1546,11 +1441,11 @@
             </ul>
         </div>
         
-        <div class="guide-card shine-effect">
-            <div class="guide-icon floating" style="background: linear-gradient(135deg, var(--warning-color), #e67e22);">
+        <div class="guide-card">
+            <div class="guide-icon" style="background: linear-gradient(135deg, var(--warning-color), #e67e22);">
                 <i class="fas fa-exclamation-triangle"></i>
             </div>
-            <h3 class="guide-title">Важно знать (ФЦМПО)</h3>
+            <h3 class="guide-title">Важно знать</h3>
             <ul class="guide-list">
                 <li><i class="fas fa-ban"></i> Не изменять заголовки столбцов</li>
                 <li><i class="fas fa-ban"></i> Не добавлять/удалять столбцы</li>
@@ -1561,16 +1456,17 @@
     </div>
     
     <div class="app-container">
-        <div class="card glow-effect">
-            <h2 class="card-title"><i class="fas fa-upload"></i> Загрузка файлов ФЦМПО</h2>
+        <!-- Левая панель: загрузка файлов и настройки -->
+        <div class="card">
+            <h2 class="card-title"><i class="fas fa-upload"></i> Загрузка файлов</h2>
             
             <div id="statusMessage" class="status-message"></div>
             
-            <div class="file-upload-area shine-effect" id="dropArea">
-                <i class="fas fa-file-excel floating"></i>
-                <h3>Перетащите файлы Excel ФЦМПО сюда</h3>
+            <div class="file-upload-area" id="dropArea">
+                <i class="fas fa-file-excel"></i>
+                <h3>Перетащите файлы Excel сюда</h3>
                 <p>или нажмите для выбора файлов</p>
-                <p class="file-size" style="margin-top: 10px;">Требуемые файлы: kpl2026.xlsx (календарь), tm2026-sm.xlsx (типовое меню)</p>
+                <p class="file-size" style="margin-top: 10px;">Поддерживаемые форматы: .xlsx, .xls</p>
                 <input type="file" id="fileInput" class="file-input" multiple accept=".xlsx,.xls">
             </div>
             
@@ -1584,7 +1480,7 @@
                 <div class="chips-container">
                     <span class="chip"><i class="fas fa-check"></i> Заголовки</span>
                     <span class="chip"><i class="fas fa-check"></i> Колонки</span>
-                    <span class="chip"><i class="fas fa-check"></i> Формат ФЦМПО</span>
+                    <span class="chip"><i class="fas fa-check"></i> Формат</span>
                 </div>
             </div>
             
@@ -1670,26 +1566,27 @@
                         <i class="fas fa-file-excel"></i> Экспорт текущего меню
                     </button>
                     <button id="downloadTemplateBtn" class="btn btn-warning">
-                        <i class="fas fa-file-download"></i> Скачать шаблон ФЦМПО
+                        <i class="fas fa-file-download"></i> Скачать шаблон
                     </button>
                 </div>
             </div>
         </div>
         
-        <div class="card glow-effect">
+        <!-- Правая панель: предпросмотр данных и результат -->
+        <div class="card">
             <h2 class="card-title"><i class="fas fa-eye"></i> Предпросмотр данных</h2>
             
             <div class="data-preview" id="calendarPreview">
                 <div class="preview-title">
-                    <span>Календарь питания ФЦМПО</span>
+                    <span>Календарь питания</span>
                     <span id="calendarYearBadge" class="year-badge" style="display: none;">2026</span>
                 </div>
-                <div id="calendarData">Загрузите файл календаря питания (kpl2026.xlsx)</div>
+                <div id="calendarData">Загрузите файл календаря питания (kp2026.xlsx)</div>
             </div>
             
             <div class="data-preview" id="menuPreview">
                 <div class="preview-title">
-                    <span>Типовое меню ФЦМПО</span>
+                    <span>Типовое меню</span>
                     <button id="toggleMenuView" class="btn" style="padding: 6px 12px; font-size: 0.85rem;">
                         <i class="fas fa-th"></i> Сетка
                     </button>
@@ -1697,9 +1594,9 @@
                 <div id="menuData">Загрузите файл типового меню (tm2026-sm.xlsx)</div>
             </div>
             
-            <div class="meal-structure-info shine-effect">
+            <div class="meal-structure-info">
                 <div class="meal-structure-title">
-                    <i class="fas fa-list-ol"></i> Структура приемов пищи (СанПиН-3590)
+                    <i class="fas fa-list-ol"></i> Структура приемов пищи
                 </div>
                 <div class="structure-list">
                     <div class="structure-item">
@@ -1728,10 +1625,35 @@
                     </div>
                 </div>
             </div>
+            
+            <div class="meal-structure-info">
+                <div class="meal-structure-title">
+                    <i class="fas fa-clock"></i> Время обработки мониторингом
+                </div>
+                <div class="structure-list">
+                    <div class="structure-item">
+                        <span class="structure-section">Ежедневное меню:</span>
+                        <span class="structure-example">После 18:00 (текущая дата)</span>
+                    </div>
+                    <div class="structure-item">
+                        <span class="structure-section">Типовое меню:</span>
+                        <span class="structure-example">После 00:00 (раз в сутки)</span>
+                    </div>
+                    <div class="structure-item">
+                        <span class="structure-section">Календарь питания:</span>
+                        <span class="structure-example">После 00:00 (раз в сутки)</span>
+                    </div>
+                    <div class="structure-item">
+                        <span class="structure-section">Анализ соответствия:</span>
+                        <span class="structure-example">После 05:00 (за 5 рабочих дней)</span>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
     
-    <div class="daily-menu glow-effect" id="dailyMenuContainer">
+    <!-- Область для отображения сгенерированных меню -->
+    <div class="daily-menu" id="dailyMenuContainer">
         <div class="menu-navigation" id="menuNavigation" style="display: none;">
             <div class="nav-buttons">
                 <button id="prevMenuBtn" class="btn btn-secondary">
@@ -1763,19 +1685,19 @@
         </div>
         
         <div class="menu-stats" id="menuStats" style="display: none;">
-            <div class="stat-item shine-effect">
+            <div class="stat-item">
                 <div class="stat-label">Всего меню</div>
                 <div class="stat-value" id="totalMenusCount">0</div>
             </div>
-            <div class="stat-item shine-effect">
+            <div class="stat-item">
                 <div class="stat-label">Период</div>
                 <div class="stat-value" id="menuPeriod">-</div>
             </div>
-            <div class="stat-item shine-effect">
+            <div class="stat-item">
                 <div class="stat-label">Школа</div>
                 <div class="stat-value" id="menuSchool">-</div>
             </div>
-            <div class="stat-item shine-effect">
+            <div class="stat-item">
                 <div class="stat-label">Соответствие</div>
                 <div class="stat-value" id="menuCompliance">-</div>
             </div>
@@ -1785,14 +1707,14 @@
         
         <div id="dailyMenuContent">
             <div style="text-align: center; color: #6c757d; padding: 60px;">
-                <i class="fas fa-clipboard-list fa-4x floating" style="margin-bottom: 30px; color: #bdc3c7;"></i>
-                <h3 style="margin-bottom: 20px; color: var(--primary-color);">Готовые ежедневные меню ФЦМПО</h3>
+                <i class="fas fa-clipboard-list fa-4x" style="margin-bottom: 30px; color: #bdc3c7;"></i>
+                <h3 style="margin-bottom: 20px; color: var(--primary-color);">Готовые ежедневные меню</h3>
                 <p style="max-width: 600px; margin: 0 auto; line-height: 1.8;">
                     Здесь будут отображены сгенерированные ежедневные меню.<br>
                     Загрузите файлы календаря питания и типового меню, выберите период и нажмите "Создать ежедневные меню".
                 </p>
                 <div class="chips-container" style="margin-top: 30px;">
-                    <span class="chip"><i class="fas fa-check"></i> Автопроверка структуры ФЦМПО</span>
+                    <span class="chip"><i class="fas fa-check"></i> Автопроверка структуры</span>
                     <span class="chip"><i class="fas fa-check"></i> Анализ соответствия</span>
                     <span class="chip"><i class="fas fa-check"></i> Цветовое оформление</span>
                     <span class="chip"><i class="fas fa-check"></i> Экспорт в ZIP</span>
@@ -1821,21 +1743,22 @@
             <div id="detailMeals"></div>
             
             <div style="margin-top: 30px;">
-                <div class="section-title"><i class="fas fa-file-excel"></i> Предпросмотр Excel файла (ФЦМПО)</div>
+                <div class="section-title"><i class="fas fa-file-excel"></i> Предпросмотр Excel файла</div>
                 <div id="excelPreview" class="excel-preview"></div>
             </div>
         </div>
     </div>
     
     <footer>
-        <p>© 2026 Генератор школьного питания (ФЦМПО-совместимый). Для корректной работы загрузите файлы в формате Excel</p>
-        <p>Формат имен файлов ФЦМПО: kpl2026.xlsx (календарь), tm2026-sm.xlsx (типовое меню)</p>
-        <p>Сайт сверстал для Вас Дмитрий Алексеевич :)</p>
+        <p>© 2026 Генератор школьного питания. Для корректной работы загрузите файлы в формате Excel</p>
+        <p>Формат имен файлов: kp2026.xlsx (календарь), tm2026-sm.xlsx (типовое меню)</p>
+		<p>Сайт сверстал для Вас Дмитрий Алексеевич :) </p>
         <p style="margin-top: 10px; font-size: 0.85rem;">
-            <i class="fas fa-info-circle"></i> Соответствует требованиям автоматизированного мониторинга питания обучающихся ФЦМПО
+            <i class="fas fa-info-circle"></i> Соответствует требованиям автоматизированного мониторинга питания обучающихся
         </p>
     </footer>
     
+    <!-- Библиотеки для работы с Excel и ZIP -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -1851,19 +1774,13 @@
         let isGridView = true;
         let isMenuGridView = false;
         let currentMealFilter = 'all';
-        const STORAGE_KEY = 'schoolMenuGeneratorData_v3_fcmpo';
-        
-        // Правильные имена файлов согласно инструкции ФЦМПО
-        const REQUIRED_FILES = {
-            calendar: 'kpl2026.xlsx', // Исправлено: kp2026.xlsx → kpl2026.xlsx
-            template: 'tm2026-sm.xlsx' // Оставить как есть
-        };
+        const STORAGE_KEY = 'schoolMenuGeneratorData_v2';
         
         // Структура приемов пищи с порядком разделов
         const MEAL_STRUCTURE = {
             'breakfast': {
                 name: 'Завтрак',
-                sections: ['гор.блюдо', 'гор.напиток', 'хлеб', 'фрукты', 'напиток']
+                sections: ['гор.блюдо', 'гор.напиток', 'хлеб', 'фрукты']
             },
             'breakfast2': {
                 name: 'Завтрак 2',
@@ -1886,37 +1803,7 @@
                 sections: ['кисломол.', 'булочное', 'напиток', 'фрукты']  
             }
         };
-		
-        // Сортировка блюд по структуре приемов пищи
-		function sortMealItemsByStructure(items, mealType) {
-			if (!items || items.length === 0) return [];
-			
-			const structure = MEAL_STRUCTURE[mealType];
-			if (!structure) return items;
-			
-			const normalizedItems = items.map(item => ({
-				...item,
-				normalizedSection: normalizeSectionName(item.section || '')
-			}));
-			
-			const sortedItems = [];
-			
-			for (const section of structure.sections) {
-				const sectionItems = normalizedItems.filter(item => 
-					item.normalizedSection === section
-				);
-				sortedItems.push(...sectionItems);
-			}
-			
-			const otherItems = normalizedItems.filter(item => 
-				!structure.sections.includes(item.normalizedSection)
-			);
-			
-			sortedItems.push(...otherItems);
-			
-			return sortedItems;
-		}
-		
+        
         // Определяем возможные приемы пищи
         const MEAL_TYPES = {
             'breakfast': 'Завтрак',
@@ -1925,6 +1812,18 @@
             'afternoonSnack': 'Полдник',
             'dinner': 'Ужин',
             'dinner2': 'Ужин 2'
+        };
+        
+        // Цвета для Excel оформления по приемам пищи
+        const EXCEL_COLORS = {
+            'school': 'cfe2f3',
+            'header': 'e0e0e0',
+            'breakfast': 'fff2cc',
+            'breakfast2': 'fff2cc',
+            'lunch': 'd9d2e9',
+            'afternoonSnack': 'd0e0e3',
+            'dinner': 'f4cccc',
+            'dinner2': 'e6ccff'
         };
         
         // Элементы DOM
@@ -1989,8 +1888,10 @@
             endDateInput.min = `${year}-01-01`;
             endDateInput.max = `${year}-12-31`;
             
+            // Устанавливаем разумный период по умолчанию
             startDateInput.value = `${year}-01-01`;
             
+            // Если текущий год совпадает с годом данных
             if (year === today.getFullYear()) {
                 endDateInput.value = formatDateForInput(currentYearToday);
             } else {
@@ -2091,7 +1992,7 @@
         exportCurrentBtn.addEventListener('click', exportCurrentMenuAsExcel);
         downloadTemplateBtn.addEventListener('click', downloadTemplate);
         
-        // Обработка загруженных файлов (обновлено для поддержки ФЦМПО)
+        // Обработка загруженных файлов
         function handleFiles(files) {
             files.forEach(file => {
                 if (!file.name.match(/\.(xls|xlsx)$/)) {
@@ -2099,6 +2000,7 @@
                     return;
                 }
                 
+                // Проверяем, не загружен ли уже этот файл
                 if (uploadedFiles.some(f => f.name === file.name && f.size === file.size)) {
                     showStatus(`Файл ${file.name} уже загружен`, 'info');
                     return;
@@ -2110,33 +2012,33 @@
                         const data = new Uint8Array(e.target.result);
                         const workbook = XLSX.read(data, {type: 'array'});
                         
+                        // Определяем тип файла по имени
                         let fileType = '';
-                        const fileNameLower = file.name.toLowerCase();
-                        
-                        // Проверяем правильные имена файлов ФЦМПО
-                        if (fileNameLower.includes('kpl') && file.name.match(/\d{4}/)) {
+                        if (file.name.toLowerCase().includes('kp') && file.name.match(/\d{4}/)) {
                             fileType = 'calendar';
                             processCalendarFile(workbook, file.name);
-                        } else if (fileNameLower.includes('tm') && fileNameLower.includes('-sm')) {
+                        } else if (file.name.toLowerCase().includes('tm') && file.name.includes('-sm')) {
                             fileType = 'template';
                             processTemplateFile(workbook, file.name);
                         } else {
-                            // Автоопределение по содержимому
+                            // Пытаемся определить по структуре
                             const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
                             const range = XLSX.utils.decode_range(firstSheet['!ref']);
                             
+                            // Проверяем наличие ключевых столбцов
                             let hasCalendarStructure = false;
                             let hasTemplateStructure = false;
                             
                             for (let row = 0; row <= Math.min(5, range.e.r); row++) {
                                 const cellA = firstSheet[XLSX.utils.encode_cell({r: row, c: 0})];
-                                if (cellA && cellA.v) {
-                                    const cellValue = cellA.v.toString().toLowerCase();
-                                    if (cellValue.includes('календарь') || cellValue.includes('январь') || cellValue.includes('февраль')) {
+                                if (cellA && cellA.v && cellA.v.toString().toLowerCase().includes('школа')) {
+                                    const cellL = firstSheet[XLSX.utils.encode_cell({r: row, c: 11})];
+                                    if (cellL && cellL.v && cellL.v.toString().toLowerCase().includes('календарь')) {
                                         hasCalendarStructure = true;
                                     }
                                     
-                                    if (cellValue.includes('прием пищи') && cellValue.includes('раздел')) {
+                                    const cellC = firstSheet[XLSX.utils.encode_cell({r: row, c: 2})];
+                                    if (cellC && cellC.v && cellC.v.toString().includes('Сказочная')) {
                                         hasTemplateStructure = true;
                                     }
                                 }
@@ -2154,18 +2056,11 @@
                             }
                         }
                         
-                        // Проверяем соответствие ожидаемым именам файлов ФЦМПО
-                        if (fileType === 'calendar' && !fileNameLower.includes('kpl')) {
-                            showStatus(`Рекомендуемое имя файла календаря: ${REQUIRED_FILES.calendar}`, 'warning');
-                        }
-                        
-                        if (fileType === 'template' && !fileNameLower.includes('tm')) {
-                            showStatus(`Рекомендуемое имя файла типового меню: ${REQUIRED_FILES.template}`, 'warning');
-                        }
-                        
+                        // Проверяем структуру файла
                         const validationResult = validateFileStructure(workbook, fileType);
                         showValidationResult(validationResult, file.name);
                         
+                        // Добавляем файл в список загруженных
                         uploadedFiles.push({
                             name: file.name,
                             size: file.size,
@@ -2192,7 +2087,7 @@
             });
         }
         
-        // Проверка структуры файла (обновлено для учета требований ФЦМПО)
+        // Проверка структуры файла
         function validateFileStructure(workbook, fileType) {
             const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
             const data = XLSX.utils.sheet_to_json(firstSheet, {header: 1});
@@ -2204,83 +2099,55 @@
             };
             
             if (fileType === 'calendar') {
-                // Проверяем наличие структуры календаря ФЦМПО
+                // Проверяем наличие строки с месяцами
                 let hasMonthRow = false;
-                let hasDayNumbers = false;
-                
-                for (let i = 0; i < Math.min(20, data.length); i++) {
+                for (let i = 0; i < Math.min(10, data.length); i++) {
                     if (data[i] && data[i][0]) {
                         const cellValue = data[i][0].toString().toLowerCase();
-                        const monthNames = ['январь', 'февраль', 'март', 'апрель', 'май', 'июнь', 
-                                           'июль', 'август', 'сентябрь', 'октябрь', 'ноябрь', 'декабрь'];
-                        
-                        if (monthNames.some(month => cellValue.includes(month))) {
+                        if (cellValue.includes('январь') || cellValue.includes('февраль')) {
                             hasMonthRow = true;
-                        }
-                        
-                        // Проверяем наличие номеров дней (1-31)
-                        if (!isNaN(parseInt(cellValue)) && parseInt(cellValue) >= 1 && parseInt(cellValue) <= 31) {
-                            hasDayNumbers = true;
+                            break;
                         }
                     }
                 }
                 
                 if (!hasMonthRow) {
-                    result.warnings.push('Не найдена строка с названиями месяцев');
+                    result.isValid = false;
+                    result.errors.push('Не найдена строка с названиями месяцев');
                 }
                 
-                if (!hasDayNumbers) {
-                    result.warnings.push('Возможно некорректные заголовки дней');
-                }
-                
-                // Проверяем наличие информации о школе
-                let hasSchoolInfo = false;
+                // Проверяем наличие заголовков дней
+                let hasDayHeaders = false;
                 for (let i = 0; i < Math.min(5, data.length); i++) {
-                    if (data[i] && data[i].some(cell => 
-                        cell && cell.toString().toLowerCase().includes('школ'))) {
-                        hasSchoolInfo = true;
+                    if (data[i] && data[i][1] === 1 && data[i][2] === 2) {
+                        hasDayHeaders = true;
                         break;
                     }
                 }
                 
-                if (!hasSchoolInfo) {
-                    result.warnings.push('Не найдена информация о школе');
+                if (!hasDayHeaders) {
+                    result.warnings.push('Возможно некорректные заголовки дней');
                 }
                 
             } else if (fileType === 'template') {
-				// Проверяем структуру типового меню (гибкая проверка)
-				let headerRowIndex = -1;
-				
-				for (let i = 0; i < Math.min(15, data.length); i++) {
-					if (data[i] && data[i][2] === 'Прием пищи' && data[i][3] === 'Раздел меню') {
-						headerRowIndex = i;
-						break;
-					}
-				}
-				
-				if (headerRowIndex === -1) {
-					// Альтернативная проверка
-					for (let i = 0; i < Math.min(15, data.length); i++) {
-						if (data[i] && data[i][0] === 'Неделя' && data[i][1] === 'День недели') {
-							headerRowIndex = i;
-							break;
-						}
-					}
-				}
-				
-				if (headerRowIndex === -1) {
-					result.errors.push('Не найдена строка заголовков типового меню');
-					result.isValid = false;
-				}
+                // Проверяем наличие заголовков столбцов
+                const expectedHeaders = ['Прием пищи', 'Раздел', '№ рец.', 'Блюдо', 'Выход, г', 'Цена', 'Калорийность', 'Белки', 'Жиры', 'Углеводы'];
+                let headerRowIndex = -1;
+                
+                for (let i = 0; i < Math.min(10, data.length); i++) {
+                    if (data[i] && data[i][0] === 'Прием пищи' && data[i][1] === 'Раздел') {
+                        headerRowIndex = i;
+                        break;
+                    }
+                }
                 
                 if (headerRowIndex === -1) {
-                    result.errors.push('Не найдена строка заголовков "Прием пищи, Раздел, № рец., ..."');
-                    result.isValid = false;
+                    result.warnings.push('Не найдена стандартная строка заголовков');
                 }
                 
                 // Проверяем наличие данных о приемах пищи
                 let hasMealData = false;
-                for (let i = 0; i < Math.min(30, data.length); i++) {
+                for (let i = 0; i < Math.min(20, data.length); i++) {
                     if (data[i] && data[i][0] && 
                         ['Завтрак', 'Обед', 'Ужин', 'Полдник'].includes(data[i][0].toString().trim())) {
                         hasMealData = true;
@@ -2291,22 +2158,9 @@
                 if (!hasMealData) {
                     result.warnings.push('Не найдены данные о приемах пищи');
                 }
-                
-                // Проверяем наличие информации об утверждении (требование ФЦМПО)
-                let hasApprovalInfo = false;
-                for (let i = 0; i < Math.min(10, data.length); i++) {
-                    if (data[i] && data[i].some(cell => 
-                        cell && cell.toString().toLowerCase().includes('утвержд'))) {
-                        hasApprovalInfo = true;
-                        break;
-                    }
-                }
-                
-                if (!hasApprovalInfo) {
-                    result.warnings.push('Не найдена информация об утверждении меню');
-                }
             }
             
+            // Общая проверка для всех файлов
             if (data.length < 3) {
                 result.warnings.push('Файл содержит слишком мало строк');
             }
@@ -2328,129 +2182,31 @@
             }
         }
         
-        // Нормализация названий разделов для правильной сортировки
-		function normalizeSectionName(section) {
-			if (!section) return '';
-			
-			const sectionLower = section.toLowerCase().trim();
-			
-			// Явное преобразование для фруктов
-			if (sectionLower.includes('фрукт') || sectionLower === 'фрукты') {
-				return 'фрукты';
-			}			
-			
-			const sectionMap = {
-				'горячее блюдо': 'гор.блюдо',
-				'горячий напиток': 'гор.напиток',
-				'горячий напиток с витаминами': 'гор.напиток',
-				'первое блюдо': '1 блюдо',
-				'второе блюдо': '2 блюдо',
-				'хлеб белый': 'хлеб бел.',
-				'хлеб бел': 'хлеб бел.',
-				'хлеб черный': 'хлеб черн.',
-				'хлеб черн': 'хлеб черн.',
-				'хлеб ржаной': 'хлеб черн.',
-				'булочные изделия': 'булочное',
-				'кисломолочный напиток': 'кисломол.',
-				'кисломолочные продукты': 'кисломол.',
-				'бутерброд': 'хлеб',
-				'свежие фрукты': 'фрукты',
-				'фрукт свежий': 'фрукты',
-				'фрукт': 'фрукты',
-				'овощи': 'закуска',
-				'салат': 'закуска',
-				'напиток': 'напиток',
-				'горячий напиток': 'гор.напиток',
-				'гарнир': 'гарнир',
-				'гор. блюдо': 'гор.блюдо',
-				'гор. напиток': 'гор.напиток',
-				'гор.напиток': 'гор.напиток',
-				'гор.блюдо': 'гор.блюдо',
-				'1 блюдо': '1 блюдо',
-				'2 блюдо': '2 блюдо',
-				'гарнир': 'гарнир',
-				'закуска': 'закуска',
-				'хлеб': 'хлеб', // Добавлено
-				'фрукты': 'фрукты' // Добавлено
-			};
-			
-			if (sectionMap[sectionLower]) {
-				return sectionMap[sectionLower];
-			}
-			
-			// Проверяем частичные совпадения
-			for (const [key, value] of Object.entries(sectionMap)) {
-				if (sectionLower.includes(key)) {
-					return value;
-				}
-			}
-			
-			// Стандартные разделы
-			const standardSections = ['гор.блюдо', 'гор.напиток', 'хлеб', 'фрукты', 'напиток', 
-									  'закуска', '1 блюдо', '2 блюдо', 'гарнир', 'хлеб бел.', 
-									  'хлеб черн.', 'булочное', 'кисломол.'];
-			
-			// Проверяем, содержит ли строка название стандартного раздела
-			for (const standard of standardSections) {
-				const cleanStandard = standard.replace('.', '').replace(' ', '');
-				if (sectionLower.includes(cleanStandard)) {
-					return standard;
-				}
-			}
-			
-			// Если ничего не найдено, возвращаем оригинальное значение
-			return sectionLower;
-		}  
-  
-        // Обработка файла календаря (обновлено для учета требований ФЦМПО)
+        // Обработка файла календаря
         function processCalendarFile(workbook, fileName) {
             const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
             const data = XLSX.utils.sheet_to_json(firstSheet, {header: 1});
             
-            // Пытаемся получить название школы/пищеблока
-            let schoolName = '';
-            for (let i = 0; i < Math.min(10, data.length); i++) {
-                if (data[i] && data[i].some(cell => 
-                    cell && cell.toString().toLowerCase().includes('школ'))) {
-                    const row = data[i];
-                    for (let j = 0; j < row.length; j++) {
-                        if (row[j] && row[j].toString().toLowerCase().includes('школ')) {
-                            // Следующая ячейка может содержать название школы
-                            if (j + 1 < row.length && row[j + 1]) {
-                                schoolName = row[j + 1].toString().trim();
-                                break;
-                            }
-                        }
-                    }
-                    if (schoolName) break;
-                }
-            }
-            
-            if (schoolName && (!schoolNameInput.value || schoolNameInput.value === '')) {
-                schoolNameInput.value = schoolName;
-            }
-            
-            // Ищем строку с месяцами
+            // Находим строку с месяцами
             let monthRowIndex = -1;
-            const monthNames = ['январь', 'февраль', 'март', 'апрель', 'май', 'июнь', 
-                               'июль', 'август', 'сентябрь', 'октябрь', 'ноябрь', 'декабрь'];
-            
-            for (let i = 0; i < Math.min(50, data.length); i++) {
-                if (data[i] && data[i][0] && typeof data[i][0] === 'string') {
-                    const cellValue = data[i][0].toString().toLowerCase();
-                    if (monthNames.some(month => cellValue.includes(month))) {
-                        monthRowIndex = i;
-                        break;
-                    }
+            for (let i = 0; i < Math.min(10, data.length); i++) {
+                if (data[i] && data[i][0] && typeof data[i][0] === 'string' && 
+                    data[i][0].toLowerCase().includes('январь')) {
+                    monthRowIndex = i;
+                    break;
                 }
             }
             
-            // Если не нашли строку с месяцами, ищем ячейки с номерами дней
             if (monthRowIndex === -1) {
-                for (let i = 0; i < Math.min(50, data.length); i++) {
-                    if (data[i] && data[i][1] === 1 && data[i][2] === 2) {
-                        monthRowIndex = i + 1; // Месяцы на строку ниже
-                        break;
+                // Альтернативный поиск
+                for (let i = 0; i < Math.min(15, data.length); i++) {
+                    if (data[i] && data[i][0] && typeof data[i][0] === 'string') {
+                        const monthNames = ['январь', 'февраль', 'март', 'апрель', 'май', 'июнь', 
+                                           'июль', 'август', 'сентябрь', 'октябрь', 'ноябрь', 'декабрь'];
+                        if (monthNames.includes(data[i][0].toLowerCase().trim())) {
+                            monthRowIndex = i;
+                            break;
+                        }
                     }
                 }
             }
@@ -2460,10 +2216,11 @@
                 return;
             }
             
-            // Извлекаем номера дней из заголовков
+            // Получаем заголовки дней (номера 1-31)
             const dayHeaders = data[monthRowIndex - 1] || [];
             const dayNumbers = [];
             
+            // Извлекаем номера дней от 1 до 31
             for (let i = 1; i < dayHeaders.length; i++) {
                 const cell = dayHeaders[i];
                 if (cell !== undefined && cell !== null && cell !== '') {
@@ -2474,14 +2231,14 @@
                 }
             }
             
-            // Если не нашли номера дней, используем стандартные 1-31
+            // Если не нашли числа, создаем массив 1-31
             if (dayNumbers.length === 0) {
                 for (let i = 1; i <= 31; i++) {
                     dayNumbers.push(i);
                 }
             }
             
-            // Определяем год из файла
+            // Извлекаем год из данных
             let yearFromData = currentYear;
             for (let i = 0; i < Math.min(10, data.length); i++) {
                 if (data[i] && data[i].some(cell => cell && cell.toString().includes('Год'))) {
@@ -2494,26 +2251,16 @@
                 }
             }
             
-            // Если не нашли год в явном виде, ищем в названии файла
-            if (yearFromData === currentYear) {
-                const yearMatch = fileName.match(/\d{4}/);
-                if (yearMatch) {
-                    yearFromData = parseInt(yearMatch[0]);
-                }
-            }
-            
             currentYear = yearFromData;
             setDefaultDates();
             calendarYearBadge.textContent = currentYear;
             calendarYearBadge.style.display = 'inline-block';
             
-            calendarData = {
-                schoolName: schoolName,
-                months: {},
-                year: currentYear
-            };
+            // Собираем данные календаря по месяцам
+            calendarData = {};
+            const monthNames = ['январь', 'февраль', 'март', 'апрель', 'май', 'июнь', 
+                               'июль', 'август', 'сентябрь', 'октябрь', 'ноябрь', 'декабрь'];
             
-            // Заполняем данные календаря
             for (let i = monthRowIndex; i < Math.min(monthRowIndex + 12, data.length); i++) {
                 const row = data[i];
                 if (!row || !row[0]) continue;
@@ -2521,81 +2268,37 @@
                 const monthName = row[0].toString().toLowerCase().trim();
                 if (!monthNames.includes(monthName)) continue;
                 
-                calendarData.months[monthName] = {};
+                calendarData[monthName] = {};
                 
+                // Заполняем данные для каждого дня месяца
                 for (let dayIdx = 0; dayIdx < dayNumbers.length; dayIdx++) {
                     const dayNum = dayNumbers[dayIdx];
                     if (dayNum >= 1 && dayNum <= 31) {
                         const menuType = row[dayIdx + 1];
                         if (menuType !== undefined && menuType !== null && menuType !== '') {
-                            const numValue = parseInt(menuType);
-                            // Согласно инструкции ФЦМПО, 0 или пусто - день без питания
-                            if (!isNaN(numValue) && numValue > 0) {
-                                calendarData.months[monthName][dayNum] = numValue;
-                            }
+                            calendarData[monthName][dayNum] = parseInt(menuType);
                         }
                     }
                 }
             }
             
-            showStatus(`Календарь питания ФЦМПО загружен из файла ${fileName} (${currentYear} год)`, 'success');
+            showStatus(`Календарь питания загружен из файла ${fileName} (${currentYear} год)`, 'success');
             updateCalendarPreview();
         }
-       
-        // Обработка файла типового меню (обновлено для учета требований ФЦМПО)
+        
+        // Обработка файла типового меню
         function processTemplateFile(workbook, fileName) {
             const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
             const data = XLSX.utils.sheet_to_json(firstSheet, {header: 1});
             
-            // Извлекаем информацию об утверждении (требование ФЦМПО)
-            let approvalInfo = {
-                position: '',
-                name: '',
-                date: ''
-            };
-            
-            // Извлекаем название школы
-            let schoolName = '';
-            
-            for (let i = 0; i < Math.min(20, data.length); i++) {
-                const row = data[i];
-                if (!row) continue;
-                
-                for (let j = 0; j < row.length; j++) {
-                    const cell = row[j];
-                    if (cell && typeof cell === 'string') {
-                        const cellLower = cell.toLowerCase();
-                        
-                        if (cellLower.includes('утвержд') || cellLower.includes('согласован')) {
-                            // Следующие ячейки могут содержать должность, ФИО и дату
-                            if (j + 1 < row.length && row[j + 1]) {
-                                approvalInfo.position = row[j + 1].toString().trim();
-                            }
-                            if (j + 2 < row.length && row[j + 2]) {
-                                approvalInfo.name = row[j + 2].toString().trim();
-                            }
-                            if (j + 3 < row.length && row[j + 3]) {
-                                approvalInfo.date = row[j + 3].toString().trim();
-                            }
-                        }
-                        
-                        if (cellLower.includes('школ')) {
-                            schoolName = row[j + 2].toString().trim();//cell.trim();
-                        }
-                    }
-                }
-            }
-            
-            if (schoolName && (!schoolNameInput.value || schoolNameInput.value === '')) {
-                schoolNameInput.value = schoolName;
-            }
-            
             // Ищем строку с заголовками меню
             let headerRowIndex = -1;
-            for (let i = 0; i < Math.min(20, data.length); i++) {
+            for (let i = 0; i < Math.min(10, data.length); i++) {
                 const row = data[i];
                 if (row && row.length >= 6) {
-                    if (row[0] === 'Прием пищи' && row[1] === 'Раздел') {
+                    const rowValues = row.join(' ').toLowerCase();
+                    if (rowValues.includes('неделя') && rowValues.includes('день недели') && 
+                        rowValues.includes('прием пищи')) {
                         headerRowIndex = i;
                         break;
                     }
@@ -2603,7 +2306,8 @@
             }
             
             if (headerRowIndex === -1) {
-                for (let i = 0; i < Math.min(30, data.length); i++) {
+                // Альтернативный поиск заголовков
+                for (let i = 0; i < Math.min(20, data.length); i++) {
                     const row = data[i];
                     if (row && row[0] === 1 && row[1] === 1 && row[2] && 
                         row[2].toString().toLowerCase().includes('завтрак')) {
@@ -2620,33 +2324,22 @@
             
             // Собираем данные меню
             templateMenuData = {
-                schoolName: schoolName || schoolNameInput.value || '',
+                schoolName: schoolNameInput.value || '',
                 ageCategory: ageCategoryInput.value || '',
-                approvalInfo: approvalInfo,
                 weeks: {}
             };
             
-            // Ищем возрастную категорию
-            for (let i = 0; i < Math.min(20, data.length); i++) {
+            // Ищем название школы и возрастную категорию
+            for (let i = 0; i < Math.min(10, data.length); i++) {
                 const row = data[i];
+                if (row && row[2] && row[2].toString().includes('Сказочная')) {
+                    templateMenuData.schoolName = row[2].toString().trim();
+                    schoolNameInput.value = templateMenuData.schoolName;
+                }
                 
-                if (row && row.some(cell => 
-                    cell && cell.toString().includes('7-11') || 
-                    cell && cell.toString().includes('12-18') ||
-                    cell && cell.toString().includes('1-3') ||
-                    cell && cell.toString().includes('4-6'))) {
-                    
-                    for (let j = 0; j < row.length; j++) {
-                        const cell = row[j];
-                        if (cell && typeof cell === 'string') {
-                            if (cell.includes('7-11') || cell.includes('12-18') || 
-                                cell.includes('1-3') || cell.includes('4-6')) {
-                                templateMenuData.ageCategory = cell.trim();
-                                ageCategoryInput.value = templateMenuData.ageCategory;
-                                break;
-                            }
-                        }
-                    }
+                if (row && row[4] && row[4].toString().includes('7-11')) {
+                    templateMenuData.ageCategory = row[4].toString().trim();
+                    ageCategoryInput.value = templateMenuData.ageCategory;
                 }
             }
             
@@ -2659,6 +2352,7 @@
                 const row = data[i];
                 if (!row || row.length < 6) continue;
                 
+                // Проверяем, является ли строка началом нового дня
                 if (row[0] !== undefined && row[0] !== '' && !isNaN(row[0])) {
                     const weekNum = parseInt(row[0]);
                     const dayNum = parseInt(row[1]);
@@ -2683,10 +2377,12 @@
                     currentMeal = null;
                 }
                 
+                // Определяем прием пищи
                 if (row[2] !== undefined && row[2] !== '') {
                     const mealType = row[2].toString().toLowerCase();
                     if (mealType.includes('завтрак') && !mealType.includes('итого')) {
                         if (currentMeal === 'breakfast') {
+                            // Если уже был завтрак, это второй завтрак
                             currentMeal = 'breakfast2';
                         } else {
                             currentMeal = 'breakfast';
@@ -2697,6 +2393,7 @@
                         currentMeal = 'afternoonSnack';
                     } else if (mealType.includes('ужин') && !mealType.includes('итого')) {
                         if (currentMeal === 'dinner') {
+                            // Если уже был ужин, это второй ужин
                             currentMeal = 'dinner2';
                         } else {
                             currentMeal = 'dinner';
@@ -2706,288 +2403,48 @@
                     }
                 }
                 
+                // Добавляем блюдо, если это строка с данными о блюде
                 if (currentMeal && row[3] && row[3] !== '' && row[4] && row[4] !== '') {
-                    const originalSection = row[3].toString().trim();
-                    const normalizedSection = normalizeSectionName(originalSection);
+                    const section = row[3].toString().trim();
                     const dishName = row[4].toString().trim();
                     
-                    if (originalSection.toLowerCase().includes('итого') || 
+                    // Пропускаем итоговые строки и пустые блюда
+                    if (section.toLowerCase().includes('итого') || 
                         dishName.toLowerCase().includes('итого') ||
                         dishName === '') {
                         continue;
                     }
                     
                     const dish = {
-                        section: normalizedSection,
-                        originalSection: originalSection,
+                        section: section,
                         name: dishName,
-                        weight: parseFloat(row[5]) || 0,
-                        proteins: parseFloat(row[6]) || 0,
-                        fats: parseFloat(row[7]) || 0,
-                        carbs: parseFloat(row[8]) || 0,
-                        calories: parseFloat(row[9]) || 0,
-                        recipeId: row[10] ? row[10].toString().trim() : '',
-                        price: parseFloat(row[11]) || 0
+                        weight: row[5] || 0,
+                        proteins: row[6] || 0,
+                        fats: row[7] || 0,
+                        carbs: row[8] || 0,
+                        calories: row[9] || 0,
+                        recipeId: row[10] || '',
+                        price: row[11] || 0
                     };
                     
                     if (currentWeek && currentDay && templateMenuData.weeks[currentWeek] && 
                         templateMenuData.weeks[currentWeek][currentDay] &&
                         templateMenuData.weeks[currentWeek][currentDay][currentMeal]) {
-                        
-                        const existingItem = templateMenuData.weeks[currentWeek][currentDay][currentMeal].items
-                            .find(item => item.name === dishName && item.section === normalizedSection);
-                        
-                        if (!existingItem) {
-                            templateMenuData.weeks[currentWeek][currentDay][currentMeal].items.push(dish);
-                        }
+                        templateMenuData.weeks[currentWeek][currentDay][currentMeal].items.push(dish);
                     }
                 }
             }
             
-            // Сортируем блюда по структуре приемов пищи
-            for (const weekNum in templateMenuData.weeks) {
-                const week = templateMenuData.weeks[weekNum];
-                for (const dayNum in week) {
-                    const day = week[dayNum];
-                    
-                    for (const mealType in day) {
-                        if (day[mealType] && day[mealType].items) {
-                            day[mealType].items = sortMealItemsByStructure(day[mealType].items, mealType);
-                        }
-                    }
-                }
-            }
-            
-            showStatus(`Типовое меню ФЦМПО загружено из файла ${fileName}`, 'success');
+            showStatus(`Типовое меню загружено из файла ${fileName}`, 'success');
             updateMenuPreview();
         }
         
-		// Создание данных с правильной структурой согласно ФЦМПО
-		// Создание данных с правильной структурой согласно ФЦМПО
-		// Создание данных с правильной структурой согласно ФЦМПО
-		function createExcelDataWithProperStructure(menu) {
-			const data = [];
-			
-			// Строка 1: Школа и дата
-			const schoolName = menu.schoolName || "";
-			data.push(["Школа", schoolName, "", "", "Отд./корп", "", "", "", "День", 
-					   `${String(menu.date.getDate()).padStart(2, '0')}.${String(menu.date.getMonth() + 1).padStart(2, '0')}.${menu.date.getFullYear()}`]);
-			
-			// Строка 2: Пустая строка
-			data.push(["", "", "", "", "", "", "", "", "", ""]);
-			
-			// Строка 3: Заголовки таблицы
-			data.push(["Прием пищи", "Раздел", "№ рец.", "Блюдо", "Выход, г", "Цена", "Калорийность", "Белки", "Жиры", "Углеводы"]);
-			
-			// Функция для добавления приема пищи с ВСЕМИ разделами структуры
-			const addMeal = (mealName, mealType, items, showAllSections = false) => {
-				const mealItems = items || [];
-				const structure = MEAL_STRUCTURE[mealType];
-				
-				// ОСОБЫЙ СЛУЧАЙ для Завтрак 2 - всегда показываем одной строкой
-				if (mealType === 'breakfast2') {
-					const sortedItems = sortMealItemsByStructure(mealItems, mealType);
-					const section = 'фрукты';
-					
-					if (sortedItems.length > 0 && sortedItems[0].name && sortedItems[0].name.trim() !== '') {
-						const item = sortedItems[0];
-						data.push([
-							mealName,
-							section,
-							item.recipeId || "",
-							item.name || "",
-							item.weight || "",
-							item.price || "",
-							item.calories || "",
-							item.proteins || "",
-							item.fats || "",
-							item.carbs || ""
-						]);
-					} else {
-						// Всегда показываем строку, даже если нет блюд
-						data.push([mealName, section, "", "", "", "", "", "", "", ""]);
-					}
-					
-					// Пустая строка после приема пищи
-					data.push(["", "", "", "", "", "", "", "", "", ""]);
-					return;
-				}
-				
-				// Для остальных приемов пищи - показываем ВСЕ разделы структуры, если showAllSections = true
-				if (showAllSections || mealItems.length > 0) {
-					const sortedItems = sortMealItemsByStructure(mealItems, mealType);
-					const itemsBySection = new Map();
-					
-					// Группируем блюда по разделам
-					sortedItems.forEach(item => {
-						const section = normalizeSectionName(item.section || '');
-						if (!itemsBySection.has(section)) {
-							itemsBySection.set(section, []);
-						}
-						itemsBySection.get(section).push(item);
-					});
-					
-					let isFirstItem = true;
-					
-					// ОСОБЫЙ СЛУЧАЙ для Обеда - ВСЕГДА показываем ВСЕ разделы структуры
-					if (mealType === 'lunch' && structure) {
-						// Проходим по ВСЕМ разделам структуры обеда
-						for (const section of structure.sections) {
-							const sectionItems = itemsBySection.get(section) || [];
-							
-							if (sectionItems.length > 0) {
-								// Есть блюда в этом разделе
-								sectionItems.forEach((item, index) => {
-									if (item.name && item.name.trim() !== '') {
-										data.push([
-											isFirstItem ? mealName : "",
-											item.originalSection || item.section || "",
-											item.recipeId || "",
-											item.name || "",
-											item.weight || "",
-											item.price || "",
-											item.calories || "",
-											item.proteins || "",
-											item.fats || "",
-											item.carbs || ""
-										]);
-										isFirstItem = false;
-									}
-								});
-							} else {
-								// Раздел пустой, но ВСЕ РАВНО показываем
-								data.push([
-									isFirstItem ? mealName : "",
-									section,
-									"",
-									"",
-									"",
-									"",
-									"",
-									"",
-									"",
-									""
-								]);
-								isFirstItem = false;
-							}
-						}
-					} else if (structure) {
-						// Для остальных приемов пищи с showAllSections = true
-						if (showAllSections) {
-							// Показываем ВСЕ разделы структуры
-							for (const section of structure.sections) {
-								const sectionItems = itemsBySection.get(section) || [];
-								
-								if (sectionItems.length > 0) {
-									sectionItems.forEach(item => {
-										if (item.name && item.name.trim() !== '') {
-											data.push([
-												isFirstItem ? mealName : "",
-												item.originalSection || item.section || "",
-												item.recipeId || "",
-												item.name || "",
-												item.weight || "",
-												item.price || "",
-												item.calories || "",
-												item.proteins || "",
-												item.fats || "",
-												item.carbs || ""
-											]);
-											isFirstItem = false;
-										}
-									});
-								} else {
-									// Раздел пустой, но показываем
-									data.push([
-										isFirstItem ? mealName : "",
-										section,
-										"",
-										"",
-										"",
-										"",
-										"",
-										"",
-										"",
-										""
-									]);
-									isFirstItem = false;
-								}
-							}
-						} else {
-							// Показываем только блюда, которые есть
-							sortedItems.forEach(item => {
-								if (item.name && item.name.trim() !== '') {
-									data.push([
-										isFirstItem ? mealName : "",
-										item.originalSection || item.section || "",
-										item.recipeId || "",
-										item.name || "",
-										item.weight || "",
-										item.price || "",
-										item.calories || "",
-										item.proteins || "",
-										item.fats || "",
-										item.carbs || ""
-									]);
-									isFirstItem = false;
-								}
-							});
-						}
-					}
-					
-					// Добавляем блюда из разделов, которых нет в структуре
-					const allSections = Array.from(itemsBySection.keys());
-					const otherSections = allSections.filter(section => 
-						!structure || !structure.sections.includes(section)
-					);
-					
-					for (const section of otherSections) {
-						const sectionItems = itemsBySection.get(section) || [];
-						sectionItems.forEach(item => {
-							if (item.name && item.name.trim() !== '') {
-								data.push([
-									"",
-									item.originalSection || item.section || "",
-									item.recipeId || "",
-									item.name || "",
-									item.weight || "",
-									item.price || "",
-									item.calories || "",
-									item.proteins || "",
-									item.fats || "",
-									item.carbs || ""
-								]);
-							}
-						});
-					}
-					
-					// Пустая строка после приема пищи, если были добавлены блюда
-					if (!isFirstItem) {
-						data.push(["", "", "", "", "", "", "", "", "", ""]);
-					}
-				}
-			};
-			
-			// ВСЕГДА показываем ВСЕ разделы для первых 3 приемов пищи
-			addMeal('Завтрак', 'breakfast', menu.breakfast?.items || [], true);
-			addMeal('Завтрак 2', 'breakfast2', menu.breakfast2?.items || [], true);
-			addMeal('Обед', 'lunch', menu.lunch?.items || [], true);
-			
-			// Остальные показываем только если есть блюда
-			addMeal('Полдник', 'afternoonSnack', menu.afternoonSnack?.items || [], false);
-			addMeal('Ужин', 'dinner', menu.dinner?.items || [], false);
-			addMeal('Ужин 2', 'dinner2', menu.dinner2?.items || [], false);
-			
-			return data;
-		}      
-	   
-	   
         // Обновление списка загруженных файлов
         function updateFileList() {
             fileList.innerHTML = '';
             
             if (uploadedFiles.length === 0) {
-                fileList.innerHTML = '<p style="text-align: center; color: #6c757d; padding: 20px;"><i class="fas fa-file-excel fa-2x" style="margin-bottom: 10px;"></i><br>Файлы ФЦМПО не загружены</p>';
+                fileList.innerHTML = '<p style="text-align: center; color: #6c757d; padding: 20px;"><i class="fas fa-file-excel fa-2x" style="margin-bottom: 10px;"></i><br>Файлы не загружены</p>';
                 return;
             }
             
@@ -3000,10 +2457,10 @@
                 
                 if (file.type === 'calendar') {
                     fileTypeIcon = 'fa-calendar-alt';
-                    fileTypeText = 'Календарь питания ФЦМПО';
+                    fileTypeText = 'Календарь питания';
                 } else if (file.type === 'template') {
                     fileTypeIcon = 'fa-utensils';
-                    fileTypeText = 'Типовое меню ФЦМПО';
+                    fileTypeText = 'Типовое меню';
                 }
                 
                 fileItem.innerHTML = `
@@ -3022,23 +2479,23 @@
             });
         }
         
-        // Проверка, загружены ли оба необходимых файла ФЦМПО
+        // Проверка, загружены ли оба необходимых файла
         function checkFilesLoaded() {
             const hasCalendar = uploadedFiles.some(f => f.type === 'calendar' && f.valid);
             const hasTemplate = uploadedFiles.some(f => f.type === 'template' && f.valid);
             
             if (hasCalendar && hasTemplate) {
                 generateBtn.disabled = false;
-                showStatus('Все необходимые файлы ФЦМПО загружены. Теперь можно создать ежедневные меню.', 'success');
+                showStatus('Все необходимые файлы загружены. Теперь можно создать ежедневные меню.', 'success');
             } else {
                 generateBtn.disabled = true;
                 
                 if (hasCalendar && !hasTemplate) {
-                    showStatus('Загрузите файл типового меню ФЦМПО (tm2026-sm.xlsx)', 'info');
+                    showStatus('Загрузите файл типового меню (tm2026-sm.xlsx)', 'info');
                 } else if (!hasCalendar && hasTemplate) {
-                    showStatus('Загрузите файл календаря питания ФЦМПО (kpl2026.xlsx)', 'info');
+                    showStatus('Загрузите файл календаря питания (kp2026.xlsx)', 'info');
                 } else {
-                    showStatus('Загрузите файлы календаря питания и типового меню ФЦМПО', 'info');
+                    showStatus('Загрузите файлы календаря питания и типового меню', 'info');
                 }
             }
         }
@@ -3046,51 +2503,50 @@
         // Обновление предпросмотра календаря в виде таблицы
         function updateCalendarPreview() {
             if (!calendarData) {
-                calendarPreview.innerHTML = '<p style="color: #e74c3c; padding: 20px; text-align: center;"><i class="fas fa-exclamation-triangle"></i> Календарь ФЦМПО не загружен</p>';
+                calendarPreview.innerHTML = '<p style="color: #e74c3c; padding: 20px; text-align: center;"><i class="fas fa-exclamation-triangle"></i> Календарь не загружен</p>';
                 return;
             }
             
             let html = '<div style="margin-bottom: 20px;">';
             html += `<p><strong><i class="fas fa-calendar"></i> Год:</strong> ${currentYear}</p>`;
-            html += `<p><strong><i class="fas fa-layer-group"></i> Месяцев с данными:</strong> ${Object.keys(calendarData.months || {}).length}</p>`;
+            html += `<p><strong><i class="fas fa-layer-group"></i> Месяцев с данными:</strong> ${Object.keys(calendarData).length}</p>`;
             
+            // Подсчитываем дни с меню
             let daysWithMenu = 0;
             let totalPossibleDays = 0;
             
-            if (calendarData.months) {
-                for (const month in calendarData.months) {
-                    for (const day in calendarData.months[month]) {
-                        totalPossibleDays++;
-                        if (calendarData.months[month][day] !== undefined) {
-                            daysWithMenu++;
-                        }
+            for (const month in calendarData) {
+                for (const day in calendarData[month]) {
+                    totalPossibleDays++;
+                    if (calendarData[month][day] !== undefined) {
+                        daysWithMenu++;
                     }
                 }
             }
             
             html += `<p><strong><i class="fas fa-check-circle"></i> Дней с меню:</strong> ${daysWithMenu} из ${totalPossibleDays}</p>`;
-            if (calendarData.schoolName) {
-                html += `<p><strong><i class="fas fa-school"></i> Школа:</strong> ${calendarData.schoolName}</p>`;
-            }
             html += '</div>';
             
+            // Создаем таблицу календаря как в Excel файле
             html += '<table class="calendar-table">';
             
+            // Заголовок с днями месяца (1-31)
             html += '<tr><th class="month-header">Месяц</th>';
             for (let day = 1; day <= 31; day++) {
                 html += `<th>${day}</th>`;
             }
             html += '</tr>';
             
+            // Данные по месяцам
             const monthNames = ['январь', 'февраль', 'март', 'апрель', 'май', 'июнь', 
                                'июль', 'август', 'сентябрь', 'октябрь', 'ноябрь', 'декабрь'];
             
             for (const monthName of monthNames) {
-                if (calendarData.months && calendarData.months[monthName]) {
+                if (calendarData[monthName]) {
                     html += `<tr><td class="month-header">${monthName}</td>`;
                     
                     for (let day = 1; day <= 31; day++) {
-                        const menuType = calendarData.months[monthName][day];
+                        const menuType = calendarData[monthName][day];
                         const hasMenu = menuType !== undefined;
                         
                         if (hasMenu) {
@@ -3106,6 +2562,7 @@
             
             html += '</table>';
             
+            // Легенда
             html += `
                 <div class="calendar-legend">
                     <div class="legend-item">
@@ -3114,7 +2571,7 @@
                     </div>
                     <div class="legend-item">
                         <div class="legend-color" style="background: white; border: 2px solid #e0e6ed;"></div>
-                        <span>Нет меню (0 или пусто)</span>
+                        <span>Нет меню</span>
                     </div>
                 </div>
             `;
@@ -3134,16 +2591,18 @@
         // Обновление предпросмотра меню
         function updateMenuPreview() {
             if (!templateMenuData || !templateMenuData.weeks) {
-                menuPreview.innerHTML = '<p style="color: #e74c3c; padding: 20px; text-align: center;"><i class="fas fa-exclamation-triangle"></i> Меню ФЦМПО не загружено</p>';
+                menuPreview.innerHTML = '<p style="color: #e74c3c; padding: 20px; text-align: center;"><i class="fas fa-exclamation-triangle"></i> Меню не загружено</p>';
                 return;
             }
             
             if (isMenuGridView) {
+                // Сеточный вид меню
                 let html = '<div class="menu-preview-grid">';
                 
                 let totalDays = 0;
                 let totalDishes = 0;
                 
+                // Собираем все дни из всех недель
                 const allDays = [];
                 for (const weekNum in templateMenuData.weeks) {
                     const week = templateMenuData.weeks[weekNum];
@@ -3151,6 +2610,7 @@
                         totalDays++;
                         const day = week[dayNum];
                         
+                        // Подсчет блюд по всем приемам пищи
                         let dayDishes = 0;
                         for (const mealType in day) {
                             if (day[mealType] && day[mealType].items) {
@@ -3159,6 +2619,7 @@
                         }
                         totalDishes += dayDishes;
                         
+                        // Подсчет по приемам пищи
                         const breakfastCount = day.breakfast?.items?.length || 0;
                         const breakfast2Count = day.breakfast2?.items?.length || 0;
                         const lunchCount = day.lunch?.items?.length || 0;
@@ -3180,11 +2641,13 @@
                     }
                 }
                 
+                // Сортируем по неделе и дню
                 allDays.sort((a, b) => {
                     if (a.week === b.week) return a.day - b.day;
                     return a.week - b.week;
                 });
                 
+                // Отображаем в сетке
                 allDays.forEach(dayInfo => {
                     html += `
                         <div class="menu-preview-day ${dayInfo.dishes > 0 ? 'has-menu' : ''}">
@@ -3199,6 +2662,7 @@
                 
                 html += '</div>';
                 
+                // Добавляем информацию о меню
                 html += `
                     <div style="margin-top: 20px; padding: 15px; background: linear-gradient(135deg, #f0f7ff 0%, #e1f0ff 100%); border-radius: var(--border-radius); border: 2px solid #cce0ff;">
                         <p><strong><i class="fas fa-chart-bar"></i> Всего:</strong> ${Object.keys(templateMenuData.weeks).length} недель, ${totalDays} дней, ${totalDishes} блюд</p>
@@ -3210,9 +2674,11 @@
                 
                 menuPreview.innerHTML = html;
             } else {
+                // Табличный вид меню
                 let html = '<table class="preview-table">';
                 html += '<tr><th>Неделя</th><th>День</th><th>З</th><th>З2</th><th>О</th><th>П</th><th>У</th><th>У2</th><th>Всего</th><th>Пример блюда</th></tr>';
                 
+                // Показываем первые 10 дней из меню
                 let count = 0;
                 for (const weekNum in templateMenuData.weeks) {
                     if (count >= 10) break;
@@ -3231,6 +2697,7 @@
                         const total = breakfastCount + breakfast2Count + lunchCount + afternoonSnackCount + dinnerCount + dinner2Count;
                         
                         let sampleDish = '-';
+                        // Ищем первое непустое блюдо
                         for (const mealType in day) {
                             if (day[mealType] && day[mealType].items && day[mealType].items.length > 0) {
                                 sampleDish = day[mealType].items[0].name.substring(0, 30) + 
@@ -3257,6 +2724,7 @@
                 
                 html += '</table>';
                 
+                // Добавляем информацию о меню
                 html += `
                     <div style="margin-top: 20px; padding: 15px; background: linear-gradient(135deg, #f0f7ff 0%, #e1f0ff 100%); border-radius: var(--border-radius); border: 2px solid #cce0ff;">
                         <p><strong><i class="fas fa-school"></i> Школа:</strong> ${templateMenuData.schoolName || 'Не указана'}</p>
@@ -3273,7 +2741,7 @@
         // Генерация ежедневных меню
         function generateDailyMenus() {
             if (!calendarData || !templateMenuData) {
-                showStatus('Не загружены необходимые файлы ФЦМПО', 'error');
+                showStatus('Не загружены необходимые файлы', 'error');
                 return;
             }
             
@@ -3285,20 +2753,25 @@
                 return;
             }
             
+            // Проверяем, что даты в пределах текущего года
             if (startDate.getFullYear() !== currentYear || endDate.getFullYear() !== currentYear) {
                 showStatus(`Даты должны быть в пределах ${currentYear} года`, 'error');
                 return;
             }
             
+            // Сброс предыдущих меню
             dailyMenus = [];
             
+            // Генерируем меню для каждого дня в периоде
             let currentDate = new Date(startDate);
             let generatedCount = 0;
             let errorCount = 0;
             
+            // Анимация загрузки
             generateBtn.innerHTML = '<span class="loading"></span> Генерация...';
             generateBtn.disabled = true;
             
+            // Показываем прогресс-бар
             const progressBar = document.createElement('div');
             progressBar.className = 'progress-bar';
             const progressFill = document.createElement('div');
@@ -3306,6 +2779,7 @@
             progressBar.appendChild(progressFill);
             statusMessage.parentNode.insertBefore(progressBar, statusMessage.nextSibling);
             
+            // Имитация задержки для анимации
             const totalDays = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
             let processedDays = 0;
             
@@ -3313,6 +2787,7 @@
                 if (currentDate > endDate) {
                     clearInterval(processInterval);
                     
+                    // Обновляем UI
                     if (dailyMenus.length > 0) {
                         currentMenuIndex = 0;
                         menuNavigation.style.display = 'flex';
@@ -3328,9 +2803,11 @@
                         updateMenuStats();
                         saveToLocalStorage();
                         
+                        // Устанавливаем вид по умолчанию
                         isGridView = true;
                         toggleViewBtn.innerHTML = '<i class="fas fa-list"></i> Детальный вид';
                         
+                        // Удаляем прогресс-бар
                         progressBar.remove();
                     } else {
                         menuNavigation.style.display = 'none';
@@ -3340,15 +2817,18 @@
                         exportAllBtn.disabled = true;
                         exportCurrentBtn.disabled = true;
                         
+                        // Удаляем прогресс-бар
                         progressBar.remove();
                     }
                     
+                    // Показываем результат
                     if (generatedCount > 0) {
                         showStatus(`Сгенерировано ${generatedCount} ежедневных меню${errorCount > 0 ? ` (ошибок: ${errorCount})` : ''}`, 'success');
                     } else {
                         showStatus('Не удалось сгенерировать ни одного меню для выбранного периода', 'error');
                     }
                     
+                    // Восстанавливаем кнопку
                     generateBtn.innerHTML = '<i class="fas fa-magic"></i> Создать ежедневные меню';
                     generateBtn.disabled = false;
                     
@@ -3356,19 +2836,23 @@
                 }
                 
                 const year = currentDate.getFullYear();
-                const month = currentDate.getMonth();
+                const month = currentDate.getMonth(); // 0-11
                 const day = currentDate.getDate();
                 
+                // Получаем русское название месяца
                 const monthNames = ['январь', 'февраль', 'март', 'апрель', 'май', 'июнь', 
                                    'июль', 'август', 'сентябрь', 'октябрь', 'ноябрь', 'декабрь'];
                 const monthName = monthNames[month];
                 
+                // Получаем тип меню из календаря
                 let menuType = null;
-                if (calendarData && calendarData.months && calendarData.months[monthName] && calendarData.months[monthName][day]) {
-                    menuType = calendarData.months[monthName][day];
+                if (calendarData[monthName] && calendarData[monthName][day]) {
+                    menuType = calendarData[monthName][day];
                 }
                 
+                // Если для этого дня есть меню в календаре
                 if (menuType !== null) {
+                    // Определяем неделю и день недели из типа меню
                     let weekNum, dayNum;
                     
                     if (menuType <= 5) {
@@ -3379,13 +2863,16 @@
                         dayNum = menuType - 5;
                     }
                     
+                    // Получаем меню из шаблона
                     if (templateMenuData.weeks[weekNum] && templateMenuData.weeks[weekNum][dayNum]) {
                         const templateDay = templateMenuData.weeks[weekNum][dayNum];
                         
+                        // Сортировка блюд в соответствии со структурой приемов пищи
                         const sortedDay = {};
                         
                         for (const mealType in templateDay) {
                             if (templateDay[mealType] && templateDay[mealType].items) {
+                                // Сортируем блюда по структуре приемов пищи
                                 const sortedItems = sortMealItemsByStructure(templateDay[mealType].items, mealType);
                                 sortedDay[mealType] = { items: sortedItems };
                             } else {
@@ -3393,6 +2880,7 @@
                             }
                         }
                         
+                        // Создаем ежедневное меню
                         const dailyMenu = {
                             date: new Date(currentDate),
                             dateString: formatDate(currentDate),
@@ -3418,332 +2906,87 @@
                     }
                 }
                 
+                // Следующий день
                 currentDate.setDate(currentDate.getDate() + 1);
                 processedDays++;
                 
+                // Обновляем прогресс-бар
                 const progressPercent = (processedDays / totalDays) * 100;
                 progressFill.style.width = `${progressPercent}%`;
                 
-            }, 50);
+            }, 50); // Быстрая обработка для плавного прогресса
         }
         
-        // Создание данных с правильной структурой согласно ФЦМПО
-		function createExcelDataWithProperStructures(menu) {
-			const data = [];
-			
-			// Строка 1: Школа и дата (согласно инструкции ФЦМПО)
-			const schoolName = menu.schoolName || "";
-			data.push(["Школа", schoolName, "", "", "Отд./корп", "", "", "", "День", 
-					   `${String(menu.date.getDate()).padStart(2, '0')}.${String(menu.date.getMonth() + 1).padStart(2, '0')}.${menu.date.getFullYear()}`]);
-			
-			// Строка 2: Пустая строка
-			data.push(["", "", "", "", "", "", "", "", "", ""]);
-			
-			// Строка 3: Заголовки таблицы (строго по инструкции ФЦМПО)
-			data.push(["Прием пищи", "Раздел", "№ рец.", "Блюдо", "Выход, г", "Цена", "Калорийность", "Белки", "Жиры", "Углеводы"]);
-			
-			// Функция для добавления приема пищи ВСЕГДА со всеми разделами структуры
-			const addMeal = (mealName, mealType, items, alwaysShow = false) => {
-				const mealItems = items || [];
-				const structure = MEAL_STRUCTURE[mealType];
-				
-				if (alwaysShow || mealItems.length > 0) {
-					const sortedItems = sortMealItemsByStructure(mealItems, mealType);
-					
-					if (sortedItems.length > 0) {
-						let isFirstItem = true;
-						
-						// Если есть блюда - показываем их
-						for (const item of sortedItems) {
-							if (item.name && item.name.trim() !== '') {
-								data.push([
-									isFirstItem ? mealName : "",
-									item.originalSection || item.section || "",
-									item.recipeId || "",
-									item.name || "",
-									item.weight || "",
-									item.price || "",
-									item.calories || "",
-									item.proteins || "",
-									item.fats || "",
-									item.carbs || ""
-								]);
-								isFirstItem = false;
-							}
-						}
-						
-						// Пустая строка после приема пищи
-						if (!isFirstItem) {
-							data.push(["", "", "", "", "", "", "", "", "", ""]);
-						}
-					} else if (alwaysShow) {
-						// Если всегда показываем (первые 3 приема пищи), но нет блюд
-						// Создаем все разделы структуры пустыми
-						data.push([mealName, "", "", "", "", "", "", "", "", ""]);
-						
-						// Можно добавить пустые строки для каждого раздела структуры
-						const structure = MEAL_STRUCTURE[mealType];
-						if (structure) {
-							for (const section of structure.sections) {
-								data.push(["", section, "", "", "", "", "", "", "", ""]);
-							}
-						}
-						
-						data.push(["", "", "", "", "", "", "", "", "", ""]);
-					}
-				}
-			};
-			
-			// Всегда показываем первые 3 приема пищи (как в инструкции ФЦМПО) со ВСЕМИ разделами
-			addMeal('Завтрак', 'breakfast', menu.breakfast?.items || [], true);
-			addMeal('Завтрак 2', 'breakfast2', menu.breakfast2?.items || [], true);
-			addMeal('Обед', 'lunch', menu.lunch?.items || [], true);
-			
-			// Остальные показываем только если есть блюда
-			addMeal('Полдник', 'afternoonSnack', menu.afternoonSnack?.items || [], false);
-			addMeal('Ужин', 'dinner', menu.dinner?.items || [], false);
-			addMeal('Ужин 2', 'dinner2', menu.dinner2?.items || [], false);
-			
-			return data;
-		}
+        // Сортировка блюд по структуре приемов пищи
+        function sortMealItemsByStructure(items, mealType) {
+            if (!items || items.length === 0) return [];
+            
+            const structure = MEAL_STRUCTURE[mealType];
+            if (!structure) return items;
+            
+            // Группируем блюда по разделам
+            const itemsBySection = {};
+            const otherItems = [];
+            
+            items.forEach(item => {
+                if (!item || !item.name || item.name.trim() === '') return;
+                
+                const section = item.section || '';
+                const normalizedSection = normalizeSectionName(section);
+                
+                if (structure.sections.includes(normalizedSection)) {
+                    if (!itemsBySection[normalizedSection]) {
+                        itemsBySection[normalizedSection] = [];
+                    }
+                    itemsBySection[normalizedSection].push(item);
+                } else {
+                    otherItems.push(item);
+                }
+            });
+            
+            // Собираем отсортированный список
+            const sortedItems = [];
+            
+            // Сначала добавляем блюда в порядке структуры
+            for (const section of structure.sections) {
+                if (itemsBySection[section]) {
+                    sortedItems.push(...itemsBySection[section]);
+                }
+            }
+            
+            // Затем добавляем остальные блюда
+            sortedItems.push(...otherItems);
+            
+            return sortedItems;
+        }
         
-        // Получение цветовой схемы
-		function getColorScheme(schemeName) {
-			const schemes = {
-				default: {
-					school: 'cfe2f3',
-					header: 'e0e0e0',
-					breakfast: 'fff2cc',
-					breakfast2: 'fff2cc',
-					lunch: 'd9d2e9',
-					afternoonSnack: 'd0e0e3',
-					dinner: 'f4cccc',
-					dinner2: 'e6ccff'
-				},
-				bright: {
-					school: 'd5e8f7',
-					header: 'f0f0f0',
-					breakfast: 'fff9cc',
-					breakfast2: 'ffe6cc',
-					lunch: 'e6d9f2',
-					afternoonSnack: 'd0e8e3',
-					dinner: 'ffcccc',
-					dinner2: 'f2ccff'
-				},
-				pastel: {
-					school: 'e8f2fb',
-					header: 'f8f8f8',
-					breakfast: 'fffde6',
-					breakfast2: 'fff2e6',
-					lunch: 'f2e6fa',
-					afternoonSnack: 'e6f5f2',
-					dinner: 'ffe6e6',
-					dinner2: 'f7e6ff'
-				},
-				monochrome: {
-					school: 'f0f0f0',
-					header: 'e0e0e0',
-					breakfast: 'f5f5f5',
-					breakfast2: 'f0f0f0',
-					lunch: 'ebebeb',
-					afternoonSnack: 'e6e6e6',
-					dinner: 'e0e0e0',
-					dinner2: 'dbdbdb'
-				}
-			};
-			
-			return schemes[schemeName] || schemes.default;
-		}
-        
-        // Создание рабочей книги с цветовым форматированием и правильной структурой ФЦМПО
-		function createDailyMenuWorkbookWithFormatting(menu) {
-			const data = createExcelDataWithProperStructure(menu);
-			
-			const ws = XLSX.utils.aoa_to_sheet(data);
-			
-			// Настраиваем ширину столбцов
-			const colWidths = [
-				{wch: 12},  // A: Прием пищи
-				{wch: 15},  // B: Раздел
-				{wch: 8},   // C: № рец.
-				{wch: 35},  // D: Блюдо
-				{wch: 10},  // E: Выход, г
-				{wch: 10},  // F: Цена
-				{wch: 15},  // G: Калорийность
-				{wch: 8},   // H: Белки
-				{wch: 8},   // I: Жиры
-				{wch: 10}   // J: Углеводы
-			];
-			ws['!cols'] = colWidths;
-			
-			// Объединяем ячейки B1-D1 для названия школы
-			if (!ws['!merges']) ws['!merges'] = [];
-			ws['!merges'].push({
-				s: {r: 0, c: 1}, // B1
-				e: {r: 0, c: 3}  // D1
-			});
-			
-			// Получаем цветовую схему
-			const colorScheme = colorSchemeInput.value || 'default';
-			const colors = getColorScheme(colorScheme);
-			
-			// Преобразуем цвета в правильный формат (без #)
-			const colorMap = {};
-			for (const key in colors) {
-				colorMap[key] = colors[key].replace(/^#/, '');
-			}
-			
-			// Получаем диапазон данных
-			const range = XLSX.utils.decode_range(ws['!ref']);
-			
-			// Проходим по всем строкам и столбцам
-			for (let R = 0; R <= range.e.r; R++) {
-				for (let C = 0; C <= range.e.c; C++) {
-					const cellAddress = XLSX.utils.encode_cell({r: R, c: C});
-					
-					// Если ячейка не существует, создаем ее
-					if (!ws[cellAddress]) {
-						ws[cellAddress] = {t: 's', v: ''};
-					}
-					
-					let backgroundColor = null;
-					let currentMealType = null;
-					
-					// Определяем тип приема пищи для текущей строки
-					// Проверяем столбец A (Прием пищи)
-					const cellA = ws[XLSX.utils.encode_cell({r: R, c: 0})];
-					
-					if (cellA && cellA.v && typeof cellA.v === 'string') {
-						const mealName = cellA.v.toString().trim();
-						if (mealName === 'Завтрак') {
-							currentMealType = 'breakfast';
-						} else if (mealName === 'Завтрак 2') {
-							currentMealType = 'breakfast2';
-						} else if (mealName === 'Обед') {
-							currentMealType = 'lunch';
-						} else if (mealName === 'Полдник') {
-							currentMealType = 'afternoonSnack';
-						} else if (mealName === 'Ужин') {
-							currentMealType = 'dinner';
-						} else if (mealName === 'Ужин 2') {
-							currentMealType = 'dinner2';
-						}
-					} else {
-						// Если в столбце A пусто, ищем предыдущий прием пищи
-						for (let i = R - 1; i >= 0; i--) {
-							const prevCell = ws[XLSX.utils.encode_cell({r: i, c: 0})];
-							if (prevCell && prevCell.v && typeof prevCell.v === 'string') {
-								const prevMealName = prevCell.v.toString().trim();
-								if (prevMealName === 'Завтрак') {
-									currentMealType = 'breakfast';
-									break;
-								} else if (prevMealName === 'Завтрак 2') {
-									currentMealType = 'breakfast2';
-									break;
-								} else if (prevMealName === 'Обед') {
-									currentMealType = 'lunch';
-									break;
-								} else if (prevMealName === 'Полдник') {
-									currentMealType = 'afternoonSnack';
-									break;
-								} else if (prevMealName === 'Ужин') {
-									currentMealType = 'dinner';
-									break;
-								} else if (prevMealName === 'Ужин 2') {
-									currentMealType = 'dinner2';
-									break;
-								}
-							}
-						}
-					}
-					
-					// Определяем цвет фона на основе строки и типа приема пищи
-					if (R === 0) {
-						// Первая строка - информация о школе
-						backgroundColor = colorMap.school || 'cfe2f3';
-					} else if (R === 2) {
-						// Третья строка - заголовки таблицы
-						backgroundColor = colorMap.header || 'e0e0e0';
-					} else if (R > 2 && currentMealType && colorMap[currentMealType]) {
-						// Строки с данными меню
-						backgroundColor = colorMap[currentMealType];
-					}
-					
-					// Применяем форматирование, если определен цвет
-					if (backgroundColor) {
-						// Инициализируем объект стиля, если его нет
-						if (!ws[cellAddress].s) {
-							ws[cellAddress].s = {};
-						}
-						
-						// Устанавливаем цвет фона
-						ws[cellAddress].s.fill = {
-							fgColor: {rgb: backgroundColor},
-							patternType: 'solid'
-						};
-						
-						// Устанавливаем шрифт
-						if (!ws[cellAddress].s.font) {
-							ws[cellAddress].s.font = {};
-						}
-						ws[cellAddress].s.font.sz = 11;
-						ws[cellAddress].s.font.color = {rgb: '000000'};
-						
-						// Добавляем границы для лучшей читаемости
-						if (!ws[cellAddress].s.border) {
-							ws[cellAddress].s.border = {};
-						}
-						ws[cellAddress].s.border.top = {style: 'thin', color: {rgb: 'cccccc'}};
-						ws[cellAddress].s.border.bottom = {style: 'thin', color: {rgb: 'cccccc'}};
-						ws[cellAddress].s.border.left = {style: 'thin', color: {rgb: 'cccccc'}};
-						ws[cellAddress].s.border.right = {style: 'thin', color: {rgb: 'cccccc'}};
-					}
-				}
-			}
-			
-			// Специальное форматирование для заголовков
-			// Делаем заголовки жирными
-			for (let C = 0; C <= range.e.c; C++) {
-				const cellAddress = XLSX.utils.encode_cell({r: 2, c: C});
-				if (ws[cellAddress]) {
-					if (!ws[cellAddress].s) ws[cellAddress].s = {};
-					if (!ws[cellAddress].s.font) ws[cellAddress].s.font = {};
-					ws[cellAddress].s.font.bold = true;
-					ws[cellAddress].s.alignment = { horizontal: 'center', vertical: 'center' };
-				}
-			}
-			
-			// Форматирование для столбца с ценами
-			for (let R = 3; R <= range.e.r; R++) {
-				const cellAddress = XLSX.utils.encode_cell({r: R, c: 5}); // Столбец F (Цена)
-				if (ws[cellAddress] && ws[cellAddress].v && !isNaN(ws[cellAddress].v)) {
-					if (!ws[cellAddress].s) ws[cellAddress].s = {};
-					if (!ws[cellAddress].s.numFmt) {
-						ws[cellAddress].s.numFmt = '0.00';
-					}
-				}
-			}
-			
-			// Форматирование для столбцов с числами (вес, калории и т.д.)
-			const numericColumns = [4, 6, 7, 8, 9]; // E, G, H, I, J
-			for (let R = 3; R <= range.e.r; R++) {
-				numericColumns.forEach(C => {
-					const cellAddress = XLSX.utils.encode_cell({r: R, c: C});
-					if (ws[cellAddress] && ws[cellAddress].v && !isNaN(ws[cellAddress].v)) {
-						if (!ws[cellAddress].s) ws[cellAddress].s = {};
-						if (!ws[cellAddress].s.numFmt) {
-							ws[cellAddress].s.numFmt = '0.00';
-						}
-					}
-				});
-			}
-			
-			const wb = XLSX.utils.book_new();
-			XLSX.utils.book_append_sheet(wb, ws, "Меню");
-			
-			return wb;
-		}
-     
+        // Нормализация названий разделов
+        function normalizeSectionName(section) {
+            if (!section) return '';
+            
+            const sectionLower = section.toLowerCase().trim();
+            
+            // Сопоставление различных написаний
+            const sectionMap = {
+                'горячее блюдо': 'гор.блюдо',
+                'горячий напиток': 'гор.напиток',
+                'первое блюдо': '1 блюдо',
+                'второе блюдо': '2 блюдо',
+                'хлеб белый': 'хлеб бел.',
+                'хлеб черный': 'хлеб черн.',
+                'хлеб ржаной': 'хлеб черн.',
+                'булочные изделия': 'булочное'
+            };
+            
+            for (const [key, value] of Object.entries(sectionMap)) {
+                if (sectionLower.includes(key)) {
+                    return value;
+                }
+            }
+            
+            // Если не нашли соответствие, возвращаем оригинал
+            return section;
+        }
         
         // Обновление сетки меню
         function updateMenuGrid() {
@@ -3755,6 +2998,7 @@
             let html = '';
             
             dailyMenus.forEach((menu, index) => {
+                // Подсчитываем общее количество блюд
                 let totalDishes = 0;
                 let breakfastCount = menu.breakfast?.items?.length || 0;
                 let breakfast2Count = menu.breakfast2?.items?.length || 0;
@@ -3765,6 +3009,7 @@
                 
                 totalDishes = breakfastCount + breakfast2Count + lunchCount + afternoonSnackCount + dinnerCount + dinner2Count;
                 
+                // Получаем основные блюда для показа
                 let breakfastSample = '';
                 let lunchSample = '';
                 
@@ -3780,6 +3025,7 @@
                     }
                 }
                 
+                // Определяем цвет дня в зависимости от типа меню
                 const menuTypeColors = {
                     1: '#3498db', 2: '#2ecc71', 3: '#9b59b6', 4: '#e67e22', 5: '#1abc9c',
                     6: '#34495e', 7: '#d35400', 8: '#16a085', 9: '#8e44ad', 10: '#27ae60'
@@ -3852,11 +3098,13 @@
         function selectMenu(index) {
             currentMenuIndex = index;
             
+            // Обновляем активную карточку
             document.querySelectorAll('.menu-card').forEach(card => {
                 card.classList.remove('active');
             });
             document.querySelector(`.menu-card[data-index="${index}"]`).classList.add('active');
             
+            // Показываем детальный вид
             showDetailedView();
         }
         
@@ -3868,160 +3116,119 @@
             
             detailMenuDate.textContent = `${menu.dateString} (Меню ${menu.menuType})`;
             
+            // Отображаем приемы пищи в зависимости от фильтра
             updateMealsDisplay(menu);
             
+            // Показываем предпросмотр Excel файла
             showExcelPreview(menu);
             
+            // Переключаем вид
             menuGrid.style.display = 'none';
             detailedView.classList.add('active');
         }
         
         // Обновление отображения приемов пищи
-		 // Обновление отображения приемов пищи со всеми разделами структуры
-		function updateMealsDisplay(menu) {
-			let mealsHtml = '';
-			
-			const mealsToShow = [];
-			
-			if (currentMealFilter === 'all' || currentMealFilter === 'breakfast') {
-				mealsToShow.push({type: 'breakfast', data: menu.breakfast});
-			}
-			
-			if (currentMealFilter === 'all' || currentMealFilter === 'breakfast2') {
-				mealsToShow.push({type: 'breakfast2', data: menu.breakfast2});
-			}
-			
-			if (currentMealFilter === 'all' || currentMealFilter === 'lunch') {
-				mealsToShow.push({type: 'lunch', data: menu.lunch});
-			}
-			
-			if (currentMealFilter === 'all' || currentMealFilter === 'afternoonSnack') {
-				mealsToShow.push({type: 'afternoonSnack', data: menu.afternoonSnack});
-			}
-			
-			if (currentMealFilter === 'all' || currentMealFilter === 'dinner') {
-				mealsToShow.push({type: 'dinner', data: menu.dinner});
-			}
-			
-			if (currentMealFilter === 'all' || currentMealFilter === 'dinner2') {
-				mealsToShow.push({type: 'dinner2', data: menu.dinner2});
-			}
-			
-			if (mealsToShow.length === 0) {
-				mealsHtml = `<div style="padding: 40px; text-align: center; color: #6c757d;">
-					<i class="fas fa-utensils fa-3x" style="margin-bottom: 20px; color: #bdc3c7;"></i><br>
-					<h4>Нет данных для выбранного фильтра приемов пищи</h4>
-					<p>Выберите другой фильтр или проверьте наличие данных в меню</p>
-				</div>`;
-			} else {
-				mealsToShow.forEach(meal => {
-					const mealTitle = MEAL_TYPES[meal.type] || meal.type;
-					const icon = getMealIcon(meal.type);
-					const color = getMealColor(meal.type);
-					const structure = MEAL_STRUCTURE[meal.type];
-					
-					let mealItemsHtml = '';
-					
-					// Создаем Map для быстрого поиска блюд по разделам
-					const itemsBySection = new Map();
-					if (meal.data && meal.data.items && meal.data.items.length > 0) {
-						meal.data.items.forEach(item => {
-							const section = normalizeSectionName(item.section || '');
-							if (!itemsBySection.has(section)) {
-								itemsBySection.set(section, []);
-							}
-							itemsBySection.get(section).push(item);
-						});
-					}
-					
-					// Показываем ВСЕ разделы структуры
-					if (structure) {
-						structure.sections.forEach(section => {
-							const sectionItems = itemsBySection.get(section) || [];
-							
-							if (sectionItems.length > 0) {
-								// Есть блюда в этом разделе
-								sectionItems.forEach(item => {
-									if (item.name && item.name.trim() !== '') {
-										mealItemsHtml += `
-											<div class="menu-item">
-												<div class="item-name">${item.name}</div>
-												<div class="item-details">
-													<span>${item.section || 'Блюдо'}</span>
-													<span>${item.weight} г</span>
-												</div>
-												<div class="item-details" style="margin-top: 5px;">
-													<span>Б: ${item.proteins || 0}г</span>
-													<span>Ж: ${item.fats || 0}г</span>
-													<span>У: ${item.carbs || 0}г</span>
-													<span>${item.calories || 0} ккал</span>
-												</div>
-												<div class="item-details">
-													<span>${item.price || 0} ₽</span>
-													<span>${item.recipeId ? `Рец. ${item.recipeId}` : ''}</span>
-												</div>
-											</div>
-										`;
-									}
-								});
-							} else {
-								// Раздел есть в структуре, но блюд нет
-								mealItemsHtml += `
-									<div class="menu-item" style="opacity: 0.6;">
-										<div class="item-name" style="color: #6c757d;"><em>${section} (нет данных)</em></div>
-										<div class="item-details">
-											<span>Раздел отсутствует</span>
-											<span>0 г</span>
-										</div>
-									</div>
-								`;
-							}
-						});
-					}
-					
-					// Показываем блюда из разделов, которых нет в структуре
-					const otherSections = Array.from(itemsBySection.keys()).filter(section => 
-						!structure || !structure.sections.includes(section)
-					);
-					
-					otherSections.forEach(section => {
-						const sectionItems = itemsBySection.get(section) || [];
-						sectionItems.forEach(item => {
-							if (item.name && item.name.trim() !== '') {
-								mealItemsHtml += `
-									<div class="menu-item" style="border-left: 3px solid #f39c12;">
-										<div class="item-name">${item.name} <small style="color: #f39c12;">(доп. раздел)</small></div>
-										<div class="item-details">
-											<span>${item.section || 'Блюдо'}</span>
-											<span>${item.weight} г</span>
-										</div>
-										<div class="item-details" style="margin-top: 5px;">
-											<span>Б: ${item.proteins || 0}г</span>
-											<span>Ж: ${item.fats || 0}г</span>
-											<span>У: ${item.carbs || 0}г</span>
-											<span>${item.calories || 0} ккал</span>
-										</div>
-									</div>
-								`;
-							}
-						});
-					});
-					
-					mealsHtml += `
-						<div class="menu-section">
-							<div class="section-title">
-								<i class="fas ${icon}" style="color: ${color};"></i> ${mealTitle}
-							</div>
-							<div class="menu-items">
-								${mealItemsHtml || '<div class="menu-item"><em>Нет данных в меню</em></div>'}
-							</div>
-						</div>
-					`;
-				});
-			}
-			
-			detailMeals.innerHTML = mealsHtml;
-		}
+        function updateMealsDisplay(menu) {
+            let mealsHtml = '';
+            
+            // Определяем, какие приемы пищи показывать
+            const mealsToShow = [];
+            
+            if (currentMealFilter === 'all' || currentMealFilter === 'breakfast') {
+                if (menu.breakfast && menu.breakfast.items && menu.breakfast.items.length > 0) {
+                    mealsToShow.push({type: 'breakfast', data: menu.breakfast});
+                }
+            }
+            
+            if (currentMealFilter === 'all' || currentMealFilter === 'breakfast2') {
+                if (menu.breakfast2 && menu.breakfast2.items && menu.breakfast2.items.length > 0) {
+                    mealsToShow.push({type: 'breakfast2', data: menu.breakfast2});
+                }
+            }
+            
+            if (currentMealFilter === 'all' || currentMealFilter === 'lunch') {
+                if (menu.lunch && menu.lunch.items && menu.lunch.items.length > 0) {
+                    mealsToShow.push({type: 'lunch', data: menu.lunch});
+                }
+            }
+            
+            if (currentMealFilter === 'all' || currentMealFilter === 'afternoonSnack') {
+                if (menu.afternoonSnack && menu.afternoonSnack.items && menu.afternoonSnack.items.length > 0) {
+                    mealsToShow.push({type: 'afternoonSnack', data: menu.afternoonSnack});
+                }
+            }
+            
+            if (currentMealFilter === 'all' || currentMealFilter === 'dinner') {
+                if (menu.dinner && menu.dinner.items && menu.dinner.items.length > 0) {
+                    mealsToShow.push({type: 'dinner', data: menu.dinner});
+                }
+            }
+            
+            if (currentMealFilter === 'all' || currentMealFilter === 'dinner2') {
+                if (menu.dinner2 && menu.dinner2.items && menu.dinner2.items.length > 0) {
+                    mealsToShow.push({type: 'dinner2', data: menu.dinner2});
+                }
+            }
+            
+            // Если нет данных для выбранного фильтра
+            if (mealsToShow.length === 0) {
+                mealsHtml = `<div style="padding: 40px; text-align: center; color: #6c757d;">
+                    <i class="fas fa-utensils fa-3x" style="margin-bottom: 20px; color: #bdc3c7;"></i><br>
+                    <h4>Нет данных для выбранного фильтра приемов пищи</h4>
+                    <p>Выберите другой фильтр или проверьте наличие данных в меню</p>
+                </div>`;
+            } else {
+                // Отображаем каждый прием пищи
+                mealsToShow.forEach(meal => {
+                    const mealTitle = MEAL_TYPES[meal.type] || meal.type;
+                    const icon = getMealIcon(meal.type);
+                    const color = getMealColor(meal.type);
+                    
+                    let mealItemsHtml = '';
+                    
+                    if (meal.data && meal.data.items && meal.data.items.length > 0) {
+                        meal.data.items.forEach(item => {
+                            if (item.name && item.name.trim() !== '') {
+                                mealItemsHtml += `
+                                    <div class="menu-item">
+                                        <div class="item-name">${item.name}</div>
+                                        <div class="item-details">
+                                            <span>${item.section || 'Блюдо'}</span>
+                                            <span>${item.weight} г</span>
+                                        </div>
+                                        <div class="item-details" style="margin-top: 5px;">
+                                            <span>Б: ${item.proteins || 0}г</span>
+                                            <span>Ж: ${item.fats || 0}г</span>
+                                            <span>У: ${item.carbs || 0}г</span>
+                                            <span>${item.calories || 0} ккал</span>
+                                        </div>
+                                        <div class="item-details">
+                                            <span>${item.price || 0} ₽</span>
+                                            <span>${item.recipeId ? `Рец. ${item.recipeId}` : ''}</span>
+                                        </div>
+                                    </div>
+                                `;
+                            }
+                        });
+                    } else {
+                        mealItemsHtml = '<div class="menu-item"><em>Нет данных</em></div>';
+                    }
+                    
+                    mealsHtml += `
+                        <div class="menu-section">
+                            <div class="section-title">
+                                <i class="fas ${icon}" style="color: ${color};"></i> ${mealTitle}
+                            </div>
+                            <div class="menu-items">
+                                ${mealItemsHtml}
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+            
+            detailMeals.innerHTML = mealsHtml;
+        }
         
         // Получить иконку для приема пищи
         function getMealIcon(mealType) {
@@ -4049,12 +3256,14 @@
             }
         }
         
-        // Показать предпросмотр Excel файла с правильной структурой ФЦМПО
+        // Показать предпросмотр Excel файла с правильной структурой
         function showExcelPreview(menu) {
-            const excelData = createExcelDataWithProperStructure(menu);
+            // Создаем данные для предпросмотра
+            const excelData = createExcelDataForPreview(menu);
             
             let previewHtml = '';
             
+            // Создаем предпросмотр с цветовой разметкой как в Excel
             excelData.forEach((row, rowIndex) => {
                 let rowClass = '';
                 let isMealHeader = false;
@@ -4073,6 +3282,8 @@
                     else if (row[0] === 'Ужин') rowClass = 'excel-dinner';
                     else if (row[0] === 'Ужин 2') rowClass = 'excel-dinner2';
                 } else if (rowIndex > 2 && row[0] === '') {
+                    // Определяем, к какому приему пищи относится строка
+                    // Это делаем по содержимому предыдущих строк
                     for (let i = rowIndex - 1; i >= 0; i--) {
                         if (excelData[i][0] && excelData[i][0] !== '') {
                             if (excelData[i][0] === 'Завтрак' || excelData[i][0] === 'Завтрак 2') rowClass = 'excel-breakfast';
@@ -4089,6 +3300,7 @@
                 row.forEach((cell, cellIndex) => {
                     const cellContent = cell !== null && cell !== undefined ? cell.toString() : '';
                     
+                    // Для заголовков приемов пищи делаем только первую ячейку цветной
                     if (isMealHeader && cellIndex > 0) {
                         previewHtml += `<div class="excel-cell">${cellContent}</div>`;
                     } else {
@@ -4101,12 +3313,180 @@
             excelPreview.innerHTML = previewHtml;
         }
         
+        // Создание данных для Excel с правильной структурой (без пустых строк)
+        function createExcelDataForPreview(menu) {
+            const data = [];
+            
+            // Шапка с информацией о школе и дате (строка 1)
+            data.push(["Школа", menu.schoolName, "", "", "Отд./корп", "", "", "", "День", formatDate(menu.date, 'excel')]);
+            
+            // Пустая строка (строка 2)
+            data.push(["", "", "", "", "", "", "", "", "", ""]);
+            
+            // Заголовок таблицы (строка 3)
+            data.push(["Прием пищи", "Раздел", "№ рец.", "Блюдо", "Выход, г", "Цена", "Калорийность", "Белки", "Жиры", "Углеводы"]);
+            
+            // Завтрак (только если есть блюда)
+            const breakfastItems = getMealItemsWithStructure(menu.breakfast?.items || [], 'breakfast');
+            if (breakfastItems.length > 0) {
+                // Первое блюдо завтрака (гор.блюдо)
+                const firstBreakfastItem = breakfastItems[0];
+                if (firstBreakfastItem) {
+                    data.push(["Завтрак", firstBreakfastItem.section || "", firstBreakfastItem.recipeId || "", 
+                              firstBreakfastItem.name || "", firstBreakfastItem.weight || 0, firstBreakfastItem.price || 0,
+                              firstBreakfastItem.calories || 0, firstBreakfastItem.proteins || 0, 
+                              firstBreakfastItem.fats || 0, firstBreakfastItem.carbs || 0]);
+                }
+                
+                // Остальные блюда завтрака
+                for (let i = 1; i < breakfastItems.length; i++) {
+                    const item = breakfastItems[i];
+                    data.push(["", item.section || "", item.recipeId || "", item.name || "", item.weight || 0, 
+                              item.price || 0, item.calories || 0, item.proteins || 0, item.fats || 0, item.carbs || 0]);
+                }
+            }
+            
+            // Завтрак 2 (только если есть блюда)
+            const breakfast2Items = getMealItemsWithStructure(menu.breakfast2?.items || [], 'breakfast2');
+            if (breakfast2Items.length > 0) {
+                // Пустая строка перед завтраком 2
+                data.push(["", "", "", "", "", "", "", "", "", ""]);
+                
+                // Первое блюдо завтрака 2 (фрукты)
+                const firstBreakfast2Item = breakfast2Items[0];
+                if (firstBreakfast2Item) {
+                    data.push(["Завтрак 2", firstBreakfast2Item.section || "", firstBreakfast2Item.recipeId || "", 
+                              firstBreakfast2Item.name || "", firstBreakfast2Item.weight || 0, firstBreakfast2Item.price || 0,
+                              firstBreakfast2Item.calories || 0, firstBreakfast2Item.proteins || 0, 
+                              firstBreakfast2Item.fats || 0, firstBreakfast2Item.carbs || 0]);
+                }
+                
+                // Остальные блюда завтрака 2
+                for (let i = 1; i < breakfast2Items.length; i++) {
+                    const item = breakfast2Items[i];
+                    data.push(["", item.section || "", item.recipeId || "", item.name || "", item.weight || 0, 
+                              item.price || 0, item.calories || 0, item.proteins || 0, item.fats || 0, item.carbs || 0]);
+                }
+            } else {
+                // Если нет блюд, все равно добавляем строку Завтрак 2
+                data.push(["", "", "", "", "", "", "", "", "", ""]);
+                data.push(["Завтрак 2", "", "", "", "", "", "", "", "", ""]);
+                data.push(["", "", "", "", "", "", "", "", "", ""]);
+            }
+            
+            // Обед (только если есть блюда)
+            const lunchItems = getMealItemsWithStructure(menu.lunch?.items || [], 'lunch');
+            if (lunchItems.length > 0) {
+                // Пустая строка перед обедом
+                data.push(["", "", "", "", "", "", "", "", "", ""]);
+                
+                // Первое блюдо обеда (закуска)
+                const firstLunchItem = lunchItems[0];
+                if (firstLunchItem) {
+                    data.push(["Обед", firstLunchItem.section || "", firstLunchItem.recipeId || "", 
+                              firstLunchItem.name || "", firstLunchItem.weight || 0, firstLunchItem.price || 0,
+                              firstLunchItem.calories || 0, firstLunchItem.proteins || 0, 
+                              firstLunchItem.fats || 0, firstLunchItem.carbs || 0]);
+                }
+                
+                // Остальные блюда обеда
+                for (let i = 1; i < lunchItems.length; i++) {
+                    const item = lunchItems[i];
+                    data.push(["", item.section || "", item.recipeId || "", item.name || "", item.weight || 0, 
+                              item.price || 0, item.calories || 0, item.proteins || 0, item.fats || 0, item.carbs || 0]);
+                }
+            }
+            
+            // Полдник (только если есть блюда)
+            const afternoonSnackItems = getMealItemsWithStructure(menu.afternoonSnack?.items || [], 'afternoonSnack');
+            if (afternoonSnackItems.length > 0) {
+                // Пустая строка перед полдником
+                data.push(["", "", "", "", "", "", "", "", "", ""]);
+                
+                // Первое блюдо полдника (булочное)
+                const firstAfternoonSnackItem = afternoonSnackItems[0];
+                if (firstAfternoonSnackItem) {
+                    data.push(["Полдник", firstAfternoonSnackItem.section || "", firstAfternoonSnackItem.recipeId || "", 
+                              firstAfternoonSnackItem.name || "", firstAfternoonSnackItem.weight || 0, firstAfternoonSnackItem.price || 0,
+                              firstAfternoonSnackItem.calories || 0, firstAfternoonSnackItem.proteins || 0, 
+                              firstAfternoonSnackItem.fats || 0, firstAfternoonSnackItem.carbs || 0]);
+                }
+                
+                // Остальные блюда полдника
+                for (let i = 1; i < afternoonSnackItems.length; i++) {
+                    const item = afternoonSnackItems[i];
+                    data.push(["", item.section || "", item.recipeId || "", item.name || "", item.weight || 0, 
+                              item.price || 0, item.calories || 0, item.proteins || 0, item.fats || 0, item.carbs || 0]);
+                }
+            }
+            
+            // Ужин (только если есть блюда)
+            const dinnerItems = getMealItemsWithStructure(menu.dinner?.items || [], 'dinner');
+            if (dinnerItems.length > 0) {
+                // Пустая строка перед ужином
+                data.push(["", "", "", "", "", "", "", "", "", ""]);
+                
+                // Первое блюдо ужина (гор.блюдо)
+                const firstDinnerItem = dinnerItems[0];
+                if (firstDinnerItem) {
+                    data.push(["Ужин", firstDinnerItem.section || "", firstDinnerItem.recipeId || "", 
+                              firstDinnerItem.name || "", firstDinnerItem.weight || 0, firstDinnerItem.price || 0,
+                              firstDinnerItem.calories || 0, firstDinnerItem.proteins || 0, 
+                              firstDinnerItem.fats || 0, firstDinnerItem.carbs || 0]);
+                }
+                
+                // Остальные блюда ужина
+                for (let i = 1; i < dinnerItems.length; i++) {
+                    const item = dinnerItems[i];
+                    data.push(["", item.section || "", item.recipeId || "", item.name || "", item.weight || 0, 
+                              item.price || 0, item.calories || 0, item.proteins || 0, item.fats || 0, item.carbs || 0]);
+                }
+            }
+            
+            // Ужин 2 (только если есть блюда)
+            const dinner2Items = getMealItemsWithStructure(menu.dinner2?.items || [], 'dinner2');
+            if (dinner2Items.length > 0) {
+                // Пустая строка перед ужином 2
+                data.push(["", "", "", "", "", "", "", "", "", ""]);
+                
+                // Первое блюдо ужина 2 (кисломол., булочное, напиток, фрукты)
+                const firstDinner2Item = dinner2Items[0];
+                if (firstDinner2Item) {
+                    data.push(["Ужин 2", firstDinner2Item.section || "", firstDinner2Item.recipeId || "", 
+                              firstDinner2Item.name || "", firstDinner2Item.weight || 0, firstDinner2Item.price || 0,
+                              firstDinner2Item.calories || 0, firstDinner2Item.proteins || 0, 
+                              firstDinner2Item.fats || 0, firstDinner2Item.carbs || 0]);
+                }
+                
+                // Остальные блюда ужина 2
+                for (let i = 1; i < dinner2Items.length; i++) {
+                    const item = dinner2Items[i];
+                    data.push(["", item.section || "", item.recipeId || "", item.name || "", item.weight || 0, 
+                              item.price || 0, item.calories || 0, item.proteins || 0, item.fats || 0, item.carbs || 0]);
+                }
+            }
+            
+            return data;
+        }
+        
+        // Получить блюда приема пищи со структурой (без пустых строк)
+        function getMealItemsWithStructure(items, mealType) {
+            if (!items || items.length === 0) return [];
+            
+            // Фильтруем пустые блюда
+            const filteredItems = items.filter(item => item && item.name && item.name.trim() !== '');
+            
+            // Сортируем по структуре
+            return sortMealItemsByStructure(filteredItems, mealType);
+        }
+        
         // Навигация по меню
         function navigateMenus(direction) {
             if (dailyMenus.length === 0) return;
             
             currentMenuIndex += direction;
             
+            // Циклическая навигация
             if (currentMenuIndex < 0) {
                 currentMenuIndex = dailyMenus.length - 1;
             } else if (currentMenuIndex >= dailyMenus.length) {
@@ -4127,11 +3507,13 @@
             isGridView = !isGridView;
             
             if (isGridView) {
+                // Переключаемся на сетку
                 toggleViewBtn.innerHTML = '<i class="fas fa-list"></i> Детальный вид';
                 menuGrid.style.display = 'grid';
                 detailedView.classList.remove('active');
                 dailyMenuContent.style.display = 'none';
             } else {
+                // Переключаемся на детальный вид
                 toggleViewBtn.innerHTML = '<i class="fas fa-th"></i> Сетка';
                 menuGrid.style.display = 'none';
                 detailedView.classList.remove('active');
@@ -4186,6 +3568,7 @@
             const school = dailyMenus[0].schoolName || 'Не указана';
             menuSchool.textContent = school.length > 20 ? school.substring(0, 20) + '...' : school;
             
+            // Анализ соответствия
             const compliance = calculateCompliance();
             menuCompliance.textContent = `${compliance.percentage}%`;
             menuCompliance.style.color = compliance.percentage >= 80 ? '#27ae60' : 
@@ -4207,6 +3590,8 @@
                 mealTypes.forEach(mealType => {
                     const items = menu[mealType]?.items || [];
                     totalItems += items.length;
+                    // В реальном приложении здесь была бы проверка соответствия типовому меню
+                    // Для демо считаем, что все соответствует
                     matchedItems += items.length;
                 });
             });
@@ -4267,7 +3652,7 @@
                 mealTypes.forEach(mealType => {
                     const items = menu[mealType]?.items || [];
                     menuTotalItems += items.length;
-                    menuMatchedItems += items.length;
+                    menuMatchedItems += items.length; // Для демо считаем, что все соответствует
                 });
                 
                 analysis.totalItems += menuTotalItems;
@@ -4303,7 +3688,7 @@
             modal.innerHTML = `
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h3><i class="fas fa-chart-bar"></i> Анализ соответствия меню ФЦМПО</h3>
+                        <h3><i class="fas fa-chart-bar"></i> Анализ соответствия меню</h3>
                         <button class="close-btn"><i class="fas fa-times"></i></button>
                     </div>
                     
@@ -4370,7 +3755,7 @@
                     </div>
                     
                     <div style="margin-top: 20px; padding: 15px; background: linear-gradient(135deg, #e8f4fc, #d1e7ff); border-radius: var(--border-radius); border: 2px solid #b6d4fe;">
-                        <div style="font-weight: 600; color: var(--primary-color); margin-bottom: 10px;"><i class="fas fa-lightbulb"></i> Рекомендации ФЦМПО</div>
+                        <div style="font-weight: 600; color: var(--primary-color); margin-bottom: 10px;"><i class="fas fa-lightbulb"></i> Рекомендации</div>
                         <ul style="margin-left: 20px; color: #495057;">
                             <li>Проверьте соответствие фактического меню типовому</li>
                             <li>Убедитесь, что все блюда указаны в правильных разделах</li>
@@ -4387,6 +3772,7 @@
             
             document.body.appendChild(modal);
             
+            // Закрытие модального окна
             modal.querySelector('.close-btn').addEventListener('click', () => {
                 document.body.removeChild(modal);
             });
@@ -4412,18 +3798,24 @@
             try {
                 const zip = new JSZip();
                 
+                // Для каждого меню создаем Excel файл
                 dailyMenus.forEach((menu, index) => {
                     const workbook = createDailyMenuWorkbookWithFormatting(menu);
                     
+                    // Генерируем двоичные данные Excel
                     const excelData = XLSX.write(workbook, {bookType: 'xlsx', type: 'binary'});
                     
+                    // Преобразуем в blob
                     const blob = new Blob([s2ab(excelData)], {type: "application/octet-stream"});
                     
+                    // Добавляем файл в ZIP архив
                     zip.file(menu.fileName, blob);
                 });
                 
+                // Генерируем ZIP архив
                 const content = await zip.generateAsync({type: "blob"});
                 
+                // Сохраняем архив
                 const zipFileName = `school-menus-${currentYear}-${formatDate(new Date(), 'file')}.zip`;
                 saveAs(content, zipFileName);
                 
@@ -4446,14 +3838,46 @@
             
             const menu = dailyMenus[currentMenuIndex];
             
+            // Создаем рабочую книгу с форматированием
             const workbook = createDailyMenuWorkbookWithFormatting(menu);
             
+            // Генерируем и скачиваем файл
             XLSX.writeFile(workbook, menu.fileName);
             
             showStatus(`Меню экспортировано в файл ${menu.fileName}`, 'success');
         }
         
-        // Загрузка шаблона меню ФЦМПО
+        // Создание рабочей книги с цветовым форматированием
+        function createDailyMenuWorkbookWithFormatting(menu) {
+            // Создаем данные
+            const data = createExcelDataForPreview(menu);
+            
+            // Создаем рабочий лист
+            const ws = XLSX.utils.aoa_to_sheet(data);
+            
+            // Настраиваем ширину столбцов
+            const colWidths = [
+                {wch: 12}, // Прием пищи
+                {wch: 15}, // Раздел
+                {wch: 8},  // № рец.
+                {wch: 40}, // Блюдо
+                {wch: 10}, // Выход, г
+                {wch: 10}, // Цена
+                {wch: 15}, // Калорийность
+                {wch: 10}, // Белки
+                {wch: 10}, // Жиры
+                {wch: 12}  // Углеводы
+            ];
+            ws['!cols'] = colWidths;
+            
+            // Создаем рабочую книгу
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Меню");
+            
+            return wb;
+        }
+        
+        // Загрузка шаблона меню
         function downloadTemplate() {
             const templateData = [
                 ["Школа", "МОУ \"Примерная школа\"", "", "", "Отд./корп", "Основной", "", "", "День", formatDate(new Date(), 'excel')],
@@ -4477,6 +3901,7 @@
             const wb = XLSX.utils.book_new();
             const ws = XLSX.utils.aoa_to_sheet(templateData);
             
+            // Настраиваем ширину столбцов
             const colWidths = [
                 {wch: 12}, {wch: 15}, {wch: 8}, {wch: 40}, 
                 {wch: 10}, {wch: 10}, {wch: 15}, {wch: 10}, 
@@ -4484,10 +3909,10 @@
             ];
             ws['!cols'] = colWidths;
             
-            XLSX.utils.book_append_sheet(wb, ws, "Шаблон меню ФЦМПО");
-            XLSX.writeFile(wb, "шаблон-ежедневного-меню-фцмпо.xlsx");
+            XLSX.utils.book_append_sheet(wb, ws, "Шаблон меню");
+            XLSX.writeFile(wb, "шаблон-ежедневного-меню.xlsx");
             
-            showStatus("Шаблон ежедневного меню ФЦМПО скачан", "success");
+            showStatus("Шаблон ежедневного меню скачан", "success");
         }
         
         // Работа с LocalStorage
@@ -4521,6 +3946,7 @@
                 
                 const parsedData = JSON.parse(savedData);
                 
+                // Восстанавливаем данные
                 calendarData = parsedData.calendarData;
                 templateMenuData = parsedData.templateMenuData;
                 dailyMenus = parsedData.dailyMenus || [];
@@ -4529,6 +3955,7 @@
                 schoolNameInput.value = parsedData.schoolName || '';
                 ageCategoryInput.value = parsedData.ageCategory || '7-11';
                 
+                // Обновляем интерфейс
                 setDefaultDates();
                 calendarYearBadge.textContent = currentYear;
                 calendarYearBadge.style.display = 'inline-block';
@@ -4623,6 +4050,7 @@
             statusMessage.textContent = message;
             statusMessage.className = `status-message status-${type}`;
             
+            // Автоматически скрываем сообщения об успехе через 5 секунд
             if (type === 'success') {
                 setTimeout(() => {
                     statusMessage.style.opacity = '0';
@@ -4651,6 +4079,7 @@
         // Добавляем демо данные для предпросмотра
         setTimeout(() => {
             if (!calendarData && !templateMenuData) {
+                // Демо календарь в виде таблицы
                 let calendarHtml = '<div style="margin-bottom: 20px;">';
                 calendarHtml += `<p><strong><i class="fas fa-calendar"></i> Год:</strong> 2026</p>`;
                 calendarHtml += `<p><strong><i class="fas fa-layer-group"></i> Месяцев с данными:</strong> 5</p>`;
@@ -4705,11 +4134,11 @@
                         </div>
                         <div class="legend-item">
                             <div class="legend-color" style="background: white; border: 2px solid #e0e6ed;"></div>
-                            <span>Нет меню (0 или пусто)</span>
+                            <span>Нет меню</span>
                         </div>
                     </div>
                     <p style="margin-top: 15px; color: #6c757d; padding: 10px; background: #f8f9fa; border-radius: 4px;">
-                        <i class="fas fa-info-circle"></i> <em>Демо-данные. Загрузите файл календаря питания ФЦМПО (kpl2026.xlsx)</em>
+                        <i class="fas fa-info-circle"></i> <em>Демо-данные. Загрузите файл календаря питания (kp2026.xlsx)</em>
                     </p>
                 `;
                 
@@ -4717,6 +4146,7 @@
                 calendarYearBadge.textContent = '2026';
                 calendarYearBadge.style.display = 'inline-block';
                 
+                // Демо меню
                 menuPreview.innerHTML = `
                     <div class="menu-preview-grid">
                         <div class="menu-preview-day has-menu">
@@ -4755,7 +4185,7 @@
                         <p><strong><i class="fas fa-utensils"></i> Приемы пищи:</strong> Завтрак (З), Завтрак 2 (З2), Обед (О), Полдник (П), Ужин (У), Ужин 2 (У2)</p>
                     </div>
                     <p style="margin-top: 15px; color: #6c757d; padding: 10px; background: #f8f9fa; border-radius: 4px;">
-                        <i class="fas fa-info-circle"></i> <em>Демо-данные. Загрузите файл типового меню ФЦМПО (tm2026-sm.xlsx)</em>
+                        <i class="fas fa-info-circle"></i> <em>Демо-данные. Загрузите файл типового меню (tm2026-sm.xlsx)</em>
                     </p>
                 `;
             }
