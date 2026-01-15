@@ -2545,14 +2545,11 @@
             updateCalendarPreview();
         }
        
-        // Обработка файла типового меню (обновлено для учета требований ФЦМПО) 
-		// Обработка файла типового меню (обновлено для учета требований ФЦМПО) 
+        // Обработка файла типового меню (обновлено для учета требований ФЦМПО)
+		// Обработка файла типового меню с упрощенной логикой
 		function processTemplateFile(workbook, fileName) {
 			const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
 			const data = XLSX.utils.sheet_to_json(firstSheet, {header: 1});
-			
-			console.log("=== НАЧАЛО ПАРСИНГА ТИПОВОГО МЕНЮ ===");
-			console.log("Всего строк в файле:", data.length);
 			
 			// Извлекаем информацию об утверждении
 			let approvalInfo = {
@@ -2563,10 +2560,8 @@
 			
 			// Извлекаем название школы
 			let schoolName = '';
-			let ageCategory = '';
 			
-			// Парсим информацию о школе и утверждении
-			for (let i = 0; i < Math.min(10, data.length); i++) {
+			for (let i = 0; i < Math.min(20, data.length); i++) {
 				const row = data[i];
 				if (!row) continue;
 				
@@ -2576,23 +2571,19 @@
 						const cellLower = cell.toLowerCase();
 						
 						if (cellLower.includes('утвержд') || cellLower.includes('согласован')) {
-							if (j + 1 < row.length && row[j + 1]) approvalInfo.position = row[j + 1].toString().trim();
-							if (j + 2 < row.length && row[j + 2]) approvalInfo.name = row[j + 2].toString().trim();
-							if (j + 3 < row.length && row[j + 3]) approvalInfo.date = row[j + 3].toString().trim();
-						}
-						
-						if (cellLower.includes('школ')) {
-							for (let k = j + 1; k < row.length; k++) {
-								if (row[k] && typeof row[k] === 'string' && row[k].trim().length > 2) {
-									schoolName = row[k].toString().trim();
-									break;
-								}
+							if (j + 1 < row.length && row[j + 1]) {
+								approvalInfo.position = row[j + 1].toString().trim();
+							}
+							if (j + 2 < row.length && row[j + 2]) {
+								approvalInfo.name = row[j + 2].toString().trim();
+							}
+							if (j + 3 < row.length && row[j + 3]) {
+								approvalInfo.date = row[j + 3].toString().trim();
 							}
 						}
 						
-						if (cellLower.includes('7-11') || cellLower.includes('12-18') || 
-							cellLower.includes('1-3') || cellLower.includes('4-6')) {
-							ageCategory = cell.trim();
+						if (cellLower.includes('школ')) {
+							schoolName = row[j + 2].toString().trim();
 						}
 					}
 				}
@@ -2602,19 +2593,22 @@
 				schoolNameInput.value = schoolName;
 			}
 			
-			if (ageCategory) {
-				ageCategoryInput.value = ageCategory;
-			}
-			
-			// Находим строку заголовков
+			// Ищем строку с заголовками меню
 			let headerRowIndex = -1;
 			for (let i = 0; i < Math.min(20, data.length); i++) {
 				const row = data[i];
-				if (row && row.length >= 3) {
-					const col0 = row[0] ? row[0].toString().toLowerCase().trim() : '';
-					const col1 = row[1] ? row[1].toString().toLowerCase().trim() : '';
-					
-					if (col0 === 'неделя' && (col1.includes('день') || col1.includes('недели'))) {
+				if (row && row.length >= 6) {
+					if (row[0] === 'Прием пищи' && row[1] === 'Раздел') {
+						headerRowIndex = i;
+						break;
+					}
+				}
+			}
+			
+			if (headerRowIndex === -1) {
+				for (let i = 0; i < Math.min(30, data.length); i++) {
+					const row = data[i];
+					if (row && row[0] === 'Неделя' && row[1] === 'День недели') {
 						headerRowIndex = i;
 						break;
 					}
@@ -2626,149 +2620,171 @@
 				return;
 			}
 			
-			console.log("Заголовок найден на строке:", headerRowIndex);
-			
-			// Инициализируем структуру меню
+			// Собираем данные меню
 			templateMenuData = {
 				schoolName: schoolName || schoolNameInput.value || '',
-				ageCategory: ageCategory || ageCategoryInput.value || '',
+				ageCategory: ageCategoryInput.value || '',
 				approvalInfo: approvalInfo,
 				weeks: {}
 			};
 			
-			// Переменные для отслеживания текущего состояния
+			// Ищем возрастную категорию
+			for (let i = 0; i < Math.min(20, data.length); i++) {
+				const row = data[i];
+				
+				if (row && row.some(cell => 
+					cell && cell.toString().includes('7-11') || 
+					cell && cell.toString().includes('12-18') ||
+					cell && cell.toString().includes('1-3') ||
+					cell && cell.toString().includes('4-6'))) {
+					
+					for (let j = 0; j < row.length; j++) {
+						const cell = row[j];
+						if (cell && typeof cell === 'string') {
+							if (cell.includes('7-11') || cell.includes('12-18') || 
+								cell.includes('1-3') || cell.includes('4-6')) {
+								templateMenuData.ageCategory = cell.trim();
+								ageCategoryInput.value = templateMenuData.ageCategory;
+								break;
+							}
+						}
+					}
+				}
+			}
+			
+			// УПРОЩЕННЫЙ ПАРСИНГ С ПРОСТОЙ ЛОГИКОЙ
+			console.log("=== НАЧАЛО ПАРСИНГА ТИПОВОГО МЕНЮ ===");
+
 			let currentWeek = null;
 			let currentDay = null;
 			let currentMeal = null;
-			let foundBreakfast = false; // Для определения второго завтрака
-			
-			// Проходим по строкам данных
+			let breakfastCount = 0;
+
 			for (let i = headerRowIndex + 1; i < data.length; i++) {
 				const row = data[i];
-				if (!row || row.length < 3) continue;
+				if (!row || row.length < 6) continue;
 				
-				// Отладочный вывод
-				// console.log(`Строка ${i}:`, [row[0], row[1], row[2], row[3], row[4]].map(c => c || ''));
+				console.log(`Строка ${i}: [${row[0]}, ${row[1]}, "${row[2]}", "${row[3]}", "${row[4]}"]`);
 				
-				// 1. Проверяем, начинается ли новый день (есть неделя и день)
-				const weekNum = parseInt(row[0]);
-				const dayNum = parseInt(row[1]);
-				
-				if (!isNaN(weekNum) && !isNaN(dayNum)) {
-					// Новый день
-					currentWeek = weekNum;
-					currentDay = dayNum;
-					currentMeal = null;
-					foundBreakfast = false;
+				// 1. Проверяем неделю и день (столбцы A и B)
+				// ИЗМЕНЕНИЕ: Создаем новую запись ТОЛЬКО при начале нового дня (не при "Обед" в том же дне)
+				if (row[0] !== undefined && row[0] !== '' && !isNaN(row[0]) && 
+					row[2] !== undefined && row[2] !== '' && 
+					!row[2].toString().toLowerCase().includes('итого') &&
+					!row[2].toString().toLowerCase().includes('среднее')) {
 					
-					console.log(`Найден новый день: неделя ${currentWeek}, день ${currentDay}`);
+					const weekNum = parseInt(row[0]);
+					const dayNum = parseInt(row[1]);
 					
-					// Создаем структуру для этого дня
-					if (!templateMenuData.weeks[currentWeek]) {
-						templateMenuData.weeks[currentWeek] = {};
-					}
-					
-					if (!templateMenuData.weeks[currentWeek][currentDay]) {
-						templateMenuData.weeks[currentWeek][currentDay] = {
-							breakfast: { items: [] },
-							breakfast2: { items: [] },
-							lunch: { items: [] },
-							afternoonSnack: { items: [] },
-							dinner: { items: [] },
-							dinner2: { items: [] }
-						};
+					// ИЗМЕНЕНИЕ: Проверяем, нужно ли создавать новую запись
+					// Только если это НЕ тот же самый день, что и текущий
+					if (currentWeek !== weekNum || currentDay !== dayNum) {
+						console.log(`  -> Новая неделя/день: неделя ${weekNum}, день ${dayNum}`);
+						
+						if (!templateMenuData.weeks[weekNum]) {
+							templateMenuData.weeks[weekNum] = {};
+						}
+						
+						if (!templateMenuData.weeks[weekNum][dayNum]) {
+							templateMenuData.weeks[weekNum][dayNum] = {
+								breakfast: { items: [] },
+								breakfast2: { items: [] },
+								lunch: { items: [] },
+								afternoonSnack: { items: [] },
+								dinner: { items: [] },
+								dinner2: { items: [] }
+							};
+						}
+						
+						currentWeek = weekNum;
+						currentDay = dayNum;
+						breakfastCount = 0; // Сбрасываем счетчик завтраков для нового дня
+					} else {
+						console.log(`  -> Продолжение того же дня: неделя ${weekNum}, день ${dayNum}`);
 					}
 				}
 				
-				// 2. Проверяем прием пищи (столбец C)
-				const mealCell = row[2] ? row[2].toString().trim() : '';
-				if (mealCell && mealCell !== '') {
-					const mealLower = mealCell.toLowerCase();
+				// 2. Проверяем столбец C на прием пищи
+				if (row[2] !== undefined && row[2] !== '') {
+					const mealType = row[2].toString().toLowerCase().trim();
+					console.log(`  -> Найден прием пищи в столбце C: "${row[2]}"`);
 					
-					// Определяем тип приема пищи
-					if (mealLower.includes('завтрак')) {
-						if (foundBreakfast) {
-							currentMeal = 'breakfast2';
-						} else {
-							currentMeal = 'breakfast';
-							foundBreakfast = true;
-						}
-						console.log(`  -> Прием пищи: ${mealCell} -> ${currentMeal}`);
-					} else if (mealLower.includes('обед')) {
-						currentMeal = 'lunch';
-						console.log(`  -> Прием пищи: ${mealCell} -> ${currentMeal}`);
-					} else if (mealLower.includes('полдник')) {
-						currentMeal = 'afternoonSnack';
-						console.log(`  -> Прием пищи: ${mealCell} -> ${currentMeal}`);
-					} else if (mealLower.includes('ужин')) {
-						currentMeal = 'dinner';
-						console.log(`  -> Прием пищи: ${mealCell} -> ${currentMeal}`);
-					} else if (mealLower.includes('ужин 2') || mealLower.includes('второй ужин')) {
-						currentMeal = 'dinner2';
-						console.log(`  -> Прием пищи: ${mealCell} -> ${currentMeal}`);
-					} else if (mealLower.includes('итого') || mealLower.includes('среднее')) {
-						// Пропускаем итоговые строки
+					// Игнорируем строки с "итого" и "среднее"
+					if (mealType.includes('итого') || mealType.includes('среднее')) {
+						console.log(`  -> Игнорируем "${row[2]}"`);
 						currentMeal = null;
 						continue;
 					}
+					
+					// Определяем тип приема пищи
+					if (mealType.includes('завтрак')) {
+						breakfastCount++;
+						if (breakfastCount === 1) {
+							currentMeal = 'breakfast';
+						} else {
+							currentMeal = 'breakfast2';
+						}
+						console.log(`  -> Установлен ${currentMeal} (завтрак #${breakfastCount})`);
+					} else if (mealType.includes('обед')) {
+						currentMeal = 'lunch';
+						console.log(`  -> Установлен обед`);
+					} else if (mealType.includes('полдник')) {
+						currentMeal = 'afternoonSnack';
+						console.log(`  -> Установлен полдник`);
+					} else if (mealType.includes('ужин')) {
+						if (currentMeal === 'dinner') {
+							currentMeal = 'dinner2';
+						} else {
+							currentMeal = 'dinner';
+						}
+						console.log(`  -> Установлен ${currentMeal}`);
+					}
 				}
 				
-				// 3. Если у нас есть текущий день и прием пищи, проверяем наличие блюда
-				if (currentWeek && currentDay && currentMeal) {
-					const section = row[3] ? row[3].toString().trim() : '';
-					const dishName = row[4] ? row[4].toString().trim() : '';
+				// 3. Если есть текущий прием пищи, проверяем есть ли блюдо
+				if (currentMeal && currentWeek && currentDay) {
+					const hasSection = row[3] !== undefined && row[3] !== '';
+					const hasDish = row[4] !== undefined && row[4] !== '';
 					
-					// Пропускаем пустые строки и строки с "итого"
-					if ((!section && !dishName) || 
-						(section && section.toLowerCase().includes('итого')) ||
-						(dishName && dishName.toLowerCase().includes('итого'))) {
-						continue;
-					}
+					console.log(`  -> Проверка блюда: раздел=${hasSection ? '"' + row[3] + '"' : 'нет'}, блюдо=${hasDish ? '"' + row[4] + '"' : 'нет'}`);
 					
-					// Пропускаем блюда в квадратных скобках и пустые блюда
-					if (dishName && (dishName.trim() === '' || 
-									 dishName.trim().startsWith('[') || 
-									 dishName.trim() === '[')) {
-						console.log(`    -> Пропущено блюдо: "${dishName}"`);
-						continue;
-					}
-					
-					// Если есть блюдо или раздел, добавляем его
-					if (dishName || section) {
-						// Создаем объект блюда
-						const dish = {
-							section: normalizeSectionName(section),
-							originalSection: section,
-							name: dishName || '',
-							weight: parseFloat(row[5]) || 0,
-							proteins: parseFloat(row[6]) || 0,
-							fats: parseFloat(row[7]) || 0,
-							carbs: parseFloat(row[8]) || 0,
-							calories: parseFloat(row[9]) || 0,
-							recipeId: row[10] ? row[10].toString().trim() : '',
-							price: parseFloat(row[11]) || 0
-						};
+					if (hasSection || hasDish) {
+						const originalSection = hasSection ? row[3].toString().trim() : '';
+						const dishName = hasDish ? row[4].toString().trim() : '';
 						
-						// Пропускаем, если название пустое или только пробелы
-						if (!dish.name || dish.name.trim() === '') {
-							console.log(`    -> Пропущено пустое блюдо`);
+						if ((originalSection && originalSection.toLowerCase().includes('итого')) ||
+							(dishName && dishName.toLowerCase().includes('итого'))) {
+							console.log(`  -> Пропускаем "итого"`);
 							continue;
 						}
 						
-						// Добавляем блюдо в соответствующий прием пищи
-						if (templateMenuData.weeks[currentWeek] && 
-							templateMenuData.weeks[currentWeek][currentDay] &&
-							templateMenuData.weeks[currentWeek][currentDay][currentMeal]) {
+						if (originalSection || dishName) {
+							const normalizedSection = normalizeSectionName(originalSection);
 							
-							// Проверяем, нет ли дубликата
-							const existingItems = templateMenuData.weeks[currentWeek][currentDay][currentMeal].items;
-							const isDuplicate = existingItems.some(item => 
-								item.name === dish.name && item.section === dish.section
-							);
+							const dish = {
+								section: normalizedSection,
+								originalSection: originalSection,
+								name: dishName || `[${originalSection || 'без названия'}]`,
+								weight: parseFloat(row[5]) || 0,
+								proteins: parseFloat(row[6]) || 0,
+								fats: parseFloat(row[7]) || 0,
+								carbs: parseFloat(row[8]) || 0,
+								calories: parseFloat(row[9]) || 0,
+								recipeId: row[10] ? row[10].toString().trim() : '',
+								price: parseFloat(row[11]) || 0
+							};
 							
-							if (!isDuplicate) {
-								templateMenuData.weeks[currentWeek][currentDay][currentMeal].items.push(dish);
-								console.log(`    -> Добавлено блюдо в ${currentMeal}: "${dish.name.substring(0, 30)}..."`);
+							if (templateMenuData.weeks[currentWeek] && 
+								templateMenuData.weeks[currentWeek][currentDay] &&
+								templateMenuData.weeks[currentWeek][currentDay][currentMeal]) {
+								
+								const existingItem = templateMenuData.weeks[currentWeek][currentDay][currentMeal].items
+									.find(item => item.name === dish.name && item.section === normalizedSection);
+								
+								if (!existingItem) {
+									templateMenuData.weeks[currentWeek][currentDay][currentMeal].items.push(dish);
+									console.log(`  -> ДОБАВЛЕНО: ${currentMeal}: "${dishName || originalSection}"`);
+								}
 							}
 						}
 					}
@@ -2776,33 +2792,19 @@
 			}
 			
 			console.log("=== ЗАВЕРШЕНИЕ ПАРСИНГА ===");
+			console.log("Результат парсинга:", templateMenuData);
 			
-			// ВЫВОДИМ РЕЗУЛЬТАТЫ ДЛЯ ПРОВЕРКИ
-			console.log("=== РЕЗУЛЬТАТЫ ПАРСИНГА ===");
+			// Проверяем, что все получилось
 			for (const weekNum in templateMenuData.weeks) {
-				console.log(`\nНеделя ${weekNum}:`);
+				console.log(`Неделя ${weekNum}:`);
 				for (const dayNum in templateMenuData.weeks[weekNum]) {
 					const day = templateMenuData.weeks[weekNum][dayNum];
 					console.log(`  День ${dayNum}:`);
-					
-					let totalDishes = 0;
 					for (const mealType in day) {
-						const items = day[mealType].items || [];
-						if (items.length > 0) {
-							const mealName = MEAL_TYPES[mealType] || mealType;
-							console.log(`    ${mealName}: ${items.length} блюд`);
-							totalDishes += items.length;
-							
-							// Выводим первые 2 блюда для проверки
-							items.slice(0, 2).forEach((item, idx) => {
-								console.log(`      ${idx+1}. ${item.name} [${item.section}]`);
-							});
-							if (items.length > 2) {
-								console.log(`      ... и еще ${items.length - 2} блюд`);
-							}
+						if (day[mealType].items.length > 0) {
+							console.log(`    ${mealType}: ${day[mealType].items.length} блюд`);
 						}
 					}
-					console.log(`    Всего блюд за день: ${totalDishes}`);
 				}
 			}
 			
@@ -2822,32 +2824,10 @@
 			
 			showStatus(`Типовое меню ФЦМПО загружено из файла ${fileName}`, 'success');
 			updateMenuPreview();
-			
-			// Дополнительная проверка для отладки
-			setTimeout(() => {
-				console.log("=== ПРОВЕРКА ОСОБО СЛОЖНЫХ ДНЕЙ ===");
-				
-				// Проверяем день, где могли быть проблемы
-				const testWeek = 1;
-				const testDay = 1;
-				
-				if (templateMenuData.weeks[testWeek] && templateMenuData.weeks[testWeek][testDay]) {
-					const testDayData = templateMenuData.weeks[testWeek][testDay];
-					console.log(`Данные для недели ${testWeek}, день ${testDay}:`);
-					
-					for (const mealType in testDayData) {
-						const items = testDayData[mealType].items || [];
-						if (items.length > 0) {
-							console.log(`  ${mealType} (${items.length} блюд):`);
-							items.forEach(item => {
-								console.log(`    - ${item.name} [${item.section}] ${item.weight}г`);
-							});
-						}
-					}
-				}
-			}, 1000);
-		}
-
+		}    
+	 
+		// Создание данных с правильной структурой согласно ФЦМПО
+		// Создание данных с правильной структурой согласно ФЦМПО
 		// Создание данных с правильной структурой согласно ФЦМПО
 		function createExcelDataWithProperStructure(menu) {
 			const data = [];
@@ -3529,39 +3509,31 @@
 			// Функция для добавления приема пищи ВСЕГДА со всеми разделами структуры
 			const addMeal = (mealName, mealType, items, alwaysShow = false) => {
 				const mealItems = items || [];
+				const structure = MEAL_STRUCTURE[mealType];
 				
-				// Фильтруем блюда: убираем пустые и блюда в квадратных скобках
-				const realItems = mealItems.filter(item => {
-					const name = item.name || '';
-					return name && 
-						   name.trim() !== '' && 
-						   !name.trim().startsWith('[') && 
-						   name.trim() !== '[';
-				});
-				
-				const hasRealItems = realItems.length > 0;
-				
-				if (hasRealItems || alwaysShow) {
-					const structure = MEAL_STRUCTURE[mealType];
+				if (alwaysShow || mealItems.length > 0) {
+					const sortedItems = sortMealItemsByStructure(mealItems, mealType);
 					
-					if (hasRealItems) {
+					if (sortedItems.length > 0) {
 						let isFirstItem = true;
 						
-						// Если есть реальные блюда - показываем их
-						for (const item of realItems) {
-							data.push([
-								isFirstItem ? mealName : "",
-								item.originalSection || item.section || "",
-								item.recipeId || "",
-								item.name || "",
-								item.weight || "",
-								item.price || "",
-								item.calories || "",
-								item.proteins || "",
-								item.fats || "",
-								item.carbs || ""
-							]);
-							isFirstItem = false;
+						// Если есть блюда - показываем их
+						for (const item of sortedItems) {
+							if (item.name && item.name.trim() !== '') {
+								data.push([
+									isFirstItem ? mealName : "",
+									item.originalSection || item.section || "",
+									item.recipeId || "",
+									item.name || "",
+									item.weight || "",
+									item.price || "",
+									item.calories || "",
+									item.proteins || "",
+									item.fats || "",
+									item.carbs || ""
+								]);
+								isFirstItem = false;
+							}
 						}
 						
 						// Пустая строка после приема пищи
@@ -3569,9 +3541,18 @@
 							data.push(["", "", "", "", "", "", "", "", "", ""]);
 						}
 					} else if (alwaysShow) {
-						// Если всегда показываем (первые 3 приема пищи), но нет реальных блюд
-						// Добавляем только заголовок приема пищи
+						// Если всегда показываем (первые 3 приема пищи), но нет блюд
+						// Создаем все разделы структуры пустыми
 						data.push([mealName, "", "", "", "", "", "", "", "", ""]);
+						
+						// Можно добавить пустые строки для каждого раздела структуры
+						const structure = MEAL_STRUCTURE[mealType];
+						if (structure) {
+							for (const section of structure.sections) {
+								data.push(["", section, "", "", "", "", "", "", "", ""]);
+							}
+						}
+						
 						data.push(["", "", "", "", "", "", "", "", "", ""]);
 					}
 				}
@@ -3582,7 +3563,7 @@
 			addMeal('Завтрак 2', 'breakfast2', menu.breakfast2?.items || [], true);
 			addMeal('Обед', 'lunch', menu.lunch?.items || [], true);
 			
-			// Остальные показываем только если есть реальные блюда
+			// Остальные показываем только если есть блюда
 			addMeal('Полдник', 'afternoonSnack', menu.afternoonSnack?.items || [], false);
 			addMeal('Ужин', 'dinner', menu.dinner?.items || [], false);
 			addMeal('Ужин 2', 'dinner2', menu.dinner2?.items || [], false);
