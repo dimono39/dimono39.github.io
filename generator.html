@@ -1573,7 +1573,7 @@
                 <i class="fas fa-file-excel floating"></i>
                 <h3>Перетащите файлы Excel ФЦМПО сюда</h3>
                 <p>или нажмите для выбора файлов</p>
-                <p class="file-size" style="margin-top: 10px;">Требуемые файлы: kpl2026.xlsx (календарь), tm2026-sm.xlsx (типовое меню)</p>
+                <p class="file-size" style="margin-top: 10px;">Требуемые файлы: kp2026.xlsx (календарь), tm2026-sm.xlsx (типовое меню)</p>
                 <input type="file" id="fileInput" class="file-input" multiple accept=".xlsx,.xls">
             </div>
             
@@ -1687,7 +1687,7 @@
                     <span>Календарь питания ФЦМПО</span>
                     <span id="calendarYearBadge" class="year-badge" style="display: none;">2026</span>
                 </div>
-                <div id="calendarData">Загрузите файл календаря питания (kpl2026.xlsx)</div>
+                <div id="calendarData">Загрузите файл календаря питания (kp2026.xlsx)</div>
             </div>
             
             <div class="data-preview" id="menuPreview">
@@ -1832,7 +1832,7 @@
     
     <footer>
         <p>© 2026 Генератор школьного питания (ФЦМПО-совместимый). Для корректной работы загрузите файлы в формате Excel</p>
-        <p>Формат имен файлов ФЦМПО: kpl2026.xlsx (календарь), tm2026-sm.xlsx (типовое меню)</p>
+        <p>Формат имен файлов ФЦМПО: kp2026.xlsx (календарь), tm2026-sm.xlsx (типовое меню)</p>
         <p>Сайт сверстал для Вас Дмитрий Алексеевич :)</p>
         <p style="margin-top: 10px; font-size: 0.85rem;">
             <i class="fas fa-info-circle"></i> Соответствует требованиям автоматизированного мониторинга питания обучающихся ФЦМПО
@@ -1858,7 +1858,7 @@
         
         // Правильные имена файлов согласно инструкции ФЦМПО
         const REQUIRED_FILES = {
-            calendar: 'kpl2026.xlsx', // Исправлено: kp2026.xlsx → kpl2026.xlsx
+            calendar: 'kp2026.xlsx', // Исправлено: kp2026.xlsx → kp2026.xlsx
             template: 'tm2026-sm.xlsx' // Оставить как есть
         };
         
@@ -2117,7 +2117,7 @@
                         const fileNameLower = file.name.toLowerCase();
                         
                         // Проверяем правильные имена файлов ФЦМПО
-                        if (fileNameLower.includes('kpl') && file.name.match(/\d{4}/)) {
+                        if (fileNameLower.includes('kp') && file.name.match(/\d{4}/)) {
                             fileType = 'calendar';
                             processCalendarFile(workbook, file.name);
                         } else if (fileNameLower.includes('tm') && fileNameLower.includes('-sm')) {
@@ -2158,7 +2158,7 @@
                         }
                         
                         // Проверяем соответствие ожидаемым именам файлов ФЦМПО
-                        if (fileType === 'calendar' && !fileNameLower.includes('kpl')) {
+                        if (fileType === 'calendar' && !fileNameLower.includes('kp')) {
                             showStatus(`Рекомендуемое имя файла календаря: ${REQUIRED_FILES.calendar}`, 'warning');
                         }
                         
@@ -3120,7 +3120,7 @@
                 if (hasCalendar && !hasTemplate) {
                     showStatus('Загрузите файл типового меню ФЦМПО (tm2026-sm.xlsx)', 'info');
                 } else if (!hasCalendar && hasTemplate) {
-                    showStatus('Загрузите файл календаря питания ФЦМПО (kpl2026.xlsx)', 'info');
+                    showStatus('Загрузите файл календаря питания ФЦМПО (kp2026.xlsx)', 'info');
                 } else {
                     showStatus('Загрузите файлы календаря питания и типового меню ФЦМПО', 'info');
                 }
@@ -4785,7 +4785,7 @@
                         </div>
                     </div>
                     <p style="margin-top: 15px; color: #6c757d; padding: 10px; background: #f8f9fa; border-radius: 4px;">
-                        <i class="fas fa-info-circle"></i> <em>Демо-данные. Загрузите файл календаря питания ФЦМПО (kpl2026.xlsx)</em>
+                        <i class="fas fa-info-circle"></i> <em>Демо-данные. Загрузите файл календаря питания ФЦМПО (kp2026.xlsx)</em>
                     </p>
                 `;
                 
