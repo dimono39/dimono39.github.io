@@ -1,0 +1,3128 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mind Map Assistant для учителя</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+	<script src="https://cdn.jsdelivr.net/npm/canvas2image@1.0.5/canvas2image.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" integrity="sha512-BNaRQnYJYiPSqHHDb58B0yaPfCu+Wgds8Gp/gU33kqBtgNS4tSPHuGibyoeqMV/TJlSKda6FXzoEyYGjTe+vXA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            color: #333;
+            min-height: 100vh;
+            padding: 20px;
+            overflow: hidden;
+        }
+
+        .container {
+            max-width: 1800px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            height: calc(100vh - 40px);
+        }
+
+        header {
+            background-color: #2c3e50;
+            color: white;
+            padding: 20px;
+            border-radius: 10px 10px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            font-size: 1.8rem;
+        }
+
+        h1 i {
+            color: #3498db;
+            margin-right: 10px;
+        }
+
+        .header-controls {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .teacher-info {
+            background-color: #34495e;
+            padding: 8px 15px;
+            border-radius: 5px;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .autosave-status {
+            font-size: 0.8rem;
+            color: #2ecc71;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .main-content {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+            background-color: white;
+            border-radius: 0 0 10px 10px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .sidebar {
+            width: 320px;
+            background-color: #f8f9fa;
+            padding: 20px;
+            overflow-y: auto;
+            border-right: 1px solid #eaeaea;
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+        }
+
+        .mindmap-container {
+            flex: 1;
+            overflow: hidden;
+            position: relative;
+            background-color: #f9f9f9;
+        }
+
+        .mindmap-wrapper {
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            position: relative;
+        }
+
+        .panel {
+            margin-bottom: 25px;
+        }
+
+        .panel-title {
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 12px;
+            padding-bottom: 5px;
+            border-bottom: 2px solid #3498db;
+            display: flex;
+            align-items: center;
+        }
+
+        .panel-title i {
+            margin-right: 8px;
+            color: #3498db;
+        }
+
+        .tool-button {
+            display: flex;
+            align-items: center;
+            width: 100%;
+            padding: 12px 15px;
+            margin-bottom: 10px;
+            background-color: white;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: #333;
+            text-align: left;
+        }
+
+        .tool-button:hover {
+            background-color: #3498db;
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(52, 152, 219, 0.2);
+        }
+
+        .tool-button.active {
+            background-color: #3498db;
+            color: white;
+            box-shadow: 0 0 0 2px #2980b9;
+        }
+
+        .tool-button i {
+            margin-right: 10px;
+            width: 20px;
+        }
+
+        .color-options {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .color-option {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: transform 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 0.8rem;
+        }
+
+        .color-option:hover {
+            transform: scale(1.1);
+        }
+
+        .color-option.selected {
+            border-color: #2c3e50;
+            transform: scale(1.1);
+        }
+
+        .node-form {
+            display: none;
+            background-color: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            margin-top: 10px;
+            border: 1px solid #ddd;
+        }
+
+        .node-form.active {
+            display: block;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            color: #2c3e50;
+        }
+
+        input, select, textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .btn {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background-color 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-sm {
+            padding: 6px 12px;
+            font-size: 0.9rem;
+        }
+
+        .btn-primary {
+            background-color: #3498db;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: #2980b9;
+        }
+
+        .btn-secondary {
+            background-color: #95a5a6;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background-color: #7f8c8d;
+        }
+
+        .btn-success {
+            background-color: #2ecc71;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background-color: #27ae60;
+        }
+
+        .btn-danger {
+            background-color: #e74c3c;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background-color: #c0392b;
+        }
+
+        #mindmap {
+            width: 5000px;
+            height: 5000px;
+            position: relative;
+            background-image: 
+                linear-gradient(rgba(0,0,0,0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0,0,0,0.03) 1px, transparent 1px);
+            background-size: 50px 50px;
+            transform-origin: 0 0;
+            transition: transform 0.1s linear;
+            will-change: transform;
+        }
+
+        .node {
+            position: absolute;
+            padding: 12px 18px;
+            border-radius: 8px;
+            cursor: move;
+            max-width: 280px;
+            min-width: 140px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            transition: box-shadow 0.2s, z-index 0.2s;
+            z-index: 1;
+            border: 2px solid transparent;
+            user-select: none;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            will-change: left, top;
+            transform: translate3d(0, 0, 0);
+            backface-visibility: hidden;
+            -webkit-backface-visibility: hidden;
+        }
+
+        .node:hover {
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+            z-index: 10;
+        }
+
+        .node.selected {
+            box-shadow: 0 0 0 3px #3498db, 0 6px 20px rgba(0, 0, 0, 0.2);
+            z-index: 100;
+        }
+
+        .node.dragging {
+            opacity: 0.9;
+            z-index: 1000;
+            cursor: grabbing;
+        }
+
+        .node-header {
+            font-weight: 600;
+            margin-bottom: 5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .node-type {
+            font-size: 0.7rem;
+            padding: 2px 8px;
+            border-radius: 10px;
+            background-color: rgba(255, 255, 255, 0.7);
+        }
+
+        .node-content {
+            font-size: 0.9rem;
+            line-height: 1.4;
+            margin-bottom: 5px;
+            overflow: hidden;
+            max-height: 100px;
+        }
+
+        .node-footer {
+            font-size: 0.75rem;
+            color: rgba(0, 0, 0, 0.6);
+            margin-top: 5px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .node-icons {
+            display: flex;
+            gap: 5px;
+            margin-top: 5px;
+        }
+
+        .node-icon {
+            font-size: 0.8rem;
+            opacity: 0.7;
+        }
+
+        .connection {
+            position: absolute;
+            height: 3px;
+            background-color: #7f8c8d;
+            transform-origin: 0 0;
+            z-index: 0;
+            pointer-events: none;
+            will-change: transform;
+        }
+
+        .connection.dashed {
+            background: repeating-linear-gradient(
+                to right,
+                #7f8c8d,
+                #7f8c8d 5px,
+                transparent 5px,
+                transparent 10px
+            );
+        }
+
+        .connection.dotted {
+            background: repeating-linear-gradient(
+                to right,
+                #7f8c8d,
+                #7f8c8d 2px,
+                transparent 2px,
+                transparent 4px
+            );
+        }
+
+        .controls {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .export-options {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .export-btn {
+            flex: 1;
+            padding: 8px;
+            font-size: 0.9rem;
+        }
+
+        .node-count {
+            background-color: #2c3e50;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            margin-left: 10px;
+        }
+
+        .zoom-controls {
+            position: absolute;
+            bottom: 30px;
+            right: 30px;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            z-index: 1000;
+        }
+
+        .zoom-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: white;
+            border: 1px solid #ddd;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            transition: all 0.2s;
+        }
+
+        .zoom-btn:hover {
+            background-color: #3498db;
+            color: white;
+            transform: scale(1.1);
+        }
+
+        .zoom-level {
+            position: absolute;
+            bottom: 120px;
+            right: 30px;
+            background-color: white;
+            padding: 8px 12px;
+            border-radius: 20px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        .templates-panel {
+            display: none;
+            margin-top: 15px;
+        }
+
+        .templates-panel.active {
+            display: block;
+        }
+
+        .template-item {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .template-item:hover {
+            background-color: #e8f4fc;
+            border-color: #3498db;
+        }
+
+        .template-title {
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .template-desc {
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        .notifications {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 10000;
+        }
+
+        .notification {
+            background-color: white;
+            padding: 15px 20px;
+            border-radius: 8px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            min-width: 300px;
+            transform: translateX(400px);
+            transition: transform 0.3s;
+        }
+
+        .notification.show {
+            transform: translateX(0);
+        }
+
+        .notification i {
+            font-size: 1.2rem;
+        }
+
+        .notification.success {
+            border-left: 4px solid #2ecc71;
+        }
+
+        .notification.success i {
+            color: #2ecc71;
+        }
+
+        .notification.info {
+            border-left: 4px solid #3498db;
+        }
+
+        .notification.info i {
+            color: #3498db;
+        }
+
+        .notification.warning {
+            border-left: 4px solid #f39c12;
+        }
+
+        .notification.warning i {
+            color: #f39c12;
+        }
+
+        .connection-type-selector {
+            display: flex;
+            gap: 5px;
+            margin-top: 10px;
+        }
+
+        .connection-type {
+            padding: 5px 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8rem;
+        }
+
+        .connection-type.active {
+            background-color: #3498db;
+            color: white;
+            border-color: #3498db;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 10000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .modal-title {
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+            color: #2c3e50;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .import-export-section {
+            margin-bottom: 20px;
+        }
+
+        .import-export-section h3 {
+            margin-bottom: 10px;
+            color: #2c3e50;
+        }
+
+        .saved-maps {
+            margin-top: 20px;
+        }
+
+        .saved-map-item {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .saved-map-info {
+            flex: 1;
+        }
+
+        .saved-map-name {
+            font-weight: 600;
+        }
+
+        .saved-map-details {
+            font-size: 0.8rem;
+            color: #666;
+            margin-top: 3px;
+        }
+
+        .saved-map-actions {
+            display: flex;
+            gap: 5px;
+        }
+
+        /* AI-specific styles */
+        .ai-suggestion {
+            background-color: #e8f4fc;
+            border-left: 4px solid #3498db;
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 0 5px 5px 0;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .ai-suggestion:hover {
+            background-color: #d4e7f7;
+            transform: translateX(5px);
+        }
+
+        .ai-node {
+            border: 2px dashed #3498db;
+        }
+
+        .ai-generated {
+            position: relative;
+        }
+
+        .ai-generated::after {
+            content: "🤖";
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            font-size: 12px;
+            background: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 10px;
+            background-color: #eee;
+            border-radius: 5px;
+            margin: 10px 0;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background-color: #3498db;
+            transition: width 0.3s;
+        }
+
+        .ai-response {
+            background-color: #f8f9fa;
+            border: 1px solid #eaeaea;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 10px;
+            max-height: 300px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            font-family: monospace;
+            font-size: 0.9rem;
+        }
+
+        @media (max-width: 1200px) {
+            .main-content {
+                flex-direction: column;
+            }
+            
+            .sidebar {
+                width: 100%;
+                border-right: none;
+                border-bottom: 1px solid #eaeaea;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1><i class="fas fa-brain"></i> Mind Map Assistant для учителя</h1>
+            <div class="header-controls">
+                <div class="teacher-info">
+                    <i class="fas fa-user"></i> 
+                    <select id="teacherSelect">
+                        <option value="Анна Петрова">Анна Петрова (История)</option>
+                        <option value="Иван Сидоров">Иван Сидоров (Математика)</option>
+                        <option value="Мария Иванова">Мария Иванова (Литература)</option>
+                        <option value="Сергей Козлов">Сергей Козлов (Физика)</option>
+                    </select>
+                </div>
+                <div class="autosave-status" id="autosaveStatus">
+                    <i class="fas fa-save"></i> Автосохранение включено
+                </div>
+                <button class="btn btn-primary btn-sm" id="saveManualBtn">
+                    <i class="fas fa-save"></i> Сохранить сейчас
+                </button>
+                <button class="btn btn-success btn-sm" id="loadBtn">
+                    <i class="fas fa-folder-open"></i> Загрузить
+                </button>
+                <button class="btn btn-danger btn-sm" id="clearBtn">
+                    <i class="fas fa-trash"></i> Очистить
+                </button>
+                <button class="btn btn-secondary btn-sm" id="manageDataBtn">
+                    <i class="fas fa-database"></i> Управление
+                </button>
+                <button class="btn btn-primary btn-sm" id="aiSettingsBtn">
+                    <i class="fas fa-robot"></i> AI Настройки
+                </button>
+            </div>
+        </header>
+        
+        <div class="main-content">
+            <div class="sidebar">
+                <div class="panel">
+                    <div class="panel-title">
+                        <i class="fas fa-plus-circle"></i> Создать элемент
+                        <span class="node-count" id="nodeCount">5</span>
+                    </div>
+                    <button class="tool-button" id="addTopicBtn">
+                        <i class="fas fa-book"></i> Добавить тему урока
+                    </button>
+                    <button class="tool-button" id="addTaskBtn">
+                        <i class="fas fa-tasks"></i> Добавить задачу
+                    </button>
+                    <button class="tool-button" id="addResourceBtn">
+                        <i class="fas fa-link"></i> Добавить ресурс
+                    </button>
+                    <button class="tool-button" id="addNoteBtn">
+                        <i class="fas fa-sticky-note"></i> Добавить заметку
+                    </button>
+                    <button class="tool-button" id="addAssessmentBtn">
+                        <i class="fas fa-check-circle"></i> Добавить оценку
+                    </button>
+                    
+                    <div class="node-form" id="nodeForm">
+                        <div class="form-group">
+                            <label for="nodeTitle">Заголовок</label>
+                            <input type="text" id="nodeTitle" placeholder="Введите заголовок">
+                        </div>
+                        <div class="form-group">
+                            <label for="nodeContent">Описание</label>
+                            <textarea id="nodeContent" placeholder="Введите описание"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="nodeColor">Цвет элемента</label>
+                            <div class="color-options">
+                                <div class="color-option selected" style="background-color: #3498db;" data-color="#3498db" title="Синий - темы">
+                                    <i class="fas fa-book"></i>
+                                </div>
+                                <div class="color-option" style="background-color: #2ecc71;" data-color="#2ecc71" title="Зеленый - задачи">
+                                    <i class="fas fa-tasks"></i>
+                                </div>
+                                <div class="color-option" style="background-color: #e74c3c;" data-color="#e74c3c" title="Красный - важное">
+                                    <i class="fas fa-exclamation"></i>
+                                </div>
+                                <div class="color-option" style="background-color: #f39c12;" data-color="#f39c12" title="Оранжевый - заметки">
+                                    <i class="fas fa-sticky-note"></i>
+                                </div>
+                                <div class="color-option" style="background-color: #9b59b6;" data-color="#9b59b6" title="Фиолетовый - ресурсы">
+                                    <i class="fas fa-link"></i>
+                                </div>
+                                <div class="color-option" style="background-color: #1abc9c;" data-color="#1abc9c" title="Бирюзовый - оценки">
+                                    <i class="fas fa-check-circle"></i>
+                                </div>
+                                <div class="color-option" style="background-color: #34495e;" data-color="#34495e" title="Темный - структура">
+                                    <i class="fas fa-sitemap"></i>
+                                </div>
+                                <div class="color-option" style="background-color: #e67e22;" data-color="#e67e22" title="Морковный - проекты">
+                                    <i class="fas fa-project-diagram"></i>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="nodeIcon">Иконка</label>
+                            <select id="nodeIcon">
+                                <option value="">Без иконки</option>
+                                <option value="fa-book">Книга</option>
+                                <option value="fa-video">Видео</option>
+                                <option value="fa-file-pdf">PDF</option>
+                                <option value="fa-link">Ссылка</option>
+                                <option value="fa-question">Вопрос</option>
+                                <option value="fa-lightbulb">Идея</option>
+                                <option value="fa-exclamation">Важно</option>
+                                <option value="fa-check-circle">Проверка</option>
+                                <option value="fa-users">Студенты</option>
+                                <option value="fa-chart-line">График</option>
+                                <option value="fa-calendar-alt">Календарь</option>
+                                <option value="fa-clock">Время</option>
+                            </select>
+                        </div>
+                        <div class="controls">
+                            <button class="btn btn-secondary" id="cancelBtn">Отмена</button>
+                            <button class="btn btn-primary" id="saveBtn">Сохранить</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="panel">
+                    <div class="panel-title">
+                        <i class="fas fa-robot"></i> AI Assistant (Yandex GPT)
+                    </div>
+                    <button class="tool-button" id="aiGenerateIdeasBtn">
+                        <i class="fas fa-lightbulb"></i> Сгенерировать идеи
+                    </button>
+                    <button class="tool-button" id="aiImproveTextBtn">
+                        <i class="fas fa-magic"></i> Улучшить текст
+                    </button>
+                    <button class="tool-button" id="aiCreateStructureBtn">
+                        <i class="fas fa-sitemap"></i> Создать структуру
+                    </button>
+                    <button class="tool-button" id="aiSummarizeBtn">
+                        <i class="fas fa-compress-alt"></i> Суммаризировать
+                    </button>
+                    <button class="tool-button" id="aiTranslateBtn">
+                        <i class="fas fa-language"></i> Перевести
+                    </button>
+                    <div class="form-group" style="margin-top: 10px;">
+                        <label for="aiPrompt">Запрос к AI:</label>
+                        <textarea id="aiPrompt" placeholder="Введите запрос для AI..." rows="2"></textarea>
+                        <button class="btn btn-primary" id="aiSendBtn" style="width: 100%; margin-top: 5px;">
+                            <i class="fas fa-paper-plane"></i> Отправить запрос
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="panel">
+                    <div class="panel-title">
+                        <i class="fas fa-palette"></i> Настройки отображения
+                    </div>
+                    <button class="tool-button" id="connectNodesBtn">
+                        <i class="fas fa-project-diagram"></i> Соединить элементы
+                    </button>
+                    <div class="connection-type-selector">
+                        <div class="connection-type active" data-type="solid">Сплошная</div>
+                        <div class="connection-type" data-type="dashed">Пунктир</div>
+                        <div class="connection-type" data-type="dotted">Точечная</div>
+                    </div>
+                    <button class="tool-button" id="changeColorBtn">
+                        <i class="fas fa-fill-drip"></i> Изменить цвет
+                    </button>
+                    <button class="tool-button" id="changeIconBtn">
+                        <i class="fas fa-icons"></i> Изменить иконку
+                    </button>
+                    <button class="tool-button" id="deleteNodeBtn">
+                        <i class="fas fa-trash"></i> Удалить элемент
+                    </button>
+                    <button class="tool-button" id="templatesBtn">
+                        <i class="fas fa-layer-group"></i> Шаблоны
+                    </button>
+                </div>
+                
+                <div class="templates-panel" id="templatesPanel">
+                    <div class="template-item" data-template="lesson">
+                        <div class="template-title">Структура урока</div>
+                        <div class="template-desc">Цели, материалы, задания, оценка</div>
+                    </div>
+                    <div class="template-item" data-template="topic">
+                        <div class="template-title">Тема недели</div>
+                        <div class="template-desc">Подтемы, ресурсы, контрольные точки</div>
+                    </div>
+                    <div class="template-item" data-template="project">
+                        <div class="template-title">Учебный проект</div>
+                        <div class="template-desc">Этапы, участники, ресурсы, сроки</div>
+                    </div>
+                    <div class="template-item" data-template="assessment">
+                        <div class="template-title">Система оценивания</div>
+                        <div class="template-desc">Критерии, задания, веса, шкалы</div>
+                    </div>
+                    <div class="template-item" data-template="brainstorm">
+                        <div class="template-title">Мозговой штурм</div>
+                        <div class="template-desc">Идеи, категории, приоритеты</div>
+                    </div>
+                </div>
+                
+                <div class="panel">
+                    <div class="panel-title">
+                        <i class="fas fa-download"></i> Экспорт карты
+                    </div>
+                    <div class="export-options">
+                        <button class="btn btn-primary export-btn" id="exportImageBtn">
+                            <i class="fas fa-file-image"></i> Изображение (PNG)
+                        </button>
+                        <button class="btn btn-primary export-btn" id="exportPDFBtn">
+                            <i class="fas fa-file-pdf"></i> PDF документ
+                        </button>
+                        <button class="btn btn-primary export-btn" id="exportDataBtn">
+                            <i class="fas fa-file-code"></i> Данные (JSON)
+                        </button>
+                        <button class="btn btn-primary export-btn" id="exportPrintBtn">
+                            <i class="fas fa-print"></i> Печать
+                        </button>
+                        <button class="btn btn-success export-btn" id="exportShareBtn">
+                            <i class="fas fa-share-alt"></i> Поделиться
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="panel">
+                    <div class="panel-title">
+                        <i class="fas fa-search"></i> Поиск по карте
+                    </div>
+                    <div class="form-group">
+                        <input type="text" id="searchMap" placeholder="Введите текст для поиска...">
+                    </div>
+                    <div class="form-group">
+                        <button class="btn btn-secondary btn-sm" id="clearSearchBtn">
+                            <i class="fas fa-times"></i> Очистить поиск
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="panel">
+                    <div class="panel-title">
+                        <i class="fas fa-lightbulb"></i> Советы для учителя
+                    </div>
+                    <div style="font-size: 0.9rem; line-height: 1.5; color: #555;">
+                        <p><strong>✓</strong> Используйте разные цвета для разных типов контента</p>
+                        <p><strong>✓</strong> Связывайте связанные темы между собой</p>
+                        <p><strong>✓</strong> Экспортируйте карту для использования в презентациях</p>
+                        <p><strong>✓</strong> Добавляйте ссылки на ресурсы прямо в элементы</p>
+                        <p><strong>✓</strong> Используйте шаблоны для быстрого создания структур</p>
+                        <p><strong>✓</strong> Данные сохраняются автоматически при изменении</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mindmap-container">
+                <div class="mindmap-wrapper">
+                    <div id="mindmap">
+                        <!-- Здесь будут динамически добавляться элементы карты -->
+                    </div>
+                </div>
+                <div class="zoom-level" id="zoomLevel">100%</div>
+                <div class="zoom-controls">
+                    <div class="zoom-btn" id="zoomInBtn">
+                        <i class="fas fa-search-plus"></i>
+                    </div>
+                    <div class="zoom-btn" id="zoomOutBtn">
+                        <i class="fas fa-search-minus"></i>
+                    </div>
+                    <div class="zoom-btn" id="zoomResetBtn">
+                        <i class="fas fa-sync-alt"></i>
+                    </div>
+                    <div class="zoom-btn" id="centerMapBtn">
+                        <i class="fas fa-crosshairs"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно управления данными -->
+    <div class="modal" id="dataManagementModal">
+        <div class="modal-content">
+            <div class="modal-title">
+                <i class="fas fa-database"></i> Управление данными
+            </div>
+            
+            <div class="import-export-section">
+                <h3><i class="fas fa-upload"></i> Импорт данных</h3>
+                <div class="form-group">
+                    <label for="importFile">Выберите JSON файл для импорта:</label>
+                    <input type="file" id="importFile" accept=".json">
+                </div>
+                <button class="btn btn-primary" id="importBtn">
+                    <i class="fas fa-file-import"></i> Импортировать
+                </button>
+            </div>
+            
+            <div class="import-export-section">
+                <h3><i class="fas fa-download"></i> Экспорт данных</h3>
+                <p>Экспортируйте текущую карту в файл для резервного копирования или передачи:</p>
+                <button class="btn btn-success" id="exportCurrentBtn">
+                    <i class="fas fa-file-export"></i> Экспортировать текущую карту
+                </button>
+            </div>
+            
+            <div class="saved-maps">
+                <h3><i class="fas fa-history"></i> Сохраненные карты</h3>
+                <div id="savedMapsList">
+                    <!-- Список сохраненных карт будет загружен здесь -->
+                </div>
+            </div>
+            
+            <div class="modal-actions">
+                <button class="btn btn-secondary" id="closeModalBtn">Закрыть</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно настроек Yandex GPT -->
+    <div class="modal" id="aiSettingsModal">
+        <div class="modal-content">
+            <div class="modal-title">
+                <i class="fas fa-cogs"></i> Настройки Yandex GPT API
+            </div>
+            
+            <div class="form-group">
+                <label for="yandexApiKey">API Key Yandex Cloud:</label>
+                <input type="password" id="yandexApiKey" placeholder="Введите API ключ">
+                <small style="color: #666; font-size: 0.8rem;">Получите в <a href="https://console.cloud.yandex.ru/" target="_blank">Yandex Cloud Console</a></small>
+            </div>
+            
+            <div class="form-group">
+                <label for="yandexFolderId">Folder ID:</label>
+                <input type="text" id="yandexFolderId" placeholder="Идентификатор каталога">
+            </div>
+            
+            <div class="form-group">
+                <label for="gptModel">Модель:</label>
+                <select id="gptModel">
+                    <option value="yandexgpt">YandexGPT</option>
+                    <option value="yandexgpt-lite">YandexGPT Lite</option>
+                    <option value="summarization">Summarization</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" id="aiAutoSuggest" checked>
+                    Автопредложения при создании узлов
+                </label>
+            </div>
+            
+            <div class="modal-actions">
+                <button class="btn btn-secondary" id="testAiConnectionBtn">
+                    <i class="fas fa-plug"></i> Проверить подключение
+                </button>
+                <button class="btn btn-success" id="saveAiSettingsBtn">
+                    <i class="fas fa-save"></i> Сохранить
+                </button>
+                <button class="btn btn-danger" id="closeAiSettingsBtn">
+                    <i class="fas fa-times"></i> Закрыть
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно обработки AI -->
+    <div class="modal" id="aiProcessingModal">
+        <div class="modal-content">
+            <div class="modal-title">
+                <i class="fas fa-spinner fa-spin"></i> AI обрабатывает запрос
+            </div>
+            <div style="text-align: center; padding: 20px;">
+                <p id="aiProcessingText">Генерация контента...</p>
+                <div class="progress-bar" style="width: 100%; height: 10px; background-color: #eee; border-radius: 5px; margin-top: 20px; overflow: hidden;">
+                    <div id="aiProgress" style="width: 0%; height: 100%; background-color: #3498db; transition: width 0.3s;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="notifications" id="notifications"></div>
+
+    <script>
+        // Глобальные переменные
+        let nodes = [];
+        let connections = [];
+        let selectedNode = null;
+        let isConnectingMode = false;
+        let currentNodeType = 'topic';
+        let currentColor = '#3498db';
+        let currentConnectionType = 'solid';
+        let zoom = 1.0;
+        let currentTeacher = "Анна Петрова";
+        let currentSubject = "История";
+        let autosaveTimer = null;
+        
+        // AI переменные
+        let yandexApiKey = localStorage.getItem('yandexApiKey') || '';
+        let yandexFolderId = localStorage.getItem('yandexFolderId') || '';
+        let gptModel = localStorage.getItem('gptModel') || 'yandexgpt';
+        let aiAutoSuggest = localStorage.getItem('aiAutoSuggest') !== 'false';
+        
+        // Для перетаскивания узлов
+        let isDraggingNode = false;
+        let draggedNode = null;
+        let draggedNodeElement = null;
+        let dragStartX = 0;
+        let dragStartY = 0;
+        let nodeStartX = 0;
+        let nodeStartY = 0;
+        
+        // Для перетаскивания карты
+        let isDraggingMap = false;
+        let mapDragStartX = 0;
+        let mapDragStartY = 0;
+        let mapScrollStartX = 0;
+        let mapScrollStartY = 0;
+        
+        // DOM элементы
+        let mindmap, nodeForm, nodeTitle, nodeContent, nodeIcon, nodeCount, searchMap;
+        let templatesPanel, zoomLevel, notifications, dataManagementModal, mindmapWrapper;
+
+        document.addEventListener('DOMContentLoaded', function() {
+            // Получаем элементы DOM
+            mindmap = document.getElementById('mindmap');
+            mindmapWrapper = document.querySelector('.mindmap-wrapper');
+            nodeForm = document.getElementById('nodeForm');
+            nodeTitle = document.getElementById('nodeTitle');
+            nodeContent = document.getElementById('nodeContent');
+            nodeIcon = document.getElementById('nodeIcon');
+            nodeCount = document.getElementById('nodeCount');
+            searchMap = document.getElementById('searchMap');
+            templatesPanel = document.getElementById('templatesPanel');
+            zoomLevel = document.getElementById('zoomLevel');
+            notifications = document.getElementById('notifications');
+            dataManagementModal = document.getElementById('dataManagementModal');
+
+            // Инициализация
+            initializeEventListeners();
+            loadFromLocalStorage();
+            updateNodeCount();
+            
+            // Устанавливаем начальную позицию карты
+            mindmapWrapper.scrollLeft = 2000;
+            mindmapWrapper.scrollTop = 2000;
+        });
+
+        function initializeEventListeners() {
+            // Настройка цветовых опций
+            const colorOptions = document.querySelectorAll('.color-option');
+            colorOptions.forEach(option => {
+                option.addEventListener('click', function() {
+                    colorOptions.forEach(opt => opt.classList.remove('selected'));
+                    this.classList.add('selected');
+                    currentColor = this.getAttribute('data-color');
+                });
+            });
+            
+            // Настройка типа соединений
+            const connectionTypes = document.querySelectorAll('.connection-type');
+            connectionTypes.forEach(type => {
+                type.addEventListener('click', function() {
+                    connectionTypes.forEach(t => t.classList.remove('active'));
+                    this.classList.add('active');
+                    currentConnectionType = this.getAttribute('data-type');
+                });
+            });
+            
+            // Обработчики кнопок создания элементов
+            document.getElementById('addTopicBtn').addEventListener('click', () => openNodeForm('topic', 'Тема урока'));
+            document.getElementById('addTaskBtn').addEventListener('click', () => openNodeForm('task', 'Задача'));
+            document.getElementById('addResourceBtn').addEventListener('click', () => openNodeForm('resource', 'Ресурс'));
+            document.getElementById('addNoteBtn').addEventListener('click', () => openNodeForm('note', 'Заметка'));
+            document.getElementById('addAssessmentBtn').addEventListener('click', () => openNodeForm('assessment', 'Оценка'));
+            
+            // Обработчики других кнопок
+            document.getElementById('connectNodesBtn').addEventListener('click', toggleConnectingMode);
+            document.getElementById('changeColorBtn').addEventListener('click', changeNodeColor);
+            document.getElementById('changeIconBtn').addEventListener('click', changeNodeIcon);
+            document.getElementById('deleteNodeBtn').addEventListener('click', deleteSelectedNode);
+            document.getElementById('templatesBtn').addEventListener('click', toggleTemplatesPanel);
+            document.getElementById('clearSearchBtn').addEventListener('click', clearSearch);
+            document.getElementById('manageDataBtn').addEventListener('click', openDataManagementModal);
+            
+            // Обработчики AI кнопок
+            document.getElementById('aiSettingsBtn').addEventListener('click', openAiSettings);
+            document.getElementById('aiGenerateIdeasBtn').addEventListener('click', async () => {
+                const topic = prompt('Введите тему для генерации идей:');
+                if (topic) {
+                    const ideas = await generateIdeasForTopic(topic);
+                    if (ideas && Array.isArray(ideas)) {
+                        // Создаем узлы для каждой идеи
+                        ideas.forEach((idea, index) => {
+                            setTimeout(() => {
+                                createNodeFromIdea(idea, topic, index);
+                            }, index * 200);
+                        });
+                    }
+                }
+            });
+            
+            document.getElementById('aiImproveTextBtn').addEventListener('click', async () => {
+                if (!selectedNode) {
+                    showNotification('Выберите элемент для улучшения текста', 'warning');
+                    return;
+                }
+                
+                const node = nodes.find(n => n.id === selectedNode);
+                if (!node) return;
+                
+                const improvedText = await improveText(node.content);
+                if (improvedText) {
+                    node.content = improvedText;
+                    const nodeElement = document.getElementById(`node-${selectedNode}`);
+                    nodeElement.querySelector('.node-content').textContent = improvedText;
+                    scheduleAutosave();
+                    showNotification('Текст улучшен с помощью AI!', 'success');
+                }
+            });
+            
+            document.getElementById('aiCreateStructureBtn').addEventListener('click', async () => {
+                const topic = prompt('Введите тему для создания структуры:');
+                if (topic) {
+                    await createTopicStructure(topic);
+                }
+            });
+            
+            document.getElementById('aiSummarizeBtn').addEventListener('click', () => {
+                summarizeSelectedNodes();
+            });
+            
+            document.getElementById('aiTranslateBtn').addEventListener('click', async () => {
+                if (!selectedNode) {
+                    showNotification('Выберите элемент для перевода', 'warning');
+                    return;
+                }
+                
+                const node = nodes.find(n => n.id === selectedNode);
+                if (!node) return;
+                
+                const targetLang = confirm('Перевести на английский? (OK - английский, Отмена - русский)') ? 'en' : 'ru';
+                const translated = await translateContent(node.content, targetLang);
+                
+                if (translated) {
+                    node.content = translated;
+                    const nodeElement = document.getElementById(`node-${selectedNode}`);
+                    nodeElement.querySelector('.node-content').textContent = translated;
+                    scheduleAutosave();
+                    showNotification('Текст переведен с помощью AI!', 'success');
+                }
+            });
+            
+            document.getElementById('aiSendBtn').addEventListener('click', async () => {
+                const prompt = document.getElementById('aiPrompt').value.trim();
+                if (!prompt) {
+                    showNotification('Введите запрос для AI', 'warning');
+                    return;
+                }
+                
+                const response = await callYandexGPT(prompt, {
+                    operation: 'Обработка запроса'
+                });
+                
+                if (response) {
+                    showAiResponseModal(response, 'Ответ AI');
+                }
+            });
+            
+            // Обработчики AI настроек
+            document.getElementById('saveAiSettingsBtn').addEventListener('click', () => {
+                yandexApiKey = document.getElementById('yandexApiKey').value;
+                yandexFolderId = document.getElementById('yandexFolderId').value;
+                gptModel = document.getElementById('gptModel').value;
+                aiAutoSuggest = document.getElementById('aiAutoSuggest').checked;
+                
+                localStorage.setItem('yandexApiKey', yandexApiKey);
+                localStorage.setItem('yandexFolderId', yandexFolderId);
+                localStorage.setItem('gptModel', gptModel);
+                localStorage.setItem('aiAutoSuggest', aiAutoSuggest);
+                
+                document.getElementById('aiSettingsModal').classList.remove('active');
+                showNotification('Настройки AI сохранены', 'success');
+            });
+            
+            document.getElementById('testAiConnectionBtn').addEventListener('click', async () => {
+                showNotification('Проверка подключения к Yandex GPT...', 'info');
+                
+                const testPrompt = "Ответь одним словом: 'готов'";
+                const response = await callYandexGPT(testPrompt, {
+                    operation: 'Проверка подключения',
+                    maxTokens: 10
+                });
+                
+                if (response && response.toLowerCase().includes('готов')) {
+                    showNotification('Подключение к Yandex GPT успешно!', 'success');
+                } else {
+                    showNotification('Не удалось подключиться к Yandex GPT', 'warning');
+                }
+            });
+            
+            document.getElementById('closeAiSettingsBtn').addEventListener('click', () => {
+                document.getElementById('aiSettingsModal').classList.remove('active');
+            });
+            
+            // Обработчики экспорта
+            document.getElementById('exportImageBtn').addEventListener('click', exportAsImage);
+            document.getElementById('exportPDFBtn').addEventListener('click', exportAsPDF);
+            document.getElementById('exportDataBtn').addEventListener('click', exportMapData);
+            document.getElementById('exportPrintBtn').addEventListener('click', printMap);
+            document.getElementById('exportShareBtn').addEventListener('click', shareMap);
+            
+            // Обработчики управления
+            document.getElementById('saveManualBtn').addEventListener('click', saveToLocalStorage);
+            document.getElementById('loadBtn').addEventListener('click', loadFromLocalStorage);
+            document.getElementById('clearBtn').addEventListener('click', clearMap);
+            document.getElementById('teacherSelect').addEventListener('change', changeTeacher);
+            
+            // Обработчики масштабирования
+            document.getElementById('zoomInBtn').addEventListener('click', zoomIn);
+            document.getElementById('zoomOutBtn').addEventListener('click', zoomOut);
+            document.getElementById('zoomResetBtn').addEventListener('click', zoomReset);
+            document.getElementById('centerMapBtn').addEventListener('click', centerMap);
+            
+            // Обработчики формы
+            document.getElementById('saveBtn').addEventListener('click', saveNode);
+            document.getElementById('cancelBtn').addEventListener('click', closeNodeForm);
+            
+            // Обработчик поиска
+            searchMap.addEventListener('input', function() {
+                const searchTerm = this.value.toLowerCase();
+                highlightSearchResults(searchTerm);
+            });
+            
+            // Обработчики шаблонов
+            document.querySelectorAll('.template-item').forEach(template => {
+                template.addEventListener('click', function() {
+                    const templateType = this.getAttribute('data-template');
+                    applyTemplate(templateType);
+                    toggleTemplatesPanel();
+                    showNotification('Шаблон применен успешно!', 'success');
+                });
+            });
+            
+            // Обработчики модального окна
+            document.getElementById('closeModalBtn').addEventListener('click', closeDataManagementModal);
+            document.getElementById('importBtn').addEventListener('click', importFromFile);
+            document.getElementById('exportCurrentBtn').addEventListener('click', exportMapData);
+            
+            // Горячие клавиши
+            document.addEventListener('keydown', handleKeydown);
+            
+            // Сохранение при закрытии окна
+            window.addEventListener('beforeunload', function(e) {
+                saveToLocalStorage();
+            });
+            
+            // Настраиваем перетаскивание карты
+            setupMapDragging();
+        }
+
+        // ============== ОПТИМИЗИРОВАННОЕ ПЕРЕТАСКИВАНИЕ УЗЛОВ ==============
+
+        function setupNodeDragging(nodeElement, node) {
+            nodeElement.addEventListener('mousedown', function(e) {
+                // Проверяем, что это левая кнопка мыши и не режим соединения
+                if (e.button !== 0 || isConnectingMode) return;
+                
+                e.preventDefault();
+                e.stopPropagation();
+                
+                // Начинаем перетаскивание
+                startNodeDrag(e, nodeElement, node);
+            });
+        }
+
+        function startNodeDrag(e, nodeElement, node) {
+            isDraggingNode = true;
+            draggedNode = node;
+            draggedNodeElement = nodeElement;
+            
+            // Сохраняем начальные координаты
+            dragStartX = e.clientX;
+            dragStartY = e.clientY;
+            
+            // Сохраняем начальную позицию узла
+            nodeStartX = node.x;
+            nodeStartY = node.y;
+            
+            // Добавляем класс для визуальной обратной связи
+            nodeElement.classList.add('dragging');
+            
+            // Блокируем выделение текста и меняем курсор
+            document.body.style.userSelect = 'none';
+            document.body.style.cursor = 'grabbing';
+            
+            // Добавляем глобальные обработчики
+            document.addEventListener('mousemove', handleNodeDrag);
+            document.addEventListener('mouseup', stopNodeDrag);
+        }
+
+        function handleNodeDrag(e) {
+            if (!isDraggingNode) return;
+            
+            // Вычисляем смещение
+            const deltaX = e.clientX - dragStartX;
+            const deltaY = e.clientY - dragStartY;
+            
+            // Вычисляем новую позицию
+            const newX = nodeStartX + deltaX;
+            const newY = nodeStartY + deltaY;
+            
+            // Обновляем позицию элемента
+            draggedNodeElement.style.left = `${newX}px`;
+            draggedNodeElement.style.top = `${newY}px`;
+            
+            // Обновляем позицию в данных
+            draggedNode.x = newX;
+            draggedNode.y = newY;
+            
+            // Обновляем соединения (с отложенным рендерингом)
+            requestAnimationFrame(() => {
+                updateConnectionsForNode(draggedNode.id);
+            });
+        }
+
+        function stopNodeDrag() {
+            if (!isDraggingNode) return;
+            
+            isDraggingNode = false;
+            
+            // Убираем класс перетаскивания
+            if (draggedNodeElement) {
+                draggedNodeElement.classList.remove('dragging');
+            }
+            
+            // Восстанавливаем нормальный курсор и выделение
+            document.body.style.userSelect = '';
+            document.body.style.cursor = '';
+            
+            // Удаляем глобальные обработчики
+            document.removeEventListener('mousemove', handleNodeDrag);
+            document.removeEventListener('mouseup', stopNodeDrag);
+            
+            // Сохраняем изменения
+            scheduleAutosave();
+            
+            // Сбрасываем переменные
+            draggedNode = null;
+            draggedNodeElement = null;
+        }
+
+        function updateConnectionsForNode(nodeId) {
+            // Находим все соединения, связанные с этим узлом
+            const relatedConnections = connections.filter(conn => 
+                conn.from === nodeId || conn.to === nodeId
+            );
+            
+            // Удаляем старые соединения
+            relatedConnections.forEach(conn => {
+                const connElement = document.getElementById(`conn-${conn.id}`);
+                if (connElement) {
+                    connElement.remove();
+                }
+            });
+            
+            // Перерисовываем соединения
+            relatedConnections.forEach(conn => renderConnection(conn));
+        }
+
+        // ============== ПЕРЕТАСКИВАНИЕ КАРТЫ ==============
+
+        function setupMapDragging() {
+            mindmapWrapper.addEventListener('mousedown', function(e) {
+                // Проверяем, что это левая кнопка мыши и не перетаскиваем узел
+                if (e.button !== 0 || e.target.closest('.node')) return;
+                
+                e.preventDefault();
+                
+                // Начинаем перетаскивание карты
+                startMapDrag(e);
+            });
+        }
+
+        function startMapDrag(e) {
+            isDraggingMap = true;
+            
+            // Сохраняем начальные координаты
+            mapDragStartX = e.clientX;
+            mapDragStartY = e.clientY;
+            
+            // Сохраняем начальную позицию прокрутки
+            mapScrollStartX = mindmapWrapper.scrollLeft;
+            mapScrollStartY = mindmapWrapper.scrollTop;
+            
+            // Меняем курсор
+            mindmapWrapper.style.cursor = 'grabbing';
+            
+            // Добавляем глобальные обработчики
+            document.addEventListener('mousemove', handleMapDrag);
+            document.addEventListener('mouseup', stopMapDrag);
+        }
+
+        function handleMapDrag(e) {
+            if (!isDraggingMap) return;
+            
+            // Вычисляем смещение
+            const deltaX = mapDragStartX - e.clientX;
+            const deltaY = mapDragStartY - e.clientY;
+            
+            // Обновляем позицию прокрутки
+            mindmapWrapper.scrollLeft = mapScrollStartX + deltaX;
+            mindmapWrapper.scrollTop = mapScrollStartY + deltaY;
+        }
+
+        function stopMapDrag() {
+            isDraggingMap = false;
+            
+            // Восстанавливаем курсор
+            mindmapWrapper.style.cursor = '';
+            
+            // Удаляем глобальные обработчики
+            document.removeEventListener('mousemove', handleMapDrag);
+            document.removeEventListener('mouseup', stopMapDrag);
+        }
+
+        // ============== ОСНОВНЫЕ ФУНКЦИИ ==============
+
+        function openNodeForm(type, titlePlaceholder) {
+            currentNodeType = type;
+            nodeForm.classList.add('active');
+            nodeTitle.placeholder = titlePlaceholder;
+            nodeTitle.value = '';
+            nodeContent.value = '';
+            nodeIcon.value = '';
+            
+            switch(type) {
+                case 'topic': currentColor = '#3498db'; break;
+                case 'task': currentColor = '#2ecc71'; break;
+                case 'resource': currentColor = '#9b59b6'; break;
+                case 'note': currentColor = '#f39c12'; break;
+                case 'assessment': currentColor = '#1abc9c'; break;
+            }
+            
+            document.querySelectorAll('.color-option').forEach(opt => {
+                if(opt.getAttribute('data-color') === currentColor) {
+                    opt.classList.add('selected');
+                } else {
+                    opt.classList.remove('selected');
+                }
+            });
+        }
+
+        function closeNodeForm() {
+            nodeForm.classList.remove('active');
+            selectedNode = null;
+        }
+
+        function saveNode() {
+            const title = nodeTitle.value.trim();
+            const content = nodeContent.value.trim();
+            const icon = nodeIcon.value;
+            
+            if (!title) {
+                showNotification('Пожалуйста, введите заголовок', 'warning');
+                return;
+            }
+            
+            // Получаем текущую позицию прокрутки
+            const scrollX = mindmapWrapper.scrollLeft;
+            const scrollY = mindmapWrapper.scrollTop;
+            const wrapperWidth = mindmapWrapper.clientWidth;
+            const wrapperHeight = mindmapWrapper.clientHeight;
+            
+            // Создаем новый узел
+            const nodeId = nodes.length > 0 ? Math.max(...nodes.map(n => n.id)) + 1 : 1;
+            const node = {
+                id: nodeId,
+                type: currentNodeType,
+                title: title,
+                content: content,
+                color: currentColor,
+                icon: icon,
+                x: scrollX + (wrapperWidth / 2) - 70, // Центрируем узел
+                y: scrollY + (wrapperHeight / 2) - 25,
+                createdAt: new Date().toISOString(),
+                teacher: currentTeacher,
+                subject: currentSubject
+            };
+            
+            nodes.push(node);
+            renderNode(node);
+            updateNodeCount();
+            closeNodeForm();
+            scheduleAutosave();
+            showNotification('Элемент добавлен успешно!', 'success');
+        }
+
+        function renderNode(node) {
+            const nodeElement = document.createElement('div');
+            nodeElement.className = 'node';
+            nodeElement.id = `node-${node.id}`;
+            nodeElement.style.left = `${node.x}px`;
+            nodeElement.style.top = `${node.y}px`;
+            nodeElement.style.backgroundColor = node.color;
+            nodeElement.style.color = getContrastColor(node.color);
+            
+            let typeIcon, typeText;
+            switch(node.type) {
+                case 'topic':
+                    typeIcon = 'fa-book';
+                    typeText = 'Тема';
+                    break;
+                case 'task':
+                    typeIcon = 'fa-tasks';
+                    typeText = 'Задача';
+                    break;
+                case 'resource':
+                    typeIcon = 'fa-link';
+                    typeText = 'Ресурс';
+                    break;
+                case 'note':
+                    typeIcon = 'fa-sticky-note';
+                    typeText = 'Заметка';
+                    break;
+                case 'assessment':
+                    typeIcon = 'fa-check-circle';
+                    typeText = 'Оценка';
+                    break;
+            }
+            
+            let iconHtml = '';
+            if (node.icon) {
+                iconHtml = `<div class="node-icons"><i class="fas ${node.icon} node-icon"></i></div>`;
+            }
+            
+            const createdDate = new Date(node.createdAt);
+            const dateStr = createdDate.toLocaleDateString('ru-RU');
+            
+            nodeElement.innerHTML = `
+                <div class="node-header">
+                    <span>${node.title}</span>
+                    <span class="node-type"><i class="fas ${typeIcon}"></i> ${typeText}</span>
+                </div>
+                <div class="node-content">${node.content}</div>
+                ${iconHtml}
+                <div class="node-footer">
+                    <span>${node.teacher}</span>
+                    <span>${dateStr}</span>
+                </div>
+            `;
+            
+            // Добавляем класс для AI-сгенерированных узлов
+            if (node.aiGenerated) {
+                nodeElement.classList.add('ai-generated');
+            }
+            
+            // Обработчик выбора элемента
+            nodeElement.addEventListener('click', function(e) {
+                e.stopPropagation();
+                
+                if (isConnectingMode && selectedNode && selectedNode !== node.id) {
+                    createConnection(selectedNode, node.id);
+                    isConnectingMode = false;
+                    document.getElementById('connectNodesBtn').classList.remove('active');
+                    selectedNode = null;
+                    showNotification('Соединение создано!', 'success');
+                    return;
+                }
+                
+                document.querySelectorAll('.node').forEach(n => n.classList.remove('selected'));
+                this.classList.add('selected');
+                selectedNode = node.id;
+            });
+            
+            // Настраиваем перетаскивание
+            setupNodeDragging(nodeElement, node);
+            
+            mindmap.appendChild(nodeElement);
+        }
+
+        function createConnection(fromNodeId, toNodeId) {
+            const existingConnection = connections.find(conn => 
+                (conn.from === fromNodeId && conn.to === toNodeId) || 
+                (conn.from === toNodeId && conn.to === fromNodeId)
+            );
+            
+            if (existingConnection) return;
+            
+            const connection = {
+                id: connections.length > 0 ? Math.max(...connections.map(c => c.id)) + 1 : 1,
+                from: fromNodeId,
+                to: toNodeId,
+                type: currentConnectionType,
+                createdAt: new Date().toISOString()
+            };
+            
+            connections.push(connection);
+            renderConnection(connection);
+            scheduleAutosave();
+        }
+
+        function renderConnection(connection) {
+            const fromNode = document.getElementById(`node-${connection.from}`);
+            const toNode = document.getElementById(`node-${connection.to}`);
+            
+            if (!fromNode || !toNode) return;
+            
+            // Получаем позиции узлов
+            const fromX = parseFloat(fromNode.style.left) + fromNode.offsetWidth / 2;
+            const fromY = parseFloat(fromNode.style.top) + fromNode.offsetHeight / 2;
+            const toX = parseFloat(toNode.style.left) + toNode.offsetWidth / 2;
+            const toY = parseFloat(toNode.style.top) + toNode.offsetHeight / 2;
+            
+            // Вычисляем длину и угол соединения
+            const deltaX = toX - fromX;
+            const deltaY = toY - fromY;
+            const length = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+            const angle = Math.atan2(deltaY, deltaX) * 180 / Math.PI;
+            
+            const connectionElement = document.createElement('div');
+            connectionElement.className = `connection ${connection.type}`;
+            connectionElement.id = `conn-${connection.id}`;
+            connectionElement.style.width = `${length}px`;
+            connectionElement.style.left = `${fromX}px`;
+            connectionElement.style.top = `${fromY}px`;
+            connectionElement.style.transform = `rotate(${angle}deg)`;
+            
+            mindmap.appendChild(connectionElement);
+        }
+
+        function toggleConnectingMode() {
+            isConnectingMode = !isConnectingMode;
+            const btn = document.getElementById('connectNodesBtn');
+            
+            if (isConnectingMode) {
+                btn.classList.add('active');
+                showNotification('Режим соединения: выберите первый элемент, затем второй для создания связи', 'info');
+            } else {
+                btn.classList.remove('active');
+            }
+        }
+
+        function changeNodeColor() {
+            if (!selectedNode) {
+                showNotification('Выберите элемент для изменения цвета', 'warning');
+                return;
+            }
+            
+            const node = nodes.find(n => n.id === selectedNode);
+            if (!node) return;
+            
+            node.color = currentColor;
+            const nodeElement = document.getElementById(`node-${selectedNode}`);
+            nodeElement.style.backgroundColor = currentColor;
+            nodeElement.style.color = getContrastColor(currentColor);
+            scheduleAutosave();
+            showNotification('Цвет элемента изменен!', 'success');
+        }
+
+        function changeNodeIcon() {
+            if (!selectedNode) {
+                showNotification('Выберите элемент для изменения иконки', 'warning');
+                return;
+            }
+            
+            const node = nodes.find(n => n.id === selectedNode);
+            if (!node) return;
+            
+            const icon = prompt('Введите название иконки FontAwesome (например: fa-book, fa-video, fa-link):', node.icon || '');
+            if (icon !== null) {
+                node.icon = icon;
+                const nodeElement = document.getElementById(`node-${selectedNode}`);
+                const iconContainer = nodeElement.querySelector('.node-icons');
+                
+                if (icon) {
+                    if (!iconContainer) {
+                        const content = nodeElement.querySelector('.node-content');
+                        const iconHtml = `<div class="node-icons"><i class="fas ${icon} node-icon"></i></div>`;
+                        content.insertAdjacentHTML('afterend', iconHtml);
+                    } else {
+                        iconContainer.innerHTML = `<i class="fas ${icon} node-icon"></i>`;
+                    }
+                } else if (iconContainer) {
+                    iconContainer.remove();
+                }
+                
+                scheduleAutosave();
+                showNotification('Иконка элемента изменена!', 'success');
+            }
+        }
+
+        function deleteSelectedNode() {
+            if (!selectedNode) {
+                showNotification('Выберите элемент для удаления', 'warning');
+                return;
+            }
+            
+            if (confirm('Удалить этот элемент? Все связанные соединения также будут удалены.')) {
+                // Удаляем узел из массива
+                nodes = nodes.filter(n => n.id !== selectedNode);
+                
+                // Удаляем связанные соединения
+                const connectionsToRemove = connections.filter(conn => 
+                    conn.from === selectedNode || conn.to === selectedNode
+                );
+                connections = connections.filter(conn => 
+                    conn.from !== selectedNode && conn.to !== selectedNode
+                );
+                
+                // Удаляем DOM элементы
+                const nodeElement = document.getElementById(`node-${selectedNode}`);
+                if (nodeElement) {
+                    nodeElement.remove();
+                }
+                
+                connectionsToRemove.forEach(conn => {
+                    const connElement = document.getElementById(`conn-${conn.id}`);
+                    if (connElement) {
+                        connElement.remove();
+                    }
+                });
+                
+                updateNodeCount();
+                selectedNode = null;
+                scheduleAutosave();
+                showNotification('Элемент удален!', 'success');
+            }
+        }
+
+        function toggleTemplatesPanel() {
+            templatesPanel.classList.toggle('active');
+            const btn = document.getElementById('templatesBtn');
+            btn.classList.toggle('active');
+        }
+
+        function applyTemplate(templateType) {
+            const scrollX = mindmapWrapper.scrollLeft;
+            const scrollY = mindmapWrapper.scrollTop;
+            const wrapperWidth = mindmapWrapper.clientWidth;
+            const wrapperHeight = mindmapWrapper.clientHeight;
+            
+            const centerX = scrollX + wrapperWidth / 2;
+            const centerY = scrollY + wrapperHeight / 2;
+            
+            let templateNodes = [];
+            let templateConnections = [];
+            let startId = nodes.length > 0 ? Math.max(...nodes.map(n => n.id)) + 1 : 1;
+            
+            switch(templateType) {
+                case 'lesson':
+                    templateNodes = [
+                        {id: startId, type: 'topic', title: 'Цели урока', content: 'Чего должны достигнуть студенты', color: '#3498db', x: centerX - 150, y: centerY - 100, icon: 'fa-bullseye'},
+                        {id: startId + 1, type: 'resource', title: 'Материалы', content: 'Учебники, презентации, раздаточный материал', color: '#9b59b6', x: centerX + 150, y: centerY - 100, icon: 'fa-tools'},
+                        {id: startId + 2, type: 'task', title: 'Задания', content: 'Упражнения, вопросы, практическая работа', color: '#2ecc71', x: centerX - 150, y: centerY + 100, icon: 'fa-tasks'},
+                        {id: startId + 3, type: 'assessment', title: 'Оценка', content: 'Критерии оценивания, проверочные работы', color: '#1abc9c', x: centerX + 150, y: centerY + 100, icon: 'fa-chart-line'},
+                        {id: startId + 4, type: 'topic', title: 'Тема урока', content: 'Основная тема занятия', color: '#3498db', x: centerX, y: centerY, icon: 'fa-chalkboard-teacher'}
+                    ];
+                    
+                    templateConnections = [
+                        {from: startId + 4, to: startId},
+                        {from: startId + 4, to: startId + 1},
+                        {from: startId + 4, to: startId + 2},
+                        {from: startId + 4, to: startId + 3}
+                    ];
+                    break;
+                    
+                case 'topic':
+                    templateNodes = [
+                        {id: startId, type: 'topic', title: 'Основная тема', content: 'Название темы недели', color: '#3498db', x: centerX, y: centerY, icon: 'fa-star'},
+                        {id: startId + 1, type: 'topic', title: 'Подтема 1', content: 'Первая часть темы', color: '#3498db', x: centerX - 200, y: centerY - 100, icon: 'fa-circle'},
+                        {id: startId + 2, type: 'topic', title: 'Подтема 2', content: 'Вторая часть темы', color: '#3498db', x: centerX + 200, y: centerY - 100, icon: 'fa-circle'},
+                        {id: startId + 3, type: 'topic', title: 'Подтема 3', content: 'Третья часть темы', color: '#3498db', x: centerX - 200, y: centerY + 100, icon: 'fa-circle'},
+                        {id: startId + 4, type: 'resource', title: 'Ресурсы', content: 'Дополнительные материалы', color: '#9b59b6', x: centerX + 200, y: centerY + 100, icon: 'fa-link'},
+                        {id: startId + 5, type: 'task', title: 'Контрольная точка', content: 'Проверка понимания', color: '#2ecc71', x: centerX, y: centerY + 150, icon: 'fa-check-circle'}
+                    ];
+                    
+                    templateConnections = [
+                        {from: startId, to: startId + 1},
+                        {from: startId, to: startId + 2},
+                        {from: startId, to: startId + 3},
+                        {from: startId, to: startId + 4},
+                        {from: startId, to: startId + 5}
+                    ];
+                    break;
+            }
+            
+            // Добавляем узлы шаблона
+            templateNodes.forEach(node => {
+                const newNode = {
+                    ...node,
+                    createdAt: new Date().toISOString(),
+                    teacher: currentTeacher,
+                    subject: currentSubject
+                };
+                nodes.push(newNode);
+                renderNode(newNode);
+            });
+            
+            // Добавляем соединения шаблона
+            templateConnections.forEach(conn => {
+                connections.push({
+                    ...conn,
+                    id: connections.length > 0 ? Math.max(...connections.map(c => c.id)) + 1 : 1,
+                    type: 'solid',
+                    createdAt: new Date().toISOString()
+                });
+                renderConnection(connections[connections.length - 1]);
+            });
+            
+            updateNodeCount();
+            showNotification('Шаблон применен успешно!', 'success');
+        }
+
+        function highlightSearchResults(searchTerm) {
+            nodes.forEach(node => {
+                const element = document.getElementById(`node-${node.id}`);
+                const title = node.title.toLowerCase();
+                const content = node.content.toLowerCase();
+                
+                if (searchTerm && (title.includes(searchTerm) || content.includes(searchTerm))) {
+                    element.style.boxShadow = '0 0 0 3px #f39c12, 0 6px 20px rgba(0, 0, 0, 0.2)';
+                    element.style.zIndex = '50';
+                } else {
+                    element.style.boxShadow = '';
+                    element.style.zIndex = '1';
+                }
+            });
+        }
+
+        function clearSearch() {
+            searchMap.value = '';
+            highlightSearchResults('');
+        }
+
+        function zoomIn() {
+            if (zoom < 2.0) {
+                zoom += 0.1;
+                updateZoom();
+            }
+        }
+
+        function zoomOut() {
+            if (zoom > 0.3) {
+                zoom -= 0.1;
+                updateZoom();
+            }
+        }
+
+        function zoomReset() {
+            zoom = 1.0;
+            updateZoom();
+        }
+
+        function centerMap() {
+            if (nodes.length === 0) return;
+            
+            let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+            nodes.forEach(node => {
+                minX = Math.min(minX, node.x);
+                maxX = Math.max(maxX, node.x);
+                minY = Math.min(minY, node.y);
+                maxY = Math.max(maxY, node.y);
+            });
+            
+            const centerX = (minX + maxX) / 2;
+            const centerY = (minY + maxY) / 2;
+            
+            mindmapWrapper.scrollLeft = centerX - mindmapWrapper.clientWidth / 2;
+            mindmapWrapper.scrollTop = centerY - mindmapWrapper.clientHeight / 2;
+            
+            showNotification('Карта отцентрирована!', 'success');
+        }
+
+        function updateZoom() {
+            zoomLevel.textContent = `${Math.round(zoom * 100)}%`;
+            mindmap.style.transform = `scale(${zoom})`;
+            
+            // Обновляем размер сетки при зуме
+            const gridSize = 50 / zoom;
+            mindmap.style.backgroundSize = `${gridSize}px ${gridSize}px`;
+        }
+
+        // ============== YANDEX GPT ФУНКЦИИ ==============
+
+        async function initializeYandexGPT() {
+            if (!yandexApiKey || !yandexFolderId) {
+                showNotification('Настройте Yandex GPT API в меню управления', 'warning');
+                openAiSettings();
+                return false;
+            }
+            return true;
+        }
+
+        async function callYandexGPT(prompt, options = {}) {
+            const isConfigured = await initializeYandexGPT();
+            if (!isConfigured) return null;
+            
+            showAiProcessingModal(options.operation || 'Обработка запроса');
+            
+            try {
+                const requestBody = {
+                    modelUri: `gpt://${yandexFolderId}/${gptModel}`,
+                    completionOptions: {
+                        stream: false,
+                        temperature: 0.6,
+                        maxTokens: options.maxTokens || 2000
+                    },
+                    messages: [
+                        {
+                            role: "system",
+                            text: options.systemPrompt || "Ты полезный помощник для учителей, специализирующийся на создании образовательных материалов, структурировании информации и генерации идей для уроков."
+                        },
+                        {
+                            role: "user",
+                            text: prompt
+                        }
+                    ]
+                };
+                
+                const response = await fetch('https://llm.api.cloud.yandex.net/foundationModels/v1/completion', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Api-Key ${yandexApiKey}`,
+                        'x-data-logging-enabled': 'false'
+                    },
+                    body: JSON.stringify(requestBody)
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                closeAiProcessingModal();
+                
+                if (data.result && data.result.alternatives && data.result.alternatives[0]) {
+                    return data.result.alternatives[0].message.text;
+                } else {
+                    throw new Error('Некорректный ответ от API');
+                }
+                
+            } catch (error) {
+                closeAiProcessingModal();
+                console.error('Yandex GPT API Error:', error);
+                showNotification(`Ошибка AI: ${error.message}`, 'warning');
+                return null;
+            }
+        }
+
+        async function generateIdeasForTopic(topic) {
+            const prompt = `Сгенерируй 5-7 идей для изучения темы "${topic}" в формате JSON массива. Каждая идея должна содержать title, description и type (lesson, activity, resource, assessment).`;
+            
+            const response = await callYandexGPT(prompt, {
+                operation: 'Генерация идей',
+                systemPrompt: 'Ты генератор образовательных идей. Отвечай только в формате JSON.'
+            });
+            
+            if (response) {
+                try {
+                    // Попробуем извлечь JSON из ответа
+                    const jsonMatch = response.match(/\[[\s\S]*\]/);
+                    if (jsonMatch) {
+                        return JSON.parse(jsonMatch[0]);
+                    }
+                } catch (e) {
+                    // Если не удалось распарсить JSON, покажем текст как есть
+                    showAiResponseModal(response, 'Сгенерированные идеи');
+                }
+            }
+            return null;
+        }
+
+        async function improveText(text) {
+            const prompt = `Улучши этот текст для образовательных целей, сделай его более структурированным и понятным для студентов:\n\n${text}`;
+            
+            const response = await callYandexGPT(prompt, {
+                operation: 'Улучшение текста'
+            });
+            
+            return response;
+        }
+
+        async function createTopicStructure(topic) {
+            const prompt = `Создай структуру ментальной карты для темы "${topic}". Представь результат в виде JSON массива объектов, где каждый объект имеет поля: title, content, type (mainTopic, subtopic, example, exercise, resource), и color (hex код). Структура должна быть иерархической.`;
+            
+            const response = await callYandexGPT(prompt, {
+                operation: 'Создание структуры',
+                systemPrompt: 'Ты создаешь структуры ментальных карт. Отвечай только в формате JSON.'
+            });
+            
+            if (response) {
+                try {
+                    const jsonMatch = response.match(/\[[\s\S]*\]/);
+                    if (jsonMatch) {
+                        const structure = JSON.parse(jsonMatch[0]);
+                        applyAiStructure(topic, structure);
+                        return true;
+                    }
+                } catch (e) {
+                    showNotification('Не удалось создать структуру', 'warning');
+                }
+            }
+            return false;
+        }
+
+        async function summarizeSelectedNodes() {
+            if (!selectedNode) {
+                showNotification('Выберите элемент для суммаризации', 'warning');
+                return;
+            }
+            
+            const node = nodes.find(n => n.id === selectedNode);
+            if (!node) return;
+            
+            const prompt = `Суммаризируй этот образовательный контент, выдели основные идеи и ключевые моменты:\n\nЗаголовок: ${node.title}\n\nСодержание: ${node.content}`;
+            
+            const response = await callYandexGPT(prompt, {
+                operation: 'Суммаризация'
+            });
+            
+            if (response) {
+                showAiResponseModal(response, 'Суммаризация');
+            }
+        }
+
+        async function translateContent(text, targetLang = 'en') {
+            const prompt = `Переведи этот текст на ${targetLang === 'en' ? 'английский' : 'русский'}:\n\n${text}`;
+            
+            const response = await callYandexGPT(prompt, {
+                operation: 'Перевод'
+            });
+            
+            return response;
+        }
+
+        function showAiProcessingModal(operation) {
+            const modal = document.getElementById('aiProcessingModal');
+            const text = document.getElementById('aiProcessingText');
+            const progress = document.getElementById('aiProgress');
+            
+            text.textContent = operation;
+            progress.style.width = '0%';
+            modal.classList.add('active');
+            
+            // Анимация прогресса
+            let width = 0;
+            const interval = setInterval(() => {
+                if (width >= 90) {
+                    clearInterval(interval);
+                } else {
+                    width += 10;
+                    progress.style.width = `${width}%`;
+                }
+            }, 500);
+            
+            // Сохраняем interval ID для очистки
+            modal.dataset.intervalId = interval;
+        }
+
+        function closeAiProcessingModal() {
+            const modal = document.getElementById('aiProcessingModal');
+            const progress = document.getElementById('aiProgress');
+            
+            progress.style.width = '100%';
+            
+            // Очищаем interval
+            if (modal.dataset.intervalId) {
+                clearInterval(modal.dataset.intervalId);
+            }
+            
+            setTimeout(() => {
+                modal.classList.remove('active');
+                progress.style.width = '0%';
+            }, 500);
+        }
+
+        function showAiResponseModal(content, title = 'Ответ AI') {
+            const modal = document.createElement('div');
+            modal.className = 'modal active';
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <div class="modal-title">
+                        <i class="fas fa-robot"></i> ${title}
+                    </div>
+                    <div class="ai-response">${content}</div>
+                    <div class="modal-actions">
+                        <button class="btn btn-primary" id="copyAiResponseBtn">
+                            <i class="fas fa-copy"></i> Копировать
+                        </button>
+                        <button class="btn btn-success" id="applyAiResponseBtn">
+                            <i class="fas fa-check"></i> Применить к элементу
+                        </button>
+                        <button class="btn btn-secondary" id="closeAiResponseBtn">
+                            <i class="fas fa-times"></i> Закрыть
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+            
+            // Обработчики для модального окна
+            modal.querySelector('#copyAiResponseBtn').addEventListener('click', () => {
+                navigator.clipboard.writeText(content);
+                showNotification('Текст скопирован в буфер обмена', 'success');
+            });
+            
+            modal.querySelector('#applyAiResponseBtn').addEventListener('click', () => {
+                if (selectedNode) {
+                    const node = nodes.find(n => n.id === selectedNode);
+                    if (node) {
+                        node.content = content;
+                        const nodeElement = document.getElementById(`node-${selectedNode}`);
+                        nodeElement.querySelector('.node-content').textContent = content;
+                        scheduleAutosave();
+                        showNotification('Контент обновлен', 'success');
+                    }
+                }
+                modal.remove();
+            });
+            
+            modal.querySelector('#closeAiResponseBtn').addEventListener('click', () => {
+                modal.remove();
+            });
+            
+            // Закрытие по клику вне модального окна
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    modal.remove();
+                }
+            });
+        }
+
+        function applyAiStructure(mainTopic, structure) {
+            const scrollX = mindmapWrapper.scrollLeft;
+            const scrollY = mindmapWrapper.scrollTop;
+            const wrapperWidth = mindmapWrapper.clientWidth;
+            const wrapperHeight = mindmapWrapper.clientHeight;
+            
+            const centerX = scrollX + wrapperWidth / 2;
+            const centerY = scrollY + wrapperHeight / 2;
+            
+            let startId = nodes.length > 0 ? Math.max(...nodes.map(n => n.id)) + 1 : 1;
+            const createdNodes = [];
+            
+            // Создаем главную тему
+            const mainNode = {
+                id: startId,
+                type: 'topic',
+                title: mainTopic,
+                content: 'Создано с помощью Yandex GPT',
+                color: '#3498db',
+                x: centerX,
+                y: centerY,
+                icon: 'fa-robot',
+                createdAt: new Date().toISOString(),
+                teacher: currentTeacher,
+                subject: currentSubject,
+                aiGenerated: true
+            };
+            
+            nodes.push(mainNode);
+            renderNode(mainNode);
+            createdNodes.push(mainNode);
+            
+            // Создаем подузлы
+            structure.forEach((item, index) => {
+                let color, icon, type;
+                
+                switch(item.type) {
+                    case 'mainTopic':
+                        color = '#3498db'; icon = 'fa-star'; type = 'topic';
+                        break;
+                    case 'subtopic':
+                        color = '#3498db'; icon = 'fa-circle'; type = 'topic';
+                        break;
+                    case 'example':
+                        color = '#f39c12'; icon = 'fa-lightbulb'; type = 'note';
+                        break;
+                    case 'exercise':
+                        color = '#2ecc71'; icon = 'fa-tasks'; type = 'task';
+                        break;
+                    case 'resource':
+                        color = '#9b59b6'; icon = 'fa-link'; type = 'resource';
+                        break;
+                    default:
+                        color = '#95a5a6'; icon = 'fa-info-circle'; type = 'note';
+                }
+                
+                const angle = (index / structure.length) * 2 * Math.PI;
+                const radius = 200;
+                const x = centerX + Math.cos(angle) * radius;
+                const y = centerY + Math.sin(angle) * radius;
+                
+                const node = {
+                    id: startId + 1 + index,
+                    type: type,
+                    title: item.title,
+                    content: item.content || '',
+                    color: item.color || color,
+                    x: x,
+                    y: y,
+                    icon: icon,
+                    createdAt: new Date().toISOString(),
+                    teacher: currentTeacher,
+                    subject: currentSubject,
+                    aiGenerated: true
+                };
+                
+                nodes.push(node);
+                renderNode(node);
+                createdNodes.push(node);
+                
+                // Создаем соединение с главной темой
+                connections.push({
+                    id: connections.length + 1,
+                    from: mainNode.id,
+                    to: node.id,
+                    type: 'solid',
+                    createdAt: new Date().toISOString()
+                });
+                renderConnection(connections[connections.length - 1]);
+            });
+            
+            updateNodeCount();
+            showNotification('Структура создана с помощью AI!', 'success');
+        }
+
+        function createNodeFromIdea(idea, mainTopic, index) {
+            const scrollX = mindmapWrapper.scrollLeft;
+            const scrollY = mindmapWrapper.scrollTop;
+            const wrapperWidth = mindmapWrapper.clientWidth;
+            const wrapperHeight = mindmapWrapper.clientHeight;
+            
+            const centerX = scrollX + wrapperWidth / 2;
+            const centerY = scrollY + wrapperHeight / 2;
+            
+            let type, color, icon;
+            
+            switch(idea.type) {
+                case 'lesson':
+                    type = 'topic'; color = '#3498db'; icon = 'fa-chalkboard-teacher';
+                    break;
+                case 'activity':
+                    type = 'task'; color = '#2ecc71'; icon = 'fa-tasks';
+                    break;
+                case 'resource':
+                    type = 'resource'; color = '#9b59b6'; icon = 'fa-link';
+                    break;
+                case 'assessment':
+                    type = 'assessment'; color = '#1abc9c'; icon = 'fa-check-circle';
+                    break;
+                default:
+                    type = 'note'; color = '#f39c12'; icon = 'fa-lightbulb';
+            }
+            
+            const angle = (index / 6) * 2 * Math.PI;
+            const radius = 180;
+            const x = centerX + Math.cos(angle) * radius;
+            const y = centerY + Math.sin(angle) * radius;
+            
+            const node = {
+                id: nodes.length > 0 ? Math.max(...nodes.map(n => n.id)) + 1 : 1,
+                type: type,
+                title: idea.title,
+                content: idea.description,
+                color: color,
+                x: x,
+                y: y,
+                icon: icon,
+                createdAt: new Date().toISOString(),
+                teacher: currentTeacher,
+                subject: currentSubject,
+                aiGenerated: true
+            };
+            
+            nodes.push(node);
+            renderNode(node);
+            updateNodeCount();
+            
+            return node.id;
+        }
+
+        function openAiSettings() {
+            document.getElementById('yandexApiKey').value = yandexApiKey;
+            document.getElementById('yandexFolderId').value = yandexFolderId;
+            document.getElementById('gptModel').value = gptModel;
+            document.getElementById('aiAutoSuggest').checked = aiAutoSuggest;
+            
+            document.getElementById('aiSettingsModal').classList.add('active');
+        }
+
+        // ============== СОХРАНЕНИЕ И ЗАГРУЗКА ==============
+
+        function saveToLocalStorage() {
+            const mapData = {
+                nodes: nodes,
+                connections: connections,
+                teacher: currentTeacher,
+                subject: currentSubject,
+                lastSaved: new Date().toISOString(),
+                zoom: zoom
+            };
+            
+            try {
+                localStorage.setItem('teacherMindMap', JSON.stringify(mapData));
+                
+                const historyKey = `mindmap_history_${currentTeacher}`;
+                let history = JSON.parse(localStorage.getItem(historyKey)) || [];
+                history.unshift({
+                    ...mapData,
+                    savedAt: new Date().toISOString(),
+                    name: `Карта от ${new Date().toLocaleDateString('ru-RU')}`
+                });
+                
+                if (history.length > 10) {
+                    history = history.slice(0, 10);
+                }
+                
+                localStorage.setItem(historyKey, JSON.stringify(history));
+                
+                showNotification('Данные сохранены!', 'success');
+                updateAutosaveStatus(true);
+            } catch (e) {
+                showNotification('Ошибка сохранения: ' + e.message, 'warning');
+            }
+        }
+
+        function loadFromLocalStorage() {
+            try {
+                const savedData = localStorage.getItem('teacherMindMap');
+                if (savedData) {
+                    const mapData = JSON.parse(savedData);
+                    
+                    nodes = [];
+                    connections = [];
+                    document.querySelectorAll('.node, .connection').forEach(el => el.remove());
+                    
+                    nodes = mapData.nodes || [];
+                    connections = mapData.connections || [];
+                    currentTeacher = mapData.teacher || "Анна Петрова";
+                    currentSubject = mapData.subject || "История";
+                    zoom = mapData.zoom || 1.0;
+                    
+                    document.getElementById('teacherSelect').value = currentTeacher;
+                    
+                    nodes.forEach(node => renderNode(node));
+                    connections.forEach(conn => renderConnection(conn));
+                    updateNodeCount();
+                    updateZoom();
+                    
+                    showNotification('Данные загружены!', 'success');
+                    updateAutosaveStatus(true);
+                } else {
+                    loadInitialData();
+                }
+            } catch (e) {
+                showNotification('Ошибка загрузки: ' + e.message, 'warning');
+                loadInitialData();
+            }
+        }
+
+        function clearMap() {
+            if (confirm('Очистить всю карту? Это действие нельзя отменить.')) {
+                nodes = [];
+                connections = [];
+                selectedNode = null;
+                document.querySelectorAll('.node, .connection').forEach(el => el.remove());
+                updateNodeCount();
+                saveToLocalStorage();
+                showNotification('Карта очищена!', 'success');
+            }
+        }
+
+        function changeTeacher() {
+            currentTeacher = document.getElementById('teacherSelect').value;
+            switch(currentTeacher) {
+                case 'Анна Петрова': currentSubject = 'История'; break;
+                case 'Иван Сидоров': currentSubject = 'Математика'; break;
+                case 'Мария Иванова': currentSubject = 'Литература'; break;
+                case 'Сергей Козлов': currentSubject = 'Физика'; break;
+            }
+            showNotification(`Учитель изменен на: ${currentTeacher} (${currentSubject})`, 'info');
+            loadFromLocalStorage();
+        }
+
+        function scheduleAutosave() {
+            clearTimeout(autosaveTimer);
+            autosaveTimer = setTimeout(() => {
+                saveToLocalStorage();
+            }, 2000);
+            updateAutosaveStatus(false);
+        }
+
+        function updateAutosaveStatus(saved) {
+            const status = document.getElementById('autosaveStatus');
+            if (saved) {
+                status.innerHTML = '<i class="fas fa-check-circle"></i> Сохранено';
+                status.style.color = '#2ecc71';
+            } else {
+                status.innerHTML = '<i class="fas fa-sync-alt fa-spin"></i> Сохранение...';
+                status.style.color = '#f39c12';
+            }
+        }
+
+        // ============== ЭКСПОРТ И ПЕЧАТЬ ==============
+
+        async function exportAsImage() {
+            showNotification('Создание изображения...', 'info');
+            
+            try {
+                const canvas = await html2canvas(mindmap, {
+                    scale: 2,
+                    backgroundColor: '#f9f9f9',
+                    useCORS: true,
+                    allowTaint: true,
+                    scrollX: -mindmapWrapper.scrollLeft,
+                    scrollY: -mindmapWrapper.scrollTop,
+                    width: mindmap.offsetWidth,
+                    height: mindmap.offsetHeight
+                });
+                
+                const link = document.createElement('a');
+                link.download = `mindmap_${currentTeacher}_${new Date().toISOString().slice(0,10)}.png`;
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+                
+                showNotification('Изображение успешно экспортировано!', 'success');
+            } catch (error) {
+                showNotification('Ошибка при экспорте изображения: ' + error.message, 'warning');
+            }
+        }
+
+        function exportAsPDF() {
+            showNotification('Создание PDF документа...', 'info');
+            
+            try {
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF({
+                    orientation: 'landscape',
+                    unit: 'mm',
+                    format: 'a4'
+                });
+                
+                doc.setFontSize(20);
+                doc.text(`Mind Map: ${currentSubject}`, 20, 20);
+                doc.setFontSize(12);
+                doc.text(`Учитель: ${currentTeacher}`, 20, 30);
+                doc.text(`Дата: ${new Date().toLocaleDateString('ru-RU')}`, 20, 35);
+                doc.text(`Всего элементов: ${nodes.length}`, 20, 40);
+                
+                let yPos = 50;
+                nodes.forEach((node, index) => {
+                    if (yPos > 270) {
+                        doc.addPage();
+                        yPos = 20;
+                    }
+                    
+                    doc.setFillColor(node.color.substring(1));
+                    doc.rect(20, yPos, 170, 15, 'F');
+                    doc.setTextColor(getContrastColor(node.color) === '#000000' ? 0 : 255);
+                    doc.text(`${node.title} (${node.type})`, 25, yPos + 10);
+                    
+                    doc.setTextColor(0);
+                    doc.setFontSize(10);
+                    const lines = doc.splitTextToSize(node.content, 160);
+                    doc.text(lines, 25, yPos + 20);
+                    
+                    yPos += 15 + (lines.length * 5) + 10;
+                    
+                    if (index < nodes.length - 1 && yPos < 270) {
+                        doc.setDrawColor(200);
+                        doc.line(20, yPos - 5, 190, yPos - 5);
+                    }
+                });
+                
+                doc.save(`mindmap_${currentTeacher}_${new Date().toISOString().slice(0,10)}.pdf`);
+                showNotification('PDF документ успешно создан!', 'success');
+            } catch (error) {
+                showNotification('Ошибка при создании PDF: ' + error.message, 'warning');
+            }
+        }
+
+        function exportMapData() {
+            const mapData = {
+                nodes: nodes,
+                connections: connections,
+                metadata: {
+                    exportDate: new Date().toISOString(),
+                    teacher: currentTeacher,
+                    subject: currentSubject,
+                    nodeCount: nodes.length,
+                    connectionCount: connections.length,
+                    version: '1.0'
+                }
+            };
+            
+            const dataStr = JSON.stringify(mapData, null, 2);
+            const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+            
+            const exportFileDefaultName = `mindmap_${currentTeacher.replace(' ', '_')}_${new Date().toISOString().slice(0,10)}.json`;
+            
+            const linkElement = document.createElement('a');
+            linkElement.setAttribute('href', dataUri);
+            linkElement.setAttribute('download', exportFileDefaultName);
+            linkElement.click();
+            
+            showNotification('Данные экспортированы в JSON файл', 'success');
+        }
+
+        function printMap() {
+            showNotification('Подготовка к печати...', 'info');
+            
+            const printWindow = window.open('', '_blank');
+            printWindow.document.write(`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Mind Map: ${currentSubject}</title>
+                    <style>
+                        body { font-family: Arial, sans-serif; margin: 20px; }
+                        h1 { color: #2c3e50; }
+                        .node { 
+                            border: 1px solid #ddd; 
+                            padding: 15px; 
+                            margin: 10px 0; 
+                            border-radius: 5px; 
+                            page-break-inside: avoid;
+                        }
+                        .header { 
+                            background-color: #f8f9fa; 
+                            padding: 20px; 
+                            border-radius: 5px; 
+                            margin-bottom: 20px;
+                        }
+                        .grid { 
+                            display: grid; 
+                            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); 
+                            gap: 20px; 
+                        }
+                        @media print {
+                            .node { border: 1px solid #000; }
+                        }
+                    </style>
+                </head>
+                <body>
+                    <div class="header">
+                        <h1>Mind Map: ${currentSubject}</h1>
+                        <h2>Учитель: ${currentTeacher}</h2>
+                        <p>Дата: ${new Date().toLocaleDateString('ru-RU')}</p>
+                        <p>Всего элементов: ${nodes.length}</p>
+                        <hr>
+                    </div>
+                    <div class="grid">
+                        ${nodes.map(node => `
+                            <div class="node" style="background-color: ${node.color}; color: ${getContrastColor(node.color)};">
+                                <h3>${node.title}</h3>
+                                <p>${node.content}</p>
+                                <small>Тип: ${node.type} | Создано: ${new Date(node.createdAt).toLocaleDateString('ru-RU')}</small>
+                            </div>
+                        `).join('')}
+                    </div>
+                    <script>
+                        window.onload = function() {
+                            window.print();
+                            setTimeout(function() {
+                                window.close();
+                            }, 1000);
+                        };
+                    <\/script>
+                </body>
+                </html>
+            `);
+            printWindow.document.close();
+        }
+
+        function shareMap() {
+            if (navigator.share) {
+                navigator.share({
+                    title: `Mind Map: ${currentSubject}`,
+                    text: `Посмотрите мою карту мыслей по предмету ${currentSubject}. Создано с помощью Mind Map Assistant для учителей.`,
+                    url: window.location.href
+                })
+                .then(() => showNotification('Карта успешно опубликована!', 'success'))
+                .catch(error => {
+                    if (error.name !== 'AbortError') {
+                        showNotification('Ошибка публикации: ' + error, 'warning');
+                    }
+                });
+            } else {
+                const shareText = `Mind Map: ${currentSubject}\nУчитель: ${currentTeacher}\nВсего элементов: ${nodes.length}\n\nСсылка: ${window.location.href}`;
+                
+                if (navigator.clipboard) {
+                    navigator.clipboard.writeText(shareText)
+                        .then(() => showNotification('Ссылка скопирована в буфер обмена!', 'success'))
+                        .catch(() => alert(shareText));
+                } else {
+                    alert(shareText);
+                }
+            }
+        }
+
+        // ============== УПРАВЛЕНИЕ ДАННЫМИ ==============
+
+        function openDataManagementModal() {
+            dataManagementModal.classList.add('active');
+            loadSavedMapsList();
+        }
+
+        function closeDataManagementModal() {
+            dataManagementModal.classList.remove('active');
+        }
+
+        function loadSavedMapsList() {
+            const historyKey = `mindmap_history_${currentTeacher}`;
+            const history = JSON.parse(localStorage.getItem(historyKey)) || [];
+            const savedMapsList = document.getElementById('savedMapsList');
+            
+            if (history.length === 0) {
+                savedMapsList.innerHTML = '<p>Нет сохраненных карт.</p>';
+                return;
+            }
+            
+            savedMapsList.innerHTML = history.map((map, index) => `
+                <div class="saved-map-item">
+                    <div class="saved-map-info">
+                        <div class="saved-map-name">${map.name || `Карта от ${new Date(map.savedAt).toLocaleDateString('ru-RU')}`}</div>
+                        <div class="saved-map-details">
+                            Элементов: ${map.nodes?.length || 0} | 
+                            Учитель: ${map.teacher} | 
+                            Дата: ${new Date(map.savedAt).toLocaleString('ru-RU')}
+                        </div>
+                    </div>
+                    <div class="saved-map-actions">
+                        <button class="btn btn-sm btn-primary" onclick="loadSavedMap(${index})">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        <button class="btn btn-sm btn-success" onclick="exportSavedMap(${index})">
+                            <i class="fas fa-download"></i>
+                        </button>
+                        <button class="btn btn-sm btn-danger" onclick="deleteSavedMap(${index})">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function loadSavedMap(index) {
+            const historyKey = `mindmap_history_${currentTeacher}`;
+            const history = JSON.parse(localStorage.getItem(historyKey)) || [];
+            
+            if (history[index]) {
+                const mapData = history[index];
+                
+                nodes = [];
+                connections = [];
+                document.querySelectorAll('.node, .connection').forEach(el => el.remove());
+                
+                nodes = mapData.nodes || [];
+                connections = mapData.connections || [];
+                zoom = mapData.zoom || 1.0;
+                
+                nodes.forEach(node => renderNode(node));
+                connections.forEach(conn => renderConnection(conn));
+                updateNodeCount();
+                updateZoom();
+                
+                closeDataManagementModal();
+                showNotification('Сохраненная карта загружена!', 'success');
+            }
+        }
+
+        function exportSavedMap(index) {
+            const historyKey = `mindmap_history_${currentTeacher}`;
+            const history = JSON.parse(localStorage.getItem(historyKey)) || [];
+            
+            if (history[index]) {
+                const mapData = history[index];
+                const dataStr = JSON.stringify(mapData, null, 2);
+                const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+                
+                const exportFileDefaultName = `mindmap_backup_${currentTeacher.replace(' ', '_')}_${index}.json`;
+                
+                const linkElement = document.createElement('a');
+                linkElement.setAttribute('href', dataUri);
+                linkElement.setAttribute('download', exportFileDefaultName);
+                linkElement.click();
+                
+                showNotification('Резервная копия экспортирована!', 'success');
+            }
+        }
+
+        function deleteSavedMap(index) {
+            if (confirm('Удалить эту сохраненную карту?')) {
+                const historyKey = `mindmap_history_${currentTeacher}`;
+                let history = JSON.parse(localStorage.getItem(historyKey)) || [];
+                
+                history.splice(index, 1);
+                localStorage.setItem(historyKey, JSON.stringify(history));
+                
+                loadSavedMapsList();
+                showNotification('Сохраненная карта удалена!', 'success');
+            }
+        }
+
+        function importFromFile() {
+            const fileInput = document.getElementById('importFile');
+            
+            if (!fileInput.files.length) {
+                showNotification('Пожалуйста, выберите файл для импорта', 'warning');
+                return;
+            }
+            
+            const file = fileInput.files[0];
+            const reader = new FileReader();
+            
+            reader.onload = function(e) {
+                try {
+                    const importedData = JSON.parse(e.target.result);
+                    
+                    if (!importedData.nodes || !Array.isArray(importedData.nodes)) {
+                        throw new Error('Неверный формат файла');
+                    }
+                    
+                    nodes = [];
+                    connections = [];
+                    document.querySelectorAll('.node, .connection').forEach(el => el.remove());
+                    
+                    nodes = importedData.nodes || [];
+                    connections = importedData.connections || [];
+                    
+                    nodes.forEach((node, index) => {
+                        if (node.x === undefined || node.y === undefined) {
+                            node.x = (index % 5) * 200 + 50;
+                            node.y = Math.floor(index / 5) * 150 + 50;
+                        }
+                        if (!node.createdAt) {
+                            node.createdAt = new Date().toISOString();
+                        }
+                        if (!node.teacher) {
+                            node.teacher = currentTeacher;
+                        }
+                        if (!node.subject) {
+                            node.subject = currentSubject;
+                        }
+                    });
+                    
+                    nodes.forEach(node => renderNode(node));
+                    connections.forEach(conn => renderConnection(conn));
+                    updateNodeCount();
+                    
+                    fileInput.value = '';
+                    closeDataManagementModal();
+                    showNotification('Данные успешно импортированы!', 'success');
+                    scheduleAutosave();
+                } catch (error) {
+                    showNotification('Ошибка импорта: ' + error.message, 'warning');
+                }
+            };
+            
+            reader.readAsText(file);
+        }
+
+        // ============== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ==============
+
+        function showNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            notification.className = `notification ${type} show`;
+            
+            let icon = 'fa-info-circle';
+            if (type === 'success') icon = 'fa-check-circle';
+            if (type === 'warning') icon = 'fa-exclamation-triangle';
+            
+            notification.innerHTML = `
+                <i class="fas ${icon}"></i>
+                <span>${message}</span>
+            `;
+            
+            notifications.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.parentNode.removeChild(notification);
+                    }
+                }, 300);
+            }, 5000);
+        }
+
+        function updateNodeCount() {
+            nodeCount.textContent = nodes.length;
+        }
+
+        function getContrastColor(hexcolor) {
+            if (!hexcolor) return '#000000';
+            
+            hexcolor = hexcolor.replace('#', '');
+            
+            if (hexcolor.length === 3) {
+                hexcolor = hexcolor.split('').map(c => c + c).join('');
+            }
+            
+            const r = parseInt(hexcolor.substr(0, 2), 16);
+            const g = parseInt(hexcolor.substr(2, 2), 16);
+            const b = parseInt(hexcolor.substr(4, 2), 16);
+            const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+            return luminance > 0.5 ? '#000000' : '#ffffff';
+        }
+
+        function handleKeydown(e) {
+            if (e.ctrlKey || e.metaKey) {
+                switch(e.key.toLowerCase()) {
+                    case 's':
+                        e.preventDefault();
+                        saveToLocalStorage();
+                        break;
+                    case 'f':
+                        e.preventDefault();
+                        searchMap.focus();
+                        break;
+                    case 'p':
+                        e.preventDefault();
+                        printMap();
+                        break;
+                    case 'e':
+                        e.preventDefault();
+                        exportMapData();
+                        break;
+                    case 'g':
+                        if (e.shiftKey) {
+                            e.preventDefault();
+                            document.getElementById('aiPrompt').focus();
+                        }
+                        break;
+                }
+            }
+            
+            if (e.key === 'Delete' || e.key === 'Backspace') {
+                if (selectedNode) {
+                    deleteSelectedNode();
+                }
+            }
+            
+            if (e.key === 'Escape') {
+                if (isConnectingMode) {
+                    toggleConnectingMode();
+                }
+                if (nodeForm.classList.contains('active')) {
+                    closeNodeForm();
+                }
+                if (document.getElementById('aiSettingsModal').classList.contains('active')) {
+                    document.getElementById('aiSettingsModal').classList.remove('active');
+                }
+            }
+        }
+
+        function loadInitialData() {
+            const scrollX = mindmapWrapper.scrollLeft;
+            const scrollY = mindmapWrapper.scrollTop;
+            const wrapperWidth = mindmapWrapper.clientWidth;
+            const wrapperHeight = mindmapWrapper.clientHeight;
+            
+            nodes = [
+                {
+                    id: 1,
+                    type: 'topic',
+                    title: 'Древний Рим',
+                    content: 'Рассмотрение периода от основания Рима до падения Западной Римской империи',
+                    color: '#3498db',
+                    icon: 'fa-landmark',
+                    x: scrollX + wrapperWidth / 2 - 140,
+                    y: scrollY + wrapperHeight / 2 - 200,
+                    createdAt: new Date().toISOString(),
+                    teacher: currentTeacher,
+                    subject: currentSubject
+                },
+                {
+                    id: 2,
+                    type: 'task',
+                    title: 'Подготовить презентацию',
+                    content: 'Студенты готовят презентации по важным сражениям',
+                    color: '#2ecc71',
+                    icon: 'fa-presentation',
+                    x: scrollX + wrapperWidth / 2 - 300,
+                    y: scrollY + wrapperHeight / 2,
+                    createdAt: new Date().toISOString(),
+                    teacher: currentTeacher,
+                    subject: currentSubject
+                },
+                {
+                    id: 3,
+                    type: 'resource',
+                    title: 'Документальный фильм',
+                    content: 'Ссылка на документальный фильм о римских легионах',
+                    color: '#9b59b6',
+                    icon: 'fa-video',
+                    x: scrollX + wrapperWidth / 2 + 100,
+                    y: scrollY + wrapperHeight / 2,
+                    createdAt: new Date().toISOString(),
+                    teacher: currentTeacher,
+                    subject: currentSubject
+                },
+                {
+                    id: 4,
+                    type: 'note',
+                    title: 'Важные даты',
+                    content: '753 г. до н.э. - основание Рима\n27 г. до н.э. - создание империи\n476 г. н.э. - падение Западной Римской империи',
+                    color: '#f39c12',
+                    icon: 'fa-calendar-alt',
+                    x: scrollX + wrapperWidth / 2 - 140,
+                    y: scrollY + wrapperHeight / 2 + 200,
+                    createdAt: new Date().toISOString(),
+                    teacher: currentTeacher,
+                    subject: currentSubject
+                },
+                {
+                    id: 5,
+                    type: 'assessment',
+                    title: 'Контрольная работа',
+                    content: 'Тест по основным датам и событиям Древнего Рима',
+                    color: '#1abc9c',
+                    icon: 'fa-clipboard-check',
+                    x: scrollX + wrapperWidth / 2 + 100,
+                    y: scrollY + wrapperHeight / 2 - 200,
+                    createdAt: new Date().toISOString(),
+                    teacher: currentTeacher,
+                    subject: currentSubject
+                }
+            ];
+            
+            connections = [
+                {id: 1, from: 1, to: 2, type: 'solid', createdAt: new Date().toISOString()},
+                {id: 2, from: 1, to: 3, type: 'dashed', createdAt: new Date().toISOString()},
+                {id: 3, from: 1, to: 4, type: 'solid', createdAt: new Date().toISOString()},
+                {id: 4, from: 1, to: 5, type: 'dotted', createdAt: new Date().toISOString()}
+            ];
+            
+            nodes.forEach(node => renderNode(node));
+            connections.forEach(conn => renderConnection(conn));
+            updateNodeCount();
+            updateAutosaveStatus(true);
+        }
+
+        // Экспортируем функции для использования в HTML onclick
+        window.loadSavedMap = loadSavedMap;
+        window.exportSavedMap = exportSavedMap;
+        window.deleteSavedMap = deleteSavedMap;
+
+        // Клик вне формы закрывает её
+        document.addEventListener('click', function(e) {
+            if (!nodeForm.contains(e.target) && 
+                !e.target.closest('.tool-button') && 
+                !e.target.closest('.node') &&
+                !e.target.closest('.modal-content') &&
+                !e.target.closest('.modal')) {
+                closeNodeForm();
+                
+                if (!e.target.closest('.node') && !e.target.closest('.zoom-btn')) {
+                    document.querySelectorAll('.node').forEach(n => n.classList.remove('selected'));
+                    selectedNode = null;
+                }
+            }
+            
+            if (dataManagementModal.classList.contains('active') && 
+                e.target === dataManagementModal) {
+                closeDataManagementModal();
+            }
+            
+            if (document.getElementById('aiSettingsModal').classList.contains('active') && 
+                e.target === document.getElementById('aiSettingsModal')) {
+                document.getElementById('aiSettingsModal').classList.remove('active');
+            }
+        });
+    </script>
+</body>
+</html>
