@@ -2040,62 +2040,66 @@
             return true;
         }
 
-        async function callYandexGPT(prompt, options = {}) {
-            const isConfigured = await initializeYandexGPT();
-            if (!isConfigured) return null;
-            
-            showAiProcessingModal(options.operation || 'Обработка запроса');
-            
-            try {
-                const requestBody = {
-                    modelUri: `gpt://${yandexFolderId}/${gptModel}`,
-                    completionOptions: {
-                        stream: false,
-                        temperature: 0.6,
-                        maxTokens: options.maxTokens || 2000
-                    },
-                    messages: [
-                        {
-                            role: "system",
-                            text: options.systemPrompt || "Ты полезный помощник для учителей, специализирующийся на создании образовательных материалов, структурировании информации и генерации идей для уроков."
-                        },
-                        {
-                            role: "user",
-                            text: prompt
-                        }
-                    ]
-                };
-                
-                const response = await fetch('https://llm.api.cloud.yandex.net/foundationModels/v1/completion', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Api-Key ${yandexApiKey}`,
-                        'x-data-logging-enabled': 'false'
-                    },
-                    body: JSON.stringify(requestBody)
-                });
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                
-                const data = await response.json();
-                closeAiProcessingModal();
-                
-                if (data.result && data.result.alternatives && data.result.alternatives[0]) {
-                    return data.result.alternatives[0].message.text;
-                } else {
-                    throw new Error('Некорректный ответ от API');
-                }
-                
-            } catch (error) {
-                closeAiProcessingModal();
-                console.error('Yandex GPT API Error:', error);
-                showNotification(`Ошибка AI: ${error.message}`, 'warning');
-                return null;
-            }
-        }
+		async function callYandexGPT(prompt, options = {}) {
+			const isConfigured = await initializeYandexGPT();
+			if (!isConfigured) return null;
+			
+			showAiProcessingModal(options.operation || 'Обработка запроса');
+			
+			try {
+				const requestBody = {
+					modelUri: `gpt://${yandexFolderId}/${gptModel}`,
+					completionOptions: {
+						stream: false,
+						temperature: 0.6,
+						maxTokens: options.maxTokens || 2000
+					},
+					messages: [
+						{
+							role: "system",
+							text: options.systemPrompt || "Ты полезный помощник для учителей..."
+						},
+						{
+							role: "user",
+							text: prompt
+						}
+					]
+				};
+				
+				// Публичный CORS прокси (может потребовать временный доступ)
+				const corsProxy = 'https://api.allorigins.win/raw?url=';
+				const encodedUrl = encodeURIComponent('https://llm.api.cloud.yandex.net/foundationModels/v1/completion');
+				
+				const response = await fetch(corsProxy + encodedUrl, {
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json',
+						'Authorization': `Api-Key ${yandexApiKey}`,
+						'x-data-logging-enabled': 'false'
+					},
+					body: JSON.stringify(requestBody)
+				});
+				
+				if (!response.ok) {
+					throw new Error(`HTTP error! status: ${response.status}`);
+				}
+				
+				const data = await response.json();
+				closeAiProcessingModal();
+				
+				if (data.result && data.result.alternatives && data.result.alternatives[0]) {
+					return data.result.alternatives[0].message.text;
+				} else {
+					throw new Error('Некорректный ответ от API');
+				}
+				
+			} catch (error) {
+				closeAiProcessingModal();
+				console.error('Yandex GPT API Error:', error);
+				showNotification(`Ошибка AI: ${error.message}`, 'warning');
+				return null;
+			}
+		}
 
         async function generateIdeasForTopic(topic) {
             const prompt = `Сгенерируй 5-7 идей для изучения темы "${topic}" в формате JSON массива. Каждая идея должна содержать title, description и type (lesson, activity, resource, assessment).`;
