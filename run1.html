@@ -1,0 +1,796 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MotoCalc Pro - Калькулятор самоделки</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        /* Шапка */
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 30px;
+            padding: 30px;
+            margin-bottom: 25px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+
+        .header h1 {
+            font-size: 36px;
+            font-weight: 800;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: #64748b;
+            font-size: 16px;
+        }
+
+        /* Основной грид */
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1.2fr 0.8fr;
+            gap: 25px;
+            margin-bottom: 25px;
+        }
+
+        /* Карточки */
+        .card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 30px;
+            padding: 25px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            transition: transform 0.2s;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+        }
+
+        .card-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .card-title i {
+            font-size: 24px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* Поля ввода */
+        .input-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+        }
+
+        .input-group {
+            margin-bottom: 15px;
+        }
+
+        .input-group label {
+            display: block;
+            font-size: 14px;
+            font-weight: 600;
+            color: #475569;
+            margin-bottom: 8px;
+        }
+
+        .input-group input, .input-group select {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e2e8f0;
+            border-radius: 16px;
+            font-size: 15px;
+            transition: all 0.2s;
+            background: white;
+        }
+
+        .input-group input:focus, .input-group select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        /* Быстрые тесты */
+        .quick-tests {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+
+        .test-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 30px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 4px 10px rgba(102, 126, 234, 0.3);
+        }
+
+        .test-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        /* Вердикт */
+        .verdict-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 30px;
+            padding: 25px;
+            color: white;
+        }
+
+        .verdict-title {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .verdict-badge {
+            display: inline-block;
+            padding: 10px 25px;
+            border-radius: 40px;
+            font-weight: 700;
+            font-size: 20px;
+            background: rgba(255,255,255,0.2);
+            backdrop-filter: blur(5px);
+        }
+
+        /* Метрики */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .metric-card {
+            background: rgba(255,255,255,0.15);
+            backdrop-filter: blur(5px);
+            border-radius: 20px;
+            padding: 15px;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .metric-label {
+            font-size: 14px;
+            opacity: 0.9;
+            margin-bottom: 5px;
+        }
+
+        .metric-value {
+            font-size: 28px;
+            font-weight: 800;
+        }
+
+        .metric-unit {
+            font-size: 14px;
+            opacity: 0.7;
+            margin-left: 5px;
+        }
+
+        /* График */
+        .gauge-container {
+            background: white;
+            border-radius: 20px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+
+        .gauge-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: 15px;
+        }
+
+        .gauge {
+            width: 100%;
+            height: 20px;
+            background: #e2e8f0;
+            border-radius: 30px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+
+        .gauge-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #22c55e, #eab308, #ef4444);
+            border-radius: 30px;
+            transition: width 0.5s;
+        }
+
+        .gauge-labels {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            color: #64748b;
+        }
+
+        /* Рекомендации */
+        .rec-item {
+            background: #f8fafc;
+            border-radius: 16px;
+            padding: 15px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .rec-badge {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 30px;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .sprocket-selector {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin-top: 10px;
+        }
+
+        .sprocket-selector select {
+            padding: 10px;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            font-size: 14px;
+        }
+
+        .apply-btn {
+            background: #22c55e;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .apply-btn:hover {
+            background: #16a34a;
+        }
+
+        /* История */
+        .history-item {
+            background: #f8fafc;
+            border-radius: 16px;
+            padding: 12px;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 14px;
+        }
+
+        .history-item button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 5px 15px;
+            border-radius: 20px;
+            cursor: pointer;
+        }
+
+        /* Адаптивность */
+        @media (max-width: 768px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <!-- Шапка -->
+    <div class="header">
+        <h1>🏍️ MotoCalc Pro</h1>
+        <p>Профессиональный калькулятор для самодельной техники с автоматическим подбором звёзд</p>
+    </div>
+
+    <!-- Быстрые тесты -->
+    <div class="quick-tests">
+        <button class="test-btn" onclick="loadPreset('motorbike')">🏍️ Мотоцикл (200кг, 105л.с.)</button>
+        <button class="test-btn" onclick="loadPreset('scooter')">🛵 Скутер (120кг, 15л.с.)</button>
+        <button class="test-btn" onclick="loadPreset('offroad')">🚜 Вездеход (400кг, 35л.с.)</button>
+        <button class="test-btn" onclick="loadPreset('sport')">⚡ Спортбайк (180кг, 180л.с.)</button>
+        <button class="test-btn" onclick="clearHistory()">🗑️ Очистить историю</button>
+    </div>
+
+    <!-- Основной грид -->
+    <div class="main-grid">
+        <!-- Левая колонка - ввод данных -->
+        <div class="card">
+            <div class="card-title">
+                <span>🔧</span> Параметры самоделки
+            </div>
+            
+            <div class="input-grid">
+                <div class="input-group">
+                    <label>🔄 Обороты (об/мин)</label>
+                    <input type="number" id="rpm" value="9000" step="100" min="1">
+                </div>
+                <div class="input-group">
+                    <label>🐎 Мощность (л.с.)</label>
+                    <input type="number" id="hp" value="105" step="0.1" min="0.1">
+                </div>
+                <div class="input-group">
+                    <label>⚙️ Редуктор</label>
+                    <input type="number" id="reduction" value="1.0" step="0.01" min="0.1">
+                </div>
+                <div class="input-group">
+                    <label>⚖️ Масса (кг)</label>
+                    <input type="number" id="mass" value="200" step="10" min="1">
+                </div>
+                <div class="input-group">
+                    <label>🔩 Ведущая звезда</label>
+                    <input type="number" id="front" value="15" step="1" min="1">
+                </div>
+                <div class="input-group">
+                    <label>🔩 Ведомая звезда</label>
+                    <input type="number" id="rear" value="45" step="1" min="1">
+                </div>
+                <div class="input-group">
+                    <label>📏 Радиус колеса (м)</label>
+                    <input type="number" id="wheelSize" value="0.31" step="0.01" min="0.01">
+                </div>
+                <div class="input-group">
+                    <label>📐 Тип</label>
+                    <select id="wheelType">
+                        <option value="radius">Радиус</option>
+                        <option value="diameter">Диаметр</option>
+                    </select>
+                </div>
+            </div>
+
+            <button class="test-btn" onclick="calculate()" style="width: 100%; margin-top: 20px;">🔄 Рассчитать</button>
+        </div>
+
+        <!-- Правая колонка - вердикт -->
+        <div class="verdict-card" id="verdictCard">
+            <div class="verdict-title">
+                <span>📊</span>
+                <span class="verdict-badge" id="verdictBadge">ОЖИДАНИЕ</span>
+            </div>
+
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <div class="metric-label">Макс. скорость</div>
+                    <div class="metric-value" id="speedValue">0<small class="metric-unit">км/ч</small></div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">Сила тяги</div>
+                    <div class="metric-value" id="tractionValue">0<small class="metric-unit">Н</small></div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">0-100 км/ч</div>
+                    <div class="metric-value" id="accelValue">0<small class="metric-unit">сек</small></div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">л.с./тонну</div>
+                    <div class="metric-value" id="powerToWeightValue">0<small class="metric-unit">л.с./т</small></div>
+                </div>
+            </div>
+
+            <div class="gauge-container">
+                <div class="gauge-title">⚖️ Баланс "Скорость vs Тяга"</div>
+                <div class="gauge">
+                    <div class="gauge-fill" id="balanceGauge" style="width: 50%;"></div>
+                </div>
+                <div class="gauge-labels">
+                    <span>🚜 Тяга</span>
+                    <span>⚖️ Нейтрально</span>
+                    <span>🚀 Скорость</span>
+                </div>
+            </div>
+
+            <div style="margin-top: 20px; background: rgba(255,255,255,0.1); border-radius: 16px; padding: 15px;" id="verdictMessage">
+                Введите данные для расчёта
+            </div>
+        </div>
+    </div>
+
+    <!-- Нижний ряд - рекомендации и история -->
+    <div style="display: grid; grid-template-columns: 1.5fr 1fr; gap: 25px;">
+        <!-- Рекомендации по звёздам -->
+        <div class="card">
+            <div class="card-title">
+                <span>⚡</span> Умный подбор звёзд
+            </div>
+
+            <div id="sprocketRecommendations">
+                <!-- Заполняется через JS -->
+            </div>
+
+            <div style="margin-top: 20px;">
+                <div class="card-title" style="margin-top: 10px;">
+                    <span>📈</span> Ручной подбор
+                </div>
+                <div class="sprocket-selector">
+                    <select id="recommendedFront">
+                        <option value="11">11 зубьев</option>
+                        <option value="12">12 зубьев</option>
+                        <option value="13">13 зубьев</option>
+                        <option value="14">14 зубьев</option>
+                        <option value="15" selected>15 зубьев</option>
+                        <option value="16">16 зубьев</option>
+                        <option value="17">17 зубьев</option>
+                        <option value="18">18 зубьев</option>
+                    </select>
+                    <span style="color: #64748b;">/</span>
+                    <select id="recommendedRear">
+                        <option value="35">35 зубьев</option>
+                        <option value="38">38 зубьев</option>
+                        <option value="40">40 зубьев</option>
+                        <option value="42">42 зуба</option>
+                        <option value="45" selected>45 зубьев</option>
+                        <option value="48">48 зубьев</option>
+                        <option value="50">50 зубьев</option>
+                        <option value="52">52 зуба</option>
+                    </select>
+                    <button class="apply-btn" onclick="applyRecommendedSprockets()">Применить</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- История расчётов -->
+        <div class="card">
+            <div class="card-title">
+                <span>📋</span> История расчётов
+            </div>
+            <div id="historyList">
+                <!-- Заполняется через JS -->
+            </div>
+            <div style="margin-top: 15px; text-align: center; color: #64748b; font-size: 13px;" id="historyNote">
+                Расчёты сохраняются автоматически
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Загрузка сохранённых данных
+    let history = JSON.parse(localStorage.getItem('motoCalcHistory')) || [];
+
+    function saveToHistory(data) {
+        const historyItem = {
+            timestamp: new Date().toLocaleTimeString(),
+            speed: data.speed,
+            traction: data.traction,
+            powerToWeight: data.powerToWeight,
+            front: data.front,
+            rear: data.rear
+        };
+        
+        history.unshift(historyItem);
+        if (history.length > 10) history.pop();
+        
+        localStorage.setItem('motoCalcHistory', JSON.stringify(history));
+        displayHistory();
+    }
+
+    function displayHistory() {
+        const historyList = document.getElementById('historyList');
+        if (history.length === 0) {
+            historyList.innerHTML = '<div style="text-align: center; padding: 20px; color: #64748b;">История пуста</div>';
+            return;
+        }
+
+        historyList.innerHTML = history.map((item, index) => `
+            <div class="history-item">
+                <div>
+                    <div style="font-weight: 600;">${item.speed} км/ч | ${item.traction} Н</div>
+                    <div style="font-size: 12px; color: #64748b;">${item.timestamp} | ⚙️ ${item.front}/${item.rear}</div>
+                </div>
+                <button onclick="loadHistoryItem(${index})">↻</button>
+            </div>
+        `).join('');
+    }
+
+    function loadHistoryItem(index) {
+        const item = history[index];
+        if (item) {
+            document.getElementById('front').value = item.front;
+            document.getElementById('rear').value = item.rear;
+            calculate();
+        }
+    }
+
+    function clearHistory() {
+        if (confirm('Очистить историю расчётов?')) {
+            history = [];
+            localStorage.removeItem('motoCalcHistory');
+            displayHistory();
+        }
+    }
+
+    // Загрузка предустановок
+    function loadPreset(type) {
+        switch(type) {
+            case 'motorbike':
+                document.getElementById('rpm').value = 9000;
+                document.getElementById('hp').value = 105;
+                document.getElementById('reduction').value = 1.0;
+                document.getElementById('mass').value = 200;
+                document.getElementById('front').value = 15;
+                document.getElementById('rear').value = 45;
+                document.getElementById('wheelSize').value = 0.31;
+                break;
+            case 'scooter':
+                document.getElementById('rpm').value = 8000;
+                document.getElementById('hp').value = 15;
+                document.getElementById('reduction').value = 1.2;
+                document.getElementById('mass').value = 120;
+                document.getElementById('front').value = 12;
+                document.getElementById('rear').value = 40;
+                document.getElementById('wheelSize').value = 0.25;
+                break;
+            case 'offroad':
+                document.getElementById('rpm').value = 6000;
+                document.getElementById('hp').value = 35;
+                document.getElementById('reduction').value = 2.0;
+                document.getElementById('mass').value = 400;
+                document.getElementById('front').value = 13;
+                document.getElementById('rear').value = 52;
+                document.getElementById('wheelSize').value = 0.35;
+                break;
+            case 'sport':
+                document.getElementById('rpm').value = 14000;
+                document.getElementById('hp').value = 180;
+                document.getElementById('reduction').value = 1.2;
+                document.getElementById('mass').value = 180;
+                document.getElementById('front').value = 16;
+                document.getElementById('rear').value = 38;
+                document.getElementById('wheelSize').value = 0.32;
+                break;
+        }
+        calculate();
+    }
+
+    // Применить рекомендованные звёзды
+    function applyRecommendedSprockets() {
+        const front = document.getElementById('recommendedFront').value;
+        const rear = document.getElementById('recommendedRear').value;
+        document.getElementById('front').value = front;
+        document.getElementById('rear').value = rear;
+        calculate();
+    }
+
+    // Основной расчёт
+    function calculate() {
+        // Получаем значения
+        const rpm = parseFloat(document.getElementById('rpm').value) || 9000;
+        const hp = parseFloat(document.getElementById('hp').value) || 105;
+        const reduction = parseFloat(document.getElementById('reduction').value) || 1.0;
+        const mass = parseFloat(document.getElementById('mass').value) || 200;
+        const front = parseFloat(document.getElementById('front').value) || 15;
+        const rear = parseFloat(document.getElementById('rear').value) || 45;
+        const wheelType = document.getElementById('wheelType').value;
+        let wheelSize = parseFloat(document.getElementById('wheelSize').value) || 0.31;
+
+        // Расчёт радиуса
+        let radius = wheelSize;
+        if (wheelType === 'diameter') radius = wheelSize / 2;
+        if (radius <= 0) radius = 0.01;
+
+        // Передаточные числа
+        const secondaryRatio = rear / front;
+        const totalGearRatio = reduction * secondaryRatio;
+        const wheelRpm = rpm / totalGearRatio;
+        const circumference = 2 * Math.PI * radius;
+        const speedMs = (wheelRpm * circumference) / 60;
+        const speedKmh = speedMs * 3.6;
+
+        // Мощность и тяга
+        const powerWatts = hp * 735.5;
+        let tractionN = 0;
+        if (speedMs > 0.1) tractionN = powerWatts / speedMs;
+
+        // Ускорение
+        let accelTime = 999;
+        if (tractionN > 0 && mass > 0) {
+            const realAccel = (tractionN / mass) * 0.6;
+            if (realAccel > 0.1) accelTime = 27.8 / realAccel;
+        }
+
+        // Тяговооружённость
+        const powerToWeight = (hp / mass) * 1000;
+
+        // Обновляем отображение
+        document.getElementById('speedValue').innerHTML = Math.round(speedKmh) + '<small class="metric-unit">км/ч</small>';
+        document.getElementById('tractionValue').innerHTML = Math.round(tractionN) + '<small class="metric-unit">Н</small>';
+        document.getElementById('accelValue').innerHTML = (accelTime < 999 ? accelTime.toFixed(1) : '∞') + '<small class="metric-unit">сек</small>';
+        document.getElementById('powerToWeightValue').innerHTML = Math.round(powerToWeight) + '<small class="metric-unit">л.с./т</small>';
+
+        // График баланса
+        const balancePercent = Math.min(100, Math.max(0, (secondaryRatio - 2) * 33));
+        document.getElementById('balanceGauge').style.width = balancePercent + '%';
+
+        // Вердикт
+        const verdictBadge = document.getElementById('verdictBadge');
+        const verdictMessage = document.getElementById('verdictMessage');
+        
+        let verdict = '', message = '';
+
+        if (speedKmh < 15) {
+            verdict = '🚫 НЕ ПОЕДЕТ';
+            message = '⚠️ Скорость меньше 15 км/ч. Уменьшите передаточное число:';
+        } else if (speedKmh < 30) {
+            verdict = '⚠️ ТОЛЬКО БЕЗДОРЬЕ';
+            message = '🐢 Низкая скорость, но хорошая тяга для вездехода.';
+        } else if (powerToWeight < 30) {
+            verdict = '⚠️ ТЯЖЕЛОВАТ';
+            message = '🏋️ Масса великовата. Нужно больше мощности или меньше вес.';
+        } else if (powerToWeight > 150 && speedKmh > 80) {
+            verdict = '✅ ОТЛИЧНО!';
+            message = '🏁 Отличные показатели! Самоделка будет очень резвой.';
+        } else if (powerToWeight > 80) {
+            verdict = '✅ ХОРОШО';
+            message = '👍 Вполне адекватные показатели для самоделки.';
+        } else {
+            verdict = '🤔 НА ГРАНИ';
+            message = 'Параметры на грани. Возможно, поедет, но не быстро.';
+        }
+
+        verdictBadge.textContent = verdict;
+        verdictMessage.innerHTML = `📌 ${message}<br><small>⚙️ Передаточное число: ${secondaryRatio.toFixed(2)}</small>`;
+
+        // Умный подбор звёзд
+        const recommendations = generateSprocketRecommendations(hp, mass, speedKmh, tractionN, secondaryRatio);
+        document.getElementById('sprocketRecommendations').innerHTML = recommendations;
+
+        // Сохраняем в историю
+        saveToHistory({
+            speed: Math.round(speedKmh),
+            traction: Math.round(tractionN),
+            powerToWeight: Math.round(powerToWeight),
+            front: front,
+            rear: rear
+        });
+    }
+
+    // Генерация рекомендаций по звёздам
+    function generateSprocketRecommendations(hp, mass, speed, traction, currentRatio) {
+        const powerToWeight = hp / mass * 1000;
+        let recommendations = '';
+
+        // Для скорости
+        if (speed < 50 && powerToWeight > 50) {
+            recommendations += `
+                <div class="rec-item">
+                    <span class="rec-badge">🚀 Для скорости</span>
+                    <div>
+                        <div style="font-weight: 600;">Увеличьте ведущую или уменьшите ведомую</div>
+                        <div style="font-size: 13px; color: #64748b;">Текущее ${currentRatio.toFixed(2)} → рекомендуется 2.5-3.0</div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Для тяги
+        if (traction < 500 && mass > 200) {
+            recommendations += `
+                <div class="rec-item">
+                    <span class="rec-badge">🚜 Для тяги</span>
+                    <div>
+                        <div style="font-weight: 600;">Уменьшите ведущую или увеличьте ведомую</div>
+                        <div style="font-size: 13px; color: #64748b;">Текущее ${currentRatio.toFixed(2)} → рекомендуется 3.5-4.5</div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Оптимальный вариант
+        if (powerToWeight > 100) {
+            recommendations += `
+                <div class="rec-item">
+                    <span class="rec-badge">⭐ Оптимально</span>
+                    <div>
+                        <div style="font-weight: 600;">Спортивный вариант</div>
+                        <div style="font-size: 13px; color: #64748b;">Рекомендуем 16/42 для скорости или 14/48 для тяги</div>
+                    </div>
+                </div>
+            `;
+        } else if (powerToWeight > 50) {
+            recommendations += `
+                <div class="rec-item">
+                    <span class="rec-badge">⭐ Оптимально</span>
+                    <div>
+                        <div style="font-weight: 600;">Универсальный вариант</div>
+                        <div style="font-size: 13px; color: #64748b;">Рекомендуем 15/45 для баланса скорости и тяги</div>
+                    </div>
+                </div>
+            `;
+        } else {
+            recommendations += `
+                <div class="rec-item">
+                    <span class="rec-badge">⭐ Оптимально</span>
+                    <div>
+                        <div style="font-weight: 600;">Для тяжелых условий</div>
+                        <div style="font-size: 13px; color: #64748b;">Рекомендуем 13/52 для максимальной тяги</div>
+                    </div>
+                </div>
+            `;
+        }
+
+        return recommendations || '<div class="rec-item">Введите данные для получения рекомендаций</div>';
+    }
+
+    // Автоматическое сохранение при загрузке
+    window.addEventListener('load', () => {
+        displayHistory();
+        calculate();
+        
+        // Восстанавливаем последние значения из localStorage
+        const saved = localStorage.getItem('motoCalcLastValues');
+        if (saved) {
+            try {
+                const values = JSON.parse(saved);
+                Object.keys(values).forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) el.value = values[id];
+                });
+            } catch (e) {}
+        }
+    });
+
+    // Сохраняем значения при изменении
+    window.addEventListener('beforeunload', () => {
+        const values = {
+            rpm: document.getElementById('rpm').value,
+            hp: document.getElementById('hp').value,
+            reduction: document.getElementById('reduction').value,
+            mass: document.getElementById('mass').value,
+            front: document.getElementById('front').value,
+            rear: document.getElementById('rear').value,
+            wheelSize: document.getElementById('wheelSize').value,
+            wheelType: document.getElementById('wheelType').value
+        };
+        localStorage.setItem('motoCalcLastValues', JSON.stringify(values));
+    });
+</script>
+</body>
+</html>
