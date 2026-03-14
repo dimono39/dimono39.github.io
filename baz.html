@@ -1,0 +1,1543 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Проверка файлов пищеблоков - Реальная проверка</title>
+    <style>
+	        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+            text-align: center;
+            font-size: 2.5em;
+        }
+
+        .import-section {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 30px;
+            border: 2px dashed #667eea;
+        }
+
+        .import-section h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+
+        .file-upload {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .file-upload label {
+            padding: 12px 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 50px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .file-upload label:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .file-upload input {
+            display: none;
+        }
+
+        .file-name {
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        .sample-data {
+            margin-top: 15px;
+            padding: 15px;
+            background: #e8f4fd;
+            border-radius: 10px;
+            font-size: 0.9em;
+            color: #555;
+        }
+
+        .sample-data pre {
+            margin-top: 10px;
+            background: white;
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+
+        .period-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr auto;
+            gap: 20px;
+            margin-bottom: 30px;
+            align-items: end;
+        }
+
+        .date-input {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .date-input label {
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 600;
+        }
+
+        .date-input input {
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 1em;
+        }
+
+        .date-input input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .check-btn {
+            padding: 12px 40px;
+            background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+            color: white;
+            border: none;
+            border-radius: 50px;
+            font-size: 1.1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            height: 45px;
+        }
+
+        .check-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(76, 175, 80, 0.4);
+        }
+
+        .check-btn:disabled {
+            background: #cccccc;
+            cursor: not-allowed;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .action-btn {
+            padding: 10px 25px;
+            background: linear-gradient(135deg, #FF9800 0%, #F57C00 100%);
+            color: white;
+            border: none;
+            border-radius: 50px;
+            font-size: 0.9em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .action-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 152, 0, 0.4);
+        }
+
+        .action-btn.secondary {
+            background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%);
+        }
+
+        .action-btn.danger {
+            background: linear-gradient(135deg, #f44336 0%, #d32f2f 100%);
+        }
+
+        .stats {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 30px;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+            color: white;
+            text-align: center;
+        }
+
+        .stat-item {
+            padding: 10px;
+        }
+
+        .stat-value {
+            font-size: 2em;
+            font-weight: bold;
+            display: block;
+        }
+
+        .stat-label {
+            font-size: 0.9em;
+            opacity: 0.9;
+        }
+
+        .table-container {
+            overflow-x: auto;
+            max-height: 600px;
+            overflow-y: auto;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            font-size: 0.9em;
+        }
+
+        th {
+            background: #667eea;
+            color: white;
+            padding: 15px 10px;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        td {
+            padding: 12px 10px;
+            border-bottom: 1px solid #e0e0e0;
+            text-align: center;
+        }
+
+        tr:hover {
+            background: #f5f5f5;
+        }
+
+        .status-badge {
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 0.8em;
+            font-weight: 600;
+            display: inline-block;
+        }
+
+        .status-yes {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .status-no {
+            background: #f44336;
+            color: white;
+        }
+
+        .status-partial {
+            background: #FF9800;
+            color: white;
+        }
+
+        .file-list {
+            max-width: 200px;
+            text-align: left;
+            font-size: 0.8em;
+        }
+
+        .file-list ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .file-list li {
+            margin: 2px 0;
+        }
+
+        .file-exists {
+            color: #4CAF50;
+        }
+
+        .file-missing {
+            color: #f44336;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #667eea;
+            font-size: 1.2em;
+        }
+
+        .loading::after {
+            content: '';
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            margin-left: 10px;
+            border: 3px solid #667eea;
+            border-radius: 50%;
+            border-top-color: transparent;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .error-message {
+            background: #ffebee;
+            color: #c62828;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+            border-left: 4px solid #c62828;
+        }
+
+        .success-message {
+            background: #e8f5e9;
+            color: #2e7d32;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+            border-left: 4px solid #2e7d32;
+        }
+
+        .footer {
+            margin-top: 20px;
+            text-align: center;
+            color: #666;
+            font-size: 0.8em;
+        }
+
+        .cache-info {
+            margin-top: 10px;
+            font-size: 0.8em;
+            color: #666;
+        }	
+        /* Стили из предыдущей версии, плюс новые */
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background: #f0f0f0;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+            transition: width 0.3s ease;
+            width: 0%;
+        }
+        
+        .current-file {
+            font-family: monospace;
+            background: #f5f5f5;
+            padding: 5px 10px;
+            border-radius: 5px;
+            margin: 5px 0;
+            color: #333;
+        }
+        
+        .success-url {
+            color: #4CAF50;
+            word-break: break-all;
+            font-size: 0.8em;
+        }
+        
+        .error-url {
+            color: #f44336;
+            word-break: break-all;
+            font-size: 0.8em;
+        }
+        
+        .check-settings {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+        
+        .check-settings label {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            cursor: pointer;
+        }
+        
+        .check-settings input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+        /* Стили из предыдущей версии */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+            text-align: center;
+            font-size: 2.5em;
+        }
+
+        .import-section {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 30px;
+            border: 2px dashed #667eea;
+        }
+
+        .file-upload {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .file-upload label {
+            padding: 12px 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 50px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .file-upload label:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .file-upload input {
+            display: none;
+        }
+
+        .sample-data {
+            margin-top: 15px;
+            padding: 15px;
+            background: #e8f4fd;
+            border-radius: 10px;
+            font-size: 0.9em;
+        }
+
+        .sample-data pre {
+            margin-top: 10px;
+            background: white;
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+
+        .period-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr auto;
+            gap: 20px;
+            margin-bottom: 30px;
+            align-items: end;
+        }
+
+        .date-input {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .date-input label {
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 600;
+        }
+
+        .date-input input {
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 1em;
+        }
+
+        .check-btn {
+            padding: 12px 40px;
+            background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+            color: white;
+            border: none;
+            border-radius: 50px;
+            font-size: 1.1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            height: 45px;
+        }
+
+        .check-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(76, 175, 80, 0.4);
+        }
+
+        .check-btn:disabled {
+            background: #cccccc;
+            cursor: not-allowed;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .action-btn {
+            padding: 10px 25px;
+            background: linear-gradient(135deg, #FF9800 0%, #F57C00 100%);
+            color: white;
+            border: none;
+            border-radius: 50px;
+            font-size: 0.9em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .action-btn.secondary {
+            background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%);
+        }
+
+        .action-btn.danger {
+            background: linear-gradient(135deg, #f44336 0%, #d32f2f 100%);
+        }
+
+        .stats {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 30px;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+            color: white;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 2em;
+            font-weight: bold;
+            display: block;
+        }
+
+        .check-settings {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .check-settings label {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            cursor: pointer;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background: #f0f0f0;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+            transition: width 0.3s ease;
+            width: 0%;
+        }
+        
+        .current-file {
+            font-family: monospace;
+            background: #f5f5f5;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            word-break: break-all;
+        }
+        
+        .success-url {
+            color: #4CAF50;
+            font-weight: bold;
+        }
+        
+        .error-url {
+            color: #f44336;
+        }
+        
+        .warning-url {
+            color: #FF9800;
+        }
+
+        .file-info {
+            font-size: 0.8em;
+            margin-top: 5px;
+            color: #666;
+        }
+
+        .table-container {
+            overflow-x: auto;
+            max-height: 600px;
+            overflow-y: auto;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            font-size: 0.9em;
+        }
+
+        th {
+            background: #667eea;
+            color: white;
+            padding: 15px 10px;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        td {
+            padding: 12px 10px;
+            border-bottom: 1px solid #e0e0e0;
+            text-align: center;
+        }
+
+        tr:hover {
+            background: #f5f5f5;
+        }
+
+        .status-badge {
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 0.8em;
+            font-weight: 600;
+            display: inline-block;
+        }
+
+        .status-yes {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .status-no {
+            background: #f44336;
+            color: white;
+        }
+
+        .status-partial {
+            background: #FF9800;
+            color: white;
+        }
+
+        .status-warning {
+            background: #9C27B0;
+            color: white;
+        }
+
+        .file-list {
+            max-width: 250px;
+            text-align: left;
+            font-size: 0.8em;
+        }
+
+        .file-list ul {
+            list-style: none;
+            padding-left: 0;
+            margin: 0;
+        }
+
+        .file-list li {
+            margin: 5px 0;
+            padding: 3px 5px;
+            border-radius: 3px;
+        }
+
+        .file-exists {
+            color: #4CAF50;
+            background: #e8f5e9;
+        }
+
+        .file-missing {
+            color: #f44336;
+            background: #ffebee;
+        }
+
+        .file-warning {
+            color: #FF9800;
+            background: #fff3e0;
+        }
+
+        .error-message {
+            background: #ffebee;
+            color: #c62828;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+            border-left: 4px solid #c62828;
+        }
+
+        .success-message {
+            background: #e8f5e9;
+            color: #2e7d32;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+            border-left: 4px solid #2e7d32;
+        }
+
+        .cache-info {
+            margin-top: 20px;
+            padding: 10px;
+            background: #f5f5f5;
+            border-radius: 5px;
+            font-size: 0.9em;
+            color: #666;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🍽️ Проверка файлов пищеблоков</h1>
+
+        <!-- Секция импорта -->
+        <div class="import-section">
+            <h3>📁 Импорт данных</h3>
+            <div class="file-upload">
+                <label for="excelFile">
+                    Выберите файл Excel или CSV
+                </label>
+                <input type="file" id="excelFile" accept=".xlsx,.xls,.csv,.txt">
+                <span id="fileName" class="file-name">Файл не выбран</span>
+            </div>
+            
+            <div class="sample-data">
+                <strong>📋 Формат данных (скопируйте в CSV):</strong>
+                <pre>Пищеблок,Район,Адрес сайта,код КЦПРФ,отметка нет ли НК,КОД пищеблока
+МАОУ СШ 3,,http://ou3.org.ru/food/,,,61154
+МАОУ СОШ №6 пгт Рефтинский,,http://new.school6.su/food,,,120373
+МАОУ СОШ №1 г. Туринска,,http://schkola-1-turinsk.org.ru/wp-content/uploads/food,,,57041
+МАОУ СОШ № 197 г. Екатеринбург,,https://школа197.екатеринбург.рф/food,,,57676</pre>
+            </div>
+            
+            <div id="importError" class="error-message" style="display: none;"></div>
+            <div id="importSuccess" class="success-message" style="display: none;"></div>
+        </div>
+
+        <!-- Настройки проверки -->
+        <div class="check-settings">
+            <label>
+                <input type="checkbox" id="useCache" checked>
+                Использовать кэш
+            </label>
+            <label>
+                <input type="checkbox" id="saveFound" checked>
+                Сохранять в кэш
+            </label>
+            <label>
+                <input type="checkbox" id="validateContent" checked>
+                Проверять что это Excel
+            </label>
+            <span style="color: #666; font-size: 0.9em;">
+                ⏱️ Задержка: 300мс | Таймаут: 10с
+            </span>
+        </div>
+
+        <!-- Секция периода -->
+        <div class="period-section">
+            <div class="date-input">
+                <label>📅 Дата начала:</label>
+                <input type="date" id="startDate">
+            </div>
+            <div class="date-input">
+                <label>📅 Дата окончания:</label>
+                <input type="date" id="endDate">
+            </div>
+            <button class="check-btn" id="checkBtn" disabled>🔍 Проверить файлы</button>
+        </div>
+
+        <!-- Кнопки действий -->
+        <div class="action-buttons">
+            <button class="action-btn secondary" id="loadSampleBtn">📋 Загрузить пример</button>
+            <button class="action-btn" id="saveBtn">💾 Сохранить в кэш</button>
+            <button class="action-btn secondary" id="loadCacheBtn">🔄 Загрузить из кэша</button>
+            <button class="action-btn danger" id="clearCacheBtn">🗑️ Очистить кэш</button>
+        </div>
+
+        <!-- Статистика -->
+        <div class="stats" id="stats" style="display: none;">
+            <div class="stat-item">
+                <span class="stat-value" id="totalCount">0</span>
+                <span class="stat-label">Всего</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-value" id="completeCount">0</span>
+                <span class="stat-label">Полностью</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-value" id="partialCount">0</span>
+                <span class="stat-label">Частично</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-value" id="missingCount">0</span>
+                <span class="stat-label">Отсутствуют</span>
+            </div>
+        </div>
+
+        <!-- Прогресс проверки -->
+        <div id="progressContainer" style="display: none; margin-bottom: 20px;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                <span id="progressStatus">Подготовка...</span>
+                <span id="progressPercent">0%</span>
+            </div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill" style="width: 0%;"></div>
+            </div>
+            <div id="currentFile" class="current-file"></div>
+            <div id="fileDetails" style="font-size: 0.9em; margin-top: 10px;"></div>
+        </div>
+
+        <!-- Таблица результатов -->
+        <div class="table-container">
+            <div id="loading" class="loading" style="display: none;">Проверка файлов...</div>
+            <table id="resultTable" style="display: none;">
+                <thead>
+                    <tr>
+                        <th>Пищеблок</th>
+                        <th>Код</th>
+                        <th>findex</th>
+                        <th>tm2026-sm</th>
+                        <th>kp2026</th>
+                        <th>Меню</th>
+                        <th>Статус</th>
+                        <th>Детали</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody">
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Информация о кэше -->
+        <div class="cache-info">
+            🗄️ В кэше файлов: <span id="cacheCount">0</span>
+            <br>
+            <small>✅ Проверяется что файлы действительно .xlsx, а не страницы 404</small>
+        </div>
+    </div>
+
+    <script>
+        // Класс для управления кэшем
+        class FileCache {
+            constructor() {
+                this.metadataKey = 'foodBlocks_metadata';
+                this.init();
+            }
+
+            init() {
+                if (!localStorage.getItem(this.metadataKey)) {
+                    localStorage.setItem(this.metadataKey, JSON.stringify({
+                        files: {},
+                        created: Date.now()
+                    }));
+                }
+                this.updateCacheInfo();
+            }
+
+            saveFile(blockCode, filename, fileInfo) {
+                const metadata = JSON.parse(localStorage.getItem(this.metadataKey));
+                const fileKey = `file_${blockCode}_${filename}`;
+                
+                localStorage.setItem(fileKey, JSON.stringify({
+                    info: fileInfo,
+                    timestamp: Date.now(),
+                    blockCode: blockCode,
+                    filename: filename
+                }));
+                
+                if (!metadata.files[blockCode]) {
+                    metadata.files[blockCode] = [];
+                }
+                if (!metadata.files[blockCode].includes(filename)) {
+                    metadata.files[blockCode].push(filename);
+                }
+                
+                localStorage.setItem(this.metadataKey, JSON.stringify(metadata));
+                this.updateCacheInfo();
+                return true;
+            }
+
+            getFileInfo(blockCode, filename) {
+                const fileKey = `file_${blockCode}_${filename}`;
+                const data = localStorage.getItem(fileKey);
+                
+                if (!data) return null;
+                
+                try {
+                    const file = JSON.parse(data);
+                    const age = Date.now() - file.timestamp;
+                    const maxAge = 7 * 24 * 60 * 60 * 1000;
+                    
+                    if (age > maxAge) {
+                        localStorage.removeItem(fileKey);
+                        this.removeFromMetadata(blockCode, filename);
+                        return null;
+                    }
+                    
+                    return file.info;
+                } catch {
+                    return null;
+                }
+            }
+
+            removeFromMetadata(blockCode, filename) {
+                const metadata = JSON.parse(localStorage.getItem(this.metadataKey));
+                if (metadata.files[blockCode]) {
+                    metadata.files[blockCode] = metadata.files[blockCode]
+                        .filter(f => f !== filename);
+                    if (metadata.files[blockCode].length === 0) {
+                        delete metadata.files[blockCode];
+                    }
+                }
+                localStorage.setItem(this.metadataKey, JSON.stringify(metadata));
+            }
+
+            clearCache() {
+                const metadata = JSON.parse(localStorage.getItem(this.metadataKey));
+                
+                Object.keys(metadata.files).forEach(blockCode => {
+                    metadata.files[blockCode].forEach(filename => {
+                        localStorage.removeItem(`file_${blockCode}_${filename}`);
+                    });
+                });
+                
+                localStorage.setItem(this.metadataKey, JSON.stringify({
+                    files: {},
+                    created: Date.now()
+                }));
+                
+                this.updateCacheInfo();
+            }
+
+            getCacheCount() {
+                const metadata = JSON.parse(localStorage.getItem(this.metadataKey));
+                let count = 0;
+                Object.values(metadata.files).forEach(files => {
+                    count += files.length;
+                });
+                return count;
+            }
+
+            updateCacheInfo() {
+                const count = this.getCacheCount();
+                document.getElementById('cacheCount').textContent = count;
+            }
+        }
+
+        // Основной класс приложения
+        class FoodBlockApp {
+            constructor() {
+                this.blocks = [];
+                this.cache = new FileCache();
+                this.initializeElements();
+                this.attachEvents();
+                this.setDefaultDates();
+                this.loadFromCache();
+                this.stopChecking = false;
+            }
+
+            initializeElements() {
+                this.fileInput = document.getElementById('excelFile');
+                this.fileName = document.getElementById('fileName');
+                this.importError = document.getElementById('importError');
+                this.importSuccess = document.getElementById('importSuccess');
+                this.startDate = document.getElementById('startDate');
+                this.endDate = document.getElementById('endDate');
+                this.checkBtn = document.getElementById('checkBtn');
+                this.saveBtn = document.getElementById('saveBtn');
+                this.loadSampleBtn = document.getElementById('loadSampleBtn');
+                this.loadCacheBtn = document.getElementById('loadCacheBtn');
+                this.clearCacheBtn = document.getElementById('clearCacheBtn');
+                this.stats = document.getElementById('stats');
+                this.loading = document.getElementById('loading');
+                this.resultTable = document.getElementById('resultTable');
+                this.tableBody = document.getElementById('tableBody');
+                this.progressContainer = document.getElementById('progressContainer');
+                this.progressStatus = document.getElementById('progressStatus');
+                this.progressPercent = document.getElementById('progressPercent');
+                this.progressFill = document.getElementById('progressFill');
+                this.currentFile = document.getElementById('currentFile');
+                this.fileDetails = document.getElementById('fileDetails');
+                this.useCache = document.getElementById('useCache');
+                this.saveFound = document.getElementById('saveFound');
+                this.validateContent = document.getElementById('validateContent');
+            }
+
+            setDefaultDates() {
+                const today = new Date();
+                const threeDaysAgo = new Date(today);
+                threeDaysAgo.setDate(today.getDate() - 3);
+                
+                this.startDate.value = this.formatDate(threeDaysAgo);
+                this.endDate.value = this.formatDate(today);
+            }
+
+            formatDate(date) {
+                return date.toISOString().split('T')[0];
+            }
+
+            attachEvents() {
+                this.fileInput.addEventListener('change', (e) => this.handleFileUpload(e));
+                this.checkBtn.addEventListener('click', () => this.checkFiles());
+                this.saveBtn.addEventListener('click', () => this.saveToCache());
+                this.loadSampleBtn.addEventListener('click', () => this.loadSampleData());
+                this.loadCacheBtn.addEventListener('click', () => this.loadFromCache());
+                this.clearCacheBtn.addEventListener('click', () => this.clearCache());
+            }
+
+            loadSampleData() {
+                this.blocks = [
+                    {
+                        name: 'МАОУ СШ 3',
+                        site: 'http://ou3.org.ru/food/',
+                        code: '61154',
+                        files: { findex: null, tm2026: null, kp2026: null, daily: [] },
+                        fileDetails: { findex: null, tm2026: null, kp2026: null }
+                    },
+                    {
+                        name: 'МАОУ СОШ №6 пгт Рефтинский',
+                        site: 'http://new.school6.su/food',
+                        code: '120373',
+                        files: { findex: null, tm2026: null, kp2026: null, daily: [] },
+                        fileDetails: { findex: null, tm2026: null, kp2026: null }
+                    },
+                    {
+                        name: 'МАОУ СОШ №1 г. Туринска',
+                        site: 'http://schkola-1-turinsk.org.ru/wp-content/uploads/food',
+                        code: '57041',
+                        files: { findex: null, tm2026: null, kp2026: null, daily: [] },
+                        fileDetails: { findex: null, tm2026: null, kp2026: null }
+                    },
+                    {
+                        name: 'МАОУ СОШ № 197 г. Екатеринбург',
+                        site: 'https://школа197.екатеринбург.рф/food',
+                        code: '57676',
+                        files: { findex: null, tm2026: null, kp2026: null, daily: [] },
+                        fileDetails: { findex: null, tm2026: null, kp2026: null }
+                    }
+                ];
+                
+                this.checkBtn.disabled = false;
+                this.showMessage('Загружен пример данных', 'success');
+                this.updateTable();
+                this.updateStats();
+            }
+
+            async handleFileUpload(event) {
+                const file = event.target.files[0];
+                if (!file) return;
+
+                this.fileName.textContent = `Выбран файл: ${file.name}`;
+                this.hideMessages();
+
+                try {
+                    const text = await file.text();
+                    this.blocks = this.parseCSV(text);
+                    
+                    if (this.blocks.length > 0) {
+                        this.checkBtn.disabled = false;
+                        this.showMessage(`Загружено ${this.blocks.length} пищеблоков`, 'success');
+                        this.updateTable();
+                        this.updateStats();
+                        this.saveToCache();
+                    }
+                } catch (error) {
+                    this.showMessage(`Ошибка: ${error.message}`, 'error');
+                }
+            }
+
+            parseCSV(text) {
+                const lines = text.split('\n').filter(line => line.trim());
+                if (lines.length === 0) return [];
+
+                const headers = lines[0].split(/[,\t]/).map(h => h.trim());
+                
+                const blocks = [];
+                
+                for (let i = 1; i < lines.length; i++) {
+                    const values = lines[i].split(/[,\t]/).map(v => v.trim().replace(/^"|"$/g, ''));
+                    
+                    blocks.push({
+                        name: values[0] || '',
+                        region: values[1] || '',
+                        site: values[2] || '',
+                        kcprf: values[3] || '',
+                        nk: values[4] || '',
+                        code: values[5] || `BLOCK_${i}`,
+                        files: { findex: null, tm2026: null, kp2026: null, daily: [] },
+                        fileDetails: { findex: null, tm2026: null, kp2026: null }
+                    });
+                }
+                
+                return blocks;
+            }
+
+            // РЕАЛЬНАЯ ПРОВЕРКА ФАЙЛОВ
+            async checkFiles() {
+                if (!this.startDate.value || !this.endDate.value) {
+                    this.showMessage('Выберите период', 'error');
+                    return;
+                }
+
+                this.stopChecking = false;
+                this.progressContainer.style.display = 'block';
+                this.resultTable.style.display = 'none';
+                
+                const dates = this.getDatesInRange(this.startDate.value, this.endDate.value);
+                const totalChecks = this.blocks.length * (3 + dates.length);
+                let completedChecks = 0;
+                
+                for (let i = 0; i < this.blocks.length; i++) {
+                    if (this.stopChecking) break;
+                    
+                    const block = this.blocks[i];
+                    
+                    this.progressStatus.innerHTML = `Проверка ${i+1}/${this.blocks.length}: ${block.name || 'Без названия'}`;
+                    
+                    if (!block.site) {
+                        block.files = { findex: false, tm2026: false, kp2026: false, daily: dates.map(d => ({ date: d, exists: false })) };
+                        continue;
+                    }
+
+                    // Нормализуем URL
+                    let baseUrl = block.site.trim();
+                    if (!baseUrl.startsWith('http')) {
+                        baseUrl = 'http://' + baseUrl;
+                    }
+                    if (!baseUrl.endsWith('/')) {
+                        baseUrl += '/';
+                    }
+
+                    // Проверяем основные файлы
+                    block.files.findex = await this.checkFile(block, baseUrl + 'findex', 'findex');
+                    completedChecks++;
+                    this.updateProgress(completedChecks, totalChecks);
+                    
+                    block.files.tm2026 = await this.checkFile(block, baseUrl + 'tm2026-sm.xlsx', 'tm2026-sm.xlsx');
+                    completedChecks++;
+                    this.updateProgress(completedChecks, totalChecks);
+                    
+                    block.files.kp2026 = await this.checkFile(block, baseUrl + 'kp2026.xlsx', 'kp2026.xlsx');
+                    completedChecks++;
+                    this.updateProgress(completedChecks, totalChecks);
+
+                    // Проверяем ежедневные меню
+                    block.files.daily = [];
+                    for (let date of dates) {
+                        if (this.stopChecking) break;
+                        
+                        const filename = `${date}-sm.xlsx`;
+                        const exists = await this.checkFile(block, baseUrl + filename, filename);
+                        block.files.daily.push({ date, exists });
+                        
+                        completedChecks++;
+                        this.updateProgress(completedChecks, totalChecks);
+                        
+                        await new Promise(r => setTimeout(r, 300));
+                    }
+                }
+                
+                this.progressContainer.style.display = 'none';
+                this.resultTable.style.display = 'table';
+                this.updateTable();
+                this.updateStats();
+                this.showMessage('Проверка завершена', 'success');
+            }
+
+            // Проверка одного файла с валидацией .xlsx
+            async checkFile(block, url, filename) {
+                // Проверяем кэш
+                if (this.useCache.checked) {
+                    const cached = this.cache.getFileInfo(block.code, filename);
+                    if (cached) {
+                        this.currentFile.innerHTML = `📦 Из кэша: ${filename}`;
+                        if (!block.fileDetails) block.fileDetails = {};
+                        block.fileDetails[filename] = cached;
+                        return cached.exists;
+                    }
+                }
+                
+                this.currentFile.innerHTML = `🌐 Проверяю: ${url}`;
+                
+                try {
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), 10000);
+                    
+                    const response = await fetch(url, { 
+                        method: 'GET',
+                        signal: controller.signal
+                    });
+                    
+                    clearTimeout(timeoutId);
+                    
+                    // Проверяем статус
+                    if (!response.ok) {
+                        if (response.status === 404) {
+                            this.showFileDetail(url, '❌ 404 Not Found', 'error');
+                            this.saveFileResult(block, filename, { exists: false, status: 404, error: 'Not Found' });
+                            return false;
+                        }
+                        this.showFileDetail(url, `❌ Ошибка ${response.status}`, 'error');
+                        this.saveFileResult(block, filename, { exists: false, status: response.status, error: response.statusText });
+                        return false;
+                    }
+                    
+                    // Получаем заголовки
+                    const contentType = response.headers.get('content-type');
+                    const contentLength = response.headers.get('content-length');
+                    
+                    // Проверяем что это Excel файл
+                    const isExcel = contentType?.includes('spreadsheet') || 
+                                   contentType?.includes('excel') || 
+                                   contentType?.includes('octet-stream') ||
+                                   filename.endsWith('.xlsx');
+                    
+                    // Если нужно проверить содержимое
+                    if (this.validateContent.checked) {
+                        // Читаем первые байты для проверки сигнатуры Excel
+                        const blob = await response.blob();
+                        const buffer = await blob.slice(0, 4).arrayBuffer();
+                        const header = new Uint8Array(buffer);
+                        
+                        // Сигнатура ZIP (Excel файлы - это ZIP архивы)
+                        const isZip = header[0] === 0x50 && header[1] === 0x4B && 
+                                     header[2] === 0x03 && header[3] === 0x04;
+                        
+                        if (!isZip) {
+                            this.showFileDetail(url, '⚠️ Найден, но это не Excel файл', 'warning');
+                            this.saveFileResult(block, filename, { 
+                                exists: true, 
+                                valid: false, 
+                                contentType, 
+                                size: contentLength,
+                                error: 'Not an Excel file'
+                            });
+                            return false;
+                        }
+                        
+                        this.showFileDetail(url, `✅ Excel файл (${this.formatSize(contentLength)})`, 'success');
+                        this.saveFileResult(block, filename, { 
+                            exists: true, 
+                            valid: true, 
+                            contentType, 
+                            size: contentLength 
+                        });
+                        return true;
+                    } else {
+                        // Простая проверка по расширению и заголовкам
+                        if (isExcel) {
+                            this.showFileDetail(url, `✅ Найден (${this.formatSize(contentLength)})`, 'success');
+                            this.saveFileResult(block, filename, { exists: true, contentType, size: contentLength });
+                            return true;
+                        } else {
+                            this.showFileDetail(url, '⚠️ Найден, но похоже на HTML страницу', 'warning');
+                            this.saveFileResult(block, filename, { 
+                                exists: true, 
+                                valid: false, 
+                                contentType,
+                                error: 'Possible HTML page'
+                            });
+                            return false;
+                        }
+                    }
+                    
+                } catch (error) {
+                    if (error.name === 'AbortError') {
+                        this.showFileDetail(url, '⏰ Таймаут', 'error');
+                        this.saveFileResult(block, filename, { exists: false, error: 'Timeout' });
+                    } else {
+                        this.showFileDetail(url, `❌ Ошибка: ${error.message}`, 'error');
+                        this.saveFileResult(block, filename, { exists: false, error: error.message });
+                    }
+                    return false;
+                }
+            }
+
+            showFileDetail(url, message, type) {
+                const color = type === 'success' ? '#4CAF50' : type === 'warning' ? '#FF9800' : '#f44336';
+                this.fileDetails.innerHTML = `<span style="color: ${color}">${message}</span><br><small>${url}</small>`;
+            }
+
+            saveFileResult(block, filename, info) {
+                if (this.saveFound.checked) {
+                    this.cache.saveFile(block.code, filename, info);
+                }
+                if (!block.fileDetails) block.fileDetails = {};
+                block.fileDetails[filename] = info;
+            }
+
+            formatSize(bytes) {
+                if (!bytes) return 'неизвестно';
+                if (bytes < 1024) return bytes + ' B';
+                if (bytes < 1024*1024) return (bytes/1024).toFixed(1) + ' KB';
+                return (bytes/1024/1024).toFixed(1) + ' MB';
+            }
+
+            updateProgress(current, total) {
+                const percent = Math.round((current / total) * 100);
+                this.progressFill.style.width = percent + '%';
+                this.progressPercent.textContent = percent + '%';
+            }
+
+            getDatesInRange(start, end) {
+                const dates = [];
+                let currentDate = new Date(start);
+                const lastDate = new Date(end);
+                
+                while (currentDate <= lastDate) {
+                    dates.push(this.formatDate(currentDate));
+                    currentDate.setDate(currentDate.getDate() + 1);
+                }
+                
+                return dates;
+            }
+
+            updateTable() {
+                let html = '';
+                
+                for (let block of this.blocks) {
+                    const dailyExists = block.files.daily?.filter(d => d.exists).length || 0;
+                    const dailyTotal = block.files.daily?.length || 0;
+                    
+                    // Проверяем статус каждого файла
+                    const findexOk = block.files.findex === true;
+                    const tm2026Ok = block.files.tm2026 === true;
+                    const kp2026Ok = block.files.kp2026 === true;
+                    
+                    const allFiles = findexOk && tm2026Ok && kp2026Ok && dailyExists === dailyTotal;
+                    const anyFiles = findexOk || tm2026Ok || kp2026Ok || dailyExists > 0;
+                    
+                    let statusClass = 'status-badge status-no';
+                    let statusText = 'Отсутствуют';
+                    
+                    if (allFiles) {
+                        statusClass = 'status-badge status-yes';
+                        statusText = 'Полностью готов';
+                    } else if (anyFiles) {
+                        statusClass = 'status-badge status-partial';
+                        statusText = 'Частично готов';
+                    }
+                    
+                    // Детальная информация
+                    const details = [];
+                    if (block.fileDetails) {
+                        if (block.fileDetails['findex']) {
+                            const info = block.fileDetails['findex'];
+                            details.push(`findex: ${info.exists ? (info.valid === false ? '⚠️ не Excel' : '✅') : '❌'}`);
+                        }
+                        if (block.fileDetails['tm2026-sm.xlsx']) {
+                            const info = block.fileDetails['tm2026-sm.xlsx'];
+                            details.push(`tm2026: ${info.exists ? (info.valid === false ? '⚠️ не Excel' : '✅') : '❌'}`);
+                        }
+                        if (block.fileDetails['kp2026.xlsx']) {
+                            const info = block.fileDetails['kp2026.xlsx'];
+                            details.push(`kp2026: ${info.exists ? (info.valid === false ? '⚠️ не Excel' : '✅') : '❌'}`);
+                        }
+                    }
+                    
+                    html += `<tr>
+                        <td>${block.name || '-'}</td>
+                        <td>${block.code || '-'}</td>
+                        <td>
+                            <span class="status-badge ${findexOk ? 'status-yes' : block.files.findex === null ? 'status-no' : 'status-no'}">
+                                ${findexOk ? '✓' : block.files.findex === null ? '?' : '✗'}
+                            </span>
+                        </td>
+                        <td>
+                            <span class="status-badge ${tm2026Ok ? 'status-yes' : block.files.tm2026 === null ? 'status-no' : 'status-no'}">
+                                ${tm2026Ok ? '✓' : block.files.tm2026 === null ? '?' : '✗'}
+                            </span>
+                        </td>
+                        <td>
+                            <span class="status-badge ${kp2026Ok ? 'status-yes' : block.files.kp2026 === null ? 'status-no' : 'status-no'}">
+                                ${kp2026Ok ? '✓' : block.files.kp2026 === null ? '?' : '✗'}
+                            </span>
+                        </td>
+                        <td>
+                            <span class="status-badge ${dailyExists === dailyTotal ? 'status-yes' : dailyExists > 0 ? 'status-partial' : 'status-no'}">
+                                ${dailyExists}/${dailyTotal}
+                            </span>
+                        </td>
+                        <td><span class="${statusClass}">${statusText}</span></td>
+                        <td class="file-list">
+                            <ul>
+                                ${details.map(d => `<li class="${d.includes('✅') ? 'file-exists' : d.includes('⚠️') ? 'file-warning' : 'file-missing'}">${d}</li>`).join('')}
+                            </ul>
+                        </td>
+                    </tr>`;
+                }
+                
+                this.tableBody.innerHTML = html;
+            }
+
+            updateStats() {
+                const total = this.blocks.length;
+                let complete = 0, partial = 0, missing = 0;
+                
+                for (let block of this.blocks) {
+                    const dailyExists = block.files.daily?.filter(d => d.exists).length || 0;
+                    const dailyTotal = block.files.daily?.length || 0;
+                    
+                    const allFiles = block.files.findex && block.files.tm2026 && 
+                                   block.files.kp2026 && dailyExists === dailyTotal;
+                    const anyFiles = block.files.findex || block.files.tm2026 || 
+                                   block.files.kp2026 || dailyExists > 0;
+                    
+                    if (allFiles) complete++;
+                    else if (anyFiles) partial++;
+                    else missing++;
+                }
+                
+                document.getElementById('totalCount').textContent = total;
+                document.getElementById('completeCount').textContent = complete;
+                document.getElementById('partialCount').textContent = partial;
+                document.getElementById('missingCount').textContent = missing;
+                
+                this.stats.style.display = 'grid';
+            }
+
+            saveToCache() {
+                localStorage.setItem('foodBlocks_data', JSON.stringify({
+                    blocks: this.blocks,
+                    timestamp: Date.now()
+                }));
+                this.showMessage('Данные сохранены', 'success');
+            }
+
+            loadFromCache() {
+                const saved = localStorage.getItem('foodBlocks_data');
+                if (saved) {
+                    try {
+                        const data = JSON.parse(saved);
+                        this.blocks = data.blocks;
+                        this.checkBtn.disabled = false;
+                        this.updateTable();
+                        this.updateStats();
+                        this.resultTable.style.display = 'table';
+                        this.showMessage('Загружено из кэша', 'success');
+                    } catch (e) {
+                        this.showMessage('Ошибка загрузки', 'error');
+                    }
+                }
+            }
+
+            clearCache() {
+                if (confirm('Очистить кэш?')) {
+                    localStorage.removeItem('foodBlocks_data');
+                    this.cache.clearCache();
+                    this.blocks = [];
+                    this.checkBtn.disabled = true;
+                    this.resultTable.style.display = 'none';
+                    this.stats.style.display = 'none';
+                    this.showMessage('Кэш очищен', 'success');
+                }
+            }
+
+            showMessage(text, type) {
+                if (type === 'error') {
+                    this.importError.textContent = text;
+                    this.importError.style.display = 'block';
+                    this.importSuccess.style.display = 'none';
+                } else {
+                    this.importSuccess.textContent = text;
+                    this.importSuccess.style.display = 'block';
+                    this.importError.style.display = 'none';
+                }
+                
+                setTimeout(() => this.hideMessages(), 5000);
+            }
+
+            hideMessages() {
+                this.importError.style.display = 'none';
+                this.importSuccess.style.display = 'none';
+            }
+        }
+
+        // Запуск
+        document.addEventListener('DOMContentLoaded', () => {
+            new FoodBlockApp();
+        });
+    </script>
+</body>
+</html>
