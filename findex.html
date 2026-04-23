@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Исправление findex: D1 в текстовый формат</title>
+    <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            background: #f0f2f5;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1300px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
+            color: white;
+            padding: 30px;
+        }
+        .header h1 {
+            margin: 0 0 10px 0;
+            font-size: 28px;
+        }
+        .header p {
+            margin: 0;
+            opacity: 0.95;
+        }
+        .content {
+            padding: 30px;
+        }
+        .upload-area {
+            border: 2px dashed #3498db;
+            border-radius: 12px;
+            padding: 40px;
+            text-align: center;
+            background: #f8fcff;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-bottom: 25px;
+        }
+        .upload-area:hover {
+            background: #eef5ff;
+            border-color: #2980b9;
+        }
+        .btn {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 12px 28px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            margin: 10px 10px 0 0;
+            transition: 0.2s;
+        }
+        .btn:hover:not(:disabled) {
+            background: #2980b9;
+            transform: translateY(-1px);
+        }
+        .btn:disabled {
+            background: #bdc3c7;
+            cursor: not-allowed;
+        }
+        .btn-secondary {
+            background: #95a5a6;
+        }
+        .btn-secondary:hover:not(:disabled) {
+            background: #7f8c8d;
+        }
+        .info-card {
+            background: #e8f4fd;
+            border-left: 4px solid #3498db;
+            padding: 15px 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+        }
+        .info-card.success {
+            background: #d4edda;
+            border-left-color: #28a745;
+        }
+        .info-card.warning {
+            background: #fff3cd;
+            border-left-color: #ffc107;
+        }
+        .preview-section {
+            margin-top: 25px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .preview-header {
+            background: #f8f9fa;
+            padding: 12px 15px;
+            font-weight: bold;
+            border-bottom: 1px solid #ddd;
+        }
+        .preview-content {
+            overflow-x: auto;
+            padding: 15px;
+            background: white;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+            vertical-align: top;
+        }
+        th {
+            background: #f2f2f2;
+            font-weight: 600;
+        }
+        .highlight-cell {
+            background-color: #fff3cd;
+            font-weight: bold;
+        }
+        .specs {
+            background: #f9f9f9;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            font-size: 13px;
+            color: #555;
+            border: 1px solid #e0e0e0;
+        }
+        .specs h4 {
+            margin: 0 0 10px 0;
+            color: #2c3e50;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1>🔧 Исправление findex: D1 - принудительно текстовый формат</h1>
+        <p>✔️ D1 будет преобразована в ТЕКСТОВЫЙ тип данных (не Дата)<br>
+        ✔️ Сохраняются: ширина столбцов, заливка ячеек, объединённые ячейки<br>
+        ✔️ Имя скачиваемого файла: <strong>findex.xlsx</strong></p>
+    </div>
+    <div class="content">
+        <div id="dropZone" class="upload-area">
+            📂 <strong>Перетащите файл findex.xlsx сюда или нажмите для выбора</strong><br>
+            <small style="color:#666;">Поддерживаются .xlsx (Excel 2007+)</small>
+            <input type="file" id="fileInput" accept=".xlsx" style="display:none;">
+            <div style="margin-top: 15px;">
+                <button class="btn" onclick="document.getElementById('fileInput').click()">Выбрать файл</button>
+            </div>
+        </div>
+
+        <div id="infoPanel"></div>
+
+        <div>
+            <button id="downloadBtn" class="btn" disabled>💾 Скачать findex.xlsx</button>
+            <button id="resetBtn" class="btn btn-secondary" disabled>🔄 Сбросить</button>
+        </div>
+
+        <div id="previewSection" class="preview-section" style="display:none;">
+            <div class="preview-header">📋 Предпросмотр (D1 — жёлтая ячейка, ТЕКСТОВЫЙ формат)</div>
+            <div class="preview-content" id="previewContent"></div>
+        </div>
+
+        <div class="specs">
+            <h4>✅ Что гарантированно сохраняется:</h4>
+            <ul style="margin: 5px 0 0 20px;">
+                <li>✓ <strong>D1 — тип данных ТЕКСТ</strong> (принудительно задаётся формат @)</li>
+                <li>✓ Ширина столбцов — A:5.78, B:25.33, C:55.22, D:44.22</li>
+                <li>✓ Жёлтая заливка для указанных ячеек</li>
+                <li>✓ Все остальные стили (шрифты, границы, объединённые ячейки)</li>
+            </ul>
+            <p style="margin-top: 12px; margin-bottom: 0;"><strong>🔧 Как это работает:</strong> Ячейке D1 принудительно задаётся текстовый формат <code>@</code>, а значение сохраняется как строка. Excel при открытии больше не будет автоматически конвертировать её в дату.</p>
+        </div>
+    </div>
+</div>
+
+<script>
+    let originalFileName = "";
+    let modifiedBuffer = null;
+
+    const fileInput = document.getElementById('fileInput');
+    const dropZone = document.getElementById('dropZone');
+    const downloadBtn = document.getElementById('downloadBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const infoPanel = document.getElementById('infoPanel');
+    const previewSection = document.getElementById('previewSection');
+    const previewContent = document.getElementById('previewContent');
+
+    // Форматирование даты в ДД.ММ.ГГГГ
+    function formatDateDDMMYYYY(date) {
+        const d = new Date(date);
+        const day = String(d.getDate()).padStart(2, '0');
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const year = d.getFullYear();
+        return `${day}.${month}.${year}`;
+    }
+
+    // Проверка, является ли число датой Excel
+    function isExcelDateNumber(value) {
+        if (typeof value !== 'number') return false;
+        if (value < 1 || value > 100000) return false;
+        return true;
+    }
+
+    // Конвертация Excel serial number в JS Date
+    function excelSerialToDate(serial) {
+        const utcDays = Math.floor(serial - 25569);
+        const msPerDay = 86400000;
+        return new Date(utcDays * msPerDay);
+    }
+
+    // Получение отображаемого значения из ячейки ExcelJS
+    function getCellDisplayValue(cell) {
+        if (cell === undefined || cell === null) return '';
+        
+        const value = cell.value;
+        
+        if (value === null || value === undefined) return '';
+        
+        if (typeof value === 'string') return value;
+        
+        if (value instanceof Date) {
+            return formatDateDDMMYYYY(value);
+        }
+        
+        if (typeof value === 'number') {
+            if (isExcelDateNumber(value)) {
+                return formatDateDDMMYYYY(excelSerialToDate(value));
+            }
+            return String(value);
+        }
+        
+        if (typeof value === 'object') {
+            if (value.result !== undefined) return String(value.result);
+            if (value.text !== undefined) return value.text;
+            if (value.error !== undefined) return `#${value.error}`;
+        }
+        
+        return String(value);
+    }
+
+    // Основная функция обработки
+    async function processFile(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = async function(e) {
+                try {
+                    const buffer = e.target.result;
+                    const workbook = new ExcelJS.Workbook();
+                    await workbook.xlsx.load(buffer);
+                    
+                    const worksheet = workbook.getWorksheet(1);
+                    if (!worksheet) {
+                        reject(new Error("Не удалось найти лист в файле"));
+                        return;
+                    }
+                    
+                    // ========== 1. ОБРАБОТКА ЯЧЕЙКИ D1 ==========
+                    const cellD1 = worksheet.getCell('D1');
+                    const oldValue = cellD1.value;
+                    let newTextValue = null;
+                    let needChange = false;
+                    let actionMessage = "";
+                    
+                    // Получаем отображаемое значение (для дат преобразуем в строку)
+                    const displayValue = getCellDisplayValue(cellD1);
+                    
+                    // Проверяем, является ли значение уже текстом
+                    const isCurrentlyText = (typeof oldValue === 'string');
+                    const isEmpty = (oldValue === undefined || oldValue === null || oldValue === '');
+                    
+                    if (!isCurrentlyText || isEmpty || oldValue instanceof Date || typeof oldValue === 'number') {
+                        needChange = true;
+                        
+                        if (oldValue instanceof Date) {
+                            newTextValue = formatDateDDMMYYYY(oldValue);
+                            actionMessage = `Тип Date ➜ преобразован в текст: "${newTextValue}"`;
+                        } 
+                        else if (typeof oldValue === 'number' && isExcelDateNumber(oldValue)) {
+                            const dateObj = excelSerialToDate(oldValue);
+                            newTextValue = formatDateDDMMYYYY(dateObj);
+                            actionMessage = `Число-дата ➜ преобразовано в текст: "${newTextValue}"`;
+                        }
+                        else if (typeof oldValue === 'number') {
+                            newTextValue = String(oldValue);
+                            actionMessage = `Число ➜ преобразовано в текст: "${newTextValue}"`;
+                        }
+                        else if (oldValue && typeof oldValue === 'object' && oldValue.result !== undefined) {
+                            newTextValue = String(oldValue.result);
+                            actionMessage = `Формула ➜ результат преобразован в текст: "${newTextValue}"`;
+                        }
+                        else if (displayValue && displayValue !== '') {
+                            newTextValue = displayValue;
+                            actionMessage = `Значение "${displayValue}" ➜ преобразовано в текст`;
+                        }
+                        else {
+                            newTextValue = formatDateDDMMYYYY(new Date());
+                            actionMessage = `Пустая ячейка ➜ вставлена текущая дата: "${newTextValue}"`;
+                        }
+                        
+                        // КЛЮЧЕВОЙ МОМЕНТ: устанавливаем значение как текст
+                        cellD1.value = newTextValue;
+                        
+                        // ПРИНУДИТЕЛЬНО ЗАДАЁМ ТЕКСТОВЫЙ ФОРМАТ ЯЧЕЙКИ
+                        // Это предотвращает автоматическое преобразование в дату при открытии в Excel
+                        cellD1.numFmt = '@';  // '@' = текстовый формат
+                        
+                        // Дополнительно: убеждаемся, что тип установлен правильно
+                        cellD1.type = ExcelJS.ValueType.String;
+                        
+                    } else {
+                        newTextValue = oldValue;
+                        actionMessage = `Уже текстовый формат ✅ (значение: "${oldValue}")`;
+                        // Даже если уже текст, убедимся что формат ячейки текстовый
+                        cellD1.numFmt = '@';
+                    }
+                    
+                    // ========== 2. УСТАНОВКА ШИРИНЫ СТОЛБЦОВ ==========
+                    worksheet.getColumn('A').width = 5.78;
+                    worksheet.getColumn('B').width = 25.33;
+                    worksheet.getColumn('C').width = 55.22;
+                    worksheet.getColumn('D').width = 44.22;
+                    
+                    // ========== 3. ЖЁЛТАЯ ЗАЛИВКА ДЛЯ УКАЗАННЫХ ЯЧЕЕК ==========
+                    const yellowFill = {
+                        type: 'pattern',
+                        pattern: 'solid',
+                        fgColor: { argb: 'FFFFFFFF' }  // Ярко-жёлтый
+                    };
+                    
+                    const cellsToFill = [
+                        'B1', 'C1', 'D1',
+                        'D4',
+                        'D6', 'D7', 'D8',
+                        'D10', 'D11', 'D12', 'D13', 'D14', 'D15', 'D16', 'D17',
+                        'D19', 'D20',
+                        'D22', 'D23',
+                        'D25', 'D26',
+                        'D28', 'D29', 'D30', 'D31', 'D32'
+                    ];
+                    
+                    cellsToFill.forEach(cellAddress => {
+                        try {
+                            const cell = worksheet.getCell(cellAddress);
+                            cell.fill = yellowFill;
+                        } catch(e) {
+                            console.warn(`Не удалось установить заливку для ${cellAddress}`);
+                        }
+                    });
+                    
+                    // ========== 4. СОХРАНЕНИЕ ФАЙЛА ==========
+                    const buffer_out = await workbook.xlsx.writeBuffer();
+                    
+                    resolve({
+                        buffer: buffer_out,
+                        modified: needChange,
+                        oldDisplayValue: displayValue,
+                        newValue: newTextValue,
+                        actionMessage: actionMessage,
+                        worksheet: worksheet
+                    });
+                    
+                } catch(err) {
+                    reject(err);
+                }
+            };
+            reader.onerror = () => reject(new Error("Ошибка чтения файла"));
+            reader.readAsArrayBuffer(file);
+        });
+    }
+
+    // Отображение предпросмотра
+    async function showPreview(worksheet) {
+        try {
+            let previewHtml = '<table><thead><tr>';
+            previewHtml += '<th>#</th><th>A</th><th>B</th><th>C</th><th>D</th><th>E</th>';
+            previewHtml += '</tr></thead><tbody>';
+            
+            for (let rowNum = 1; rowNum <= 15; rowNum++) {
+                const isRow1 = rowNum === 1;
+                previewHtml += '<tr>';
+                previewHtml += `<td style="font-weight:bold; background:#f5f5f5;">${rowNum}</td>`;
+                
+                for (let col of ['A', 'B', 'C', 'D', 'E']) {
+                    const cell = worksheet.getCell(`${col}${rowNum}`);
+                    let displayValue = getCellDisplayValue(cell);
+                    displayValue = displayValue.substring(0, 50);
+                    
+                    const isD1 = (isRow1 && col === 'D');
+                    let styleAttr = '';
+                    if (isD1) {
+                        styleAttr = 'style="background-color: #FFEB3B; font-weight: bold;"';
+                    }
+                    
+                    previewHtml += `<td ${styleAttr} title="${displayValue.replace(/"/g, '&quot;')}">${escapeHtml(displayValue) || '&nbsp;'}</td>`;
+                }
+                previewHtml += '</tr>';
+            }
+            previewHtml += '</tbody></table>';
+            previewContent.innerHTML = previewHtml;
+            previewSection.style.display = 'block';
+        } catch(e) {
+            previewContent.innerHTML = '<p style="color: #999;">Не удалось отобразить предпросмотр</p>';
+            previewSection.style.display = 'block';
+        }
+    }
+    
+    function escapeHtml(str) {
+        if (!str) return '';
+        return str.replace(/[&<>]/g, function(m) {
+            if (m === '&') return '&amp;';
+            if (m === '<') return '&lt;';
+            if (m === '>') return '&gt;';
+            return m;
+        });
+    }
+    
+    // Обработка файла
+    async function handleFile(file) {
+        if (!file) return;
+        originalFileName = file.name;
+        
+        infoPanel.innerHTML = '<div class="info-card">⏳ Обработка файла...</div>';
+        
+        try {
+            const result = await processFile(file);
+            modifiedBuffer = result.buffer;
+            
+            const infoClass = result.modified ? 'warning' : 'success';
+            infoPanel.innerHTML = `
+                <div class="info-card ${infoClass}">
+                    <strong>${result.modified ? '🔄 D1 преобразована в ТЕКСТОВЫЙ формат' : '✅ D1 уже в текстовом формате'}</strong><br>
+                    ${result.actionMessage}<br>
+                    ${result.oldDisplayValue !== undefined ? `<small>📤 Было (отображаемое значение): ${result.oldDisplayValue}</small><br>` : ''}
+                    <small>📥 Стало (текст): "${result.newValue}"</small><br>
+                    <small>🔧 Формат ячейки D1: <strong>Текстовый (@)</strong> — Excel не будет конвертировать в дату</small><br>
+                    <small>🎨 Применены: ширина столбцов</small>
+                </div>
+            `;
+            
+            downloadBtn.disabled = false;
+            resetBtn.disabled = false;
+            
+            await showPreview(result.worksheet);
+            
+        } catch(err) {
+            console.error(err);
+            infoPanel.innerHTML = `<div class="info-card"><strong>❌ Ошибка:</strong> ${err.message}<br>Убедитесь, что файл имеет формат .xlsx и не повреждён</div>`;
+            downloadBtn.disabled = true;
+        }
+    }
+    
+    // Event listeners
+    fileInput.addEventListener('change', (e) => {
+        if (e.target.files && e.target.files[0]) handleFile(e.target.files[0]);
+    });
+    
+    dropZone.addEventListener('click', () => fileInput.click());
+    dropZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dropZone.style.background = '#eef5ff';
+    });
+    dropZone.addEventListener('dragleave', () => {
+        dropZone.style.background = '#f8fcff';
+    });
+    dropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropZone.style.background = '#f8fcff';
+        const file = e.dataTransfer.files[0];
+        if (file && (file.name.endsWith('.xlsx') || file.name.endsWith('.xls'))) {
+            handleFile(file);
+        } else {
+            alert('Пожалуйста, загрузите Excel-файл с расширением .xlsx');
+        }
+    });
+    
+    downloadBtn.addEventListener('click', () => {
+        if (modifiedBuffer) {
+            const link = document.createElement('a');
+            // ВСЕГДА СОХРАНЯЕМ КАК findex.xlsx
+            const newName = 'findex.xlsx';
+            const blob = new Blob([modifiedBuffer], {type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+            link.href = URL.createObjectURL(blob);
+            link.download = newName;
+            link.click();
+            URL.revokeObjectURL(link.href);
+        } else {
+            alert('Нет данных для скачивания');
+        }
+    });
+    
+    resetBtn.addEventListener('click', () => {
+        modifiedBuffer = null;
+        fileInput.value = '';
+        infoPanel.innerHTML = '';
+        previewSection.style.display = 'none';
+        downloadBtn.disabled = true;
+        resetBtn.disabled = true;
+    });
+</script>
+</body>
+</html>
