@@ -1,0 +1,824 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>PRO Редактор типового меню ФЦМПО</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', system-ui, sans-serif; }
+        body { background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); min-height: 100vh; padding: 20px; }
+        header { background: linear-gradient(135deg, #059669, #10b981); color: white; padding: 30px; border-radius: 24px; margin-bottom: 25px; text-align: center; position: relative; overflow: hidden; box-shadow: 0 20px 35px -10px rgba(0,0,0,0.3); }
+        header::before { content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background: linear-gradient(45deg, transparent 30%, rgba(255,255,255,0.15) 50%, transparent 70%); animation: shine 4s infinite; }
+        @keyframes shine { 0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); } 100% { transform: translateX(100%) translateY(100%) rotate(45deg); } }
+        h1 { font-size: 1.6rem; position: relative; z-index: 1; }
+        .subtitle { opacity: 0.9; margin-top: 8px; font-size: 0.85rem; }
+        .container { max-width: 100%; margin: 0 auto; }
+        
+        .card { background: white; border-radius: 24px; padding: 24px; margin-bottom: 24px; box-shadow: 0 20px 40px -12px rgba(0,0,0,0.25); }
+        .card-title { display: flex; align-items: center; gap: 12px; border-bottom: 3px solid #e2e8f0; padding-bottom: 12px; margin-bottom: 20px; color: #0f172a; font-weight: 700; }
+        .card-title i { font-size: 1.6rem; background: linear-gradient(135deg, #059669, #10b981); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        
+        .btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; border: none; border-radius: 50px; font-weight: 600; cursor: pointer; transition: all 0.2s ease; font-size: 0.85rem; }
+        .btn-primary { background: linear-gradient(135deg, #059669, #10b981); color: white; }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(5,150,105,0.4); }
+        .btn-success { background: linear-gradient(135deg, #2563eb, #3b82f6); color: white; }
+        .btn-success:hover { transform: translateY(-2px); }
+        .btn-warning { background: linear-gradient(135deg, #d97706, #f59e0b); color: white; }
+        .btn-secondary { background: #64748b; color: white; }
+        
+        .buttons-container { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 24px; }
+        
+        .file-zone { border: 3px dashed #cbd5e1; border-radius: 20px; padding: 35px; text-align: center; cursor: pointer; transition: all 0.3s; background: #f8fafc; }
+        .file-zone:hover { border-color: #059669; background: #f0fdf4; }
+        
+        /* Стили для таблицы - исправлено для правильного отображения */
+        .editor-wrapper { overflow-x: auto; border-radius: 16px; border: 1px solid #e2e8f0; background: white; max-height: 60vh; overflow-y: auto; }
+        .editor-table { width: 100%; border-collapse: collapse; font-size: 0.75rem; min-width: 1300px; }
+        .editor-table th, .editor-table td { border: 1px solid #e2e8f0; padding: 8px 10px; vertical-align: top; }
+        .editor-table th { background: #f1f5f9; font-weight: 700; position: sticky; top: 0; z-index: 20; font-size: 0.7rem; text-transform: uppercase; }
+        .editor-table input, .editor-table select { width: 100%; padding: 6px 8px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.75rem; background: white; }
+        .editor-table input:focus, .editor-table select:focus { outline: none; border-color: #059669; box-shadow: 0 0 0 2px rgba(5,150,105,0.2); }
+        
+        /* Классы подсветки */
+        .cell-error { background-color: #fee2e2 !important; }
+        .cell-error input, .cell-error select { background-color: #fee2e2 !important; }
+        .cell-warning { background-color: #fef9e6 !important; }
+        .cell-warning input, .cell-warning select { background-color: #fef9e6 !important; }
+        
+        /* Подсказки */
+        .tooltip-cell { position: relative; cursor: help; }
+        .tooltip-cell:hover::after { 
+            content: attr(data-error); 
+            position: absolute; 
+            background: #1e293b; 
+            color: white; 
+            font-size: 0.7rem; 
+            padding: 5px 10px; 
+            border-radius: 8px; 
+            white-space: normal;
+            max-width: 280px;
+            z-index: 1000; 
+            bottom: 100%; 
+            left: 0; 
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            pointer-events: none;
+        }
+        
+        .stats-panel { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
+        .stat-card { background: #f8fafc; padding: 12px 20px; border-radius: 16px; flex: 1; min-width: 110px; text-align: center; border-bottom: 3px solid #059669; cursor: pointer; }
+        .stat-card:hover { transform: translateY(-2px); background: #f1f5f9; }
+        .stat-number { font-size: 1.6rem; font-weight: 800; }
+        .stat-label { font-size: 0.65rem; text-transform: uppercase; color: #475569; margin-top: 5px; }
+        
+        .rules-panel { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; padding: 12px; background: #f1f5f9; border-radius: 16px; }
+        .rule-badge { padding: 6px 12px; border-radius: 30px; font-size: 0.7rem; font-weight: 600; background: white; cursor: pointer; transition: 0.2s; }
+        .rule-badge:hover { transform: translateX(3px); }
+        .rule-badge.ok { background: #dcfce7; color: #16a34a; border-left: 3px solid #22c55e; }
+        .rule-badge.warning { background: #fef9e6; color: #d97706; border-left: 3px solid #f59e0b; }
+        
+        .meal-badge { background: #e2e8f0; padding: 2px 6px; border-radius: 15px; font-size: 0.6rem; margin-left: 6px; display: inline-block; }
+        .meal-badge.warning { background: #fee2e2; color: #dc2626; }
+        .meal-badge.ok { background: #dcfce7; color: #16a34a; }
+        
+        .status-message { padding: 12px 18px; border-radius: 16px; margin-bottom: 20px; display: none; font-weight: 500; }
+        .status-success { background: #dcfce7; color: #166534; display: block; border-left: 4px solid #22c55e; }
+        .status-error { background: #fee2e2; color: #991b1b; display: block; border-left: 4px solid #ef4444; }
+        .status-info { background: #dbeafe; color: #1e40af; display: block; border-left: 4px solid #3b82f6; }
+        
+        footer { text-align: center; margin-top: 30px; padding-top: 20px; color: #94a3b8; font-size: 0.7rem; border-top: 1px solid #334155; }
+        
+        .floating-btn { position: fixed; bottom: 20px; right: 20px; width: 48px; height: 48px; border-radius: 50%; background: #059669; color: white; border: none; cursor: pointer; box-shadow: 0 4px 12px rgba(5,150,105,0.4); z-index: 1000; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; }
+        .floating-btn:hover { transform: scale(1.1); }
+        
+        .highlight-row { animation: blink 0.8s ease 3; }
+        @keyframes blink { 0% { background-color: transparent; } 50% { background-color: #fde047; } 100% { background-color: transparent; } }
+        
+        .add-row-btn { background: #f8fafc; }
+        .add-row-btn:hover { background: #f1f5f9; }
+        
+        /* Исправление для rowspan */
+        .editor-table td[rowspan] { vertical-align: middle; background-color: #fafcff; }
+        .editor-table td[rowspan] strong { font-size: 0.85rem; }
+    </style>
+</head>
+<body>
+    <div class="floating-btn" id="scrollTopBtn"><i class="fas fa-arrow-up"></i></div>
+    <div class="container">
+        <header>
+            <h1><i class="fas fa-crown"></i> PRO Редактор типового меню ФЦМПО</h1>
+            <p class="subtitle">Суммирование одинаковых разделов • Подсветка ошибок • Кликабельные правила</p>
+        </header>
+
+        <div class="card">
+            <div class="card-title"><i class="fas fa-cloud-upload-alt"></i> <span>Загрузка файла</span></div>
+            <div id="statusArea" class="status-message"></div>
+            <div class="file-zone" id="dropZone">
+                <i class="fas fa-file-excel fa-3x" style="color:#059669; margin-bottom: 10px;"></i>
+                <h3>Перетащите файл <span style="color:#059669;">tm2026-sm.xlsx</span></h3>
+                <p>или кликните для выбора</p>
+                <input type="file" id="fileInput" accept=".xlsx,.xls" style="display:none">
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-title"><i class="fas fa-table-list"></i> <span>Редактор меню</span></div>
+            <div class="stats-panel" id="statsPanel"></div>
+            <div class="rules-panel" id="rulesPanel"></div>
+            <div class="buttons-container">
+                <button id="saveChangesBtn" class="btn btn-primary"><i class="fas fa-save"></i> Сохранить</button>
+                <button id="exportExcelBtn" class="btn btn-success"><i class="fas fa-download"></i> Экспорт Excel</button>
+                <button id="validateOnlyBtn" class="btn btn-warning"><i class="fas fa-check-double"></i> Проверить</button>
+            </div>
+            <div class="editor-wrapper" id="editorWrapper">
+                <div style="padding: 60px; text-align: center; color: #94a3b8;">
+                    <i class="fas fa-folder-open fa-3x" style="margin-bottom: 12px;"></i><br>
+                    Загрузите файл типового меню
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <i class="fas fa-gavel"></i> Правила 1-16 (кроме 7) | 
+            <i class="fas fa-calculator"></i> Одинаковые разделы суммируются | 
+            <i class="fas fa-chart-line"></i> Клик по правилу → переход к ошибке
+        </footer>
+    </div>
+
+    <script>
+        let currentTemplateData = null;
+        let flatItems = [];
+        let allViolations = [];
+        let schoolInfo = { name: "", ageCategory: "7-11 лет", approval: { position: "Директор", name: "", date: "12.01.2026" } };
+        
+        const VALID_SECTIONS = [
+            'гор.блюдо', 'гор.напиток', 'хлеб', 'фрукты', 'закуска', 
+            '1 блюдо', '2 блюдо', 'гарнир', 'напиток', 'хлеб бел.', 
+            'хлеб черн.', 'булочное', 'кисломол.', 'сладкое', '3 блюдо'
+        ];
+        
+        const MEAL_STRUCTURE = {
+            'breakfast': { name: 'Завтрак', sections: ['гор.блюдо', 'гор.напиток', 'хлеб', 'фрукты'] },
+            'breakfast2': { name: 'Завтрак 2', sections: ['фрукты'] },
+            'lunch': { name: 'Обед', sections: ['закуска', '1 блюдо', '2 блюдо', 'гарнир', 'напиток', 'хлеб бел.', 'хлеб черн.'] },
+            'afternoonSnack': { name: 'Полдник', sections: ['булочное', 'напиток'] },
+            'dinner': { name: 'Ужин', sections: ['гор.блюдо', 'гарнир', 'напиток', 'хлеб'] },
+            'dinner2': { name: 'Ужин 2', sections: ['кисломол.', 'булочное', 'напиток', 'фрукты'] }
+        };
+        const MEAL_TYPES = ['breakfast', 'breakfast2', 'lunch', 'afternoonSnack', 'dinner', 'dinner2'];
+        
+        function normalizeSection(s) {
+            if (!s) return '';
+            const low = s.toString().toLowerCase().trim();
+            if (low.includes('гор.блюдо') || low === 'горячее блюдо') return 'гор.блюдо';
+            if (low.includes('гор.напиток')) return 'гор.напиток';
+            if (low === 'хлеб') return 'хлеб';
+            if (low.includes('фрукт')) return 'фрукты';
+            if (low === 'закуска') return 'закуска';
+            if (low === '1 блюдо') return '1 блюдо';
+            if (low === '2 блюдо') return '2 блюдо';
+            if (low === 'гарнир') return 'гарнир';
+            if (low.includes('хлеб бел')) return 'хлеб бел.';
+            if (low.includes('хлеб черн')) return 'хлеб черн.';
+            if (low === 'булочное') return 'булочное';
+            if (low === 'напиток') return 'напиток';
+            if (low.includes('кисломол')) return 'кисломол.';
+            if (low === 'сладкое') return 'сладкое';
+            if (low === '3 блюдо') return '3 блюдо';
+            return low;
+        }
+        
+        function getSectionSum(items, targetSection) {
+            return items.reduce((sum, item) => {
+                if (normalizeSection(item.section) === targetSection) {
+                    return sum + (parseFloat(item.weight) || 0);
+                }
+                return sum;
+            }, 0);
+        }
+        
+        function getMealTotalWeight(items) {
+            return items.reduce((sum, i) => sum + (parseFloat(i.weight) || 0), 0);
+        }
+        
+        function getMealTotalCalories(items) {
+            return items.reduce((sum, i) => sum + (parseFloat(i.calories) || 0), 0);
+        }
+        
+        function runAllRules(template) {
+            const violations = [];
+            for (let w in template.weeks) {
+                for (let d in template.weeks[w]) {
+                    const day = template.weeks[w][d];
+                    let dayFruitWeight = 0;
+                    for (let mt of MEAL_TYPES) {
+                        const meal = day[mt];
+                        if (!meal || !meal.items.length) continue;
+                        const items = meal.items;
+                        const totalWeight = getMealTotalWeight(items);
+                        const totalCalories = getMealTotalCalories(items);
+                        const hotWeight = getSectionSum(items, 'гор.блюдо');
+                        const zakuskaWeight = getSectionSum(items, 'закуска');
+                        const firstWeight = getSectionSum(items, '1 блюдо');
+                        const secondWeight = getSectionSum(items, '2 блюдо');
+                        const garnishWeight = getSectionSum(items, 'гарнир');
+                        const fruitWeight = getSectionSum(items, 'фрукты');
+                        dayFruitWeight += fruitWeight;
+                        
+                        if (mt === 'breakfast' && totalWeight > 0 && totalWeight < 500) violations.push({ rule:1, code:1, week:w, day:d, meal:mt, details:`Завтрак: ${totalWeight}г < 500г` });
+                        if (mt === 'lunch' && totalWeight > 0 && totalWeight < 700) violations.push({ rule:2, code:2, week:w, day:d, meal:mt, details:`Обед: ${totalWeight}г < 700г` });
+                        if (mt === 'breakfast' && hotWeight > 0 && hotWeight < 150) violations.push({ rule:3, code:3, week:w, day:d, meal:mt, details:`гор.блюдо: ${hotWeight}г < 150г` });
+                        if (mt === 'lunch' && zakuskaWeight > 0 && zakuskaWeight < 60) violations.push({ rule:4, code:4, week:w, day:d, meal:mt, details:`закуска: ${zakuskaWeight}г < 60г` });
+                        if (mt === 'lunch' && firstWeight > 0 && firstWeight < 200) violations.push({ rule:5, code:5, week:w, day:d, meal:mt, details:`1 блюдо: ${firstWeight}г < 200г` });
+                        if (mt === 'lunch' && secondWeight > 0 && secondWeight < 90) violations.push({ rule:6, code:6, week:w, day:d, meal:mt, details:`2 блюдо: ${secondWeight}г < 90г` });
+                        if (mt === 'lunch' && garnishWeight > 0 && garnishWeight < 150) violations.push({ rule:8, code:8, week:w, day:d, meal:mt, details:`гарнир: ${garnishWeight}г < 150г` });
+                        if (mt === 'breakfast2' && totalWeight > 0 && totalWeight < 200) violations.push({ rule:9, code:9, week:w, day:d, meal:mt, details:`2 завтрак: ${totalWeight}г < 200г` });
+                        if (mt === 'afternoonSnack' && totalWeight > 0 && totalWeight < 300) violations.push({ rule:10, code:10, week:w, day:d, meal:mt, details:`Полдник: ${totalWeight}г < 300г` });
+                        if (mt === 'dinner' && totalWeight > 0 && totalWeight < 500) violations.push({ rule:11, code:11, week:w, day:d, meal:mt, details:`Ужин: ${totalWeight}г < 500г` });
+                        if (mt === 'dinner2' && totalWeight > 0 && totalWeight < 200) violations.push({ rule:12, code:12, week:w, day:d, meal:mt, details:`2 ужин: ${totalWeight}г < 200г` });
+                        if (mt === 'breakfast' && totalCalories > 0 && totalCalories < 470) violations.push({ rule:13, code:13, week:w, day:d, meal:mt, details:`Калории завтрака: ${totalCalories}ккал < 470ккал` });
+                        if (mt === 'lunch' && totalCalories > 0 && totalCalories < 705) violations.push({ rule:14, code:14, week:w, day:d, meal:mt, details:`Калории обеда: ${totalCalories}ккал < 705ккал` });
+                        
+                        items.forEach(item => {
+                            const bju = (parseFloat(item.proteins)||0) + (parseFloat(item.fats)||0) + (parseFloat(item.carbs)||0);
+                            const weight = parseFloat(item.weight) || 0;
+                            if (bju > weight && weight > 0) {
+                                violations.push({ rule:15, code:15, week:w, day:d, meal:mt, details:`"${item.name}": БЖУ=${bju}г > вес=${weight}г` });
+                            }
+                        });
+                    }
+                    if (dayFruitWeight > 0 && dayFruitWeight < 100) {
+                        violations.push({ rule:16, code:16, week:w, day:d, details:`Фруктов за день: ${dayFruitWeight}г < 100г` });
+                    }
+                }
+            }
+            return violations;
+        }
+        
+        function getCellClass(field, item, mealType, mealItems) {
+            const sectionNorm = normalizeSection(item.section);
+            const sectionSum = getSectionSum(mealItems, sectionNorm);
+            
+            if (field === 'section') {
+                if (item.section && !VALID_SECTIONS.includes(sectionNorm)) return 'cell-error';
+                return '';
+            }
+            if (field === 'weight') {
+                if (item.weight === 0 && item.name && item.name.trim() !== '') return 'cell-error';
+                if (mealType === 'breakfast' && sectionNorm === 'гор.блюдо' && sectionSum > 0 && sectionSum < 150) return 'cell-warning';
+                if (mealType === 'lunch' && sectionNorm === 'закуска' && sectionSum > 0 && sectionSum < 60) return 'cell-warning';
+                if (mealType === 'lunch' && sectionNorm === '1 блюдо' && sectionSum > 0 && sectionSum < 200) return 'cell-warning';
+                if (mealType === 'lunch' && sectionNorm === '2 блюдо' && sectionSum > 0 && sectionSum < 90) return 'cell-warning';
+                if (mealType === 'lunch' && sectionNorm === 'гарнир' && sectionSum > 0 && sectionSum < 150) return 'cell-warning';
+                if (sectionNorm.includes('фрукт')) {
+                    const fruitSum = getSectionSum(mealItems, 'фрукты');
+                    if (fruitSum > 0 && fruitSum < 100) return 'cell-warning';
+                }
+                return '';
+            }
+            if (field === 'calories') {
+                if (item.calories === 0 && item.name && item.name.trim() !== '') return 'cell-warning';
+                return '';
+            }
+            return '';
+        }
+        
+        function getCellTooltip(field, item, mealType, mealItems) {
+            const sectionNorm = normalizeSection(item.section);
+            const sectionSum = getSectionSum(mealItems, sectionNorm);
+            const messages = [];
+            
+            if (field === 'section') {
+                if (item.section && !VALID_SECTIONS.includes(sectionNorm)) {
+                    messages.push(`Недопустимый раздел "${item.section}"`);
+                }
+                return messages.join(' • ');
+            }
+            if (field === 'weight') {
+                if (item.weight === 0 && item.name) messages.push(`Вес = 0 г`);
+                if (mealType === 'breakfast' && sectionNorm === 'гор.блюдо' && sectionSum > 0 && sectionSum < 150) {
+                    messages.push(`Сумма гор.блюдо: ${sectionSum}г < 150г`);
+                }
+                if (mealType === 'lunch' && sectionNorm === 'закуска' && sectionSum > 0 && sectionSum < 60) {
+                    messages.push(`Сумма закусок: ${sectionSum}г < 60г`);
+                }
+                if (mealType === 'lunch' && sectionNorm === '1 блюдо' && sectionSum > 0 && sectionSum < 200) {
+                    messages.push(`Сумма первых блюд: ${sectionSum}г < 200г`);
+                }
+                if (mealType === 'lunch' && sectionNorm === '2 блюдо' && sectionSum > 0 && sectionSum < 90) {
+                    messages.push(`Сумма вторых блюд: ${sectionSum}г < 90г`);
+                }
+                if (mealType === 'lunch' && sectionNorm === 'гарнир' && sectionSum > 0 && sectionSum < 150) {
+                    messages.push(`Сумма гарниров: ${sectionSum}г < 150г`);
+                }
+                if (sectionNorm.includes('фрукт')) {
+                    const fruitSum = getSectionSum(mealItems, 'фрукты');
+                    if (fruitSum > 0 && fruitSum < 100) messages.push(`Сумма фруктов: ${fruitSum}г < 100г`);
+                }
+                return messages.join(' • ');
+            }
+            if (field === 'calories') {
+                if (item.calories === 0 && item.name) messages.push(`Калорийность = 0`);
+                return messages.join(' • ');
+            }
+            return '';
+        }
+        
+        function buildFlatFromTemplate(template) {
+            if (!template || !template.weeks) return [];
+            const flat = [];
+            for (let w in template.weeks) {
+                for (let d in template.weeks[w]) {
+                    for (let mt of MEAL_TYPES) {
+                        const meal = template.weeks[w][d][mt];
+                        if (meal && meal.items) {
+                            meal.items.forEach((item, idx) => {
+                                flat.push({
+                                    id: `${w}_${d}_${mt}_${idx}`,
+                                    week: parseInt(w), day: parseInt(d), meal: mt,
+                                    section: item.section || '',
+                                    name: item.name || '',
+                                    weight: item.weight || 0,
+                                    calories: item.calories || 0,
+                                    proteins: item.proteins || 0,
+                                    fats: item.fats || 0,
+                                    carbs: item.carbs || 0,
+                                    recipeId: item.recipeId || '',
+                                    price: item.price || 0
+                                });
+                            });
+                        }
+                    }
+                }
+            }
+            return flat;
+        }
+        
+        function scrollToViolation(violation) {
+            const selector = `tr[data-week="${violation.week}"][data-day="${violation.day}"]`;
+            let targetRow = document.querySelector(selector);
+            if (targetRow) {
+                targetRow.classList.add('highlight-row');
+                targetRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                setTimeout(() => targetRow.classList.remove('highlight-row'), 2000);
+            }
+        }
+        
+        function renderEditor() {
+            if (!currentTemplateData || !flatItems.length) {
+                document.getElementById('editorWrapper').innerHTML = '<div style="padding:60px;text-align:center;color:#94a3b8;"><i class="fas fa-folder-open fa-3x" style="margin-bottom:12px;"></i><br>Загрузите файл</div>';
+                document.getElementById('statsPanel').innerHTML = '';
+                document.getElementById('rulesPanel').innerHTML = '';
+                return;
+            }
+            
+            allViolations = runAllRules(currentTemplateData);
+            
+            const grouped = {};
+            flatItems.forEach(item => {
+                const key = `${item.week}_${item.day}_${item.meal}`;
+                if (!grouped[key]) grouped[key] = [];
+                grouped[key].push(item);
+            });
+            
+            const mealTotals = {};
+            const mealCalories = {};
+            flatItems.forEach(item => {
+                const key = `${item.week}_${item.day}_${item.meal}`;
+                mealTotals[key] = (mealTotals[key] || 0) + item.weight;
+                mealCalories[key] = (mealCalories[key] || 0) + item.calories;
+            });
+            
+            let totalErrors = 0, totalWarnings = 0;
+            const violationsByRule = {};
+            allViolations.forEach(v => {
+                violationsByRule[v.code] = (violationsByRule[v.code] || 0) + 1;
+                if (v.code === 15) totalErrors++;
+                else totalWarnings++;
+            });
+            
+            const sortedKeys = Object.keys(grouped).sort();
+            
+            let html = `<table class="editor-table"><thead><tr>
+                <th>Неделя</th><th>День</th><th>Приём пищи</th><th>Раздел</th><th>Блюдо</th><th>Вес (г)</th><th>Ккал</th><th>Белки</th><th>Жиры</th><th>Углеводы</th><th>№ рец.</th><th></th>
+            </tr></thead><tbody>`;
+            
+            for (let key of sortedKeys) {
+                const items = grouped[key];
+                const mealType = items[0].meal;
+                const mealTotal = mealTotals[key] || 0;
+                const mealKcal = mealCalories[key] || 0;
+                const ruleMin = { breakfast:500, lunch:700, breakfast2:200, afternoonSnack:300, dinner:500, dinner2:200 }[mealType] || 0;
+                const kcalMin = { breakfast:470, lunch:705 }[mealType] || 0;
+                const mealOk = mealTotal >= ruleMin || mealTotal === 0;
+                const kcalOk = mealKcal >= kcalMin || mealKcal === 0;
+                
+                let firstRow = true;
+                const rowspan = items.length;
+                
+                for (let idx = 0; idx < items.length; idx++) {
+                    const item = items[idx];
+                    
+                    html += `<tr data-week="${item.week}" data-day="${item.day}" data-meal="${item.meal}">`;
+                    
+                    if (firstRow) {
+                        html += `
+                            <td rowspan="${rowspan}" style="vertical-align:middle; background:#fafcff;"><strong>${item.week}</strong></td>
+                            <td rowspan="${rowspan}" style="vertical-align:middle; background:#fafcff;"><strong>${item.day}</strong></td>
+                            <td rowspan="${rowspan}" style="vertical-align:middle; background:#fafcff;">
+                                ${MEAL_STRUCTURE[mealType]?.name || mealType}
+                                <div style="margin-top:6px;">
+                                    <span class="meal-badge ${mealOk ? 'ok' : 'warning'}">⚖️ ${mealTotal}/${ruleMin}г</span>
+                                    ${kcalMin > 0 ? `<span class="meal-badge ${kcalOk ? 'ok' : 'warning'}">🔥 ${mealKcal}/${kcalMin}ккал</span>` : ''}
+                                </div>
+                            </td>
+                        `;
+                    }
+                    
+                    const sectionClass = getCellClass('section', item, mealType, items);
+                    const weightClass = getCellClass('weight', item, mealType, items);
+                    const caloriesClass = getCellClass('calories', item, mealType, items);
+                    const sectionTip = getCellTooltip('section', item, mealType, items);
+                    const weightTip = getCellTooltip('weight', item, mealType, items);
+                    const caloriesTip = getCellTooltip('calories', item, mealType, items);
+                    
+                    html += `
+                        <td class="tooltip-cell ${sectionClass}" data-error="${escapeAttr(sectionTip)}">
+                            <select data-id="${item.id}" data-field="section">
+                                <option value="">-- выбрать --</option>
+                                ${VALID_SECTIONS.map(s => `<option value="${s}" ${item.section === s ? 'selected' : ''}>${s}</option>`).join('')}
+                            </select>
+                        </td>
+                        <td><input type="text" value="${escapeHtml(item.name)}" data-id="${item.id}" data-field="name"></td>
+                        <td class="tooltip-cell ${weightClass}" data-error="${escapeAttr(weightTip)}"><input type="number" value="${item.weight}" data-id="${item.id}" data-field="weight" step="1"></td>
+                        <td class="tooltip-cell ${caloriesClass}" data-error="${escapeAttr(caloriesTip)}"><input type="number" value="${item.calories}" data-id="${item.id}" data-field="calories" step="1"></td>
+                        <td><input type="number" value="${item.proteins}" data-id="${item.id}" data-field="proteins" step="0.1"></td>
+                        <td><input type="number" value="${item.fats}" data-id="${item.id}" data-field="fats" step="0.1"></td>
+                        <td><input type="number" value="${item.carbs}" data-id="${item.id}" data-field="carbs" step="0.1"></td>
+                        <td><input type="text" value="${item.recipeId || ''}" data-id="${item.id}" data-field="recipeId"></td>
+                        <td><button class="btn btn-secondary" style="padding:2px 8px;" data-del="${item.id}"><i class="fas fa-trash"></i></button></td>
+                    `;
+                    html += `</tr>`;
+                    firstRow = false;
+                }
+                
+                const sampleId = items[0]?.id;
+                if (sampleId) {
+                    const [week, day, meal] = sampleId.split('_');
+                    html += `<tr class="add-row-btn"><td colspan="3"><td><td colspan="8">
+                        <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                            <button class="btn btn-secondary" style="padding:4px 12px;" data-add="${week}|${day}|${meal}"><i class="fas fa-plus-circle"></i> Добавить</button>
+                            <select class="add-section-select" data-add-select="${week}|${day}|${meal}" style="width:auto; padding:4px 8px;">
+                                <option value="">-- раздел --</option>
+                                ${VALID_SECTIONS.map(s => `<option value="${s}">${s}</option>`).join('')}
+                            </select>
+                        </div>
+                       </div></td><td colspan="4"></div></tr>`;
+                }
+            }
+            html += `</tbody></table>`;
+            document.getElementById('editorWrapper').innerHTML = html;
+            
+            document.getElementById('statsPanel').innerHTML = `
+                <div class="stat-card"><div class="stat-number" style="color:#dc2626">${totalErrors}</div><div class="stat-label">Ошибки</div></div>
+                <div class="stat-card"><div class="stat-number" style="color:#f59e0b">${totalWarnings}</div><div class="stat-label">Нарушения</div></div>
+                <div class="stat-card"><div class="stat-number">${flatItems.length}</div><div class="stat-label">Блюд</div></div>
+                <div class="stat-card"><div class="stat-number">${Object.keys(currentTemplateData.weeks).length * 5}</div><div class="stat-label">Дней</div></div>
+            `;
+            
+            const rulesMap = {
+                1: 'Завтрак ≥500г', 2: 'Обед ≥700г', 3: 'Гор.блюдо ≥150г', 4: 'Закуска ≥60г',
+                5: '1 блюдо ≥200г', 6: '2 блюдо ≥90г', 8: 'Гарнир ≥150г', 9: '2 завтрак ≥200г',
+                10: 'Полдник ≥300г', 11: 'Ужин ≥500г', 12: '2 ужин ≥200г', 13: 'Калории завтрака ≥470',
+                14: 'Калории обеда ≥705', 15: 'БЖУ ≤ вес', 16: 'Фрукты ≥100г'
+            };
+            
+            const rulesHtml = Object.entries(rulesMap).map(([code, name]) => {
+                const count = violationsByRule[code] || 0;
+                const statusClass = count > 0 ? 'warning' : 'ok';
+                const violationsForRule = allViolations.filter(v => v.code === parseInt(code));
+                return `<div class="rule-badge ${statusClass}" data-rule-code="${code}" data-violations='${JSON.stringify(violationsForRule)}'>${code}. ${name} ${count > 0 ? `(${count})` : '✓'}</div>`;
+            }).join('');
+            document.getElementById('rulesPanel').innerHTML = `<i class="fas fa-list"></i> <strong>Правила</strong> ${rulesHtml}`;
+            
+            document.querySelectorAll('.rule-badge').forEach(badge => {
+                badge.addEventListener('click', () => {
+                    const violations = JSON.parse(badge.dataset.violations || '[]');
+                    if (violations.length > 0) {
+                        scrollToViolation(violations[0]);
+                        showStatus(`⚠️ ${violations[0].details}`, 'info');
+                    } else {
+                        showStatus(`✅ Правило выполняется`, 'success');
+                    }
+                });
+            });
+            
+            attachEditorEvents();
+        }
+        
+        function attachEditorEvents() {
+            document.querySelectorAll('#editorWrapper input, #editorWrapper select').forEach(el => {
+                el.removeEventListener('change', handleInputChange);
+                el.addEventListener('change', handleInputChange);
+            });
+            document.querySelectorAll('[data-del]').forEach(btn => {
+                btn.removeEventListener('click', handleDelete);
+                btn.addEventListener('click', handleDelete);
+            });
+            document.querySelectorAll('[data-add]').forEach(btn => {
+                btn.removeEventListener('click', () => handleAdd(btn.dataset.add, null));
+                btn.addEventListener('click', () => handleAdd(btn.dataset.add, null));
+            });
+            document.querySelectorAll('.add-section-select').forEach(select => {
+                select.removeEventListener('change', handleAddWithSection);
+                select.addEventListener('change', handleAddWithSection);
+            });
+        }
+        
+        function handleAddWithSection(e) {
+            const addData = e.target.dataset.addSelect;
+            const section = e.target.value;
+            if (section) {
+                handleAdd(addData, section);
+                e.target.value = '';
+            }
+        }
+        
+        function handleAdd(addData, presetSection) {
+            const [week, day, meal] = addData.split('|');
+            if (currentTemplateData.weeks[week] && currentTemplateData.weeks[week][day] && currentTemplateData.weeks[week][day][meal]) {
+                const defaultSection = presetSection || MEAL_STRUCTURE[meal]?.sections[0] || 'раздел';
+                currentTemplateData.weeks[week][day][meal].items.push({
+                    section: defaultSection, name: 'Новое блюдо', weight: 100, calories: 150,
+                    proteins: 5, fats: 5, carbs: 20, recipeId: '', price: 0
+                });
+                flatItems = buildFlatFromTemplate(currentTemplateData);
+                renderEditor();
+                showStatus(`Добавлено блюдо в раздел "${defaultSection}"`, 'success');
+            }
+        }
+        
+        function handleInputChange(e) {
+            const id = e.target.dataset.id;
+            const field = e.target.dataset.field;
+            let value = e.target.value;
+            const item = flatItems.find(i => i.id === id);
+            if (!item) return;
+            if (field === 'weight' || field === 'calories' || field === 'proteins' || field === 'fats' || field === 'carbs') {
+                value = parseFloat(value) || 0;
+            }
+            item[field] = value;
+            
+            const [week, day, meal, idx] = id.split('_');
+            if (currentTemplateData.weeks[week] && currentTemplateData.weeks[week][day] && currentTemplateData.weeks[week][day][meal]) {
+                const targetItem = currentTemplateData.weeks[week][day][meal].items[parseInt(idx)];
+                if (targetItem) targetItem[field] = value;
+            }
+            renderEditor();
+        }
+        
+        function handleDelete(e) {
+            const id = e.currentTarget.dataset.del;
+            const [week, day, meal, idx] = id.split('_');
+            if (currentTemplateData.weeks[week] && currentTemplateData.weeks[week][day] && currentTemplateData.weeks[week][day][meal]) {
+                currentTemplateData.weeks[week][day][meal].items.splice(parseInt(idx), 1);
+                flatItems = buildFlatFromTemplate(currentTemplateData);
+                renderEditor();
+                showStatus('Блюдо удалено', 'info');
+            }
+        }
+        
+        function saveTemplateToMemory() {
+            if (!currentTemplateData) { showStatus('Нет данных', 'error'); return; }
+            showStatus('Шаблон сохранён', 'success');
+        }
+        
+        async function exportToExcel() {
+            if (!currentTemplateData) return;
+            const workbook = new ExcelJS.Workbook();
+            const worksheet = workbook.addWorksheet('Лист1');
+            
+            worksheet.getCell('A1').value = 'Школа';
+            worksheet.getCell('B1').value = schoolInfo.name || 'МОУ "Рудновская ООШ"';
+            worksheet.getCell('E1').value = 'Утвердил:';
+            worksheet.getCell('F1').value = 'должность';
+            worksheet.getCell('G1').value = schoolInfo.approval.position || 'Директор';
+            worksheet.getCell('H1').value = schoolInfo.approval.name || 'Хайруллина С.К.';
+            worksheet.getCell('A2').value = 'Типовое примерное меню приготавливаемых блюд';
+            worksheet.getCell('A3').value = 'Возрастная категория';
+            worksheet.getCell('E3').value = schoolInfo.ageCategory || '7-11 лет';
+            worksheet.getCell('G3').value = 'дата';
+            worksheet.getCell('H3').value = '12';
+            worksheet.getCell('I3').value = '1';
+            worksheet.getCell('J3').value = '2026';
+            worksheet.getCell('A5').value = 'Неделя';
+            worksheet.getCell('B5').value = 'День недели';
+            worksheet.getCell('C5').value = 'Прием пищи';
+            worksheet.getCell('D5').value = 'Раздел меню';
+            worksheet.getCell('E5').value = 'Блюда';
+            worksheet.getCell('F5').value = 'Вес блюда, г';
+            worksheet.getCell('G5').value = 'Белки';
+            worksheet.getCell('H5').value = 'Жиры';
+            worksheet.getCell('I5').value = 'Углеводы';
+            worksheet.getCell('J5').value = 'Калорийность';
+            worksheet.getCell('K5').value = '№ рецептуры';
+            worksheet.getCell('L5').value = 'Цена';
+            
+            let currentRow = 6;
+            let allDayTotalRows = [];
+            
+            for (let w in currentTemplateData.weeks) {
+                for (let d in currentTemplateData.weeks[w]) {
+                    let dayStartRow = currentRow;
+                    let isFirstMealRow = true;
+                    for (let mt of MEAL_TYPES) {
+                        const meal = currentTemplateData.weeks[w][d][mt];
+                        if (meal && meal.items && meal.items.length) {
+                            let mealStartRow = currentRow;
+                            let isFirstItem = true;
+                            for (let item of meal.items) {
+                                worksheet.getCell(`A${currentRow}`).value = isFirstMealRow ? parseInt(w) : '';
+                                worksheet.getCell(`B${currentRow}`).value = isFirstMealRow ? parseInt(d) : '';
+                                worksheet.getCell(`C${currentRow}`).value = isFirstItem ? MEAL_STRUCTURE[mt]?.name : '';
+                                worksheet.getCell(`D${currentRow}`).value = item.section || '';
+                                worksheet.getCell(`E${currentRow}`).value = item.name || '';
+                                worksheet.getCell(`F${currentRow}`).value = item.weight || 0;
+                                worksheet.getCell(`G${currentRow}`).value = item.proteins || 0;
+                                worksheet.getCell(`H${currentRow}`).value = item.fats || 0;
+                                worksheet.getCell(`I${currentRow}`).value = item.carbs || 0;
+                                worksheet.getCell(`J${currentRow}`).value = item.calories || 0;
+                                worksheet.getCell(`K${currentRow}`).value = item.recipeId || '';
+                                worksheet.getCell(`L${currentRow}`).value = item.price || 0;
+                                currentRow++;
+                                isFirstItem = false;
+                                isFirstMealRow = false;
+                            }
+                            if (meal.items.length > 0) {
+                                worksheet.getCell(`A${currentRow}`).value = '';
+                                worksheet.getCell(`C${currentRow}`).value = 'итого';
+                                worksheet.getCell(`F${currentRow}`).value = { formula: `SUM(F${mealStartRow}:F${currentRow-1})` };
+                                worksheet.getCell(`J${currentRow}`).value = { formula: `SUM(J${mealStartRow}:J${currentRow-1})` };
+                                currentRow++;
+                            }
+                        }
+                    }
+                    if (currentRow > dayStartRow) {
+                        worksheet.getCell(`A${currentRow}`).value = '';
+                        worksheet.getCell(`C${currentRow}`).value = 'Итого за день:';
+                        worksheet.getCell(`F${currentRow}`).value = { formula: `SUM(F${dayStartRow}:F${currentRow-1})` };
+                        worksheet.getCell(`J${currentRow}`).value = { formula: `SUM(J${dayStartRow}:J${currentRow-1})` };
+                        allDayTotalRows.push(currentRow);
+                        currentRow++;
+                    }
+                    currentRow++;
+                }
+            }
+            if (allDayTotalRows.length > 0) {
+                worksheet.getCell(`A${currentRow}`).value = '';
+                worksheet.getCell(`C${currentRow}`).value = 'Среднее значение за период:';
+                worksheet.getCell(`F${currentRow}`).value = { formula: `AVERAGE(${allDayTotalRows.map(r => `F${r}`).join(',')})` };
+            }
+            
+            worksheet.columns = [
+                { key: 'A', width: 10 }, { key: 'B', width: 12 }, { key: 'C', width: 18 },
+                { key: 'D', width: 18 }, { key: 'E', width: 40 }, { key: 'F', width: 12 },
+                { key: 'G', width: 8 }, { key: 'H', width: 8 }, { key: 'I', width: 8 },
+                { key: 'J', width: 12 }, { key: 'K', width: 10 }, { key: 'L', width: 10 }
+            ];
+            
+            const buffer = await workbook.xlsx.writeBuffer();
+            const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+            saveAs(blob, `tm2026-sm_исправленное.xlsx`);
+            showStatus('Excel файл скачан', 'success');
+        }
+        
+        function parseRealTemplateFile(workbook) {
+            const sheet = workbook.Sheets[workbook.SheetNames[0]];
+            const data = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "" });
+            
+            if (data[0] && data[0][1]) schoolInfo.name = data[0][1].toString().trim();
+            if (data[0] && data[0][7]) schoolInfo.approval.name = data[0][7].toString().trim();
+            if (data[2] && data[2][4]) schoolInfo.ageCategory = data[2][4].toString().trim();
+            
+            let headerRow = -1;
+            for (let i = 0; i < Math.min(30, data.length); i++) {
+                if (data[i] && data[i][0] && data[i][0].toString().includes('Неделя')) {
+                    headerRow = i;
+                    break;
+                }
+            }
+            if (headerRow === -1) { showStatus('Не найден заголовок', 'error'); return null; }
+            
+            const template = { weeks: {} };
+            let currentWeek = null, currentDay = null, currentMealType = null, currentMealObj = null;
+            
+            for (let i = headerRow + 1; i < data.length; i++) {
+                const row = data[i];
+                if (!row || row.length < 4) continue;
+                
+                const weekVal = row[0] && row[0].toString().trim();
+                const dayVal = row[1] && row[1].toString().trim();
+                
+                if (weekVal && weekVal !== '' && !isNaN(parseInt(weekVal))) currentWeek = parseInt(weekVal);
+                if (dayVal && dayVal !== '' && !isNaN(parseInt(dayVal))) currentDay = parseInt(dayVal);
+                
+                if (currentWeek && currentDay) {
+                    if (!template.weeks[currentWeek]) template.weeks[currentWeek] = {};
+                    if (!template.weeks[currentWeek][currentDay]) {
+                        template.weeks[currentWeek][currentDay] = {
+                            breakfast: { items: [] }, breakfast2: { items: [] }, lunch: { items: [] },
+                            afternoonSnack: { items: [] }, dinner: { items: [] }, dinner2: { items: [] }
+                        };
+                    }
+                }
+                
+                const mealRaw = row[2] ? row[2].toString().trim() : '';
+                let newMealType = null;
+                if (mealRaw.includes('Завтрак') && !mealRaw.includes('2')) newMealType = 'breakfast';
+                else if (mealRaw.includes('Завтрак 2')) newMealType = 'breakfast2';
+                else if (mealRaw.includes('Обед')) newMealType = 'lunch';
+                else if (mealRaw.includes('Полдник')) newMealType = 'afternoonSnack';
+                else if (mealRaw.includes('Ужин') && !mealRaw.includes('2')) newMealType = 'dinner';
+                else if (mealRaw.includes('Ужин 2')) newMealType = 'dinner2';
+                
+                if (newMealType) {
+                    currentMealType = newMealType;
+                    if (currentWeek && currentDay && template.weeks[currentWeek] && template.weeks[currentWeek][currentDay]) {
+                        currentMealObj = template.weeks[currentWeek][currentDay][currentMealType];
+                    }
+                }
+                
+                const dishName = row[4] ? row[4].toString().trim() : '';
+                if (dishName && dishName !== '' && !dishName.startsWith('=') && !dishName.toLowerCase().includes('итого') && !dishName.toLowerCase().includes('среднее')) {
+                    if (currentWeek && currentDay && currentMealType && currentMealObj) {
+                        let weightRaw = row[5] ? row[5].toString().trim() : '0';
+                        let totalWeight = 0;
+                        if (weightRaw.includes('/')) {
+                            weightRaw.split('/').forEach(p => { let v = parseFloat(p); if (!isNaN(v)) totalWeight += v; });
+                        } else totalWeight = parseFloat(weightRaw) || 0;
+                        
+                        currentMealObj.items.push({
+                            section: row[3] ? row[3].toString().trim() : '',
+                            name: dishName,
+                            weight: totalWeight,
+                            calories: parseFloat(row[9]) || 0,
+                            proteins: parseFloat(row[6]) || 0,
+                            fats: parseFloat(row[7]) || 0,
+                            carbs: parseFloat(row[8]) || 0,
+                            recipeId: row[10] ? row[10].toString() : '',
+                            price: parseFloat(row[11]) || 0
+                        });
+                    }
+                }
+            }
+            return template;
+        }
+        
+        function loadTemplateFromFile(file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const data = new Uint8Array(e.target.result);
+                const wb = XLSX.read(data, { type: 'array' });
+                const parsed = parseRealTemplateFile(wb);
+                if (parsed) {
+                    currentTemplateData = parsed;
+                    flatItems = buildFlatFromTemplate(currentTemplateData);
+                    renderEditor();
+                    showStatus(`Файл "${file.name}" загружен! Найдено ${flatItems.length} блюд.`, 'success');
+                } else {
+                    showStatus('Ошибка парсинга файла', 'error');
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+        
+        function showStatus(msg, type) {
+            const el = document.getElementById('statusArea');
+            el.textContent = msg;
+            el.className = `status-message status-${type}`;
+            setTimeout(() => el.style.display = 'none', 4000);
+            el.style.display = 'block';
+        }
+        
+        function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, m => m === '&' ? '&amp;' : m === '<' ? '&lt;' : '&gt;'); }
+        function escapeAttr(str) { if (!str) return ''; return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+        
+        document.getElementById('scrollTopBtn').addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
+        
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+        dropZone.addEventListener('click', () => fileInput.click());
+        dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.style.borderColor = '#059669'; });
+        dropZone.addEventListener('dragleave', () => { dropZone.style.borderColor = '#cbd5e1'; });
+        dropZone.addEventListener('drop', e => { e.preventDefault(); if (e.dataTransfer.files[0]) loadTemplateFromFile(e.dataTransfer.files[0]); });
+        fileInput.addEventListener('change', e => { if (e.target.files[0]) loadTemplateFromFile(e.target.files[0]); });
+        
+        document.getElementById('saveChangesBtn').addEventListener('click', saveTemplateToMemory);
+        document.getElementById('exportExcelBtn').addEventListener('click', exportToExcel);
+        document.getElementById('validateOnlyBtn').addEventListener('click', () => { renderEditor(); showStatus('Проверка выполнена', 'info'); });
+    </script>
+</body>
+</html>
