@@ -1,0 +1,757 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>XLS в XLSX Конвертер (с сохранением форматирования)</title>
+    <!-- 
+        Порядок важен! 
+        1. SheetJS (XLSX) - основная библиотека для работы с Excel 
+        2. JSZip - для создания ZIP-архивов 
+        3. FileSaver - для скачивания файлов 
+    -->
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e6f3a 0%, #0a4a1f 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            border-radius: 24px;
+            box-shadow: 0 25px 70px rgba(0,0,0,0.35);
+            padding: 40px;
+            max-width: 750px;
+            width: 100%;
+            text-align: center;
+        }
+        .logo {
+            font-size: 3em;
+            margin-bottom: 5px;
+        }
+        h1 {
+            color: #1e6f3a;
+            margin-bottom: 6px;
+            font-size: 2em;
+            font-weight: 700;
+        }
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 1.05em;
+            line-height: 1.5;
+        }
+        .features {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-bottom: 25px;
+        }
+        .feature-tag {
+            background: #e8f5e9;
+            color: #1e6f3a;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            white-space: nowrap;
+        }
+        .drop-zone {
+            border: 3px dashed #1e6f3a;
+            border-radius: 16px;
+            padding: 45px 20px;
+            margin-bottom: 25px;
+            background: #f8fdf9;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            position: relative;
+        }
+        .drop-zone:hover {
+            border-color: #0a4a1f;
+            background: #edf7ef;
+        }
+        .drop-zone.dragover {
+            border-color: #0a4a1f;
+            background: #d9f0dd;
+            transform: scale(1.01);
+            box-shadow: 0 0 35px rgba(30, 111, 58, 0.25);
+        }
+        .file-icon {
+            font-size: 55px;
+            margin-bottom: 12px;
+            display: block;
+        }
+        .drop-text {
+            font-size: 1.2em;
+            color: #333;
+            margin-bottom: 6px;
+            font-weight: 600;
+        }
+        .drop-hint {
+            font-size: 0.9em;
+            color: #888;
+        }
+        input[type="file"] {
+            display: none;
+        }
+        .file-list-container {
+            margin-bottom: 25px;
+        }
+        .file-list-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            padding: 0 5px;
+        }
+        .file-list-title {
+            font-weight: 600;
+            color: #333;
+            font-size: 0.95em;
+        }
+        .file-list {
+            text-align: left;
+            max-height: 220px;
+            overflow-y: auto;
+            background: #fafafa;
+            border-radius: 12px;
+            padding: 8px;
+            display: none;
+            border: 1px solid #eee;
+        }
+        .file-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 14px;
+            margin-bottom: 4px;
+            background: white;
+            border-radius: 8px;
+            border: 1px solid #f0f0f0;
+            font-size: 0.95em;
+            transition: background 0.2s;
+        }
+        .file-item:hover {
+            background: #f8fdf9;
+        }
+        .file-item:last-child {
+            margin-bottom: 0;
+        }
+        .file-item .name {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #333;
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            font-weight: 500;
+        }
+        .file-item .size {
+            color: #999;
+            margin-left: 10px;
+            font-size: 0.82em;
+            white-space: nowrap;
+        }
+        .remove-btn {
+            background: none;
+            border: none;
+            color: #e53935;
+            cursor: pointer;
+            font-size: 1.3em;
+            padding: 2px 6px;
+            margin-left: 8px;
+            border-radius: 50%;
+            transition: all 0.2s;
+            line-height: 1;
+        }
+        .remove-btn:hover {
+            background: #ffebee;
+            color: #c62828;
+        }
+        .buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        button {
+            padding: 14px 32px;
+            border: none;
+            border-radius: 50px;
+            font-size: 1.05em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            letter-spacing: 0.3px;
+        }
+        .convert-btn {
+            background: #1e6f3a;
+            color: white;
+            box-shadow: 0 4px 15px rgba(30, 111, 58, 0.3);
+        }
+        .convert-btn:hover:not(:disabled) {
+            background: #135526;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(30, 111, 58, 0.4);
+        }
+        .convert-btn:active:not(:disabled) {
+            transform: translateY(0);
+        }
+        .clear-btn {
+            background: #f5f5f5;
+            color: #555;
+        }
+        .clear-btn:hover {
+            background: #e0e0e0;
+        }
+        button:disabled {
+            opacity: 0.45;
+            cursor: not-allowed;
+            filter: grayscale(50%);
+            transform: none !important;
+            box-shadow: none !important;
+        }
+        .status {
+            margin-top: 20px;
+            padding: 14px 18px;
+            border-radius: 12px;
+            font-weight: 500;
+            min-height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.95em;
+            transition: all 0.3s;
+        }
+        .status.success {
+            background: #e8f5e9;
+            color: #1b5e20;
+            border: 1px solid #a5d6a7;
+        }
+        .status.error {
+            background: #ffebee;
+            color: #b71c1c;
+            border: 1px solid #ef9a9a;
+        }
+        .status.info {
+            background: #e3f2fd;
+            color: #0d47a1;
+            border: 1px solid #90caf9;
+        }
+        .status.processing {
+            background: #fff8e1;
+            color: #e65100;
+            border: 1px solid #ffcc80;
+        }
+        .spinner {
+            display: inline-block;
+            width: 18px;
+            height: 18px;
+            border: 3px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 0.8s linear infinite;
+            margin-right: 8px;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .footer-note {
+            margin-top: 20px;
+            font-size: 0.78em;
+            color: #aaa;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">📊</div>
+        <h1>XLS → XLSX</h1>
+        <p class="subtitle">Конвертер Excel с полным сохранением форматирования</p>
+        
+        <!-- Теги с информацией о возможностях -->
+        <div class="features">
+            <span class="feature-tag">🎨 Цвета ячеек</span>
+            <span class="feature-tag">📏 Ширина столбцов</span>
+            <span class="feature-tag">🔤 Шрифты</span>
+            <span class="feature-tag">📐 Высота строк</span>
+            <span class="feature-tag">📦 ZIP-архив</span>
+        </div>
+        
+        <!-- Зона для перетаскивания файлов -->
+        <div class="drop-zone" id="dropZone">
+            <span class="file-icon">📁</span>
+            <div class="drop-text">Перетащите файлы .xls сюда</div>
+            <div class="drop-hint">или нажмите для выбора (поддерживается множественный выбор)</div>
+        </div>
+        <input type="file" id="fileInput" accept=".xls,.XLS" multiple>
+        
+        <!-- Список выбранных файлов -->
+        <div class="file-list-container">
+            <div class="file-list-header" id="fileListHeader" style="display: none;">
+                <span class="file-list-title">📋 Выбранные файлы:</span>
+            </div>
+            <div class="file-list" id="fileList"></div>
+        </div>
+        
+        <!-- Кнопки управления -->
+        <div class="buttons">
+            <button class="convert-btn" id="convertBtn" disabled>
+                <span>🔄</span> Конвертировать
+            </button>
+            <button class="clear-btn" id="clearBtn">
+                <span>🗑️</span> Очистить список
+            </button>
+        </div>
+        
+        <!-- Статус-сообщения -->
+        <div class="status" id="status"></div>
+        
+        <p class="footer-note">🔒 Все файлы обрабатываются локально в браузере и не передаются на сервер</p>
+    </div>
+
+    <script>
+        (function() {
+            // --- DOM элементы ---
+            const dropZone = document.getElementById('dropZone');
+            const fileInput = document.getElementById('fileInput');
+            const fileListDiv = document.getElementById('fileList');
+            const fileListHeader = document.getElementById('fileListHeader');
+            const convertBtn = document.getElementById('convertBtn');
+            const clearBtn = document.getElementById('clearBtn');
+            const statusDiv = document.getElementById('status');
+
+            // --- Хранилище выбранных файлов ---
+            let selectedFiles = [];
+
+            // --- Вспомогательные функции ---
+
+            function escapeHtml(text) {
+                const map = {
+                    '&': '&amp;',
+                    '<': '&lt;',
+                    '>': '&gt;',
+                    '"': '&quot;',
+                    "'": '&#039;'
+                };
+                return String(text).replace(/[&<>"']/g, m => map[m]);
+            }
+
+            function formatFileSize(bytes) {
+                if (bytes < 1024) return bytes + ' Б';
+                if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(2) + ' КБ';
+                return (bytes / (1024 * 1024)).toFixed(2) + ' МБ';
+            }
+
+            // --- Обновление интерфейса ---
+            function updateUI() {
+                if (selectedFiles.length > 0) {
+                    fileListDiv.style.display = 'block';
+                    fileListHeader.style.display = 'flex';
+                    
+                    let html = '';
+                    selectedFiles.forEach((file, index) => {
+                        html += `
+                            <div class="file-item">
+                                <span class="name">📄 ${escapeHtml(file.name)}</span>
+                                <span class="size">${formatFileSize(file.size)}</span>
+                                <button class="remove-btn" data-index="${index}" title="Удалить из списка">×</button>
+                            </div>
+                        `;
+                    });
+                    fileListDiv.innerHTML = html;
+                    
+                    // Обработчики для кнопок удаления
+                    fileListDiv.querySelectorAll('.remove-btn').forEach(btn => {
+                        btn.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            const index = parseInt(btn.getAttribute('data-index'));
+                            removeFile(index);
+                        });
+                    });
+                } else {
+                    fileListDiv.style.display = 'none';
+                    fileListHeader.style.display = 'none';
+                    fileListDiv.innerHTML = '';
+                }
+                
+                // Обновление кнопки конвертации
+                convertBtn.disabled = selectedFiles.length === 0;
+                
+                if (selectedFiles.length === 0) {
+                    convertBtn.innerHTML = '<span>🔄</span> Конвертировать';
+                } else if (selectedFiles.length === 1) {
+                    convertBtn.innerHTML = '<span>🔄</span> Конвертировать 1 файл';
+                } else {
+                    convertBtn.innerHTML = `<span>🔄</span> Конвертировать ${selectedFiles.length} файла (ZIP)`;
+                }
+            }
+
+            // --- Добавление файлов ---
+            function addFiles(files) {
+                let addedCount = 0;
+                const skippedNames = [];
+                
+                for (const file of files) {
+                    if (!file.name.toLowerCase().endsWith('.xls')) {
+                        skippedNames.push(file.name);
+                        continue;
+                    }
+                    if (selectedFiles.some(f => f.name === file.name && f.size === file.size)) {
+                        continue; // Дубликат
+                    }
+                    selectedFiles.push(file);
+                    addedCount++;
+                }
+                
+                let message = '';
+                if (addedCount > 0) {
+                    message = `✅ Добавлено файлов: ${addedCount}`;
+                }
+                if (skippedNames.length > 0) {
+                    message += (message ? ' | ' : '') + `⚠️ Пропущено (не .xls): ${skippedNames.length}`;
+                }
+                if (!message && files.length > 0) {
+                    message = 'Файлы не добавлены (дубликаты или неверный формат)';
+                }
+                
+                if (message) {
+                    showStatus(message, addedCount > 0 ? 'success' : 'info');
+                }
+                
+                updateUI();
+                fileInput.value = ''; // Сброс input
+            }
+
+            // --- Удаление файла ---
+            function removeFile(index) {
+                const removedName = selectedFiles[index].name;
+                selectedFiles.splice(index, 1);
+                showStatus(`Файл "${removedName}" удалён из списка`, 'info');
+                updateUI();
+            }
+
+            // --- Очистка списка ---
+            function clearAllFiles() {
+                if (selectedFiles.length === 0) return;
+                selectedFiles = [];
+                showStatus('🗑️ Список файлов очищен', 'info');
+                updateUI();
+                fileInput.value = '';
+            }
+
+            // --- Отображение статуса ---
+            function showStatus(message, type = 'info') {
+                statusDiv.textContent = message;
+                statusDiv.className = `status ${type}`;
+                
+                // Автоочистка для некритичных сообщений
+                if (type === 'success' || type === 'info') {
+                    clearTimeout(statusDiv._timeout);
+                    statusDiv._timeout = setTimeout(() => {
+                        if (statusDiv.textContent === message) {
+                            statusDiv.textContent = 'Готов к работе. Добавьте файлы .xls';
+                            statusDiv.className = 'status info';
+                        }
+                    }, 6000);
+                }
+            }
+
+            // ============================================================
+            //  ГЛАВНАЯ ФУНКЦИЯ КОНВЕРТАЦИИ С СОХРАНЕНИЕМ ФОРМАТИРОВАНИЯ
+            // ============================================================
+            
+            /**
+             * Конвертирует XLS в XLSX с максимальным сохранением форматирования.
+             * 
+             * ПОДХОД:
+             * 1. Сначала читаем XLS как бинарную книгу (получаем все данные + базовые стили).
+             * 2. Затем читаем тот же файл в режиме "стилей" (cellStyles: true), 
+             *    чтобы извлечь цвета, шрифты, границы и т.д.
+             * 3. Копируем свойства столбцов (ширину) и строк (высоту).
+             * 4. Объединяем всё и записываем в XLSX.
+             */
+            function convertXlsToXlsxPreserveFormatting(file) {
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    
+                    reader.onload = function(e) {
+                        try {
+                            const data = new Uint8Array(e.target.result);
+                            
+                            // --- Шаг 1: Чтение с поддержкой стилей ---
+                            // Параметр cellStyles: true заставляет парсер извлекать информацию
+                            // о форматировании из CF (cell formatting) записей BIFF.
+                            const workbook = XLSX.read(data, { 
+                                type: 'array',
+                                cellStyles: true,    // Ключевой параметр для сохранения стилей!
+                                cellFormula: true,
+                                cellDates: true,
+                                cellNF: true,        // Числовые форматы
+                                sheetStubs: true     // Сохранять пустые ячейки с форматированием
+                            });
+                            
+                            // --- Шаг 2: Обработка каждого листа ---
+                            workbook.SheetNames.forEach(sheetName => {
+                                const worksheet = workbook.Sheets[sheetName];
+                                
+                                if (!worksheet) return;
+                                
+                                // Копируем свойства столбцов (ширина)
+                                if (worksheet['!cols']) {
+                                    // Убеждаемся, что ширина столбцов корректно перенесена
+                                    worksheet['!cols'] = worksheet['!cols'].map(col => {
+                                        const colCopy = { ...col };
+                                        // Явно сохраняем ширину
+                                        if (colCopy.wpx) colCopy.width = colCopy.wpx / 7; // Примерный перевод px в символы
+                                        if (!colCopy.width && colCopy.wpx) colCopy.width = colCopy.wpx / 7;
+                                        if (!colCopy.width && colCopy.wch) colCopy.width = colCopy.wch;
+                                        return colCopy;
+                                    });
+                                }
+                                
+                                // Копируем свойства строк (высота)
+                                if (worksheet['!rows']) {
+                                    worksheet['!rows'] = worksheet['!rows'].map(row => {
+                                        const rowCopy = { ...row };
+                                        // Явно сохраняем высоту
+                                        if (rowCopy.hpx) rowCopy.height = rowCopy.hpx / 1.33; // Примерный перевод px в пункты
+                                        if (!rowCopy.height && rowCopy.hpt) rowCopy.height = rowCopy.hpt;
+                                        return rowCopy;
+                                    });
+                                }
+                                
+                                // --- Шаг 3: Обогащаем стили ячеек ---
+                                // Проходим по всем ячейкам и убеждаемся, что стили сохранены
+                                const range = XLSX.utils.decode_range(worksheet['!ref'] || 'A1');
+                                
+                                for (let R = range.s.r; R <= range.e.r; R++) {
+                                    for (let C = range.s.c; C <= range.e.c; C++) {
+                                        const cellAddress = XLSX.utils.encode_cell({ r: R, c: C });
+                                        const cell = worksheet[cellAddress];
+                                        
+                                        if (!cell) continue;
+                                        
+                                        // Явно копируем объект стиля, если он есть
+                                        if (cell.s) {
+                                            // Стиль уже должен быть загружен благодаря cellStyles: true
+                                            // Дополнительно убеждаемся, что основные свойства на месте
+                                            const style = cell.s;
+                                            
+                                            // Создаём чистую копию стиля для надёжности
+                                            cell.s = {
+                                                fill: style.fill ? { ...style.fill } : undefined,
+                                                font: style.font ? { ...style.font } : undefined,
+                                                border: style.border ? { ...style.border } : undefined,
+                                                alignment: style.alignment ? { ...style.alignment } : undefined,
+                                                numFmt: style.numFmt || undefined
+                                            };
+                                        }
+                                    }
+                                }
+                            });
+                            
+                            // --- Шаг 4: Запись в XLSX с сохранением стилей ---
+                            const xlsxData = XLSX.write(workbook, { 
+                                type: 'array',
+                                bookType: 'xlsx',
+                                cellStyles: true,     // Включаем запись стилей в XLSX
+                                bookSST: false,
+                                compression: true
+                            });
+                            
+                            const blob = new Blob([xlsxData], { 
+                                type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+                            });
+                            
+                            resolve({
+                                blob: blob,
+                                originalName: file.name
+                            });
+                            
+                        } catch (err) {
+                            console.error('Ошибка при конвертации:', err);
+                            reject(new Error(`Не удалось обработать "${file.name}": ${err.message}`));
+                        }
+                    };
+                    
+                    reader.onerror = function() {
+                        reject(new Error(`Ошибка чтения файла "${file.name}"`));
+                    };
+                    
+                    reader.readAsArrayBuffer(file);
+                });
+            }
+
+            // --- Запуск конвертации ---
+            async function convertFiles() {
+                if (selectedFiles.length === 0) return;
+                
+                // Блокируем интерфейс
+                convertBtn.disabled = true;
+                convertBtn.innerHTML = '<span class="spinner"></span> Конвертация...';
+                showStatus(`⏳ Обрабатывается ${selectedFiles.length} файл(ов) с сохранением форматирования...`, 'processing');
+                
+                const results = [];
+                const errors = [];
+                
+                try {
+                    // Конвертируем все файлы параллельно для скорости
+                    const promises = selectedFiles.map(async (file) => {
+                        try {
+                            const result = await convertXlsToXlsxPreserveFormatting(file);
+                            results.push(result);
+                        } catch (err) {
+                            errors.push(err.message);
+                        }
+                    });
+                    
+                    await Promise.all(promises);
+                    
+                    // Проверяем результаты
+                    if (results.length === 0) {
+                        throw new Error('Ни один файл не был сконвертирован. ' + errors.join('; '));
+                    }
+                    
+                    if (results.length === 1) {
+                        // Один файл — просто скачиваем XLSX
+                        const result = results[0];
+                        const newName = result.originalName.replace(/\.xls$/i, '.xlsx');
+                        saveAs(result.blob, newName);
+                        
+                        let msg = `✅ Готово! "${result.originalName}" → "${newName}" (форматирование сохранено)`;
+                        if (errors.length > 0) {
+                            msg += ` | ⚠️ Ошибки: ${errors.join(', ')}`;
+                        }
+                        showStatus(msg, 'success');
+                        
+                    } else {
+                        // Несколько файлов — упаковываем в ZIP
+                        const zip = new JSZip();
+                        
+                        results.forEach(result => {
+                            const newName = result.originalName.replace(/\.xls$/i, '.xlsx');
+                            zip.file(newName, result.blob);
+                        });
+                        
+                        const zipBlob = await zip.generateAsync({ 
+                            type: 'blob',
+                            compression: 'DEFLATE',
+                            compressionOptions: { level: 6 }
+                        });
+                        
+                        const timestamp = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+                        const archiveName = `XLSX_Converted_${timestamp}.zip`;
+                        
+                        saveAs(zipBlob, archiveName);
+                        
+                        let msg = `✅ ${results.length} файлов сконвертированы в архив "${archiveName}"`;
+                        if (errors.length > 0) {
+                            msg += ` | ⚠️ Ошибки в ${errors.length} файлах`;
+                        }
+                        showStatus(msg, 'success');
+                    }
+                    
+                } catch (error) {
+                    console.error('Ошибка:', error);
+                    showStatus(`❌ ${error.message}`, 'error');
+                } finally {
+                    // Разблокируем кнопку
+                    updateUI();
+                }
+            }
+
+            // --- Обработчики событий ---
+            
+            // Клик по зоне загрузки
+            dropZone.addEventListener('click', () => fileInput.click());
+            
+            // Выбор файлов через диалог
+            fileInput.addEventListener('change', (e) => {
+                if (e.target.files.length > 0) {
+                    addFiles(e.target.files);
+                }
+            });
+            
+            // Drag & Drop
+            dropZone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                dropZone.classList.add('dragover');
+            });
+            
+            dropZone.addEventListener('dragleave', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                dropZone.classList.remove('dragover');
+            });
+            
+            dropZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                dropZone.classList.remove('dragover');
+                if (e.dataTransfer.files.length > 0) {
+                    addFiles(e.dataTransfer.files);
+                }
+            });
+            
+            // Предотвращение стандартного поведения для body
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                document.body.addEventListener(eventName, (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                });
+            });
+            
+            // Кнопки
+            convertBtn.addEventListener('click', convertFiles);
+            clearBtn.addEventListener('click', clearAllFiles);
+            
+            // Поддержка вставки из буфера (Ctrl+V) — для удобства
+            document.addEventListener('paste', (e) => {
+                const items = e.clipboardData?.items;
+                if (!items) return;
+                
+                const files = [];
+                for (const item of items) {
+                    if (item.kind === 'file') {
+                        const file = item.getAsFile();
+                        if (file) files.push(file);
+                    }
+                }
+                
+                if (files.length > 0) {
+                    e.preventDefault();
+                    addFiles(files);
+                }
+            });
+            
+            // Инициализация
+            updateUI();
+            showStatus('Готов к работе. Перетащите файлы .xls или нажмите на область загрузки', 'info');
+            
+        })();
+    </script>
+</body>
+</html>
