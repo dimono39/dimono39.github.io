@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Попытка получить данные с мониторингпитание.рф</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; }
+        pre { background: #f0f0f0; padding: 10px; border-radius: 5px; overflow-x: auto; }
+        .error { color: red; }
+        .success { color: green; }
+        button { padding: 10px 20px; font-size: 16px; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+<h2>Попытка получить данные с сайта мониторингпитание.рф</h2>
+<p><strong>Важно:</strong> Этот код, скорее всего, завершится ошибкой из-за политики CORS (Cross-Origin Resource Sharing), если он запущен не на самом домене мониторингпитание.рф. Браузер блокирует такие запросы из соображений безопасности.</p>
+<p>Проверьте консоль браузера (F12) для просмотра ошибок.</p>
+
+<label for="foodCode">Код пищеблока (id): </label>
+<input type="number" id="foodCode" value="28605" style="margin-right: 10px;">
+<button id="fetchDataBtn">Попробовать получить данные</button>
+
+<h3>Результат (сырые данные или ошибка):</h3>
+<pre id="result">Нажмите кнопку...</pre>
+
+<script>
+    document.getElementById('fetchDataBtn').addEventListener('click', async () => {
+        const code = document.getElementById('foodCode').value;
+        const resultEl = document.getElementById('result');
+        resultEl.textContent = 'Загрузка...';
+
+        // Это предполагаемый URL, по которому сайт может отдавать данные.
+        // Реальный URL нужно искать в Инструментах разработчика (Network).
+        // Это просто пример!
+        const apiUrl = `https://мониторингпитание.рф/api/profile?id=${code}`;
+        
+        // Альтернативный вариант, если данные лежат в этом HTML-файле,
+        // но они подгружаются динамически (React), поэтому их здесь нет.
+        // const pageUrl = `https://мониторингпитание.рф/#/profile?id=${code}`;
+
+        try {
+            // Пытаемся сделать запрос к API (предполагаемому)
+            const response = await fetch(apiUrl, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                // Важно: режим 'cors' стоит по умолчанию, именно он и вызовет ошибку
+                mode: 'cors', 
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP ошибка! статус: ${response.status}`);
+            }
+
+            const data = await response.json();
+            resultEl.innerHTML = `<span class="success">✅ Успех! Данные получены.</span>\n\n`;
+            resultEl.innerHTML += JSON.stringify(data, null, 2);
+        } catch (error) {
+            console.error('Ошибка:', error);
+            resultEl.innerHTML = `<span class="error">❌ Ошибка при получении данных:</span>\n\n`;
+            resultEl.innerHTML += `Имя ошибки: ${error.name}\n`;
+            resultEl.innerHTML += `Сообщение: ${error.message}\n\n`;
+            resultEl.innerHTML += `💡 Скорее всего, это ошибка CORS. Сервер мониторингпитание.рф не разрешает запросы из вашего домена.\n`;
+            resultEl.innerHTML += `💡 Также возможно, что реальный API находится по другому адресу, или для доступа требуется авторизация (токен).\n`;
+            resultEl.innerHTML += `\nКак это можно обойти?\n`;
+            resultEl.innerHTML += `1. Сделать сервер-посредник (на Python, Node.js, PHP), который будет делать запросы из-под своего домена.\n`;
+            resultEl.innerHTML += `2. Использовать браузерное расширение для отключения CORS (только для разработки/себя!).\n`;
+            resultEl.innerHTML += `3. Найти официальное API и использовать его на серверной стороне.`;
+        }
+    });
+</script>
+
+<hr>
+
+<h3>Как можно попробовать найти реальный API?</h3>
+<ol>
+    <li>Откройте <strong>Инструменты разработчика</strong> (F12) → вкладка <strong>Network (Сеть)</strong>.</li>
+    <li>Перезагрузите страницу <code>https://мониторингпитание.рф/#/profile?id=28605</code>.</li>
+    <li>Ищите запросы типа <code>fetch</code> или <code>xhr</code>, которые загружают данные для таблиц. В ответе (вкладка Response) могут быть JSON-данные.</li>
+    <li>Если такие запросы найдены, их URL можно попытаться использовать в коде выше.</li>
+</ol>
+
+</body>
+</html>
