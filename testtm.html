@@ -551,21 +551,23 @@
             align-items: center;
             gap: 10px;
         }
+		
+		.cell-flash input,
+		.cell-flash select {
+			background-color: transparent !important;
+		}
 
-        .highlight-row {
-            animation: pulse 0.8s ease 3;
-        }
-
-        @keyframes pulse {
-            0%,
-            100% {
-                background-color: transparent;
-            }
-            50% {
-                background-color: #fef08a;
-            }
-        }
-
+		@keyframes cellPulse {
+			0%, 100% { 
+				background-color: transparent;
+				box-shadow: none;
+			}
+			50% { 
+				background-color: #fef08a !important;
+				box-shadow: 0 0 15px rgba(245, 158, 11, 0.6);
+			}
+		}
+		
         .modal {
             display: none;
             position: fixed;
@@ -1094,66 +1096,67 @@
             return duplicates;
         }
 
-        function runAllRules(template) {
-            if (!template || !template.weeks) return [];
-            const violations = [];
+		function runAllRules(template) {
+			if (!template || !template.weeks) return [];
+			const violations = [];
 
-            for (let w in template.weeks) {
-                for (let d in template.weeks[w]) {
-                    const day = template.weeks[w][d];
-                    let dayFruitWeight = 0;
+			for (let w in template.weeks) {
+				for (let d in template.weeks[w]) {
+					const day = template.weeks[w][d];
+					let dayFruitWeight = 0;
 
-                    for (let mt of MEAL_TYPES) {
-                        const meal = day[mt];
-                        if (!meal || !meal.items || !meal.items.length) continue;
+					for (let mt of MEAL_TYPES) {
+						const meal = day[mt];
+						if (!meal || !meal.items || !meal.items.length) continue;
 
-                        const items = meal.items;
-                        const totalWeight = getMealTotalWeight(items);
-                        const totalCalories = getMealTotalCalories(items);
-                        const hotWeight = getSectionSum(items, 'гор.блюдо');
-                        const zakuskaWeight = getSectionSum(items, 'закуска');
-                        const firstWeight = getSectionSum(items, '1 блюдо');
-                        const secondWeight = getSectionSum(items, '2 блюдо');
-                        const garnishWeight = getSectionSum(items, 'гарнир');
-                        const fruitWeight = getSectionSum(items, 'фрукты');
-                        dayFruitWeight += fruitWeight;
+						const items = meal.items;
+						const totalWeight = getMealTotalWeight(items);
+						const totalCalories = getMealTotalCalories(items);
+						const hotWeight = getSectionSum(items, 'гор.блюдо');
+						const zakuskaWeight = getSectionSum(items, 'закуска');
+						const firstWeight = getSectionSum(items, '1 блюдо');
+						const secondWeight = getSectionSum(items, '2 блюдо');
+						const garnishWeight = getSectionSum(items, 'гарнир');
+						const fruitWeight = getSectionSum(items, 'фрукты');
+						dayFruitWeight += fruitWeight;
 
-                        if (mt === 'breakfast' && totalWeight > 0 && totalWeight < 500) violations.push({ rule: 1, code: 1, week: w, day: d, meal: mt, details: `Завтрак: ${totalWeight}г < 500г` });
-                        if (mt === 'lunch' && totalWeight > 0 && totalWeight < 700) violations.push({ rule: 2, code: 2, week: w, day: d, meal: mt, details: `Обед: ${totalWeight}г < 700г` });
-                        if (mt === 'breakfast' && hotWeight > 0 && hotWeight < 150) violations.push({ rule: 3, code: 3, week: w, day: d, meal: mt, details: `гор.блюдо: ${hotWeight}г < 150г` });
-                        if (mt === 'lunch' && zakuskaWeight > 0 && zakuskaWeight < 60) violations.push({ rule: 4, code: 4, week: w, day: d, meal: mt, details: `закуска: ${zakuskaWeight}г < 60г` });
-                        if (mt === 'lunch' && firstWeight > 0 && firstWeight < 200) violations.push({ rule: 5, code: 5, week: w, day: d, meal: mt, details: `1 блюдо: ${firstWeight}г < 200г` });
-                        if (mt === 'lunch' && secondWeight > 0 && secondWeight < 90) violations.push({ rule: 6, code: 6, week: w, day: d, meal: mt, details: `2 блюдо: ${secondWeight}г < 90г` });
-                        if (mt === 'lunch' && garnishWeight > 0 && garnishWeight < 150) violations.push({ rule: 8, code: 8, week: w, day: d, meal: mt, details: `гарнир: ${garnishWeight}г < 150г` });
-                        if (mt === 'breakfast2' && totalWeight > 0 && totalWeight < 200) violations.push({ rule: 9, code: 9, week: w, day: d, meal: mt, details: `2 завтрак: ${totalWeight}г < 200г` });
-                        if (mt === 'afternoonSnack' && totalWeight > 0 && totalWeight < 300) violations.push({ rule: 10, code: 10, week: w, day: d, meal: mt, details: `Полдник: ${totalWeight}г < 300г` });
-                        if (mt === 'dinner' && totalWeight > 0 && totalWeight < 500) violations.push({ rule: 11, code: 11, week: w, day: d, meal: mt, details: `Ужин: ${totalWeight}г < 500г` });
-                        if (mt === 'dinner2' && totalWeight > 0 && totalWeight < 200) violations.push({ rule: 12, code: 12, week: w, day: d, meal: mt, details: `2 ужин: ${totalWeight}г < 200г` });
-                        if (mt === 'breakfast' && totalCalories > 0 && totalCalories < 470) violations.push({ rule: 13, code: 13, week: w, day: d, meal: mt, details: `Калории завтрака: ${totalCalories}ккал < 470ккал` });
-                        if (mt === 'lunch' && totalCalories > 0 && totalCalories < 705) violations.push({ rule: 14, code: 14, week: w, day: d, meal: mt, details: `Калории обеда: ${totalCalories}ккал < 705ккал` });
+						if (mt === 'breakfast' && totalWeight > 0 && totalWeight < 500) violations.push({ rule: 1, code: 1, week: w, day: d, meal: mt, itemIndex: 0, details: `Завтрак: ${totalWeight}г < 500г` });
+						if (mt === 'lunch' && totalWeight > 0 && totalWeight < 700) violations.push({ rule: 2, code: 2, week: w, day: d, meal: mt, itemIndex: 0, details: `Обед: ${totalWeight}г < 700г` });
+						if (mt === 'breakfast' && hotWeight > 0 && hotWeight < 150) violations.push({ rule: 3, code: 3, week: w, day: d, meal: mt, itemIndex: 0, details: `гор.блюдо: ${hotWeight}г < 150г` });
+						if (mt === 'lunch' && zakuskaWeight > 0 && zakuskaWeight < 60) violations.push({ rule: 4, code: 4, week: w, day: d, meal: mt, itemIndex: 0, details: `закуска: ${zakuskaWeight}г < 60г` });
+						if (mt === 'lunch' && firstWeight > 0 && firstWeight < 200) violations.push({ rule: 5, code: 5, week: w, day: d, meal: mt, itemIndex: 0, details: `1 блюдо: ${firstWeight}г < 200г` });
+						if (mt === 'lunch' && secondWeight > 0 && secondWeight < 90) violations.push({ rule: 6, code: 6, week: w, day: d, meal: mt, itemIndex: 0, details: `2 блюдо: ${secondWeight}г < 90г` });
+						if (mt === 'lunch' && garnishWeight > 0 && garnishWeight < 150) violations.push({ rule: 8, code: 8, week: w, day: d, meal: mt, itemIndex: 0, details: `гарнир: ${garnishWeight}г < 150г` });
+						if (mt === 'breakfast2' && totalWeight > 0 && totalWeight < 200) violations.push({ rule: 9, code: 9, week: w, day: d, meal: mt, itemIndex: 0, details: `2 завтрак: ${totalWeight}г < 200г` });
+						if (mt === 'afternoonSnack' && totalWeight > 0 && totalWeight < 300) violations.push({ rule: 10, code: 10, week: w, day: d, meal: mt, itemIndex: 0, details: `Полдник: ${totalWeight}г < 300г` });
+						if (mt === 'dinner' && totalWeight > 0 && totalWeight < 500) violations.push({ rule: 11, code: 11, week: w, day: d, meal: mt, itemIndex: 0, details: `Ужин: ${totalWeight}г < 500г` });
+						if (mt === 'dinner2' && totalWeight > 0 && totalWeight < 200) violations.push({ rule: 12, code: 12, week: w, day: d, meal: mt, itemIndex: 0, details: `2 ужин: ${totalWeight}г < 200г` });
+						if (mt === 'breakfast' && totalCalories > 0 && totalCalories < 470) violations.push({ rule: 13, code: 13, week: w, day: d, meal: mt, itemIndex: 0, details: `Калории завтрака: ${totalCalories}ккал < 470ккал` });
+						if (mt === 'lunch' && totalCalories > 0 && totalCalories < 705) violations.push({ rule: 14, code: 14, week: w, day: d, meal: mt, itemIndex: 0, details: `Калории обеда: ${totalCalories}ккал < 705ккал` });
 
-                        for (let item of items) {
-                            const bju = (parseFloat(item.proteins) || 0) + (parseFloat(item.fats) || 0) + (parseFloat(item.carbs) || 0);
-                            const weight = parseFloat(item.weight) || 0;
-                            if (bju > weight && weight > 0) {
-                                violations.push({ rule: 15, code: 15, week: w, day: d, meal: mt, details: `"${item.name}": БЖУ=${bju}г > вес=${weight}г` });
-                            }
-                        }
-                    }
+						for (let idx = 0; idx < items.length; idx++) {
+							const item = items[idx];
+							const bju = (parseFloat(item.proteins) || 0) + (parseFloat(item.fats) || 0) + (parseFloat(item.carbs) || 0);
+							const weight = parseFloat(item.weight) || 0;
+							if (bju > weight && weight > 0) {
+								violations.push({ rule: 15, code: 15, week: w, day: d, meal: mt, itemIndex: idx, details: `"${item.name}": БЖУ=${bju}г > вес=${weight}г` });
+							}
+						}
+					}
 
-                    if (dayFruitWeight > 0 && dayFruitWeight < 100) {
-                        violations.push({ rule: 16, code: 16, week: w, day: d, details: `Фруктов за день: ${dayFruitWeight}г < 100г` });
-                    }
-                }
-            }
+					if (dayFruitWeight > 0 && dayFruitWeight < 100) {
+						violations.push({ rule: 16, code: 16, week: w, day: d, itemIndex: 0, details: `Фруктов за день: ${dayFruitWeight}г < 100г` });
+					}
+				}
+			}
 
-            const duplicates = checkDuplicateDishes(template);
-            for (let d of duplicates) {
-                violations.push({ rule: 17, code: 17, week: d.week, day: d.day, details: `Повтор блюда: "${d.dishName}"` });
-            }
+			const duplicates = checkDuplicateDishes(template);
+			for (let d of duplicates) {
+				violations.push({ rule: 17, code: 17, week: d.week, day: d.day, itemIndex: 0, details: `Повтор блюда: "${d.dishName}"` });
+			}
 
-            return violations;
-        }
+			return violations;
+		}
 
         function getCellClass(field, item, mealType, mealItems, duplicates) {
             const sectionNorm = normalizeSection(item.section);
@@ -1187,52 +1190,118 @@
             return '';
         }
 
-        function getCellTooltip(field, item, mealType, mealItems, duplicates) {
-            const sectionNorm = normalizeSection(item.section);
-            const sectionSum = getSectionSum(mealItems, sectionNorm);
-            const messages = [];
+		function getCellTooltip(field, item, mealType, mealItems, duplicates) {
+			const sectionNorm = normalizeSection(item.section);
+			const sectionSum = getSectionSum(mealItems, sectionNorm);
+			const messages = [];
 
-            if (field === 'section') {
-                if (item.section && !VALID_SECTIONS.includes(sectionNorm)) {
-                    messages.push(`Недопустимый раздел "${item.section}"`);
-                }
-                return messages.join(' • ');
-            }
-            if (field === 'name') {
-                if (duplicates.some(d => d.dishName === item.name && parseInt(d.week) === item.week && parseInt(d.day) === item.day)) {
-                    messages.push(`⚠️ Дубликат блюда в этот день`);
-                }
-                return messages.join(' • ');
-            }
-            if (field === 'weight') {
-                if (item.weight === 0 && item.name) messages.push(`Вес = 0 г`);
-                if (mealType === 'breakfast' && sectionNorm === 'гор.блюдо' && sectionSum > 0 && sectionSum < 150) {
-                    messages.push(`Сумма гор.блюдо: ${sectionSum}г < 150г`);
-                }
-                if (mealType === 'lunch' && sectionNorm === 'закуска' && sectionSum > 0 && sectionSum < 60) {
-                    messages.push(`Сумма закусок: ${sectionSum}г < 60г`);
-                }
-                if (mealType === 'lunch' && sectionNorm === '1 блюдо' && sectionSum > 0 && sectionSum < 200) {
-                    messages.push(`Сумма первых блюд: ${sectionSum}г < 200г`);
-                }
-                if (mealType === 'lunch' && sectionNorm === '2 блюдо' && sectionSum > 0 && sectionSum < 90) {
-                    messages.push(`Сумма вторых блюд: ${sectionSum}г < 90г`);
-                }
-                if (mealType === 'lunch' && sectionNorm === 'гарнир' && sectionSum > 0 && sectionSum < 150) {
-                    messages.push(`Сумма гарниров: ${sectionSum}г < 150г`);
-                }
-                if (sectionNorm === 'фрукты') {
-                    const fruitSum = getSectionSum(mealItems, 'фрукты');
-                    if (fruitSum > 0 && fruitSum < 100) messages.push(`Сумма фруктов: ${fruitSum}г < 100г`);
-                }
-                return messages.join(' • ');
-            }
-            if (field === 'calories') {
-                if (item.calories === 0 && item.name) messages.push(`Калорийность = 0`);
-                return messages.join(' • ');
-            }
-            return '';
-        }
+			if (field === 'section') {
+				if (item.section && !VALID_SECTIONS.includes(sectionNorm)) {
+					messages.push(`❌ Недопустимый раздел: "${item.section}"`);
+					messages.push(`Допустимые разделы: ${VALID_SECTIONS.join(', ')}`);
+				}
+				return messages.join('\n');
+			}
+			
+			if (field === 'name') {
+				if (duplicates.some(d => d.dishName === item.name && parseInt(d.week) === item.week && parseInt(d.day) === item.day)) {
+					messages.push(`⚠️ Дубликат блюда`);
+					messages.push(`Блюдо "${item.name}" уже встречается в этот день`);
+					messages.push(`Правило 17: Запрещены одинаковые блюда в один день`);
+				}
+				if (!item.name || item.name.trim() === '') {
+					messages.push(`⚠️ Пустое название`);
+					messages.push(`Введите название блюда`);
+				}
+				return messages.join('\n');
+			}
+			
+			if (field === 'weight') {
+				const totalMealWeight = getMealTotalWeight(mealItems);
+				
+				if (item.weight === 0 && item.name && item.name.trim() !== '') {
+					messages.push(`❌ Вес = 0 г`);
+					messages.push(`Блюдо "${item.name}" имеет нулевой вес`);
+				}
+				
+				if (mealType === 'breakfast' && totalMealWeight > 0 && totalMealWeight < 500) {
+					messages.push(`⚠️ Правило 1: Общий вес завтрака ${totalMealWeight}г < 500г`);
+					messages.push(`Необходимо увеличить вес блюд`);
+				}
+				
+				if (mealType === 'lunch' && totalMealWeight > 0 && totalMealWeight < 700) {
+					messages.push(`⚠️ Правило 2: Общий вес обеда ${totalMealWeight}г < 700г`);
+					messages.push(`Необходимо увеличить вес блюд`);
+				}
+				
+				if (mealType === 'breakfast' && sectionNorm === 'гор.блюдо' && sectionSum > 0 && sectionSum < 150) {
+					messages.push(`⚠️ Правило 3: Сумма гор.блюдо на завтрак ${sectionSum}г < 150г`);
+					messages.push(`Увеличьте вес горячего блюда`);
+				}
+				
+				if (mealType === 'lunch' && sectionNorm === 'закуска' && sectionSum > 0 && sectionSum < 60) {
+					messages.push(`⚠️ Правило 4: Сумма закусок ${sectionSum}г < 60г`);
+				}
+				
+				if (mealType === 'lunch' && sectionNorm === '1 блюдо' && sectionSum > 0 && sectionSum < 200) {
+					messages.push(`⚠️ Правило 5: Объём первого блюда ${sectionSum}г < 200г`);
+				}
+				
+				if (mealType === 'lunch' && sectionNorm === '2 блюдо' && sectionSum > 0 && sectionSum < 90) {
+					messages.push(`⚠️ Правило 6: Вес второго блюда ${sectionSum}г < 90г`);
+				}
+				
+				if (mealType === 'lunch' && sectionNorm === 'гарнир' && sectionSum > 0 && sectionSum < 150) {
+					messages.push(`⚠️ Правило 8: Вес гарнира ${sectionSum}г < 150г`);
+				}
+				
+				if (mealType === 'breakfast2' && totalMealWeight > 0 && totalMealWeight < 200) {
+					messages.push(`⚠️ Правило 9: Вес 2-го завтрака ${totalMealWeight}г < 200г`);
+				}
+				
+				if (mealType === 'afternoonSnack' && totalMealWeight > 0 && totalMealWeight < 300) {
+					messages.push(`⚠️ Правило 10: Вес полдника ${totalMealWeight}г < 300г`);
+				}
+				
+				if (mealType === 'dinner' && totalMealWeight > 0 && totalMealWeight < 500) {
+					messages.push(`⚠️ Правило 11: Вес ужина ${totalMealWeight}г < 500г`);
+				}
+				
+				if (mealType === 'dinner2' && totalMealWeight > 0 && totalMealWeight < 200) {
+					messages.push(`⚠️ Правило 12: Вес 2-го ужина ${totalMealWeight}г < 200г`);
+				}
+				
+				if (sectionNorm === 'фрукты') {
+					const fruitSum = getSectionSum(mealItems, 'фрукты');
+					if (fruitSum > 0 && fruitSum < 100) {
+						messages.push(`⚠️ Правило 16: Сумма фруктов за день ${fruitSum}г < 100г`);
+					}
+				}
+				
+				return messages.join('\n');
+			}
+			
+			if (field === 'calories') {
+				const totalMealCalories = getMealTotalCalories(mealItems);
+				
+				if (item.calories === 0 && item.name && item.name.trim() !== '') {
+					messages.push(`⚠️ Калорийность = 0`);
+					messages.push(`Блюдо "${item.name}" имеет нулевую калорийность`);
+				}
+				
+				if (mealType === 'breakfast' && totalMealCalories > 0 && totalMealCalories < 470) {
+					messages.push(`⚠️ Правило 13: Калорийность завтрака ${totalMealCalories}ккал < 470ккал`);
+				}
+				
+				if (mealType === 'lunch' && totalMealCalories > 0 && totalMealCalories < 705) {
+					messages.push(`⚠️ Правило 14: Калорийность обеда ${totalMealCalories}ккал < 705ккал`);
+				}
+				
+				return messages.join('\n');
+			}
+			
+			return '';
+		}
 
         function buildFlatFromTemplate(template) {
             if (!template || !template.weeks) return [];
@@ -1268,15 +1337,232 @@
             return flat;
         }
 
-        function scrollToViolation(violation) {
-            const selector = `tr[data-week="${violation.week}"][data-day="${violation.day}"]`;
-            let targetRow = document.querySelector(selector);
-            if (targetRow) {
-                targetRow.classList.add('highlight-row');
-                targetRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                setTimeout(() => targetRow.classList.remove('highlight-row'), 2000);
-            }
-        }
+		function scrollToViolation(violation) {
+			// Ищем ВСЕ строки с нужной неделей и днём
+			let allRows;
+			
+			if (violation.meal) {
+				// Ищем строки с конкретным приёмом пищи
+				allRows = document.querySelectorAll(
+					`tr[data-week="${violation.week}"][data-day="${violation.day}"][data-meal="${violation.meal}"]`
+				);
+			} else {
+				// Для правил без приёма пищи (например, правило 16 - фрукты за день)
+				allRows = document.querySelectorAll(
+					`tr[data-week="${violation.week}"][data-day="${violation.day}"]`
+				);
+			}
+			
+			if (!allRows || allRows.length === 0) {
+				// Если не нашли, ищем просто по дню (запасной вариант)
+				allRows = document.querySelectorAll(
+					`tr[data-week="${violation.week}"][data-day="${violation.day}"]`
+				);
+				if (!allRows || allRows.length === 0) return;
+			}
+			
+			// Берём нужную строку по индексу блюда
+			const itemIndex = violation.itemIndex || 0;
+			const targetRow = allRows[Math.min(itemIndex, allRows.length - 1)];
+			
+			if (!targetRow) return;
+			
+			// Скроллим к строке
+			targetRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+			
+			// Задержка для завершения скролла, потом подсветка
+			setTimeout(() => {
+				// Определяем, какие ячейки подсветить
+				let cellsToFlash = [];
+				
+				switch(violation.code) {
+					// ===== ПРАВИЛА ВЕСА ПРИЁМА ПИЩИ =====
+					case 1:  // Завтрак < 500г
+					case 2:  // Обед < 700г
+					case 9:  // 2 завтрак < 200г
+					case 10: // Полдник < 300г
+					case 11: // Ужин < 500г
+					case 12: // 2 ужин < 200г
+						// Подсвечиваем ВСЕ ячейки веса в этом приёме пищи
+						const allWeightCells = targetRow.querySelectorAll('.cell-weight');
+						cellsToFlash = Array.from(allWeightCells);
+						break;
+					
+					// ===== ПРАВИЛА ВЕСА КОНКРЕТНЫХ РАЗДЕЛОВ =====
+					case 3:  // гор.блюдо < 150г
+					case 4:  // закуска < 60г
+					case 5:  // 1 блюдо < 200г
+					case 6:  // 2 блюдо < 90г
+					case 8:  // гарнир < 150г
+						// Подсвечиваем ячейку веса в этой строке
+						const weightCell = targetRow.querySelector('.cell-weight');
+						if (weightCell) cellsToFlash = [weightCell];
+						break;
+					
+					// ===== ПРАВИЛА КАЛОРИЙ =====
+					case 13: // Калории завтрака < 470
+					case 14: // Калории обеда < 705
+						// Подсвечиваем ВСЕ ячейки калорий в этом приёме пищи
+						const allCalCells = targetRow.querySelectorAll('.cell-calories');
+						cellsToFlash = Array.from(allCalCells);
+						break;
+					
+					// ===== ПРАВИЛО БЖУ =====
+					case 15: // БЖУ > вес
+						// Подсвечиваем вес, белки, жиры, углеводы в этой строке
+						cellsToFlash = [
+							targetRow.querySelector('.cell-weight'),
+							targetRow.querySelector('.cell-proteins'),
+							targetRow.querySelector('.cell-fats'),
+							targetRow.querySelector('.cell-carbs')
+						].filter(Boolean);
+						break;
+					
+					// ===== ПРАВИЛО ФРУКТОВ =====
+					case 16: // Фрукты < 100г за день
+						// Подсвечиваем все ячейки веса фруктов в этом дне
+						const allRowsInDay = document.querySelectorAll(
+							`tr[data-week="${violation.week}"][data-day="${violation.day}"]`
+						);
+						allRowsInDay.forEach(row => {
+							const fruitCells = row.querySelectorAll('.cell-weight');
+							fruitCells.forEach(cell => cellsToFlash.push(cell));
+						});
+						break;
+					
+					// ===== ПРАВИЛО ДУБЛИКАТОВ =====
+					case 17: // Повтор блюда
+						// Подсвечиваем название блюда (6-я колонка)
+						const nameCell = targetRow.querySelector('td:nth-child(6)');
+						if (nameCell) cellsToFlash = [nameCell];
+						break;
+					
+					// ===== ПО УМОЛЧАНИЮ =====
+					default:
+						// Подсвечиваем всю строку
+						flashCell(targetRow);
+						return;
+				}
+				
+				// Запускаем мерцание для всех найденных ячеек
+				if (cellsToFlash.length > 0) {
+					cellsToFlash.forEach((cell, index) => {
+						if (cell) {
+							// Небольшая задержка для последовательного эффекта
+							setTimeout(() => {
+								flashCell(cell);
+							}, index * 80);
+						}
+					});
+				} else {
+					// Если ячейки не найдены, подсвечиваем всю строку
+					flashCell(targetRow);
+				}
+				
+			}, 400);
+			
+			showStatus(`⚠️ ${violation.details}`, 'info');
+		}
+
+		// Универсальная функция мерцания
+		function flashCell(cell) {
+			if (!cell) return;
+			
+			const flashCount = 4; // Количество мерцаний
+			const flashDuration = 400; // Длительность одного мерцания в мс
+			
+			// Сохраняем оригинальные стили
+			const originalBg = cell.style.backgroundColor;
+			const originalBoxShadow = cell.style.boxShadow;
+			const originalBorder = cell.style.border;
+			const originalOutline = cell.style.outline;
+			const originalZIndex = cell.style.zIndex;
+			const originalPosition = cell.style.position;
+			
+			// Настраиваем плавный переход
+			cell.style.transition = 'all 0.2s ease-in-out';
+			
+			let count = 0;
+			
+			const interval = setInterval(() => {
+				if (count >= flashCount * 2) {
+					// Возвращаем исходные стили
+					clearInterval(interval);
+					
+					// Плавно убираем подсветку
+					cell.style.backgroundColor = originalBg;
+					cell.style.boxShadow = originalBoxShadow;
+					cell.style.border = originalBorder;
+					cell.style.outline = originalOutline;
+					cell.style.zIndex = originalZIndex;
+					cell.style.position = originalPosition;
+					
+					// Убираем transition после завершения
+					setTimeout(() => {
+						cell.style.transition = '';
+					}, 200);
+					
+					return;
+				}
+				
+				if (count % 2 === 0) {
+					// ВКЛЮЧАЕМ подсветку
+					cell.style.backgroundColor = '#fef08a'; // Жёлтый фон
+					cell.style.boxShadow = '0 0 25px rgba(245, 158, 11, 1), inset 0 0 20px rgba(245, 158, 11, 0.3)';
+					cell.style.border = '2px solid #f59e0b'; // Оранжевая рамка
+					cell.style.outline = '3px solid rgba(245, 158, 11, 0.5)';
+					cell.style.outlineOffset = '-1px';
+					cell.style.zIndex = '100';
+					cell.style.position = 'relative';
+				} else {
+					// ВЫКЛЮЧАЕМ подсветку
+					cell.style.backgroundColor = originalBg;
+					cell.style.boxShadow = originalBoxShadow;
+					cell.style.border = originalBorder;
+					cell.style.outline = originalOutline;
+				}
+				
+				count++;
+			}, flashDuration);
+		}
+
+		// Функция для создания эффекта мерцания
+		function flashElement(element, times) {
+			if (!element) return;
+			
+			let count = 0;
+			const originalBg = element.style.backgroundColor;
+			const originalBoxShadow = element.style.boxShadow;
+			const originalOutline = element.style.outline;
+			const highlightColor = '#fef08a';
+			
+			const interval = setInterval(() => {
+				if (count >= times * 2) {
+					clearInterval(interval);
+					element.style.backgroundColor = originalBg;
+					element.style.boxShadow = originalBoxShadow;
+					element.style.outline = originalOutline;
+					element.style.zIndex = '';
+					return;
+				}
+				
+				if (count % 2 === 0) {
+					// Включаем подсветку
+					element.style.backgroundColor = highlightColor;
+					element.style.boxShadow = '0 0 20px rgba(245, 158, 11, 0.9)';
+					element.style.outline = '3px solid #f59e0b';
+					element.style.outlineOffset = '-1px';
+					element.style.zIndex = '10';
+				} else {
+					// Выключаем подсветку
+					element.style.backgroundColor = originalBg;
+					element.style.boxShadow = originalBoxShadow;
+					element.style.outline = originalOutline;
+				}
+				
+				count++;
+			}, 300);
+		}
 
         function filterItems(items) {
             return items.filter(item => {
@@ -1398,18 +1684,18 @@
                     const caloriesTip = getCellTooltip('calories', item, mealType, mealItems, duplicates);
 
                     html += `
-                        <td class="tooltip-cell ${sectionClass}" data-error="${escapeAttr(sectionTip)}">
+                        <td class="tooltip-cell ${sectionClass}" title="${escapeAttr(sectionTip)}">
                             <select data-id="${item.id}" data-field="section">
                                 <option value="">-- выбрать --</option>
                                 ${VALID_SECTIONS.map(s => `<option value="${s}" ${item.section === s ? 'selected' : ''}>${s}</option>`).join('')}
                             </select>
                         </td>
-                        <td class="tooltip-cell ${nameClass}" data-error="${escapeAttr(nameTip)}"><input type="text" value="${escapeHtml(item.name)}" data-id="${item.id}" data-field="name"></td>
-                        <td class="tooltip-cell ${weightClass}" data-error="${escapeAttr(weightTip)}"><input type="number" value="${item.weight}" data-id="${item.id}" data-field="weight" step="1"></td>
-                        <td class="tooltip-cell ${caloriesClass}" data-error="${escapeAttr(caloriesTip)}"><input type="number" value="${item.calories}" data-id="${item.id}" data-field="calories" step="1"></td>
-                        <td><input type="number" value="${item.proteins}" data-id="${item.id}" data-field="proteins" step="0.1"></td>
-                        <td><input type="number" value="${item.fats}" data-id="${item.id}" data-field="fats" step="0.1"></td>
-                        <td><input type="number" value="${item.carbs}" data-id="${item.id}" data-field="carbs" step="0.1"></td>
+                        <td class="tooltip-cell ${nameClass}" title="${escapeAttr(nameTip)}"><input type="text" value="${escapeHtml(item.name)}" data-id="${item.id}" data-field="name"></td>
+						<td class="cell-weight ${weightClass}" title="${escapeAttr(weightTip)}"><input type="number" value="${item.weight}" data-id="${item.id}" data-field="weight" step="1"></td>
+						<td class="cell-calories ${caloriesClass}" title="${escapeAttr(caloriesTip)}"><input type="number" value="${item.calories}" data-id="${item.id}" data-field="calories" step="1"></td>
+						<td class="cell-proteins"><input type="number" value="${item.proteins}" data-id="${item.id}" data-field="proteins" step="0.1"></td>
+						<td class="cell-fats"><input type="number" value="${item.fats}" data-id="${item.id}" data-field="fats" step="0.1"></td>
+						<td class="cell-carbs"><input type="number" value="${item.carbs}" data-id="${item.id}" data-field="carbs" step="0.1"></td>
                         <td><input type="text" value="${item.recipeId || ''}" data-id="${item.id}" data-field="recipeId"></td>
                         <td><button class="btn btn-secondary" style="padding: 4px 12px;" data-del="${item.id}"><i class="fas fa-trash"></i></button></td>
                     `;
@@ -1707,433 +1993,453 @@
         }
 
 
-        async function exportToExcel() {
-            if (!currentTemplateData) {
-                showStatus('Нет данных для экспорта', 'error');
-                return;
-            }
+		async function exportToExcel() {
+			if (!currentTemplateData) {
+				showStatus('Нет данных для экспорта', 'error');
+				return;
+			}
 
-            const workbook = new ExcelJS.Workbook();
-            const worksheet = workbook.addWorksheet('Лист1');
+			const workbook = new ExcelJS.Workbook();
+			const worksheet = workbook.addWorksheet('Лист1');
 
-            const weeks = Object.keys(currentTemplateData.weeks).map(Number).sort((a, b) => a - b);
-            const daysPerWeek = {};
-            for (let w of weeks) {
-                daysPerWeek[w] = Object.keys(currentTemplateData.weeks[w]).map(Number).sort((a, b) => a - b);
-            }
+			const weeks = Object.keys(currentTemplateData.weeks).map(Number).sort((a, b) => a - b);
+			const daysPerWeek = {};
+			for (let w of weeks) {
+				daysPerWeek[w] = Object.keys(currentTemplateData.weeks[w]).map(Number).sort((a, b) => a - b);
+			}
 
-            const approvalDate = schoolInfo.approval.date || '12.01.2026';
-            const dateParts = approvalDate.split('.');
+			const approvalDate = schoolInfo.approval.date || '12.01.2026';
+			const dateParts = approvalDate.split('.');
 
-            const goldFill = {
-                type: 'pattern',
-                pattern: 'solid',
-                fgColor: { argb: 'FFFFF2CC' }
-            };
+			const goldFill = {
+				type: 'pattern',
+				pattern: 'solid',
+				fgColor: { argb: 'FFFFF2CC' }
+			};
 
-            const borderStyle = {
-                top: { style: 'thin' },
-                left: { style: 'thin' },
-                bottom: { style: 'thin' },
-                right: { style: 'thin' }
-            };
+			const borderStyle = {
+				top: { style: 'thin' },
+				left: { style: 'thin' },
+				bottom: { style: 'thin' },
+				right: { style: 'thin' }
+			};
 
-            // ===== ШАПКА ДОКУМЕНТА =====
-            worksheet.getCell('A1').value = 'Школа';
-            worksheet.getCell('C1').value = schoolInfo.name || 'МОУ "Сказочная СОШ"';
-            worksheet.getCell('F1').value = 'Утвердил:';
-            worksheet.getCell('G1').value = 'должность';
-            worksheet.getCell('H1').value = schoolInfo.approval.position || 'Директор';
+			// ===== ШАПКА ДОКУМЕНТА =====
+			worksheet.getCell('A1').value = 'Школа';
+			worksheet.getCell('C1').value = schoolInfo.name || 'МОУ "Сказочная СОШ"';
+			worksheet.getCell('F1').value = 'Утвердил:';
+			worksheet.getCell('G1').value = 'должность';
+			worksheet.getCell('H1').value = schoolInfo.approval.position || 'Директор';
 
-            worksheet.mergeCells('C1:E1');
-            worksheet.mergeCells('H1:K1');
-            ['C1', 'D1', 'E1'].forEach(cell => worksheet.getCell(cell).fill = goldFill);
-            ['H1', 'I1', 'J1', 'K1'].forEach(cell => worksheet.getCell(cell).fill = goldFill);
+			worksheet.mergeCells('C1:E1');
+			worksheet.mergeCells('H1:K1');
+			['C1', 'D1', 'E1'].forEach(cell => worksheet.getCell(cell).fill = goldFill);
+			['H1', 'I1', 'J1', 'K1'].forEach(cell => worksheet.getCell(cell).fill = goldFill);
 
-            worksheet.getCell('A2').value = 'Типовое примерное меню приготавливаемых блюд';
-            worksheet.getCell('G2').value = 'фамилия';
-            worksheet.getCell('H2').value = schoolInfo.approval.name || 'Иванова И.И.';
-            worksheet.mergeCells('H2:K2');
-            ['H2', 'I2', 'J2', 'K2'].forEach(cell => worksheet.getCell(cell).fill = goldFill);
+			worksheet.getCell('A2').value = 'Типовое примерное меню приготавливаемых блюд';
+			worksheet.getCell('G2').value = 'фамилия';
+			worksheet.getCell('H2').value = schoolInfo.approval.name || 'Иванова И.И.';
+			worksheet.mergeCells('H2:K2');
+			['H2', 'I2', 'J2', 'K2'].forEach(cell => worksheet.getCell(cell).fill = goldFill);
 
-            worksheet.getCell('A3').value = 'Возрастная категория';
-            worksheet.getCell('E3').value = schoolInfo.ageCategory || '7-11 лет';
-            worksheet.getCell('G3').value = 'дата';
-            worksheet.getCell('H3').value = parseInt(dateParts[0]) || 12;
-            worksheet.getCell('I3').value = parseInt(dateParts[1]) || 1;
-            worksheet.getCell('J3').value = parseInt(dateParts[2]) || 2026;
-            ['H3', 'I3', 'J3'].forEach(cell => worksheet.getCell(cell).fill = goldFill);
+			worksheet.getCell('A3').value = 'Возрастная категория';
+			worksheet.getCell('E3').value = schoolInfo.ageCategory || '7-11 лет';
+			worksheet.getCell('G3').value = 'дата';
+			worksheet.getCell('H3').value = parseInt(dateParts[0]) || 12;
+			worksheet.getCell('I3').value = parseInt(dateParts[1]) || 1;
+			worksheet.getCell('J3').value = parseInt(dateParts[2]) || 2026;
+			['H3', 'I3', 'J3'].forEach(cell => worksheet.getCell(cell).fill = goldFill);
 
-            worksheet.getCell('H4').value = 'день';
-            worksheet.getCell('I4').value = 'месяц';
-            worksheet.getCell('J4').value = 'год';
+			worksheet.getCell('H4').value = 'день';
+			worksheet.getCell('I4').value = 'месяц';
+			worksheet.getCell('J4').value = 'год';
 
-            // ===== ЗАГОЛОВКИ ТАБЛИЦЫ (строка 5) =====
-            const headers = ['Неделя', 'День недели', 'Прием пищи', 'Раздел меню', 'Блюда',
-                'Вес блюда, г', 'Белки', 'Жиры', 'Углеводы', 'Калорийность', '№ рецептуры', 'Цена'
-            ];
+			// ===== ЗАГОЛОВКИ ТАБЛИЦЫ (строка 5) =====
+			const headers = ['Неделя', 'День недели', 'Прием пищи', 'Раздел меню', 'Блюда',
+				'Вес блюда, г', 'Белки', 'Жиры', 'Углеводы', 'Калорийность', '№ рецептуры', 'Цена'
+			];
 
-            for (let i = 0; i < headers.length; i++) {
-                const cell = worksheet.getCell(5, i + 1);
-                cell.value = headers[i];
-                cell.font = { bold: true, size: 10, name: 'Arial' };
-                cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
-                cell.border = borderStyle;
-            }
+			for (let i = 0; i < headers.length; i++) {
+				const cell = worksheet.getCell(5, i + 1);
+				cell.value = headers[i];
+				cell.font = { bold: true, size: 10, name: 'Arial' };
+				cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+				cell.border = borderStyle;
+			}
 
-            // ===== СТРУКТУРА ПРИЕМОВ ПИЩИ =====
-            const mealTemplate = {
-                'breakfast': {
-                    name: 'Завтрак',
-                    sections: [
-                        'гор.блюдо', '', 'гор.напиток', 'хлеб', 'фрукты', '', ''
-                    ]
-                },
-                'breakfast2': {
-                    name: 'Завтрак 2',
-                    sections: ['фрукты']
-                },
-                'lunch': {
-                    name: 'Обед',
-                    sections: [
-                        'закуска', '1 блюдо', '2 блюдо', 'гарнир', 'напиток', 'хлеб бел.', 'хлеб черн.', '', ''
-                    ]
-                },
-                'afternoonSnack': {
-                    name: 'Полдник',
-                    sections: ['булочное', 'напиток']
-                },
-                'dinner': {
-                    name: 'Ужин',
-                    sections: [
-                        'гор.блюдо', '', 'гор.напиток', 'хлеб', 'фрукты', '', ''
-                    ]
-                },
-                'dinner2': {
-                    name: 'Ужин 2',
-                    sections: ['кисломол.', 'булочное', 'напиток', 'фрукты']
-                }
-            };
+			// ===== СТРУКТУРА ПРИЕМОВ ПИЩИ =====
+			const mealTemplate = {
+				'breakfast': {
+					name: 'Завтрак',
+					sections: [
+						'гор.блюдо', '', 'гор.напиток', 'хлеб', 'фрукты', '', ''
+					]
+				},
+				'breakfast2': {
+					name: 'Завтрак 2',
+					sections: ['фрукты']
+				},
+				'lunch': {
+					name: 'Обед',
+					sections: [
+						'закуска', '1 блюдо', '2 блюдо', 'гарнир', 'напиток', 'хлеб бел.', 'хлеб черн.', '', ''
+					]
+				},
+				'afternoonSnack': {
+					name: 'Полдник',
+					sections: ['булочное', 'напиток']
+				},
+				'dinner': {
+					name: 'Ужин',
+					sections: [
+						'гор.блюдо', '', 'гор.напиток', 'хлеб', 'фрукты', '', ''
+					]
+				},
+				'dinner2': {
+					name: 'Ужин 2',
+					sections: ['кисломол.', 'булочное', 'напиток', 'фрукты']
+				}
+			};
 
-            const mealsInData = new Set();
-            for (let w of weeks) {
-                for (let d of daysPerWeek[w]) {
-                    for (let mt of MEAL_TYPES) {
-                        if (currentTemplateData.weeks[w][d][mt] &&
-                            currentTemplateData.weeks[w][d][mt].items &&
-                            currentTemplateData.weeks[w][d][mt].items.length > 0) {
-                            mealsInData.add(mt);
-                        }
-                    }
-                }
-            }
+			// Определяем, в каких приёмах пищи есть данные
+			const mealsWithData = new Set();
+			for (let w of weeks) {
+				for (let d of daysPerWeek[w]) {
+					for (let mt of MEAL_TYPES) {
+						if (currentTemplateData.weeks[w] && 
+							currentTemplateData.weeks[w][d] && 
+							currentTemplateData.weeks[w][d][mt] &&
+							currentTemplateData.weeks[w][d][mt].items && 
+							currentTemplateData.weeks[w][d][mt].items.length > 0) {
+							mealsWithData.add(mt);
+						}
+					}
+				}
+			}
 
-            const activeMeals = mealsInData.size > 0 ?
-                MEAL_TYPES.filter(mt => mealsInData.has(mt)) : ['breakfast', 'lunch'];
+			// Формируем список приёмов пищи для вывода:
+			// Завтрак и Обед — ВСЕГДА
+			// Остальные — только если есть данные хотя бы в одном дне
+			const requiredMeals = ['breakfast', 'lunch'];  // Всегда выводим
+			const optionalMeals = ['breakfast2', 'afternoonSnack', 'dinner', 'dinner2'];  // Только если есть данные
+			
+			const activeMeals = [...requiredMeals];  // Начинаем с обязательных
+			
+			for (let mt of optionalMeals) {
+				if (mealsWithData.has(mt)) {
+					activeMeals.push(mt);
+				}
+			}
+			
+			// Сортируем в правильном порядке
+			const mealOrder = {
+				'breakfast': 0,
+				'breakfast2': 1,
+				'lunch': 2,
+				'afternoonSnack': 3,
+				'dinner': 4,
+				'dinner2': 5
+			};
+			activeMeals.sort((a, b) => mealOrder[a] - mealOrder[b]);
 
-            let currentRow = 6;
-            const dayTotalRows = [];
-            const editableCols = [5, 6, 7, 8, 9, 10, 11, 12];
+			let currentRow = 6;
+			const dayTotalRows = [];
+			const editableCols = [5, 6, 7, 8, 9, 10, 11, 12];
 
-            for (let w of weeks) {
-                for (let d of daysPerWeek[w]) {
-                    let isFirstMealOfDay = true;
+			for (let w of weeks) {
+				for (let d of daysPerWeek[w]) {
+					let isFirstMealOfDay = true;
+					
+					// Собираем строки "итого" для текущего дня
+					const currentDayMealTotalRows = [];
 
-                    for (let mt of activeMeals) {
-                        const meal = currentTemplateData.weeks[w][d][mt];
-                        const template = mealTemplate[mt];
-                        if (!template) continue;
+					for (let mt of activeMeals) {
+						const meal = currentTemplateData.weeks[w] && 
+									currentTemplateData.weeks[w][d] && 
+									currentTemplateData.weeks[w][d][mt];
+						const template = mealTemplate[mt];
+						if (!template) continue;
 
-                        const mealStartRow = currentRow;
+						const mealStartRow = currentRow;
 
-                        const existingItems = (meal && meal.items) ? [...meal.items] : [];
+						const existingItems = (meal && meal.items) ? [...meal.items] : [];
 
-                        // Разделяем блюда: с разделом и без раздела
-                        const itemsWithSection = {}; // раздел -> [блюда]
-                        const itemsWithoutSection = []; // блюда без раздела
+						// Разделяем блюда: с разделом и без раздела
+						const itemsWithSection = {};
+						const itemsWithoutSection = [];
 
-                        for (let item of existingItems) {
-                            const section = normalizeSection(item.section);
-                            if (section && section.trim() !== '') {
-                                if (!itemsWithSection[section]) itemsWithSection[section] = [];
-                                itemsWithSection[section].push(item);
-                            } else {
-                                itemsWithoutSection.push(item);
-                            }
-                        }
+						for (let item of existingItems) {
+							const section = normalizeSection(item.section);
+							if (section && section.trim() !== '') {
+								if (!itemsWithSection[section]) itemsWithSection[section] = [];
+								itemsWithSection[section].push(item);
+							} else {
+								itemsWithoutSection.push(item);
+							}
+						}
 
-                        // Собираем все разделы из данных, которых нет в шаблоне
-                        const dataSections = Object.keys(itemsWithSection).filter(s => s !== '');
-                        const templateSections = template.sections.filter(s => s !== '');
-                        const extraSections = dataSections.filter(s => !templateSections.includes(s));
+						const dataSections = Object.keys(itemsWithSection).filter(s => s !== '');
+						const templateSections = template.sections.filter(s => s !== '');
+						const extraSections = dataSections.filter(s => !templateSections.includes(s));
 
-                        // Формируем полный список разделов
-                        let allSections = [...template.sections];
-                        for (let extraSection of extraSections) {
-                            let insertPos = allSections.length;
-                            for (let i = allSections.length - 1; i >= 0; i--) {
-                                if (allSections[i] !== '') {
-                                    insertPos = i + 1;
-                                    break;
-                                }
-                            }
-                            allSections.splice(insertPos, 0, extraSection);
-                        }
+						let allSections = [...template.sections];
+						for (let extraSection of extraSections) {
+							let insertPos = allSections.length;
+							for (let i = allSections.length - 1; i >= 0; i--) {
+								if (allSections[i] !== '') {
+									insertPos = i + 1;
+									break;
+								}
+							}
+							allSections.splice(insertPos, 0, extraSection);
+						}
 
-                        // Находим индексы свободных строк (пустых)
-                        const freeSlotIndices = [];
-                        for (let i = 0; i < allSections.length; i++) {
-                            if (allSections[i] === '') {
-                                freeSlotIndices.push(i);
-                            }
-                        }
+						const freeSlotIndices = [];
+						for (let i = 0; i < allSections.length; i++) {
+							if (allSections[i] === '') {
+								freeSlotIndices.push(i);
+							}
+						}
 
-                        // Блюда без раздела распределяем по свободным строкам
-                        let freeSlotUsed = 0;
-                        const orphanItemsBySlot = {}; // индекс слота -> [блюда]
+						let freeSlotUsed = 0;
+						const orphanItemsBySlot = {};
 
-                        for (let item of itemsWithoutSection) {
-                            if (freeSlotUsed < freeSlotIndices.length) {
-                                const slotIdx = freeSlotIndices[freeSlotUsed];
-                                if (!orphanItemsBySlot[slotIdx]) orphanItemsBySlot[slotIdx] = [];
-                                orphanItemsBySlot[slotIdx].push(item);
-                                freeSlotUsed++;
-                            } else {
-                                // Если свободных строк не хватило — добавляем новую в конец
-                                const newSlotIdx = allSections.length;
-                                allSections.push('');
-                                if (!orphanItemsBySlot[newSlotIdx]) orphanItemsBySlot[newSlotIdx] = [];
-                                orphanItemsBySlot[newSlotIdx].push(item);
-                            }
-                        }
+						for (let item of itemsWithoutSection) {
+							if (freeSlotUsed < freeSlotIndices.length) {
+								const slotIdx = freeSlotIndices[freeSlotUsed];
+								if (!orphanItemsBySlot[slotIdx]) orphanItemsBySlot[slotIdx] = [];
+								orphanItemsBySlot[slotIdx].push(item);
+								freeSlotUsed++;
+							} else {
+								const newSlotIdx = allSections.length;
+								allSections.push('');
+								if (!orphanItemsBySlot[newSlotIdx]) orphanItemsBySlot[newSlotIdx] = [];
+								orphanItemsBySlot[newSlotIdx].push(item);
+							}
+						}
 
-                        let sectionDisplayed = false;
+						let sectionDisplayed = false;
+						let rowsInThisMeal = 0;
 
-                        for (let sectionIdx = 0; sectionIdx < allSections.length; sectionIdx++) {
-                            const sectionName = allSections[sectionIdx];
+						for (let sectionIdx = 0; sectionIdx < allSections.length; sectionIdx++) {
+							const sectionName = allSections[sectionIdx];
+							const orphanItems = orphanItemsBySlot[sectionIdx] || [];
 
-                            // Проверяем, не занята ли эта свободная строка блюдами без раздела
-                            const orphanItems = orphanItemsBySlot[sectionIdx] || [];
+							if (sectionName === '' && orphanItems.length === 0) {
+								worksheet.getCell(`A${currentRow}`).value = isFirstMealOfDay ? w : '';
+								worksheet.getCell(`B${currentRow}`).value = isFirstMealOfDay ? d : '';
 
-                            if (sectionName === '' && orphanItems.length === 0) {
-                                // Обычная пустая строка-разделитель
-                                worksheet.getCell(`A${currentRow}`).value = isFirstMealOfDay ? w : '';
-                                worksheet.getCell(`B${currentRow}`).value = isFirstMealOfDay ? d : '';
+								if (isFirstMealOfDay) isFirstMealOfDay = false;
 
-                                if (isFirstMealOfDay) isFirstMealOfDay = false;
+								for (let col = 1; col <= 12; col++) {
+									const cell = worksheet.getCell(currentRow, col);
+									cell.border = borderStyle;
+									if (editableCols.includes(col)) {
+										cell.fill = goldFill;
+									}
+								}
+								rowsInThisMeal++;
+								currentRow++;
+								continue;
+							}
 
-                                // Применяем стили к пустым строкам
-                                for (let col = 1; col <= 12; col++) {
-                                    const cell = worksheet.getCell(currentRow, col);
-                                    cell.border = borderStyle;
-                                    if (editableCols.includes(col)) {
-                                        cell.fill = goldFill;
-                                    }
-                                }
-                                currentRow++;
-                                continue;
-                            }
-							                            // Если это свободная строка, занятая блюдами без раздела
-                            if (sectionName === '' && orphanItems.length > 0) {
-                                for (let itemIdx = 0; itemIdx < orphanItems.length; itemIdx++) {
-                                    const item = orphanItems[itemIdx];
-                                    const hasName = item.name && item.name.trim() !== '';
+							if (sectionName === '' && orphanItems.length > 0) {
+								for (let itemIdx = 0; itemIdx < orphanItems.length; itemIdx++) {
+									const item = orphanItems[itemIdx];
+									const hasName = item.name && item.name.trim() !== '';
 
-                                    worksheet.getCell(`A${currentRow}`).value = isFirstMealOfDay ? w : '';
-                                    worksheet.getCell(`B${currentRow}`).value = isFirstMealOfDay ? d : '';
-                                    worksheet.getCell(`C${currentRow}`).value = !sectionDisplayed ? template.name : '';
-                                    worksheet.getCell(`D${currentRow}`).value = '';
+									worksheet.getCell(`A${currentRow}`).value = isFirstMealOfDay ? w : '';
+									worksheet.getCell(`B${currentRow}`).value = isFirstMealOfDay ? d : '';
+									worksheet.getCell(`C${currentRow}`).value = !sectionDisplayed ? template.name : '';
+									worksheet.getCell(`D${currentRow}`).value = '';
 
-                                    // Применяем золотой фон к редактируемым колонкам
-                                    worksheet.getCell(`D${currentRow}`).fill = goldFill;
-                                    for (let col of editableCols) {
-                                        worksheet.getCell(currentRow, col).fill = goldFill;
-                                    }
+									worksheet.getCell(`D${currentRow}`).fill = goldFill;
+									for (let col of editableCols) {
+										worksheet.getCell(currentRow, col).fill = goldFill;
+									}
 
-                                    if (hasName) {
-                                        worksheet.getCell(`E${currentRow}`).value = item.name;
-                                        worksheet.getCell(`F${currentRow}`).value = item.weight || 0;
-                                        worksheet.getCell(`G${currentRow}`).value = item.proteins || 0;
-                                        worksheet.getCell(`H${currentRow}`).value = item.fats || 0;
-                                        worksheet.getCell(`I${currentRow}`).value = item.carbs || 0;
-                                        worksheet.getCell(`J${currentRow}`).value = item.calories || 0;
-                                        worksheet.getCell(`K${currentRow}`).value = item.recipeId || '';
-                                        worksheet.getCell(`L${currentRow}`).value = item.price || 0;
-                                    }
+									if (hasName) {
+										worksheet.getCell(`E${currentRow}`).value = item.name;
+										worksheet.getCell(`F${currentRow}`).value = item.weight || 0;
+										worksheet.getCell(`G${currentRow}`).value = item.proteins || 0;
+										worksheet.getCell(`H${currentRow}`).value = item.fats || 0;
+										worksheet.getCell(`I${currentRow}`).value = item.carbs || 0;
+										worksheet.getCell(`J${currentRow}`).value = item.calories || 0;
+										worksheet.getCell(`K${currentRow}`).value = item.recipeId || '';
+										worksheet.getCell(`L${currentRow}`).value = item.price || 0;
+									}
 
-                                    // Применяем границы ко всем ячейкам строки
-                                    for (let col = 1; col <= 12; col++) {
-                                        worksheet.getCell(currentRow, col).border = borderStyle;
-                                    }
+									for (let col = 1; col <= 12; col++) {
+										worksheet.getCell(currentRow, col).border = borderStyle;
+									}
 
-                                    sectionDisplayed = true;
-                                    if (isFirstMealOfDay) isFirstMealOfDay = false;
-                                    currentRow++;
-                                }
-                                continue;
-                            }
+									sectionDisplayed = true;
+									if (isFirstMealOfDay) isFirstMealOfDay = false;
+									rowsInThisMeal++;
+									currentRow++;
+								}
+								continue;
+							}
 
-                            // Обычный раздел с названием
-                            const sectionItems = itemsWithSection[sectionName] || [];
+							const sectionItems = itemsWithSection[sectionName] || [];
 
-                            if (sectionItems.length === 0) {
-                                worksheet.getCell(`A${currentRow}`).value = isFirstMealOfDay ? w : '';
-                                worksheet.getCell(`B${currentRow}`).value = isFirstMealOfDay ? d : '';
-                                worksheet.getCell(`C${currentRow}`).value = !sectionDisplayed ? template.name : '';
-                                worksheet.getCell(`D${currentRow}`).value = sectionName;
+							if (sectionItems.length === 0) {
+								worksheet.getCell(`A${currentRow}`).value = isFirstMealOfDay ? w : '';
+								worksheet.getCell(`B${currentRow}`).value = isFirstMealOfDay ? d : '';
+								worksheet.getCell(`C${currentRow}`).value = !sectionDisplayed ? template.name : '';
+								worksheet.getCell(`D${currentRow}`).value = sectionName;
 
-                                worksheet.getCell(`D${currentRow}`).fill = goldFill;
-                                for (let col of editableCols) {
-                                    worksheet.getCell(currentRow, col).fill = goldFill;
-                                }
+								worksheet.getCell(`D${currentRow}`).fill = goldFill;
+								for (let col of editableCols) {
+									worksheet.getCell(currentRow, col).fill = goldFill;
+								}
 
-                                for (let col = 1; col <= 12; col++) {
-                                    worksheet.getCell(currentRow, col).border = borderStyle;
-                                }
+								for (let col = 1; col <= 12; col++) {
+									worksheet.getCell(currentRow, col).border = borderStyle;
+								}
 
-                                sectionDisplayed = true;
-                                if (isFirstMealOfDay) isFirstMealOfDay = false;
-                                currentRow++;
-                            } else {
-                                for (let itemIdx = 0; itemIdx < sectionItems.length; itemIdx++) {
-                                    const item = sectionItems[itemIdx];
-                                    const hasName = item.name && item.name.trim() !== '';
+								sectionDisplayed = true;
+								if (isFirstMealOfDay) isFirstMealOfDay = false;
+								rowsInThisMeal++;
+								currentRow++;
+							} else {
+								for (let itemIdx = 0; itemIdx < sectionItems.length; itemIdx++) {
+									const item = sectionItems[itemIdx];
+									const hasName = item.name && item.name.trim() !== '';
 
-                                    worksheet.getCell(`A${currentRow}`).value = isFirstMealOfDay ? w : '';
-                                    worksheet.getCell(`B${currentRow}`).value = isFirstMealOfDay ? d : '';
-                                    worksheet.getCell(`C${currentRow}`).value = !sectionDisplayed ? template.name : '';
-                                    worksheet.getCell(`D${currentRow}`).value = sectionName;
+									worksheet.getCell(`A${currentRow}`).value = isFirstMealOfDay ? w : '';
+									worksheet.getCell(`B${currentRow}`).value = isFirstMealOfDay ? d : '';
+									worksheet.getCell(`C${currentRow}`).value = !sectionDisplayed ? template.name : '';
+									worksheet.getCell(`D${currentRow}`).value = sectionName;
 
-                                    worksheet.getCell(`D${currentRow}`).fill = goldFill;
-                                    for (let col of editableCols) {
-                                        worksheet.getCell(currentRow, col).fill = goldFill;
-                                    }
+									worksheet.getCell(`D${currentRow}`).fill = goldFill;
+									for (let col of editableCols) {
+										worksheet.getCell(currentRow, col).fill = goldFill;
+									}
 
-                                    if (hasName) {
-                                        worksheet.getCell(`E${currentRow}`).value = item.name;
-                                        worksheet.getCell(`F${currentRow}`).value = item.weight || 0;
-                                        worksheet.getCell(`G${currentRow}`).value = item.proteins || 0;
-                                        worksheet.getCell(`H${currentRow}`).value = item.fats || 0;
-                                        worksheet.getCell(`I${currentRow}`).value = item.carbs || 0;
-                                        worksheet.getCell(`J${currentRow}`).value = item.calories || 0;
-                                        worksheet.getCell(`K${currentRow}`).value = item.recipeId || '';
-                                        worksheet.getCell(`L${currentRow}`).value = item.price || 0;
-                                    }
+									if (hasName) {
+										worksheet.getCell(`E${currentRow}`).value = item.name;
+										worksheet.getCell(`F${currentRow}`).value = item.weight || 0;
+										worksheet.getCell(`G${currentRow}`).value = item.proteins || 0;
+										worksheet.getCell(`H${currentRow}`).value = item.fats || 0;
+										worksheet.getCell(`I${currentRow}`).value = item.carbs || 0;
+										worksheet.getCell(`J${currentRow}`).value = item.calories || 0;
+										worksheet.getCell(`K${currentRow}`).value = item.recipeId || '';
+										worksheet.getCell(`L${currentRow}`).value = item.price || 0;
+									}
 
-                                    for (let col = 1; col <= 12; col++) {
-                                        worksheet.getCell(currentRow, col).border = borderStyle;
-                                    }
+									for (let col = 1; col <= 12; col++) {
+										worksheet.getCell(currentRow, col).border = borderStyle;
+									}
 
-                                    sectionDisplayed = true;
-                                    if (isFirstMealOfDay) isFirstMealOfDay = false;
-                                    currentRow++;
-                                }
-                            }
-                        }
+									sectionDisplayed = true;
+									if (isFirstMealOfDay) isFirstMealOfDay = false;
+									rowsInThisMeal++;
+									currentRow++;
+								}
+							}
+						}
 
-                        const mealEndRow = currentRow - 1;
+						const mealEndRow = currentRow - 1;
 
-                        // Итого за приём пищи
-                        worksheet.getCell(`C${currentRow}`).value = 'итого';
-                        worksheet.getCell(`F${currentRow}`).value = { formula: `SUM(F${mealStartRow}:F${mealEndRow})` };
-                        worksheet.getCell(`G${currentRow}`).value = { formula: `SUM(G${mealStartRow}:G${mealEndRow})` };
-                        worksheet.getCell(`H${currentRow}`).value = { formula: `SUM(H${mealStartRow}:H${mealEndRow})` };
-                        worksheet.getCell(`I${currentRow}`).value = { formula: `SUM(I${mealStartRow}:I${mealEndRow})` };
-                        worksheet.getCell(`J${currentRow}`).value = { formula: `SUM(J${mealStartRow}:J${mealEndRow})` };
-                        worksheet.getCell(`L${currentRow}`).value = { formula: `SUM(L${mealStartRow}:L${mealEndRow})` };
+						// Итого за приём пищи
+						worksheet.getCell(`C${currentRow}`).value = 'итого';
+						if (rowsInThisMeal > 0) {
+							worksheet.getCell(`F${currentRow}`).value = { formula: `SUM(F${mealStartRow}:F${mealEndRow})` };
+							worksheet.getCell(`G${currentRow}`).value = { formula: `SUM(G${mealStartRow}:G${mealEndRow})` };
+							worksheet.getCell(`H${currentRow}`).value = { formula: `SUM(H${mealStartRow}:H${mealEndRow})` };
+							worksheet.getCell(`I${currentRow}`).value = { formula: `SUM(I${mealStartRow}:I${mealEndRow})` };
+							worksheet.getCell(`J${currentRow}`).value = { formula: `SUM(J${mealStartRow}:J${mealEndRow})` };
+							worksheet.getCell(`L${currentRow}`).value = { formula: `SUM(L${mealStartRow}:L${mealEndRow})` };
+						} else {
+							['F', 'G', 'H', 'I', 'J', 'L'].forEach(col => {
+								worksheet.getCell(`${col}${currentRow}`).value = 0;
+							});
+						}
 
-                        // Стили для строки "итого"
-                        for (let col = 1; col <= 12; col++) {
-                            const cell = worksheet.getCell(currentRow, col);
-                            cell.border = borderStyle;
-                            cell.font = { bold: true, size: 10, name: 'Arial' };
-                        }
+						for (let col = 1; col <= 12; col++) {
+							const cell = worksheet.getCell(currentRow, col);
+							cell.border = borderStyle;
+							cell.font = { bold: true, size: 10, name: 'Arial' };
+						}
 
-                        currentRow++;
-                    }
+						// Сохраняем строку "итого" для этого приёма пищи
+						currentDayMealTotalRows.push(currentRow);
+						currentRow++;
+					}
 
-                    // Итого за день
-                    const mealTotalRows = [];
-                    for (let row = 6; row < currentRow; row++) {
-                        if (worksheet.getCell(`C${row}`).value === 'итого') {
-                            mealTotalRows.push(row);
-                        }
-                    }
+					// ===== ИТОГО ЗА ДЕНЬ — суммируем только строки "итого" ТЕКУЩЕГО дня =====
+					if (currentDayMealTotalRows.length > 0) {
+						worksheet.getCell(`C${currentRow}`).value = 'Итого за день:';
+						['F', 'G', 'H', 'I', 'J', 'L'].forEach(col => {
+							worksheet.getCell(`${col}${currentRow}`).value = {
+								formula: currentDayMealTotalRows.map(r => `${col}${r}`).join('+')
+							};
+						});
 
-                    worksheet.getCell(`C${currentRow}`).value = 'Итого за день:';
-                    if (mealTotalRows.length > 0) {
-                        ['F', 'G', 'H', 'I', 'J', 'L'].forEach(col => {
-                            worksheet.getCell(`${col}${currentRow}`).value = {
-                                formula: mealTotalRows.map(r => `${col}${r}`).join('+')
-                            };
-                        });
-                    }
+						for (let col = 1; col <= 12; col++) {
+							const cell = worksheet.getCell(currentRow, col);
+							cell.border = borderStyle;
+							cell.font = { bold: true, size: 10, name: 'Arial' };
+							if (editableCols.includes(col)) {
+								cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE2EFDA' } };
+							}
+						}
 
-                    // Стили для строки "Итого за день"
-                    for (let col = 1; col <= 12; col++) {
-                        const cell = worksheet.getCell(currentRow, col);
-                        cell.border = borderStyle;
-                        cell.font = { bold: true, size: 10, name: 'Arial' };
-                        if (editableCols.includes(col)) {
-                            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE2EFDA' } };
-                        }
-                    }
+						dayTotalRows.push(currentRow);
+						currentRow++;
+					}
+				}
+			}
 
-                    dayTotalRows.push(currentRow);
-                    currentRow++;
-                }
-            }
+			// ===== СРЕДНЕЕ ЗНАЧЕНИЕ ЗА ПЕРИОД =====
+			if (dayTotalRows.length > 0) {
+				currentRow++;
+				worksheet.getCell(`C${currentRow}`).value = 'Среднее значение за период:';
 
-            // ===== СРЕДНЕЕ ЗНАЧЕНИЕ ЗА ПЕРИОД =====
-            if (dayTotalRows.length > 0) {
-                currentRow++;
-                worksheet.getCell(`C${currentRow}`).value = 'Среднее значение за период:';
+				const countNonZeroParts = dayTotalRows.map(r => `IF(F${r}=0,0,1)`).join('+');
+				['F', 'G', 'H', 'I', 'J', 'L'].forEach(col => {
+					const sumDays = dayTotalRows.map(r => `${col}${r}`).join('+');
+					worksheet.getCell(`${col}${currentRow}`).value = {
+						formula: `(${sumDays})/(${countNonZeroParts})`
+					};
+				});
 
-                const countNonZeroParts = dayTotalRows.map(r => `IF(F${r}=0,0,1)`).join('+');
-                ['F', 'G', 'H', 'I', 'J', 'L'].forEach(col => {
-                    const sumDays = dayTotalRows.map(r => `${col}${r}`).join('+');
-                    worksheet.getCell(`${col}${currentRow}`).value = {
-                        formula: `(${sumDays})/(${countNonZeroParts})`
-                    };
-                });
+				for (let col = 1; col <= 12; col++) {
+					const cell = worksheet.getCell(currentRow, col);
+					cell.border = borderStyle;
+					cell.font = { bold: true, size: 11, name: 'Arial' };
+					if (editableCols.includes(col)) {
+						cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD9E8F5' } };
+					}
+				}
+			}
 
-                // Стили для строки среднего значения
-                for (let col = 1; col <= 12; col++) {
-                    const cell = worksheet.getCell(currentRow, col);
-                    cell.border = borderStyle;
-                    cell.font = { bold: true, size: 11, name: 'Arial' };
-                    if (editableCols.includes(col)) {
-                        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD9E8F5' } };
-                    }
-                }
-            }
+			// ===== ШИРИНА СТОЛБЦОВ =====
+			worksheet.getColumn('A').width = 3.89;
+			worksheet.getColumn('B').width = 4.56;
+			worksheet.getColumn('C').width = 8.33;
+			worksheet.getColumn('D').width = 10.78;
+			worksheet.getColumn('E').width = 51.78;
+			worksheet.getColumn('F').width = 8.56;
+			worksheet.getColumn('G').width = 9.22;
+			worksheet.getColumn('H').width = 6.78;
+			worksheet.getColumn('I').width = 6.11;
+			worksheet.getColumn('J').width = 7.33;
+			worksheet.getColumn('K').width = 9.22;
+			worksheet.getColumn('L').width = 8.33;
 
-            // ===== ШИРИНА СТОЛБЦОВ =====
-            worksheet.getColumn('A').width = 3.89;
-            worksheet.getColumn('B').width = 4.56;
-            worksheet.getColumn('C').width = 8.33;
-            worksheet.getColumn('D').width = 10.78;
-            worksheet.getColumn('E').width = 51.78;
-            worksheet.getColumn('F').width = 8.56;
-            worksheet.getColumn('G').width = 9.22;
-            worksheet.getColumn('H').width = 6.78;
-            worksheet.getColumn('I').width = 6.11;
-            worksheet.getColumn('J').width = 7.33;
-            worksheet.getColumn('K').width = 9.22;
-            worksheet.getColumn('L').width = 8.33;
+			for (let row = 1; row <= currentRow; row++) {
+				worksheet.getRow(row).height = row <= 5 ? 20 : 18;
+			}
 
-            // ===== ВЫСОТА СТРОК =====
-            for (let row = 1; row <= currentRow; row++) {
-                worksheet.getRow(row).height = row <= 5 ? 20 : 18;
-            }
-
-            const buffer = await workbook.xlsx.writeBuffer();
-            const blob = new Blob([buffer], {
-                type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-            });
-            saveAs(blob, `tm2026-sm_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.xlsx`);
-            showStatus('📥 Excel файл сгенерирован по шаблону', 'success');
-        }
+			const buffer = await workbook.xlsx.writeBuffer();
+			const blob = new Blob([buffer], {
+				type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+			});
+			saveAs(blob, `tm2026-sm_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.xlsx`);
+			showStatus('📥 Excel файл сгенерирован по шаблону', 'success');
+		}
 
         function parseRealTemplateFile(workbook) {
             if (!workbook || !workbook.SheetNames || !workbook.SheetNames.length) {
