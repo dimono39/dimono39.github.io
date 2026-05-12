@@ -2117,13 +2117,11 @@
 				}
 			}
 
-			// Формируем список приёмов пищи для вывода:
-			// Завтрак и Обед — ВСЕГДА
-			// Остальные — только если есть данные хотя бы в одном дне
-			const requiredMeals = ['breakfast', 'lunch'];  // Всегда выводим
-			const optionalMeals = ['breakfast2', 'afternoonSnack', 'dinner', 'dinner2'];  // Только если есть данные
+			// Формируем список приёмов пищи для вывода
+			const requiredMeals = ['breakfast', 'lunch'];
+			const optionalMeals = ['breakfast2', 'afternoonSnack', 'dinner', 'dinner2'];
 			
-			const activeMeals = [...requiredMeals];  // Начинаем с обязательных
+			const activeMeals = [...requiredMeals];
 			
 			for (let mt of optionalMeals) {
 				if (mealsWithData.has(mt)) {
@@ -2148,8 +2146,6 @@
 
 			for (let w of weeks) {
 				for (let d of daysPerWeek[w]) {
-					let isFirstMealOfDay = true;
-					
 					// Собираем строки "итого" для текущего дня
 					const currentDayMealTotalRows = [];
 
@@ -2161,6 +2157,7 @@
 						if (!template) continue;
 
 						const mealStartRow = currentRow;
+						let isFirstRowOfMeal = true;  // Флаг для первой строки текущего приёма пищи
 
 						const existingItems = (meal && meal.items) ? [...meal.items] : [];
 
@@ -2226,10 +2223,18 @@
 							const orphanItems = orphanItemsBySlot[sectionIdx] || [];
 
 							if (sectionName === '' && orphanItems.length === 0) {
-								worksheet.getCell(`A${currentRow}`).value = isFirstMealOfDay ? w : '';
-								worksheet.getCell(`B${currentRow}`).value = isFirstMealOfDay ? d : '';
-
-								if (isFirstMealOfDay) isFirstMealOfDay = false;
+								// Пустая строка-разделитель
+								if (isFirstRowOfMeal) {
+									worksheet.getCell(`A${currentRow}`).value = w;
+									worksheet.getCell(`B${currentRow}`).value = d;
+									worksheet.getCell(`C${currentRow}`).value = template.name;
+									isFirstRowOfMeal = false;
+									sectionDisplayed = true;
+								} else {
+									worksheet.getCell(`A${currentRow}`).value = '';
+									worksheet.getCell(`B${currentRow}`).value = '';
+									worksheet.getCell(`C${currentRow}`).value = '';
+								}
 
 								for (let col = 1; col <= 12; col++) {
 									const cell = worksheet.getCell(currentRow, col);
@@ -2248,9 +2253,17 @@
 									const item = orphanItems[itemIdx];
 									const hasName = item.name && item.name.trim() !== '';
 
-									worksheet.getCell(`A${currentRow}`).value = isFirstMealOfDay ? w : '';
-									worksheet.getCell(`B${currentRow}`).value = isFirstMealOfDay ? d : '';
-									worksheet.getCell(`C${currentRow}`).value = !sectionDisplayed ? template.name : '';
+									if (isFirstRowOfMeal) {
+										worksheet.getCell(`A${currentRow}`).value = w;
+										worksheet.getCell(`B${currentRow}`).value = d;
+										worksheet.getCell(`C${currentRow}`).value = template.name;
+										isFirstRowOfMeal = false;
+										sectionDisplayed = true;
+									} else {
+										worksheet.getCell(`A${currentRow}`).value = '';
+										worksheet.getCell(`B${currentRow}`).value = '';
+										worksheet.getCell(`C${currentRow}`).value = '';
+									}
 									worksheet.getCell(`D${currentRow}`).value = '';
 
 									worksheet.getCell(`D${currentRow}`).fill = goldFill;
@@ -2273,8 +2286,6 @@
 										worksheet.getCell(currentRow, col).border = borderStyle;
 									}
 
-									sectionDisplayed = true;
-									if (isFirstMealOfDay) isFirstMealOfDay = false;
 									rowsInThisMeal++;
 									currentRow++;
 								}
@@ -2284,9 +2295,17 @@
 							const sectionItems = itemsWithSection[sectionName] || [];
 
 							if (sectionItems.length === 0) {
-								worksheet.getCell(`A${currentRow}`).value = isFirstMealOfDay ? w : '';
-								worksheet.getCell(`B${currentRow}`).value = isFirstMealOfDay ? d : '';
-								worksheet.getCell(`C${currentRow}`).value = !sectionDisplayed ? template.name : '';
+								if (isFirstRowOfMeal) {
+									worksheet.getCell(`A${currentRow}`).value = w;
+									worksheet.getCell(`B${currentRow}`).value = d;
+									worksheet.getCell(`C${currentRow}`).value = template.name;
+									isFirstRowOfMeal = false;
+									sectionDisplayed = true;
+								} else {
+									worksheet.getCell(`A${currentRow}`).value = '';
+									worksheet.getCell(`B${currentRow}`).value = '';
+									worksheet.getCell(`C${currentRow}`).value = '';
+								}
 								worksheet.getCell(`D${currentRow}`).value = sectionName;
 
 								worksheet.getCell(`D${currentRow}`).fill = goldFill;
@@ -2298,8 +2317,6 @@
 									worksheet.getCell(currentRow, col).border = borderStyle;
 								}
 
-								sectionDisplayed = true;
-								if (isFirstMealOfDay) isFirstMealOfDay = false;
 								rowsInThisMeal++;
 								currentRow++;
 							} else {
@@ -2307,9 +2324,17 @@
 									const item = sectionItems[itemIdx];
 									const hasName = item.name && item.name.trim() !== '';
 
-									worksheet.getCell(`A${currentRow}`).value = isFirstMealOfDay ? w : '';
-									worksheet.getCell(`B${currentRow}`).value = isFirstMealOfDay ? d : '';
-									worksheet.getCell(`C${currentRow}`).value = !sectionDisplayed ? template.name : '';
+									if (isFirstRowOfMeal) {
+										worksheet.getCell(`A${currentRow}`).value = w;
+										worksheet.getCell(`B${currentRow}`).value = d;
+										worksheet.getCell(`C${currentRow}`).value = template.name;
+										isFirstRowOfMeal = false;
+										sectionDisplayed = true;
+									} else {
+										worksheet.getCell(`A${currentRow}`).value = '';
+										worksheet.getCell(`B${currentRow}`).value = '';
+										worksheet.getCell(`C${currentRow}`).value = '';
+									}
 									worksheet.getCell(`D${currentRow}`).value = sectionName;
 
 									worksheet.getCell(`D${currentRow}`).fill = goldFill;
@@ -2332,8 +2357,6 @@
 										worksheet.getCell(currentRow, col).border = borderStyle;
 									}
 
-									sectionDisplayed = true;
-									if (isFirstMealOfDay) isFirstMealOfDay = false;
 									rowsInThisMeal++;
 									currentRow++;
 								}
@@ -2368,7 +2391,7 @@
 						currentRow++;
 					}
 
-					// ===== ИТОГО ЗА ДЕНЬ — суммируем только строки "итого" ТЕКУЩЕГО дня =====
+					// ===== ИТОГО ЗА ДЕНЬ =====
 					if (currentDayMealTotalRows.length > 0) {
 						worksheet.getCell(`C${currentRow}`).value = 'Итого за день:';
 						['F', 'G', 'H', 'I', 'J', 'L'].forEach(col => {
@@ -2429,8 +2452,15 @@
 			worksheet.getColumn('K').width = 9.22;
 			worksheet.getColumn('L').width = 8.33;
 
-			for (let row = 1; row <= currentRow; row++) {
-				worksheet.getRow(row).height = row <= 5 ? 20 : 18;
+			// ===== ВЫСОТА СТРОК =====
+			worksheet.getRow(5).height = 52.8;  // Строка с заголовками таблицы
+			
+			for (let row = 1; row <= 4; row++) {
+				worksheet.getRow(row).height = 20;  // Шапка документа
+			}
+			
+			for (let row = 6; row <= currentRow; row++) {
+				worksheet.getRow(row).height = 18;  // Остальные строки (данные, итого, среднее)
 			}
 
 			const buffer = await workbook.xlsx.writeBuffer();
@@ -2441,123 +2471,206 @@
 			showStatus('📥 Excel файл сгенерирован по шаблону', 'success');
 		}
 
-        function parseRealTemplateFile(workbook) {
-            if (!workbook || !workbook.SheetNames || !workbook.SheetNames.length) {
-                return { weeks: {} };
-            }
+		function parseRealTemplateFile(workbook) {
+			if (!workbook || !workbook.SheetNames || !workbook.SheetNames.length) {
+				return { weeks: {}, schoolInfo: { name: "", ageCategory: "7-11 лет", approval: { position: "Директор", name: "", date: "12.01.2026" } } };
+			}
 
-            const sheet = workbook.Sheets[workbook.SheetNames[0]];
-            if (!sheet) {
-                return { weeks: {} };
-            }
+			const sheet = workbook.Sheets[workbook.SheetNames[0]];
+			if (!sheet) {
+				return { weeks: {}, schoolInfo: { name: "", ageCategory: "7-11 лет", approval: { position: "Директор", name: "", date: "12.01.2026" } } };
+			}
 
-            const data = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "" });
+			const data = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "" });
+			
+			if (!data || !data.length) {
+				return { weeks: {}, schoolInfo: { name: "", ageCategory: "7-11 лет", approval: { position: "Директор", name: "", date: "12.01.2026" } } };
+			}
 
-            if (!data || !data.length) {
-                return { weeks: {} };
-            }
+			// ===== ЧТЕНИЕ ИНФОРМАЦИИ О ШКОЛЕ =====
+			let schoolName = "";
+			let approvalPosition = "Директор";
+			let approvalName = "";
+			let approvalDay = "12";
+			let approvalMonth = "1";
+			let approvalYear = "2026";
+			
+			// Читаем название школы из ячейки C1
+			if (data[0] && data[0][2]) {
+				schoolName = data[0][2].toString().trim();
+			}
+			
+			// Читаем должность из ячейки H1
+			if (data[0] && data[0][7]) {
+				approvalPosition = data[0][7].toString().trim();
+			}
+			
+			// Читаем фамилию из ячейки H2
+			if (data[1] && data[1][7]) {
+				approvalName = data[1][7].toString().trim();
+			}
+			
+			// Читаем дату из ячеек H4, I4, J4
+			if (data[3] && data[3][7] !== undefined && data[3][7] !== "") {
+				let dayValue = data[3][7];
+				// Если это число (Excel хранит даты как числа)
+				if (typeof dayValue === 'number') {
+					approvalDay = dayValue.toString();
+				} else {
+					approvalDay = dayValue.toString().trim();
+				}
+			}
 
-            const template = { weeks: {} };
-            let currentWeek = null,
-                currentDay = null,
-                currentMealType = null;
+			if (data[3] && data[3][8] !== undefined && data[3][8] !== "") {
+				let monthValue = data[3][8];
+				if (typeof monthValue === 'number') {
+					approvalMonth = monthValue.toString();
+				} else {
+					approvalMonth = monthValue.toString().trim();
+				}
+			}
 
-            for (let i = 5; i < Math.min(data.length, 2000); i++) {
-                const row = data[i];
-                if (!row || row.length < 4) continue;
+			if (data[3] && data[3][9] !== undefined && data[3][9] !== "") {
+				let yearValue = data[3][9];
+				if (typeof yearValue === 'number') {
+					approvalYear = yearValue.toString();
+				} else {
+					approvalYear = yearValue.toString().trim();
+				}
+			}
+			
+			const approvalDate = `${approvalDay}.${approvalMonth}.${approvalYear}`;
+			
+			const schoolInfo = {
+				name: schoolName,
+				ageCategory: "7-11 лет",
+				approval: {
+					position: approvalPosition,
+					name: approvalName,
+					date: approvalDate
+				}
+			};
 
-                const weekVal = row[0] && row[0].toString().trim();
-                const dayVal = row[1] && row[1].toString().trim();
+			// ===== ЧТЕНИЕ МЕНЮ =====
+			const template = { weeks: {} };
+			let currentWeek = null,
+				currentDay = null,
+				currentMealType = null;
 
-                if (weekVal && weekVal !== '' && !isNaN(parseInt(weekVal))) currentWeek = parseInt(weekVal);
-                if (dayVal && dayVal !== '' && !isNaN(parseInt(dayVal))) currentDay = parseInt(dayVal);
+			for (let i = 5; i < Math.min(data.length, 2000); i++) {
+				const row = data[i];
+				if (!row || row.length < 4) continue;
 
-                if (currentWeek && currentDay) {
-                    if (!template.weeks[currentWeek]) template.weeks[currentWeek] = {};
-                    if (!template.weeks[currentWeek][currentDay]) {
-                        template.weeks[currentWeek][currentDay] = {
-                            breakfast: { items: [] },
-                            breakfast2: { items: [] },
-                            lunch: { items: [] },
-                            afternoonSnack: { items: [] },
-                            dinner: { items: [] },
-                            dinner2: { items: [] }
-                        };
-                    }
-                }
+				const weekVal = row[0] && row[0].toString().trim();
+				const dayVal = row[1] && row[1].toString().trim();
 
-                const mealRaw = row[2] ? row[2].toString().trim() : '';
-                let newMealType = null;
-                if (mealRaw.includes('Завтрак') && !mealRaw.includes('2')) newMealType = 'breakfast';
-                else if (mealRaw.includes('Завтрак 2')) newMealType = 'breakfast2';
-                else if (mealRaw.includes('Обед')) newMealType = 'lunch';
-                else if (mealRaw.includes('Полдник')) newMealType = 'afternoonSnack';
-                else if (mealRaw.includes('Ужин') && !mealRaw.includes('2')) newMealType = 'dinner';
-                else if (mealRaw.includes('Ужин 2')) newMealType = 'dinner2';
+				if (weekVal && weekVal !== '' && !isNaN(parseInt(weekVal))) currentWeek = parseInt(weekVal);
+				if (dayVal && dayVal !== '' && !isNaN(parseInt(dayVal))) currentDay = parseInt(dayVal);
 
-                if (newMealType) currentMealType = newMealType;
+				if (currentWeek && currentDay) {
+					if (!template.weeks[currentWeek]) template.weeks[currentWeek] = {};
+					if (!template.weeks[currentWeek][currentDay]) {
+						template.weeks[currentWeek][currentDay] = {
+							breakfast: { items: [] },
+							breakfast2: { items: [] },
+							lunch: { items: [] },
+							afternoonSnack: { items: [] },
+							dinner: { items: [] },
+							dinner2: { items: [] }
+						};
+					}
+				}
 
-                const dishName = row[4] ? row[4].toString().trim() : '';
-                if (dishName && dishName !== '' && !dishName.startsWith('=') && !dishName.toLowerCase().includes('итого')) {
-                    if (currentWeek && currentDay && currentMealType && template.weeks[currentWeek] && template.weeks[currentWeek][
-                            currentDay
-                        ]) {
-                        const mealObj = template.weeks[currentWeek][currentDay][currentMealType];
-                        if (mealObj) {
-                            let weightRaw = row[5] ? row[5].toString().trim() : '0';
-                            let totalWeight = 0;
-                            if (weightRaw.includes('/')) {
-                                for (let p of weightRaw.split('/')) {
-                                    let v = parseFloat(p);
-                                    if (!isNaN(v)) totalWeight += v;
-                                }
-                            } else totalWeight = parseFloat(weightRaw) || 0;
+				const mealRaw = row[2] ? row[2].toString().trim() : '';
+				let newMealType = null;
+				
+				// Определяем тип приема пищи (игнорируем строки "итого")
+				if (!mealRaw.toLowerCase().includes('итого')) {
+					if (mealRaw.includes('Завтрак') && !mealRaw.includes('2')) newMealType = 'breakfast';
+					else if (mealRaw.includes('Завтрак 2')) newMealType = 'breakfast2';
+					else if (mealRaw.includes('Обед')) newMealType = 'lunch';
+					else if (mealRaw.includes('Полдник')) newMealType = 'afternoonSnack';
+					else if (mealRaw.includes('Ужин') && !mealRaw.includes('2')) newMealType = 'dinner';
+					else if (mealRaw.includes('Ужин 2')) newMealType = 'dinner2';
+					
+					if (newMealType) currentMealType = newMealType;
+				}
 
-                            mealObj.items.push({
-                                section: row[3] ? row[3].toString().trim() : '',
-                                name: dishName,
-                                weight: totalWeight,
-                                calories: parseFloat(row[9]) || 0,
-                                proteins: parseFloat(row[6]) || 0,
-                                fats: parseFloat(row[7]) || 0,
-                                carbs: parseFloat(row[8]) || 0,
-                                recipeId: row[10] ? row[10].toString() : '',
-                                price: parseFloat(row[11]) || 0
-                            });
-                        }
-                    }
-                }
-            }
-            return template;
-        }
+				const dishName = row[4] ? row[4].toString().trim() : '';
+				
+				// Пропускаем служебные строки
+				if (dishName && dishName !== '' && 
+					!dishName.startsWith('=') && 
+					!dishName.toLowerCase().includes('итого') &&
+					!mealRaw.toLowerCase().includes('итого')) {
+					
+					if (currentWeek && currentDay && currentMealType && 
+						template.weeks[currentWeek] && 
+						template.weeks[currentWeek][currentDay]) {
+						
+						const mealObj = template.weeks[currentWeek][currentDay][currentMealType];
+						if (mealObj) {
+							let weightRaw = row[5] ? row[5].toString().trim() : '0';
+							let totalWeight = 0;
+							if (weightRaw.includes('/')) {
+								for (let p of weightRaw.split('/')) {
+									let v = parseFloat(p);
+									if (!isNaN(v)) totalWeight += v;
+								}
+							} else totalWeight = parseFloat(weightRaw) || 0;
 
-        function loadTemplateFromFile(file) {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                try {
-                    const data = new Uint8Array(e.target.result);
-                    const wb = XLSX.read(data, { type: 'array' });
-                    const parsed = parseRealTemplateFile(wb);
-                    if (parsed && parsed.weeks && Object.keys(parsed.weeks).length > 0) {
-                        currentTemplateData = parsed;
-                        originalTemplateData = JSON.parse(JSON.stringify(parsed));
-                        historyStack = [JSON.parse(JSON.stringify(parsed))];
-                        historyIndex = 0;
-                        flatItems = buildFlatFromTemplate(currentTemplateData);
-                        renderEditor();
-                        showStatus(`✅ Файл "${file.name}" загружен! Найдено ${flatItems.length} блюд.`, 'success');
-                    } else {
-                        showStatus('❌ Не удалось прочитать меню из файла. Проверьте структуру.', 'error');
-                    }
-                } catch (error) {
-                    showStatus('❌ Ошибка чтения файла. Убедитесь, что это корректный Excel-файл.', 'error');
-                }
-            };
-            reader.onerror = function() {
-                showStatus('❌ Ошибка при чтении файла', 'error');
-            };
-            reader.readAsArrayBuffer(file);
-        }
+							mealObj.items.push({
+								section: row[3] ? row[3].toString().trim() : '',
+								name: dishName,
+								weight: totalWeight,
+								calories: parseFloat(row[9]) || 0,
+								proteins: parseFloat(row[6]) || 0,
+								fats: parseFloat(row[7]) || 0,
+								carbs: parseFloat(row[8]) || 0,
+								recipeId: row[10] ? row[10].toString() : '',
+								price: parseFloat(row[11]) || 0
+							});
+						}
+					}
+				}
+			}
+			
+			return { template, schoolInfo };
+		}
+
+		function loadTemplateFromFile(file) {
+			const reader = new FileReader();
+			reader.onload = function(e) {
+				try {
+					const data = new Uint8Array(e.target.result);
+					const wb = XLSX.read(data, { type: 'array' });
+					const result = parseRealTemplateFile(wb);
+					
+					if (result.template && result.template.weeks && Object.keys(result.template.weeks).length > 0) {
+						currentTemplateData = result.template;
+						originalTemplateData = JSON.parse(JSON.stringify(result.template));
+						
+						// Сохраняем информацию о школе
+						schoolInfo = result.schoolInfo;
+						
+						historyStack = [JSON.parse(JSON.stringify(result.template))];
+						historyIndex = 0;
+						flatItems = buildFlatFromTemplate(currentTemplateData);
+						renderEditor();
+						showStatus(`✅ Файл "${file.name}" загружен! Найдено ${flatItems.length} блюд.`, 'success');
+					} else {
+						showStatus('❌ Не удалось прочитать меню из файла. Проверьте структуру.', 'error');
+					}
+				} catch (error) {
+					console.error(error);
+					showStatus('❌ Ошибка чтения файла. Убедитесь, что это корректный Excel-файл.', 'error');
+				}
+			};
+			reader.onerror = function() {
+				showStatus('❌ Ошибка при чтении файла', 'error');
+			};
+			reader.readAsArrayBuffer(file);
+		}
 
         function showStatus(msg, type) {
             const el = document.getElementById('statusArea');
