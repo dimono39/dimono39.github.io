@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Единая система школьного питания PRO | ФЦМПО</title>
+    
+    <!-- CSS -->
+    <link rel="stylesheet" href="css/styles.css">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    
+    <!-- XLSX (основной) -->
+    <script src="libs/xlsx.full.min.js"></script>
+    
+    <!-- FileSaver -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    
+    <!-- JSZip для экспорта архивов -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+</head>
+<body>
+
+    <!-- Кнопка переключения боковой панели -->
+    <button class="sidebar-toggle" id="sidebarToggle">
+        <i class="fas fa-bars"></i>
+    </button>
+	
+    <div class="app-container">
+        <!-- Вертикальное меню -->
+        <aside class="sidebar" id="sidebar">
+            <div class="logo">
+                <i class="fas fa-utensils"></i>
+                <span>PRO Питание</span>
+            </div>
+            
+            <nav class="nav-menu">
+                <button class="nav-item active" data-tab="upload">
+                    <i class="fas fa-cloud-upload-alt"></i>
+                    <span>Загрузка</span>
+                </button>
+                <button class="nav-item" data-tab="editor">
+                    <i class="fas fa-edit"></i>
+                    <span>Редактор</span>
+                </button>
+                <button class="nav-item" data-tab="generator">
+                    <i class="fas fa-calendar-alt"></i>
+                    <span>Генератор</span>
+                </button>
+                <button class="nav-item" data-tab="analytics">
+                    <i class="fas fa-chart-line"></i>
+                    <span>Аналитика</span>
+                </button>
+            </nav>
+            
+            <div class="sidebar-footer">
+                <div class="auto-save-status">
+                    <i class="fas fa-save"></i>
+                    <span id="autoSaveStatus">Автосохранение</span>
+                </div>
+                <div class="version">Версия 6.0 PRO</div>
+            </div>
+        </aside>
+        
+        <!-- Основной контент -->
+        <main class="main-content">
+            <!-- Вкладка 1: Загрузка -->
+            <div class="tab-content active" id="tab-upload">
+                <div class="page-header">
+                    <h1><i class="fas fa-cloud-upload-alt"></i> Загрузка файлов</h1>
+                    <p>Загрузите файлы типового меню и календаря питания для начала работы</p>
+                </div>
+                
+                <div id="uploadStatus" class="status-message"></div>
+                
+                <div class="two-columns">
+                    <!-- Календарь питания -->
+                    <div class="card">
+                        <div class="card-title">
+                            <i class="fas fa-calendar-week"></i>
+                            <span>Календарь питания (kp2026.xlsx)</span>
+                        </div>
+                        <div class="file-drop-zone" id="calendarDropZone">
+                            <i class="fas fa-file-excel fa-4x"></i>
+                            <h3>Перетащите kp2026.xlsx</h3>
+                            <p>или кликните для выбора</p>
+                            <input type="file" id="calendarFileInput" accept=".xlsx,.xls" style="display:none">
+                        </div>
+                        <div id="calendarFileInfo" class="file-info"></div>
+                        <div id="calendarPreview" class="preview-box"></div>
+                    </div>
+                    
+                    <!-- Типовое меню -->
+                    <div class="card">
+                        <div class="card-title">
+                            <i class="fas fa-utensils"></i>
+                            <span>Типовое меню (tm2026-sm.xlsx)</span>
+                        </div>
+                        <div class="file-drop-zone" id="menuDropZone">
+                            <i class="fas fa-file-excel fa-4x"></i>
+                            <h3>Перетащите tm2026-sm.xlsx</h3>
+                            <p>или кликните для выбора</p>
+                            <input type="file" id="menuFileInput" accept=".xlsx,.xls" style="display:none">
+                        </div>
+                        <div id="menuFileInfo" class="file-info"></div>
+                        <div id="menuPreview" class="preview-box"></div>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-title">
+                        <i class="fas fa-school"></i>
+                        <span>Настройки организации</span>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Название школы</label>
+                            <input type="text" id="schoolName" placeholder="МОУ «Средняя школа №1»">
+                        </div>
+                        <div class="form-group">
+                            <label>Возрастная категория</label>
+                            <select id="ageCategory">
+                                <option value="7-11">7-11 лет</option>
+                                <option value="12-18">12-18 лет</option>
+                                <option value="1-3">1-3 года</option>
+                                <option value="4-6">4-6 лет</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Директор/Утвердил</label>
+                            <input type="text" id="directorName" placeholder="Иванова И.И.">
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="buttons-container">
+                    <button id="loadFromStorageBtn" class="btn btn-secondary">
+                        <i class="fas fa-database"></i> Загрузить из памяти
+                    </button>
+                    <button id="clearStorageBtn" class="btn btn-danger">
+                        <i class="fas fa-trash"></i> Очистить память
+                    </button>
+                    <button id="downloadTemplateBtn" class="btn btn-info">
+                        <i class="fas fa-download"></i> Скачать шаблоны ФЦМПО
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Вкладка 2: Редактор (будет заполнен динамически) -->
+            <div class="tab-content" id="tab-editor">
+                <div class="page-header">
+                    <h1><i class="fas fa-edit"></i> Редактор типового меню</h1>
+                    <p>Редактирование блюд с проверкой по правилам 1-17 (кроме 7) + дубликаты</p>
+                </div>
+                
+                <div class="card">
+                    <div class="search-bar">
+                        <input type="text" id="searchInput" placeholder="🔍 Поиск по названию блюда..." class="search-input">
+                        <select id="filterMealSelect" class="filter-select">
+                            <option value="">🍽️ Все приёмы пищи</option>
+                            <option value="breakfast">🌅 Завтрак</option>
+                            <option value="breakfast2">🍎 Второй завтрак</option>
+                            <option value="lunch">🍲 Обед</option>
+                            <option value="afternoonSnack">🍪 Полдник</option>
+                            <option value="dinner">🌙 Ужин</option>
+                            <option value="dinner2">🥛 Второй ужин</option>
+                        </select>
+                        <select id="filterStatusSelect" class="filter-select">
+                            <option value="">📋 Все блюда</option>
+                            <option value="error">❌ С ошибками</option>
+                            <option value="warning">⚠️ С предупреждениями</option>
+                        </select>
+                        <button id="clearFiltersBtn" class="btn btn-secondary">Сбросить</button>
+                    </div>
+                    
+                    <div class="batch-actions" id="batchActions" style="display: none;">
+                        <span><i class="fas fa-check-square"></i> Выбрано: <strong id="selectedCount">0</strong></span>
+                        <button id="batchDeleteBtn" class="btn btn-danger">Удалить</button>
+                        <select id="batchSectionSelect" class="filter-select">
+                            <option value="">Сменить раздел...</option>
+                            <option value="гор.блюдо">Горячее блюдо</option>
+                            <option value="гор.напиток">Горячий напиток</option>
+                            <option value="хлеб">Хлеб</option>
+                            <option value="фрукты">Фрукты</option>
+                            <option value="закуска">Закуска</option>
+                            <option value="1 блюдо">Первое блюдо</option>
+                            <option value="2 блюдо">Второе блюдо</option>
+                            <option value="гарнир">Гарнир</option>
+                        </select>
+                        <button id="batchApplySectionBtn" class="btn btn-primary">Применить</button>
+                        <input type="number" id="batchMultiplier" placeholder="×1.2" step="0.1" class="search-input" style="width: 80px;">
+                        <button id="batchMultiplyBtn" class="btn btn-primary">Умножить вес</button>
+                    </div>
+                    
+                    <div class="stats-panel" id="statsPanel"></div>
+                    <div class="rules-panel" id="rulesPanel"></div>
+                    
+                    <div class="buttons-container">
+                        <button id="undoBtn" class="btn btn-secondary"><i class="fas fa-undo-alt"></i> Отменить</button>
+                        <button id="redoBtn" class="btn btn-secondary"><i class="fas fa-redo-alt"></i> Повторить</button>
+                        <button id="mergeSectionsBtn" class="btn btn-info"><i class="fas fa-compress-alt"></i> Объединить разделы</button>
+                        <button id="copyDayBtn" class="btn btn-purple"><i class="fas fa-copy"></i> Копировать день</button>
+                        <button id="addWeekBtn" class="btn btn-success"><i class="fas fa-calendar-plus"></i> Добавить неделю</button>
+                        <button id="exportTemplateBtn" class="btn btn-primary"><i class="fas fa-save"></i> Экспорт tm2026-sm.xlsx</button>
+                    </div>
+                    
+                    <div class="editor-wrapper" id="editorWrapper">
+                        <div class="empty-state">
+                            <i class="fas fa-folder-open"></i>
+                            <p>Загрузите файл типового меню для начала редактирования</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Вкладка 3: Генератор -->
+            <div class="tab-content" id="tab-generator">
+                <div class="page-header">
+                    <h1><i class="fas fa-calendar-alt"></i> Генератор ежедневных меню</h1>
+                    <p>Создание меню на каждый день на основе календаря питания</p>
+                </div>
+                
+                <div class="card">
+                    <div class="card-title">
+                        <i class="fas fa-calendar-range"></i>
+                        <span>Выбор периода</span>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Начальная дата</label>
+                            <input type="date" id="startDate" value="2026-01-01" min="2026-01-01" max="2026-12-31">
+                        </div>
+                        <div class="form-group">
+                            <label>Конечная дата</label>
+                            <input type="date" id="endDate" value="2026-01-31" min="2026-01-01" max="2026-12-31">
+                        </div>
+                        <div class="form-group">
+                            <label>&nbsp;</label>
+                            <button id="generateMenusBtn" class="btn btn-primary btn-block">
+                                <i class="fas fa-magic"></i> Создать меню
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="generatorStats" class="card" style="display: none;">
+                    <div class="card-title">
+                        <i class="fas fa-chart-simple"></i>
+                        <span>Статистика генерации</span>
+                    </div>
+                    <div class="stats-grid" id="generatorStatsGrid"></div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-title">
+                        <i class="fas fa-list-ul"></i>
+                        <span>Сгенерированные меню</span>
+                    </div>
+                    
+                    <div class="menu-navigation" id="menuNavigation" style="display: none;">
+                        <button id="prevMenuBtn" class="btn btn-secondary">
+                            <i class="fas fa-chevron-left"></i> Предыдущее
+                        </button>
+                        <span id="menuCounter" class="menu-counter"></span>
+                        <button id="nextMenuBtn" class="btn btn-secondary">
+                            Следующее <i class="fas fa-chevron-right"></i>
+                        </button>
+                        <button id="toggleViewBtn" class="btn btn-info">
+                            <i class="fas fa-list"></i> Детальный вид
+                        </button>
+                    </div>
+                    
+                    <div id="menuGrid" class="menu-grid"></div>
+                    
+                    <div id="dailyMenuContent" class="empty-state" style="display: block;">
+                        <i class="fas fa-calendar-plus fa-4x"></i>
+                        <h3>Ежедневные меню</h3>
+                        <p>Выберите период и нажмите "Создать меню"</p>
+                    </div>
+                    
+                    <div class="export-buttons" style="margin-top: 20px;">
+                        <button id="exportAllZipBtn" class="btn btn-success" disabled>
+                            <i class="fas fa-file-archive"></i> Экспорт всех меню (ZIP)
+                        </button>
+                        <button id="exportCurrentExcelBtn" class="btn btn-primary" disabled>
+                            <i class="fas fa-file-excel"></i> Экспорт текущего меню
+                        </button>
+                    </div>
+                </div>
+                
+                <div id="detailedView" class="detailed-view">
+                    <div class="detailed-view-header">
+                        <h3 id="detailMenuDate">Детальный просмотр</h3>
+                        <button id="closeDetailView" class="btn btn-secondary">Закрыть</button>
+                    </div>
+                    <div id="detailMeals"></div>
+                </div>
+            </div>
+            
+            <!-- Вкладка 4: Аналитика -->
+            <div class="tab-content" id="tab-analytics">
+                <div class="page-header">
+                    <h1><i class="fas fa-chart-line"></i> Аналитика и отчёты</h1>
+                    <p>Сводная информация по качеству и соответствию нормам</p>
+                </div>
+                
+                <div class="card">
+                    <div class="card-title">
+                        <i class="fas fa-chart-pie"></i>
+                        <span>Общая статистика</span>
+                    </div>
+                    <div class="stats-grid" id="analyticsStats"></div>
+                </div>
+                
+                <div class="two-columns">
+                    <div class="card">
+                        <div class="card-title">
+                            <i class="fas fa-chart-line"></i>
+                            <span>Динамика калорийности</span>
+                        </div>
+                        <canvas id="caloriesChart" height="250"></canvas>
+                    </div>
+                    <div class="card">
+                        <div class="card-title">
+                            <i class="fas fa-chart-bar"></i>
+                            <span>Среднее БЖУ</span>
+                        </div>
+                        <canvas id="bjuChart" height="250"></canvas>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-title">
+                        <i class="fas fa-clipboard-list"></i>
+                        <span>Отчёт по правилам</span>
+                    </div>
+                    <div id="rulesReport" class="rules-report"></div>
+                </div>
+                
+                <div class="buttons-container">
+                    <button id="generateReportBtn" class="btn btn-primary">
+                        <i class="fas fa-chart-line"></i> Сформировать отчёт
+                    </button>
+                    <button id="exportReportBtn" class="btn btn-success">
+                        <i class="fas fa-file-excel"></i> Экспорт отчёта
+                    </button>
+                </div>
+            </div>
+        </main>
+    </div>
+    
+    <!-- Модальные окна -->
+    <div id="copyModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-copy"></i> Копирование дня</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Источник (неделя, день)</label>
+                    <select id="copySourceWeek"></select>
+                    <select id="copySourceDay"></select>
+                </div>
+                <div class="form-group">
+                    <label>Цель (неделя, день)</label>
+                    <select id="copyTargetWeek"></select>
+                    <select id="copyTargetDay"></select>
+                </div>
+                <label>
+                    <input type="checkbox" id="copyOnlyStructure">
+                    Только структуру (без веса и названий)
+                </label>
+            </div>
+            <div class="modal-footer">
+                <button id="copyConfirmBtn" class="btn btn-primary">Копировать</button>
+                <button id="copyCancelBtn" class="btn btn-secondary">Отмена</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Подключаем модули -->
+    <script src="js/storage.js"></script>
+    <script src="js/fileLoader.js"></script>
+    <script src="js/editor.js"></script>
+    <script src="js/generator.js"></script>
+    <script src="js/analytics.js"></script>
+    <script src="js/export.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
