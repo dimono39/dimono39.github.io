@@ -2069,50 +2069,18 @@
 			</div>
 		</div>
 
-		<div class="card">
-			<div class="card-title">
-				<i class="fas fa-cloud-upload-alt"></i>
-				<span>1. Загрузите файл меню</span>
-			</div>
-			<div class="file-zone" id="dropZone">
-				<i class="fas fa-file-excel fa-4x" style="color:#10b981; margin-bottom: 16px;"></i>
-				<h3 style="margin-bottom: 8px;">Перетащите файл <span style="color:#059669;">tm2026-sm.xlsx</span></h3>
-				<p style="color: #64748b;">или кликните для выбора</p>
-				<input type="file" id="fileInput" accept=".xlsx,.xls" style="display:none">
-			</div>
-			
-			<!-- НОВЫЙ БЛОК: Редактирование информации о школе -->
-			<div style="margin-top: 20px; padding: 16px; background: #f8fafc; border-radius: 20px;">
-				<div style="display: flex; align-items: center; gap: 10px; margin-bottom: 16px;">
-					<i class="fas fa-school" style="color: #059669;"></i>
-					<strong style="color: #0f172a;">Информация об организации</strong>
-				</div>
-				<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;">
-					<div>
-						<label style="display: block; font-size: 12px; color: #64748b; margin-bottom: 4px;">Название школы</label>
-						<input type="text" id="schoolNameInput" class="search-input-premium" style="width: 100%;" placeholder="МОУ «Сказочная СОШ»">
-					</div>
-					<div>
-						<label style="display: block; font-size: 12px; color: #64748b; margin-bottom: 4px;">Должность утверждающего</label>
-						<input type="text" id="approvalPositionInput" class="search-input-premium" style="width: 100%;" placeholder="Директор">
-					</div>
-					<div>
-						<label style="display: block; font-size: 12px; color: #64748b; margin-bottom: 4px;">ФИО утверждающего</label>
-						<input type="text" id="approvalNameInput" class="search-input-premium" style="width: 100%;" placeholder="Иванова И.И.">
-					</div>
-					<div>
-						<label style="display: block; font-size: 12px; color: #64748b; margin-bottom: 4px;">Дата утверждения</label>
-						<input type="date" id="approvalDateInput" class="search-input-premium" style="width: 100%;">
-					</div>
-				</div>
-				<div style="margin-top: 12px; text-align: right;">
-					<button id="updateSchoolInfoBtn" class="btn btn-primary" style="padding: 6px 16px;">
-						<i class="fas fa-save"></i> Сохранить информацию
-					</button>
-				</div>
-			</div>
-		</div>
-
+        <div class="card">
+            <div class="card-title">
+                <i class="fas fa-cloud-upload-alt"></i>
+                <span>1. Загрузите файл меню</span>
+            </div>
+            <div class="file-zone" id="dropZone">
+                <i class="fas fa-file-excel fa-4x" style="color:#10b981; margin-bottom: 16px;"></i>
+                <h3 style="margin-bottom: 8px;">Перетащите файл <span style="color:#059669;">tm2026-sm.xlsx</span></h3>
+                <p style="color: #64748b;">или кликните для выбора</p>
+                <input type="file" id="fileInput" accept=".xlsx,.xls" style="display:none">
+            </div>
+        </div>
 
 		<div class="card premium-card">
 			<div class="card-header-premium">
@@ -2265,10 +2233,6 @@
 				<button id="printViewBtn" class="action-btn secondary">
 					<i class="fas fa-print"></i>
 					<span>Печать</span>
-				</button>
-				<button id="createStandardMenuBtn" class="action-btn" style="background: linear-gradient(135deg, #10b981, #059669); color: white; font-weight: 700; box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);">
-					<i class="fas fa-magic" style="color: #fbbf24;"></i>
-					<span>✨ Создать типовое меню</span>
 				</button>
 				<div class="action-divider"></div>
 				<button id="saveChangesBtn" class="action-btn primary">
@@ -2497,56 +2461,34 @@
             showStatus('✅ Разделы объединены', 'success');
         }
 
-		function addNewWeek() {
-			if (!currentTemplateData) {
-				showStatus('Сначала загрузите файл', 'error');
-				return;
-			}
+        function addNewWeek() {
+            if (!currentTemplateData) {
+                showStatus('Сначала загрузите файл', 'error');
+                return;
+            }
 
-			const weeks = Object.keys(currentTemplateData.weeks).map(Number);
-			const newWeekNum = weeks.length > 0 ? Math.max(...weeks) + 1 : 1;
+            const weeks = Object.keys(currentTemplateData.weeks).map(Number);
+            const newWeekNum = weeks.length > 0 ? Math.max(...weeks) + 1 : 1;
 
-			currentTemplateData.weeks[newWeekNum] = {};
+            currentTemplateData.weeks[newWeekNum] = {};
 
-			// Шаблоны для завтрака и обеда (с пустыми названиями)
-			const breakfastTemplate = {
-				items: [
-					{ section: 'гор.блюдо', name: '', weight: 200, calories: 220, proteins: 5, fats: 6, carbs: 35, recipeId: '', price: 0 },
-					{ section: 'гор.напиток', name: '', weight: 200, calories: 120, proteins: 4, fats: 4, carbs: 16, recipeId: '', price: 0 },
-					{ section: 'хлеб', name: '', weight: 30, calories: 80, proteins: 2, fats: 1, carbs: 16, recipeId: '', price: 0 },
-					{ section: 'фрукты', name: '', weight: 100, calories: 52, proteins: 0.3, fats: 0.2, carbs: 14, recipeId: '', price: 0 }
-				]
-			};
+            for (let day = 1; day <= 5; day++) {
+                currentTemplateData.weeks[newWeekNum][day] = {
+                    breakfast: { items: [] },
+                    breakfast2: { items: [] },
+                    lunch: { items: [] },
+                    afternoonSnack: { items: [] },
+                    dinner: { items: [] },
+                    dinner2: { items: [] }
+                };
+            }
 
-			const lunchTemplate = {
-				items: [
-					{ section: 'закуска', name: '', weight: 0, calories: 0, proteins: 1.5, fats: 2, carbs: 5, recipeId: '', price: 0 },
-					{ section: '1 блюдо', name: '', weight: 0, calories: 0, proteins: 12, fats: 8, carbs: 15, recipeId: '', price: 0 },
-					{ section: '2 блюдо', name: '', weight: 0, calories: 0, proteins: 18, fats: 12, carbs: 5, recipeId: '', price: 0 },
-					{ section: 'гарнир', name: '', weight: 0, calories: 0, proteins: 4, fats: 1, carbs: 38, recipeId: '', price: 0 },
-					{ section: 'напиток', name: '', weight: 0, calories: 0, proteins: 0.5, fats: 0, carbs: 22, recipeId: '', price: 0 },
-					{ section: 'хлеб бел.', name: '', weight: 0, calories: 0, proteins: 2, fats: 1, carbs: 16, recipeId: '', price: 0 },
-					{ section: 'хлеб черн.', name: '', weight: 0, calories: 0, proteins: 2, fats: 1, carbs: 16, recipeId: '', price: 0 }
-				]
-			};
+            flatItems = buildFlatFromTemplate(currentTemplateData);
+            saveToHistory();
+            renderEditor();
 
-			for (let day = 1; day <= 5; day++) {
-				currentTemplateData.weeks[newWeekNum][day] = {
-					breakfast: JSON.parse(JSON.stringify(breakfastTemplate)),
-					breakfast2: { items: [] },
-					lunch: JSON.parse(JSON.stringify(lunchTemplate)),
-					afternoonSnack: { items: [] },
-					dinner: { items: [] },
-					dinner2: { items: [] }
-				};
-			}
-
-			flatItems = buildFlatFromTemplate(currentTemplateData);
-			saveToHistory();
-			renderEditor();
-
-			showStatus(`✨ Добавлена неделя ${newWeekNum} (5 дней) с шаблонными разделами завтрака и обеда`, 'success');
-		}
+            showStatus(`✨ Добавлена неделя ${newWeekNum} (5 дней)`, 'success');
+        }
 
         function refreshTable() {
             if (!currentTemplateData) return;
@@ -3170,26 +3112,8 @@
 				else totalWarnings++;
 			}
 
-			// Правильный порядок приёмов пищи
-			const mealOrder = {
-				'breakfast': 1,
-				'breakfast2': 2,
-				'lunch': 3,
-				'afternoonSnack': 4,
-				'dinner': 5,
-				'dinner2': 6
-			};
-
 			const sortedKeys = Object.keys(grouped).sort((a, b) => {
-				const [weekA, dayA, mealA] = a.split('_');
-				const [weekB, dayB, mealB] = b.split('_');
-				
-				// Сначала сортируем по неделе
-				if (weekA !== weekB) return parseInt(weekA) - parseInt(weekB);
-				// Затем по дню
-				if (dayA !== dayB) return parseInt(dayA) - parseInt(dayB);
-				// Затем по порядку приёма пищи
-				return (mealOrder[mealA] || 99) - (mealOrder[mealB] || 99);
+				return a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' });
 			});
 
 			// ОБЪЯВЛЯЕМ ПЕРЕМЕННУЮ html
@@ -4311,7 +4235,7 @@
 			worksheet.getCell('C1').value = schoolInfo.name || 'МОУ "Сказочная СОШ"';
 			worksheet.getCell('F1').value = 'Утвердил:';
 			worksheet.getCell('G1').value = 'должность';
-			worksheet.getCell('H1').value = schoolInfo.approval.position || 'Директор';	
+			worksheet.getCell('H1').value = schoolInfo.approval.position || 'Директор';
 
 			worksheet.mergeCells('C1:E1');
 			worksheet.mergeCells('H1:K1');
@@ -4335,19 +4259,6 @@
 			worksheet.getCell('H4').value = 'день';
 			worksheet.getCell('I4').value = 'месяц';
 			worksheet.getCell('J4').value = 'год';
-			
-			worksheet.getCell('C1').border = borderStyle;
-
-			worksheet.getCell('H1').border = borderStyle;
-
-			worksheet.getCell('H2').border = borderStyle;
-
-			worksheet.getCell('H3').border = borderStyle;
-
-			worksheet.getCell('I3').border = borderStyle;
-
-			worksheet.getCell('J3').border = borderStyle;			
-
 
 			// ===== ЗАГОЛОВКИ ТАБЛИЦЫ (строка 5) =====
 			const headers = ['Неделя', 'День недели', 'Прием пищи', 'Раздел меню', 'Блюда',
@@ -4798,18 +4709,6 @@
 				return val;
 			}
 			
-			// Функция для извлечения числа из ячейки (работает с числами и строками)
-			function extractNumber(value, defaultValue = null) {
-				if (value === null || value === undefined || value === "") return defaultValue;
-				if (typeof value === 'number') return value;
-				if (typeof value === 'string') {
-					// Убираем лишние пробелы и пытаемся распарсить
-					const num = parseInt(value.trim());
-					if (!isNaN(num)) return num;
-				}
-				return defaultValue;
-			}			
-			
 			// Функция для извлечения числа из ячейки (без преобразования в дату)
 			function getNumberValue(row, colIndex, defaultValue = "") {
 				const val = getCellValue(row, colIndex, defaultValue);
@@ -4842,29 +4741,36 @@
 				approvalName = data[1][7].toString().trim();
 			}
 			
-			// Пытаемся прочитать дату из строки 4 (индекс 3), так как H4, I4, J4 - это подписи "день", "месяц", "год"
-			// А значения находятся в H3, I3, J3 (индекс 2)
-			if (data[2]) {  // Строка 3 (индекс 2) - H3, I3, J3
-				const dayValue = getCellValue(data[2], 7, null);
-				const monthValue = getCellValue(data[2], 8, null);
-				const yearValue = getCellValue(data[2], 9, null);
+			// ===== ЧТЕНИЕ ДАТЫ =====
+			// Ячейки с датой: H4 (день), I4 (месяц), J4 (год) - индексы 7, 8, 9
+			if (data[3]) {
+				// День (H4)
+				const dayValue = getNumberValue(data[3], 7, null);
+				if (dayValue !== null && dayValue !== "") {
+					approvalDay = dayValue.toString();
+				}
 				
-				const dayNum = extractNumber(dayValue, null);
-				const monthNum = extractNumber(monthValue, null);
-				const yearNum = extractNumber(yearValue, null);
+				// Месяц (I4)
+				const monthValue = getNumberValue(data[3], 8, null);
+				if (monthValue !== null && monthValue !== "") {
+					approvalMonth = monthValue.toString();
+				}
 				
-				if (dayNum !== null && dayNum >= 1 && dayNum <= 31) approvalDay = dayNum.toString();
-				if (monthNum !== null && monthNum >= 1 && monthNum <= 12) approvalMonth = monthNum.toString();
-				if (yearNum !== null && yearNum >= 2000 && yearNum <= 2100) approvalYear = yearNum.toString();
+				// Год (J4)
+				const yearValue = getNumberValue(data[3], 9, null);
+				if (yearValue !== null && yearValue !== "") {
+					approvalYear = yearValue.toString();
+				}
 			}
-
-			// Форматируем день и месяц с ведущим нулём
-			const finalDay = approvalDay.padStart(2, '0');
-			const finalMonth = approvalMonth.padStart(2, '0');
+			
+			// Форматируем день и месяц с ведущим нулём (если число меньше 10)
+			const dayNum = parseInt(approvalDay);
+			const monthNum = parseInt(approvalMonth);
+			const finalDay = !isNaN(dayNum) ? dayNum.toString().padStart(2, '0') : "12";
+			const finalMonth = !isNaN(monthNum) ? monthNum.toString().padStart(2, '0') : "01";
 			const finalYear = approvalYear;
+			
 			const approvalDate = `${finalDay}.${finalMonth}.${finalYear}`;
-
-			console.log("Прочитана дата утверждения:", {day: approvalDay, month: approvalMonth, year: approvalYear, formatted: approvalDate});
 			
 			const schoolInfo = {
 				name: schoolName || "МОУ \"Сказочная СОШ\"",
@@ -4985,7 +4891,7 @@
 			
 			return { template, schoolInfo };
 		}
-
+		
 		function loadTemplateFromFile(file) {
 			const reader = new FileReader();
 			reader.onload = function(e) {
@@ -5000,10 +4906,6 @@
 						
 						// Сохраняем информацию о школе
 						schoolInfo = result.schoolInfo;
-						updateSchoolInfoUI(); // ✅ ОБНОВЛЯЕМ UI
-						
-						// Сохраняем в localStorage
-						localStorage.setItem('schoolInfo', JSON.stringify(schoolInfo));
 						
 						historyStack = [JSON.parse(JSON.stringify(result.template))];
 						historyIndex = 0;
@@ -6926,421 +6828,6 @@
 			}
 		}
 
-		// ========== СОЗДАНИЕ ТИПОВОГО МЕНЮ ==========
-
-		function createStandardMenu() {
-			// Создаём модальное окно выбора количества дней и приёмов пищи
-			const modal = document.createElement('div');
-			modal.style.cssText = `
-				position: fixed;
-				top: 0;
-				left: 0;
-				width: 100%;
-				height: 100%;
-				background: rgba(0, 0, 0, 0.7);
-				backdrop-filter: blur(8px);
-				z-index: 20000;
-				display: flex;
-				justify-content: center;
-				align-items: center;
-			`;
-			
-			modal.innerHTML = `
-				<div style="background: white; border-radius: 32px; padding: 32px; max-width: 600px; width: 90%; animation: slideUp 0.3s ease; max-height: 85vh; overflow-y: auto;">
-					<div style="display: flex; align-items: center; gap: 12px; margin-bottom: 24px;">
-						<i class="fas fa-calendar-alt" style="font-size: 32px; color: #8b5cf6;"></i>
-						<h2 style="color: #0f172a;">Создание типового меню</h2>
-					</div>
-					
-					<!-- Выбор количества дней -->
-					<div style="margin-bottom: 24px;">
-						<label style="display: block; margin-bottom: 12px; font-weight: 600;">
-							<i class="fas fa-chart-line"></i> Количество дней:
-						</label>
-						<div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px;">
-							<button data-days="10" class="menu-days-btn" style="padding: 12px; border: 2px solid #e2e8f0; border-radius: 16px; background: white; cursor: pointer; transition: all 0.2s;">
-								<div style="font-size: 24px; font-weight: bold;">10</div>
-								<div style="font-size: 11px; color: #64748b;">2 нед. × 5 дн.</div>
-							</button>
-							<button data-days="12" class="menu-days-btn" style="padding: 12px; border: 2px solid #e2e8f0; border-radius: 16px; background: white; cursor: pointer; transition: all 0.2s;">
-								<div style="font-size: 24px; font-weight: bold;">12</div>
-								<div style="font-size: 11px; color: #64748b;">2 нед. × 6 дн.</div>
-							</button>
-							<button data-days="14" class="menu-days-btn" style="padding: 12px; border: 2px solid #e2e8f0; border-radius: 16px; background: white; cursor: pointer; transition: all 0.2s;">
-								<div style="font-size: 24px; font-weight: bold;">14</div>
-								<div style="font-size: 11px; color: #64748b;">2 нед. × 7 дн.</div>
-							</button>
-							<button data-days="15" class="menu-days-btn" style="padding: 12px; border: 2px solid #e2e8f0; border-radius: 16px; background: white; cursor: pointer; transition: all 0.2s;">
-								<div style="font-size: 24px; font-weight: bold;">15</div>
-								<div style="font-size: 11px; color: #64748b;">3 нед. × 5 дн.</div>
-							</button>
-							<button data-days="20" class="menu-days-btn" style="padding: 12px; border: 2px solid #e2e8f0; border-radius: 16px; background: white; cursor: pointer; transition: all 0.2s;">
-								<div style="font-size: 24px; font-weight: bold;">20</div>
-								<div style="font-size: 11px; color: #64748b;">4 нед. × 5 дн.</div>
-							</button>
-						</div>
-					</div>
-					
-					<!-- Выбор дополнительных приёмов пищи -->
-					<div style="margin-bottom: 24px;">
-						<label style="display: block; margin-bottom: 12px; font-weight: 600;">
-							<i class="fas fa-utensils"></i> Дополнительные приёмы пищи:
-						</label>
-						<div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;">
-							<label style="display: flex; align-items: center; gap: 10px; padding: 8px 12px; background: #f8fafc; border-radius: 12px; cursor: pointer;">
-								<input type="checkbox" value="breakfast2" class="meal-checkbox" data-meal="breakfast2">
-								<span><i class="fas fa-apple-alt"></i> 🍎 Второй завтрак</span>
-							</label>
-							<label style="display: flex; align-items: center; gap: 10px; padding: 8px 12px; background: #f8fafc; border-radius: 12px; cursor: pointer;">
-								<input type="checkbox" value="afternoonSnack" class="meal-checkbox" data-meal="afternoonSnack">
-								<span><i class="fas fa-cookie-bite"></i> 🍪 Полдник</span>
-							</label>
-							<label style="display: flex; align-items: center; gap: 10px; padding: 8px 12px; background: #f8fafc; border-radius: 12px; cursor: pointer;">
-								<input type="checkbox" value="dinner" class="meal-checkbox" data-meal="dinner" checked>
-								<span><i class="fas fa-moon"></i> 🌙 Ужин</span>
-							</label>
-							<label style="display: flex; align-items: center; gap: 10px; padding: 8px 12px; background: #f8fafc; border-radius: 12px; cursor: pointer;">
-								<input type="checkbox" value="dinner2" class="meal-checkbox" data-meal="dinner2">
-								<span><i class="fas fa-bed"></i> 🥛 Второй ужин</span>
-							</label>
-						</div>
-						<p style="font-size: 11px; color: #64748b; margin-top: 8px; margin-left: 4px;">
-							<i class="fas fa-info-circle"></i> Завтрак и обед добавляются всегда (основные приёмы)
-						</p>
-					</div>
-					
-					<!-- Информация о шаблоне -->
-					<div style="background: #f3e8ff; padding: 12px 16px; border-radius: 16px; margin-bottom: 24px;">
-						<div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
-							<i class="fas fa-magic" style="color: #7c3aed;"></i>
-							<strong style="color: #5b21b6;">Что будет создано:</strong>
-						</div>
-						<ul style="margin-left: 20px; color: #4c1d95; font-size: 12px; line-height: 1.6;">
-							<li>✅ <strong>Завтрак</strong> — 4 позиции (гор.блюдо, напиток, хлеб, фрукты)</li>
-							<li>✅ <strong>Обед</strong> — 6 позиции (закуска, 1 блюдо, 2 блюдо, гарнир, напиток, хлеб)</li>
-							<li id="previewBreakfast2" style="color: #9ca3af;">⬜ Второй завтрак — 2 позиции (фрукты, напиток)</li>
-							<li id="previewAfternoonSnack" style="color: #9ca3af;">⬜ Полдник — 2 позиции (булочное, напиток)</li>
-							<li id="previewDinner" style="color: #10b981;">✅ Ужин — 4 позиции (гор.блюдо, гарнир, напиток, хлеб)</li>
-							<li id="previewDinner2" style="color: #9ca3af;">⬜ Второй ужин — 2 позиции (кисломол., булочное)</li>
-						</ul>
-					</div>
-					
-					<div class="modal-buttons" style="display: flex; gap: 12px; justify-content: flex-end;">
-						<button id="cancelMenuCreate" class="btn btn-secondary">Отмена</button>
-						<button id="confirmMenuCreate" class="btn btn-primary" style="background: linear-gradient(135deg, #8b5cf6, #7c3aed);">
-							<i class="fas fa-check"></i> Создать меню
-						</button>
-					</div>
-				</div>
-			`;
-			
-			document.body.appendChild(modal);
-			
-			// Стили для кнопок
-			const style = document.createElement('style');
-			style.textContent = `
-				.menu-days-btn:hover {
-					border-color: #8b5cf6 !important;
-					background: #f3e8ff !important;
-					transform: translateY(-2px);
-				}
-				.menu-days-btn.selected {
-					border-color: #8b5cf6 !important;
-					background: #ede9fe !important;
-					box-shadow: 0 4px 12px rgba(139, 92, 246, 0.2);
-				}
-			`;
-			modal.appendChild(style);
-			
-			let selectedDays = 10; // По умолчанию 10 дней
-			
-			// Получаем элементы предпросмотра
-			const previewElements = {
-				breakfast2: document.getElementById('previewBreakfast2'),
-				afternoonSnack: document.getElementById('previewAfternoonSnack'),
-				dinner: document.getElementById('previewDinner'),
-				dinner2: document.getElementById('previewDinner2')
-			};
-			
-			// Функция обновления предпросмотра (правильно находит чекбоксы)
-			function updatePreview() {
-				// Находим чекбоксы внутри модального окна
-				const breakfast2Checkbox = modal.querySelector('.meal-checkbox[data-meal="breakfast2"]');
-				const afternoonSnackCheckbox = modal.querySelector('.meal-checkbox[data-meal="afternoonSnack"]');
-				const dinnerCheckbox = modal.querySelector('.meal-checkbox[data-meal="dinner"]');
-				const dinner2Checkbox = modal.querySelector('.meal-checkbox[data-meal="dinner2"]');
-				
-				// Обновляем предпросмотр для второго завтрака
-				if (previewElements.breakfast2) {
-					const isChecked = breakfast2Checkbox ? breakfast2Checkbox.checked : false;
-					previewElements.breakfast2.style.color = isChecked ? '#10b981' : '#9ca3af';
-					previewElements.breakfast2.innerHTML = isChecked 
-						? '✅ Второй завтрак — 2 позиции (фрукты, напиток)' 
-						: '⬜ Второй завтрак — 2 позиции (фрукты, напиток)';
-				}
-				
-				// Обновляем предпросмотр для полдника
-				if (previewElements.afternoonSnack) {
-					const isChecked = afternoonSnackCheckbox ? afternoonSnackCheckbox.checked : false;
-					previewElements.afternoonSnack.style.color = isChecked ? '#10b981' : '#9ca3af';
-					previewElements.afternoonSnack.innerHTML = isChecked 
-						? '✅ Полдник — 2 позиции (булочное, напиток)' 
-						: '⬜ Полдник — 2 позиции (булочное, напиток)';
-				}
-				
-				// Обновляем предпросмотр для ужина
-				if (previewElements.dinner) {
-					const isChecked = dinnerCheckbox ? dinnerCheckbox.checked : false;
-					previewElements.dinner.style.color = isChecked ? '#10b981' : '#9ca3af';
-					previewElements.dinner.innerHTML = isChecked 
-						? '✅ Ужин — 4 позиции (гор.блюдо, гарнир, напиток, хлеб)' 
-						: '⬜ Ужин — 4 позиции (гор.блюдо, гарнир, напиток, хлеб)';
-				}
-				
-				// Обновляем предпросмотр для второго ужина
-				if (previewElements.dinner2) {
-					const isChecked = dinner2Checkbox ? dinner2Checkbox.checked : false;
-					previewElements.dinner2.style.color = isChecked ? '#10b981' : '#9ca3af';
-					previewElements.dinner2.innerHTML = isChecked 
-						? '✅ Второй ужин — 2 позиции (кисломол., булочное)' 
-						: '⬜ Второй ужин — 2 позиции (кисломол., булочное)';
-				}
-			}
-			
-			// Обработчики выбора дней
-			modal.querySelectorAll('.menu-days-btn').forEach(btn => {
-				btn.addEventListener('click', () => {
-					modal.querySelectorAll('.menu-days-btn').forEach(b => b.classList.remove('selected'));
-					btn.classList.add('selected');
-					selectedDays = parseInt(btn.dataset.days);
-				});
-				// Выбираем 10 дней по умолчанию
-				if (btn.dataset.days === '10') btn.classList.add('selected');
-			});
-			
-			// Обработчики чекбоксов для обновления предпросмотра
-			modal.querySelectorAll('.meal-checkbox').forEach(cb => {
-				cb.addEventListener('change', updatePreview);
-			});
-			
-			// Отмена
-			modal.querySelector('#cancelMenuCreate').addEventListener('click', () => modal.remove());
-			
-			// Подтверждение
-			modal.querySelector('#confirmMenuCreate').addEventListener('click', () => {
-				if (!selectedDays) {
-					showStatus('Пожалуйста, выберите количество дней', 'error');
-					return;
-				}
-				
-				// Собираем выбранные приёмы пищи
-				const selectedMeals = Array.from(modal.querySelectorAll('.meal-checkbox:checked')).map(cb => cb.value);
-				// Всегда добавляем завтрак и обед (если их нет в списке)
-				if (!selectedMeals.includes('breakfast')) selectedMeals.push('breakfast');
-				if (!selectedMeals.includes('lunch')) selectedMeals.push('lunch');
-				
-				createMenuStructure(selectedDays, true, selectedMeals);
-				modal.remove();
-			});
-			
-			// Закрытие по клику на фон
-			modal.addEventListener('click', (e) => {
-				if (e.target === modal) modal.remove();
-			});
-			
-			// Инициализация предпросмотра (вызываем сразу)
-			setTimeout(updatePreview, 100);
-		}
-
-		function createMenuStructure(totalDays, includeDinner, selectedMeals) {
-			// Определяем структуру недель
-			let weeksCount = 0;
-			let daysPerWeek = 5;
-			
-			if (totalDays === 10) { weeksCount = 2; daysPerWeek = 5; }
-			else if (totalDays === 12) { weeksCount = 2; daysPerWeek = 6; }
-			else if (totalDays === 14) { weeksCount = 2; daysPerWeek = 7; }
-			else if (totalDays === 15) { weeksCount = 3; daysPerWeek = 5; }
-			else if (totalDays === 20) { weeksCount = 4; daysPerWeek = 5; }
-			else { weeksCount = Math.ceil(totalDays / 5); daysPerWeek = 5; }
-			
-			// Шаблоны для ВСЕХ приёмов пищи с ПУСТЫМИ названиями, но заполненными разделами и весами
-			const templates = {
-				breakfast: {
-					items: [
-						{ section: 'гор.блюдо', name: '', weight: 0, calories: 0, proteins: 0, fats: 0, carbs: 0, recipeId: '', price: 0 },
-						{ section: 'гор.напиток', name: '', weight: 0, calories: 0, proteins: 0, fats: 0, carbs: 0, recipeId: '', price: 0 },
-						{ section: 'хлеб', name: '', weight: 0, calories: 0, proteins: 0, fats: 0, carbs: 0, recipeId: '', price: 0 },
-						{ section: 'фрукты', name: '', weight: 0, calories: 0, proteins: 0, fats: 0, carbs: 0, recipeId: '', price: 0 }
-					]
-				},
-				breakfast2: {
-					items: [
-						{ section: 'фрукты', name: '', weight: 0, calories: 0, proteins: 0, fats: 0, carbs: 0, recipeId: '', price: 0 },
-						{ section: 'напиток', name: '', weight: 0, calories: 0, proteins: 0, fats: 0, carbs: 0, recipeId: '', price: 0 }
-					]
-				},
-				lunch: {
-					items: [
-						{ section: 'закуска', name: '', weight: 0, calories: 0, proteins: 0, fats: 0, carbs: 0, recipeId: '', price: 0 },
-						{ section: '1 блюдо', name: '', weight: 0, calories: 0, proteins: 0, fats: 0, carbs: 0, recipeId: '', price: 0 },
-						{ section: '2 блюдо', name: '', weight: 0, calories: 0, proteins: 0, fats: 0, carbs: 0, recipeId: '', price: 0 },
-						{ section: 'гарнир', name: '', weight: 0, calories: 0, proteins: 0, fats: 0, carbs: 0, recipeId: '', price: 0 },
-						{ section: 'напиток', name: '', weight: 0, calories: 0, proteins: 0, fats: 0, carbs: 0, recipeId: '', price: 0 },
-						{ section: 'хлеб бел.', name: '', weight: 0, calories: 0, proteins: 0, fats: 0, carbs: 0, recipeId: '', price: 0 }
-					]
-				},
-				afternoonSnack: {
-					items: [
-						{ section: 'булочное', name: '', weight: 0, calories: 0, proteins: 0, fats: 0, carbs: 0, recipeId: '', price: 0 },
-						{ section: 'напиток', name: '', weight: 0, calories: 0, proteins: 0, fats: 0, carbs: 0, recipeId: '', price: 0 }
-					]
-				},
-				dinner: {
-					items: [
-						{ section: 'гор.блюдо', name: '', weight: 0, calories: 0, proteins: 0, fats: 0, carbs: 0, recipeId: '', price: 0 },
-						{ section: 'гарнир', name: '', weight: 0, calories: 0, proteins: 0, fats: 0, carbs: 0, recipeId: '', price: 0 },
-						{ section: 'напиток', name: '', weight: 0, calories: 0, proteins: 0, fats: 0, carbs: 0, recipeId: '', price: 0 },
-						{ section: 'хлеб', name: '', weight: 0, calories: 0, proteins: 0, fats: 0, carbs: 0, recipeId: '', price: 0 }
-					]
-				},
-				dinner2: {
-					items: [
-						{ section: 'кисломол.', name: '', weight: 0, calories: 0, proteins: 0, fats: 0, carbs: 0, recipeId: '', price: 0 },
-						{ section: 'булочное', name: '', weight: 0, calories: 0, proteins: 0, fats: 0, carbs: 0, recipeId: '', price: 0 }
-					]
-				}
-			};
-			
-			// Создаём новую структуру
-			const newTemplate = { weeks: {} };
-			
-			for (let week = 1; week <= weeksCount; week++) {
-				newTemplate.weeks[week] = {};
-				
-				for (let day = 1; day <= daysPerWeek; day++) {
-					// Базовые приёмы пищи (всегда включены)
-					newTemplate.weeks[week][day] = {
-						breakfast: JSON.parse(JSON.stringify(templates.breakfast)),
-						breakfast2: selectedMeals.includes('breakfast2') ? JSON.parse(JSON.stringify(templates.breakfast2)) : { items: [] },
-						lunch: JSON.parse(JSON.stringify(templates.lunch)),
-						afternoonSnack: selectedMeals.includes('afternoonSnack') ? JSON.parse(JSON.stringify(templates.afternoonSnack)) : { items: [] },
-						dinner: selectedMeals.includes('dinner') ? JSON.parse(JSON.stringify(templates.dinner)) : { items: [] },
-						dinner2: selectedMeals.includes('dinner2') ? JSON.parse(JSON.stringify(templates.dinner2)) : { items: [] }
-					};
-				}
-			}
-			
-			// Применяем новую структуру
-			currentTemplateData = newTemplate;
-			originalTemplateData = JSON.parse(JSON.stringify(newTemplate));
-			
-			historyStack = [JSON.parse(JSON.stringify(newTemplate))];
-			historyIndex = 0;
-			flatItems = buildFlatFromTemplate(currentTemplateData);
-			renderEditor();
-			
-			// Формируем текст о включённых приёмах пищи
-			const mealNames = {
-				breakfast2: '2-й завтрак',
-				afternoonSnack: 'полдник',
-				dinner: 'ужин',
-				dinner2: '2-й ужин'
-			};
-			const enabledMeals = selectedMeals.filter(m => m !== 'breakfast' && m !== 'lunch').map(m => mealNames[m]);
-			const mealsText = enabledMeals.length > 0 ? ` + ${enabledMeals.join(', ')}` : '';
-			
-			showStatus(`✨ Создано типовое меню: ${totalDays} дней (${weeksCount} нед. × ${daysPerWeek} дн.)${mealsText}`, 'success');
-		}
-
-		// ========== УПРАВЛЕНИЕ ИНФОРМАЦИЕЙ О ШКОЛЕ ==========
-
-		function updateSchoolInfoUI() {
-			// Заполняем поля формы из глобальной переменной schoolInfo
-			const schoolNameInput = document.getElementById('schoolNameInput');
-			const positionInput = document.getElementById('approvalPositionInput');
-			const nameInput = document.getElementById('approvalNameInput');
-			const dateInput = document.getElementById('approvalDateInput');
-			
-			if (schoolNameInput) schoolNameInput.value = schoolInfo.name || '';
-			if (positionInput) positionInput.value = schoolInfo.approval?.position || 'Директор';
-			if (nameInput) nameInput.value = schoolInfo.approval?.name || '';
-			
-			if (dateInput && schoolInfo.approval?.date) {
-				// Конвертируем дату из формата DD.MM.YYYY в YYYY-MM-DD для input type="date"
-				const dateParts = schoolInfo.approval.date.split('.');
-				if (dateParts.length === 3) {
-					const formattedDate = `${dateParts[2]}-${dateParts[1].padStart(2, '0')}-${dateParts[0].padStart(2, '0')}`;
-					dateInput.value = formattedDate;
-				}
-			}
-		}
-
-		function saveSchoolInfo() {
-			const schoolNameInput = document.getElementById('schoolNameInput');
-			const positionInput = document.getElementById('approvalPositionInput');
-			const nameInput = document.getElementById('approvalNameInput');
-			const dateInput = document.getElementById('approvalDateInput');
-			
-			// Получаем значения из формы
-			const newSchoolName = schoolNameInput?.value || '';
-			const newPosition = positionInput?.value || 'Директор';
-			const newName = nameInput?.value || '';
-			
-			// Конвертируем дату из YYYY-MM-DD в DD.MM.YYYY
-			let newDate = '12.01.2026';
-			if (dateInput?.value) {
-				const dateParts = dateInput.value.split('-');
-				if (dateParts.length === 3) {
-					newDate = `${dateParts[2]}.${dateParts[1]}.${dateParts[0]}`;
-				}
-			}
-			
-			// Обновляем глобальную переменную
-			schoolInfo = {
-				name: newSchoolName,
-				ageCategory: schoolInfo.ageCategory || "7-11 лет",
-				approval: {
-					position: newPosition,
-					name: newName,
-					date: newDate
-				}
-			};
-			
-			// Сохраняем в localStorage для сохранения между сессиями
-			localStorage.setItem('schoolInfo', JSON.stringify(schoolInfo));
-			
-			showStatus('✅ Информация об организации сохранена', 'success');
-			
-			// Если есть загруженные данные, обновляем экспорт
-			if (currentTemplateData) {
-				renderEditor(); // Перерендериваем для обновления отображения
-			}
-		}
-
-		function loadSchoolInfoFromStorage() {
-			const saved = localStorage.getItem('schoolInfo');
-			if (saved) {
-				try {
-					const savedInfo = JSON.parse(saved);
-					schoolInfo = {
-						name: savedInfo.name || "",
-						ageCategory: savedInfo.ageCategory || "7-11 лет",
-						approval: {
-							position: savedInfo.approval?.position || "Директор",
-							name: savedInfo.approval?.name || "",
-							date: savedInfo.approval?.date || "12.01.2026"
-						}
-					};
-				} catch(e) {}
-			}
-			updateSchoolInfoUI();
-		}
-
-
-
-
-
 
 
         // Инициализация событий
@@ -7478,57 +6965,6 @@
 		setTimeout(() => {
 			updateHeaderStats();
 		}, 500);
-		
-		// Кнопка создания типового меню
-		const createMenuBtn = document.getElementById('createStandardMenuBtn');
-		if (createMenuBtn) {
-			createMenuBtn.addEventListener('click', createStandardMenu);
-		}
-		
-		// Инициализация управления информацией о школе
-		loadSchoolInfoFromStorage();
-
-		// Обработчик кнопки сохранения информации о школе
-		const updateSchoolBtn = document.getElementById('updateSchoolInfoBtn');
-		if (updateSchoolBtn) {
-			updateSchoolBtn.addEventListener('click', saveSchoolInfo);
-		}
-
-		// При изменении полей вручную обновляем глобальную переменную (опционально)
-		const schoolNameInput = document.getElementById('schoolNameInput');
-		if (schoolNameInput) {
-			schoolNameInput.addEventListener('change', () => {
-				schoolInfo.name = schoolNameInput.value;
-				localStorage.setItem('schoolInfo', JSON.stringify(schoolInfo));
-			});
-		}
-
-		const positionInput = document.getElementById('approvalPositionInput');
-		if (positionInput) {
-			positionInput.addEventListener('change', () => {
-				schoolInfo.approval.position = positionInput.value;
-				localStorage.setItem('schoolInfo', JSON.stringify(schoolInfo));
-			});
-		}
-
-		const nameInput = document.getElementById('approvalNameInput');
-		if (nameInput) {
-			nameInput.addEventListener('change', () => {
-				schoolInfo.approval.name = nameInput.value;
-				localStorage.setItem('schoolInfo', JSON.stringify(schoolInfo));
-			});
-		}
-
-		const dateInput = document.getElementById('approvalDateInput');
-		if (dateInput) {
-			dateInput.addEventListener('change', () => {
-				const dateParts = dateInput.value.split('-');
-				if (dateParts.length === 3) {
-					schoolInfo.approval.date = `${dateParts[2]}.${dateParts[1]}.${dateParts[0]}`;
-					localStorage.setItem('schoolInfo', JSON.stringify(schoolInfo));
-				}
-			});
-		}		
 		
     </script>
 </body>
