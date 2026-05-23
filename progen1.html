@@ -1,0 +1,3278 @@
+<!DOCTYPE html>
+<html lang="ru">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Генератор ежедневных меню школьного питания PRO</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Preconnect для улучшения загрузки -->
+    <link rel="preconnect" href="https://unpkg.com" crossorigin>
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+    
+    <!-- XLSX с fallback -->
+    <script src="https://unpkg.com/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script>
+        if (typeof XLSX === 'undefined') {
+            console.log('Загрузка XLSX из альтернативного источника...');
+            document.write('<script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"><\/script>');
+        }
+    </script>
+    
+    <!-- Другие библиотеки -->
+    <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+	<style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --accent-color: #e74c3c;
+            --success-color: #27ae60;
+            --warning-color: #f39c12;
+            --info-color: #17a2b8;
+            --light-color: #ecf0f1;
+            --dark-color: #2c3e50;
+            --border-radius: 10px;
+            --box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            --transition: all 0.3s ease;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #f5f7fa 0%, #e4e8f0 100%);
+            color: #333;
+            line-height: 1.6;
+            padding: 20px;
+            max-width: 1800px;
+            margin: 0 auto;
+            min-height: 100vh;
+        }
+        
+        header {
+            background: linear-gradient(135deg, var(--primary-color), #1a2530);
+            color: white;
+            padding: 30px;
+            border-radius: var(--border-radius);
+            margin-bottom: 30px;
+            box-shadow: var(--box-shadow);
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, transparent 30%, rgba(255,255,255,0.1) 50%, transparent 70%);
+            animation: shine 3s infinite linear;
+        }
+        
+        @keyframes shine {
+            0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
+            100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
+        }
+        
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 15px;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .subtitle {
+            font-size: 1.2rem;
+            opacity: 0.95;
+            max-width: 900px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .app-container {
+            display: grid;
+            grid-template-columns: 1fr 1.2fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+        
+        @media (max-width: 1200px) {
+            .app-container {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .card {
+            background-color: white;
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+            padding: 30px;
+            transition: var(--transition);
+            border: 1px solid rgba(0,0,0,0.05);
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        }
+        
+        .card-title {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 25px;
+            color: var(--primary-color);
+            border-bottom: 2px solid var(--light-color);
+            padding-bottom: 15px;
+        }
+        
+        .card-title i {
+            font-size: 1.8rem;
+            background: linear-gradient(135deg, var(--secondary-color), var(--primary-color));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .file-upload-area {
+            border: 3px dashed #bdc3c7;
+            border-radius: var(--border-radius);
+            padding: 50px 30px;
+            text-align: center;
+            margin-bottom: 25px;
+            transition: var(--transition);
+            cursor: pointer;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        }
+        
+        .file-upload-area:hover, .file-upload-area.dragover {
+            border-color: var(--secondary-color);
+            background: linear-gradient(135deg, rgba(52, 152, 219, 0.1) 0%, rgba(41, 128, 185, 0.05) 100%);
+            transform: scale(1.02);
+        }
+        
+        .file-upload-area i {
+            font-size: 4rem;
+            color: var(--secondary-color);
+            margin-bottom: 20px;
+            transition: var(--transition);
+        }
+        
+        .file-upload-area:hover i {
+            transform: scale(1.1) rotate(10deg);
+        }
+        
+        .file-input {
+            display: none;
+        }
+        
+        .file-list {
+            margin-top: 25px;
+        }
+        
+        .file-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 20px;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-radius: var(--border-radius);
+            margin-bottom: 12px;
+            border-left: 5px solid var(--secondary-color);
+            transition: var(--transition);
+        }
+        
+        .file-item:hover {
+            transform: translateX(5px);
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+        }
+        
+        .file-item.success {
+            border-left-color: var(--success-color);
+        }
+        
+        .file-item.error {
+            border-left-color: var(--accent-color);
+        }
+        
+        .file-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .file-info i {
+            font-size: 1.5rem;
+            color: var(--secondary-color);
+        }
+        
+        .file-size {
+            color: #6c757d;
+            font-size: 0.9rem;
+        }
+        
+        .config-section {
+            margin-top: 30px;
+        }
+        
+        .form-group {
+            margin-bottom: 25px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 10px;
+            font-weight: 600;
+            color: var(--primary-color);
+            font-size: 1.05rem;
+        }
+        
+        input, select {
+            width: 100%;
+            padding: 14px 18px;
+            border: 2px solid #e0e6ed;
+            border-radius: var(--border-radius);
+            font-size: 1rem;
+            transition: var(--transition);
+            background: #f8f9fa;
+        }
+        
+        input:focus, select:focus {
+            outline: none;
+            border-color: var(--secondary-color);
+            background: white;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+        }
+        
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            padding: 14px 28px;
+            border: none;
+            border-radius: var(--border-radius);
+            font-size: 1.05rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background-color: rgba(255, 255, 255, 0.3);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+        
+        .btn:hover::before {
+            width: 300px;
+            height: 300px;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, var(--secondary-color), #2980b9);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #2980b9, var(--secondary-color));
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(52, 152, 219, 0.4);
+        }
+        
+        .btn-success {
+            background: linear-gradient(135deg, var(--success-color), #219653);
+            color: white;
+        }
+        
+        .btn-success:hover {
+            background: linear-gradient(135deg, #219653, var(--success-color));
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(39, 174, 96, 0.4);
+        }
+        
+        .btn-secondary {
+            background: linear-gradient(135deg, #6c757d, #5a6268);
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            background: linear-gradient(135deg, #5a6268, #6c757d);
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(108, 117, 125, 0.4);
+        }
+        
+        .btn-warning {
+            background: linear-gradient(135deg, var(--warning-color), #e67e22);
+            color: white;
+        }
+        
+        .btn-warning:hover {
+            background: linear-gradient(135deg, #e67e22, var(--warning-color));
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(243, 156, 18, 0.4);
+        }
+        
+        .btn-info {
+            background: linear-gradient(135deg, var(--info-color), #138496);
+            color: white;
+        }
+        
+        .btn-info:hover {
+            background: linear-gradient(135deg, #138496, var(--info-color));
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(23, 162, 184, 0.4);
+        }
+        
+        .btn-danger {
+            background: linear-gradient(135deg, var(--accent-color), #c0392b);
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            background: linear-gradient(135deg, #c0392b, var(--accent-color));
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(231, 76, 60, 0.4);
+        }
+        
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+        
+        .buttons-container {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin-top: 25px;
+        }
+        
+        .data-preview {
+            margin-top: 25px;
+            max-height: 500px;
+            overflow-y: auto;
+            border: 2px solid #e0e6ed;
+            border-radius: var(--border-radius);
+            padding: 20px;
+            background: white;
+        }
+        
+        .preview-title {
+            font-weight: 700;
+            margin-bottom: 15px;
+            color: var(--primary-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 1.2rem;
+        }
+        
+        .preview-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        
+        .preview-table th, .preview-table td {
+            border: 1px solid #e0e6ed;
+            padding: 8px 12px;
+            text-align: center;
+        }
+        
+        .preview-table th {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            font-weight: 600;
+            color: var(--primary-color);
+        }
+        
+        .calendar-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+            margin-top: 15px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        
+        .calendar-table th, .calendar-table td {
+            border: 1px solid #e0e6ed;
+            padding: 6px 8px;
+            text-align: center;
+            min-width: 30px;
+        }
+        
+        .calendar-table th {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            font-weight: 600;
+            color: var(--primary-color);
+        }
+        
+        .calendar-table td.has-menu {
+            background: linear-gradient(135deg, #d5f4e6 0%, #c1eed8 100%);
+            color: var(--success-color);
+            font-weight: 600;
+            border-color: #a3e4d7;
+        }
+        
+        .calendar-table td.month-header {
+            background: linear-gradient(135deg, #e8f4fc 0%, #d1e7ff 100%);
+            font-weight: 700;
+            text-align: left;
+            padding-left: 15px;
+            color: var(--primary-color);
+            border-color: #b6d4fe;
+        }
+        
+        .menu-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+            gap: 25px;
+            margin-top: 25px;
+        }
+        
+        .menu-card {
+            border: 2px solid #e0e6ed;
+            border-radius: var(--border-radius);
+            overflow: hidden;
+            background-color: white;
+            transition: var(--transition);
+            cursor: pointer;
+            position: relative;
+        }
+        
+        .menu-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 5px;
+            background: linear-gradient(90deg, var(--secondary-color), var(--success-color));
+        }
+        
+        .menu-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.15);
+            border-color: var(--secondary-color);
+        }
+        
+        .menu-card.active {
+            border-color: var(--secondary-color);
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+        }
+        
+        .menu-card-header {
+            background: linear-gradient(135deg, var(--secondary-color), #2980b9);
+            color: white;
+            padding: 20px;
+            font-weight: 600;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .menu-card-date {
+            font-size: 1.2rem;
+        }
+        
+        .menu-card-type {
+            background-color: rgba(255, 255, 255, 0.2);
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            backdrop-filter: blur(10px);
+        }
+        
+        .menu-card-content {
+            padding: 20px;
+        }
+        
+        .menu-card-meal {
+            margin-bottom: 20px;
+        }
+        
+        .meal-title {
+            font-weight: 600;
+            color: var(--primary-color);
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #f0f2f5;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 1.1rem;
+        }
+        
+        .menu-items {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 20px;
+        }
+        
+        .menu-item {
+            border: 2px solid #e0e6ed;
+            border-radius: var(--border-radius);
+            padding: 15px;
+            background: white;
+            transition: var(--transition);
+            cursor: pointer;
+        }
+        
+        .menu-item:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            border-color: var(--secondary-color);
+        }
+        
+        .item-name {
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: var(--primary-color);
+            font-size: 1.1rem;
+        }
+        
+        .item-details {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.9rem;
+            color: #6c757d;
+            margin-top: 5px;
+        }
+        
+        .status-message {
+            padding: 20px;
+            border-radius: var(--border-radius);
+            margin-bottom: 25px;
+            display: none;
+            border-left: 5px solid transparent;
+            animation: slideIn 0.5s ease;
+        }
+        
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .status-success {
+            background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+            color: #155724;
+            border-color: var(--success-color);
+            display: block;
+        }
+        
+        .status-error {
+            background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
+            color: #721c24;
+            border-color: var(--accent-color);
+            display: block;
+        }
+        
+        .status-info {
+            background: linear-gradient(135deg, #d1ecf1 0%, #bee5eb 100%);
+            color: #0c5460;
+            border-color: var(--info-color);
+            display: block;
+        }
+        
+        .status-warning {
+            background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+            color: #856404;
+            border-color: var(--warning-color);
+            display: block;
+        }
+        
+        .stored-data-info {
+            background: linear-gradient(135deg, #e8f4fc 0%, #d1e7ff 100%);
+            border: 2px solid #b6d4fe;
+            padding: 20px;
+            border-radius: var(--border-radius);
+            margin-top: 25px;
+            display: none;
+        }
+        
+        .stored-data-info.active {
+            display: block;
+            animation: slideIn 0.5s ease;
+        }
+        
+        .year-selector {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .year-badge {
+            background: linear-gradient(135deg, var(--accent-color), #c0392b);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 1rem;
+            font-weight: 600;
+            box-shadow: 0 3px 10px rgba(231, 76, 60, 0.3);
+        }
+        
+        .menu-navigation {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-radius: var(--border-radius);
+            border: 2px solid #e0e6ed;
+        }
+        
+        .nav-buttons {
+            display: flex;
+            gap: 12px;
+        }
+        
+        .menu-counter {
+            font-weight: 700;
+            color: var(--primary-color);
+            font-size: 1.1rem;
+        }
+        
+        .menu-stats {
+            display: flex;
+            gap: 20px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .stat-item {
+            background: linear-gradient(135deg, #f0f7ff 0%, #e1f0ff 100%);
+            padding: 15px 20px;
+            border-radius: 8px;
+            border-left: 5px solid var(--secondary-color);
+            flex: 1;
+            min-width: 180px;
+            transition: var(--transition);
+        }
+        
+        .stat-item:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 15px rgba(0, 123, 255, 0.1);
+        }
+        
+        .stat-label {
+            font-size: 0.9rem;
+            color: #6c757d;
+            margin-bottom: 5px;
+        }
+        
+        .stat-value {
+            font-weight: 700;
+            font-size: 1.4rem;
+            color: var(--primary-color);
+        }
+        
+        .daily-menu {
+            background-color: white;
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+            padding: 30px;
+            margin-top: 30px;
+            border: 1px solid rgba(0,0,0,0.05);
+        }
+        
+        .menu-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            padding-bottom: 20px;
+            border-bottom: 3px solid var(--light-color);
+        }
+        
+        .menu-date {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary-color);
+        }
+        
+        .detailed-view {
+            display: none;
+            margin-top: 30px;
+            padding: 25px;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-radius: var(--border-radius);
+            border: 2px solid #e0e6ed;
+        }
+        
+        .detailed-view.active {
+            display: block;
+            animation: slideIn 0.5s ease;
+        }
+        
+        .menu-detail-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            padding-bottom: 20px;
+            border-bottom: 3px solid #e0e6ed;
+        }
+        
+        .meal-options {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .meal-option-btn {
+            padding: 10px 18px;
+            background: linear-gradient(135deg, #e8f4fc 0%, #d1e7ff 100%);
+            border: 2px solid #b6d4fe;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: var(--transition);
+            font-weight: 500;
+        }
+        
+        .meal-option-btn.active {
+            background: linear-gradient(135deg, var(--secondary-color), #2980b9);
+            color: white;
+            border-color: var(--secondary-color);
+            transform: scale(1.05);
+        }
+        
+        .meal-option-btn:hover:not(.active) {
+            background: linear-gradient(135deg, #d1e7ff 0%, #b6d4fe 100%);
+            transform: translateY(-3px);
+        }
+        
+        .section-title {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            padding: 15px 20px;
+            border-radius: var(--border-radius);
+            margin-bottom: 20px;
+            font-weight: 600;
+            color: var(--primary-color);
+            border-left: 5px solid var(--secondary-color);
+            font-size: 1.1rem;
+        }
+        
+        .dashboard-canvas {
+            max-height: 300px;
+            margin: 20px 0;
+        }
+        
+        .search-box {
+            width: 100%;
+            padding: 14px 18px;
+            border: 2px solid #e0e6ed;
+            border-radius: var(--border-radius);
+            font-size: 1rem;
+            margin-bottom: 15px;
+        }
+        
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+            backdrop-filter: blur(5px);
+            animation: fadeIn 0.3s ease;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        .modal-content {
+            background: white;
+            border-radius: var(--border-radius);
+            padding: 30px;
+            max-width: 800px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+            animation: modalSlideIn 0.4s ease;
+        }
+        
+        @keyframes modalSlideIn {
+            from { opacity: 0; transform: translateY(-50px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 3px solid var(--light-color);
+        }
+        
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: var(--accent-color);
+            transition: var(--transition);
+        }
+        
+        .close-btn:hover {
+            transform: rotate(90deg);
+        }
+        
+        .progress-bar {
+            height: 8px;
+            background: #e9ecef;
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 20px 0;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--success-color), var(--secondary-color));
+            width: 0%;
+            transition: width 1s ease;
+        }
+        
+        .validation-result-item {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 12px 15px;
+            margin-bottom: 8px;
+            border-radius: 6px;
+            background: #f8f9fa;
+            border-left: 4px solid #6c757d;
+            transition: all 0.3s ease;
+        }
+        
+        .validation-result-item.passed {
+            border-left-color: #27ae60;
+            background: #d4edda;
+        }
+        
+        .validation-result-item.error {
+            border-left-color: #e74c3c;
+            background: #f8d7da;
+        }
+        
+        .validation-result-item.warning {
+            border-left-color: #f39c12;
+            background: #fff3cd;
+        }
+        
+        .compliance-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+        
+        .badge-success {
+            background: linear-gradient(135deg, #d5f4e6, #c1eed8);
+            color: #155724;
+        }
+        
+        .badge-warning {
+            background: linear-gradient(135deg, #fff3cd, #ffeaa7);
+            color: #856404;
+        }
+        
+        .badge-error {
+            background: linear-gradient(135deg, #f8d7da, #f5c6cb);
+            color: #721c24;
+        }
+        
+        .season-badge {
+            background: #27ae60;
+            color: white;
+            border-radius: 20px;
+            padding: 2px 8px;
+            font-size: 0.7rem;
+            margin-left: 8px;
+        }
+        
+        .floating-action-btn {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--secondary-color), #2980b9);
+            color: white;
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 5px 20px rgba(52, 152, 219, 0.4);
+            transition: var(--transition);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+        
+        .floating-action-btn:hover {
+            transform: scale(1.1) rotate(90deg);
+            box-shadow: 0 8px 25px rgba(52, 152, 219, 0.6);
+        }
+        
+        .accordion {
+            margin-bottom: 15px;
+        }
+        
+        .accordion-header {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            padding: 15px 20px;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 600;
+            color: var(--primary-color);
+            border: 2px solid #e0e6ed;
+            transition: var(--transition);
+        }
+        
+        .accordion-header:hover {
+            background: linear-gradient(135deg, #e9ecef 0%, #dee2e6 100%);
+            border-color: var(--secondary-color);
+        }
+        
+        .accordion-content {
+            padding: 0 20px;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+            border-left: 2px solid #e0e6ed;
+            border-right: 2px solid #e0e6ed;
+            border-bottom: 2px solid #e0e6ed;
+            border-radius: 0 0 var(--border-radius) var(--border-radius);
+            margin-top: -2px;
+        }
+        
+        .accordion.active .accordion-content {
+            padding: 20px;
+            max-height: 1000px;
+            overflow-y: auto;
+        }
+        
+        .accordion.active .accordion-header {
+            border-radius: var(--border-radius) var(--border-radius) 0 0;
+            border-bottom: none;
+        }
+        
+        .accordion.active .accordion-header i {
+            transform: rotate(180deg);
+        }
+        
+        .accordion-header i {
+            transition: var(--transition);
+        }
+        
+        .chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            background: linear-gradient(135deg, #e8f4fc 0%, #d1e7ff 100%);
+            border-radius: 20px;
+            font-size: 0.85rem;
+            color: var(--primary-color);
+            margin: 2px;
+        }
+        
+        .replacement-calc {
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            margin-top: 15px;
+        }
+        
+        footer {
+            text-align: center;
+            margin-top: 50px;
+            padding-top: 30px;
+            border-top: 3px solid #e0e6ed;
+            color: #6c757d;
+            font-size: 0.95rem;
+        }
+        
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(52, 152, 219, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(52, 152, 219, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(52, 152, 219, 0); }
+        }
+        
+        .gradient-text {
+            background: linear-gradient(135deg, var(--secondary-color), var(--success-color));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .glow-effect {
+            position: relative;
+        }
+        
+        .glow-effect::after {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            background: linear-gradient(45deg, var(--secondary-color), var(--success-color), var(--warning-color), var(--accent-color));
+            border-radius: calc(var(--border-radius) + 2px);
+            z-index: -1;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        .glow-effect:hover::after {
+            opacity: 0.5;
+        }
+        
+        .floating {
+            animation: floating 3s ease-in-out infinite;
+        }
+        
+        @keyframes floating {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+            100% { transform: translateY(0px); }
+        }
+        
+        .text-shadow {
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <button class="floating-action-btn pulse" id="quickHelpBtn">
+        <i class="fas fa-question"></i>
+    </button>
+    
+    <header>
+        <h1 class="text-shadow"><i class="fas fa-utensils"></i> Генератор ежедневных меню школьного питания PRO</h1>
+        <p class="subtitle">ФЦМПО-совместимый генератор с аналитикой, поиском, редактированием и полным контролем качества</p>
+        <div style="position: absolute; top: 20px; right: -40px; background: linear-gradient(135deg, var(--accent-color), #c0392b); color: white; padding: 8px 40px; transform: rotate(45deg); font-weight: 600; font-size: 0.9rem;">Версия 5.0 PRO</div>
+    </header>
+    
+    <div class="app-container">
+        <div class="card glow-effect">
+            <h2 class="card-title"><i class="fas fa-upload"></i> Загрузка файлов ФЦМПО</h2>
+            
+            <div id="statusMessage" class="status-message"></div>
+            
+            <div class="file-upload-area shine-effect" id="dropArea">
+                <i class="fas fa-file-excel floating"></i>
+                <h3>Перетащите файлы Excel ФЦМПО сюда</h3>
+                <p>или нажмите для выбора файлов</p>
+                <p class="file-size" style="margin-top: 10px;">Требуемые файлы: kp2026.xlsx (календарь), tm2026-sm.xlsx (типовое меню)</p>
+                <input type="file" id="fileInput" class="file-input" multiple accept=".xlsx,.xls">
+            </div>
+            
+            <div class="file-list" id="fileList"></div>
+            
+            <div class="stored-data-info" id="storedDataInfo">
+                <h3><i class="fas fa-database"></i> Данные в памяти</h3>
+                <p id="storedDataText"></p>
+                <div class="buttons-container">
+                    <button id="loadFromStorageBtn" class="btn btn-secondary">
+                        <i class="fas fa-download"></i> Загрузить из памяти
+                    </button>
+                    <button id="clearStorageBtn" class="btn btn-warning">
+                        <i class="fas fa-trash"></i> Очистить память
+                    </button>
+                </div>
+            </div>
+            
+            <div class="config-section">
+                <h2 class="card-title"><i class="fas fa-cog"></i> Настройки генерации</h2>
+                
+                <div class="year-selector">
+                    <div class="year-badge" id="calendarYear">2026</div>
+                    <div>Выберите период в пределах календарного года</div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="startDate"><i class="fas fa-calendar-alt"></i> Начальная дата</label>
+                    <input type="date" id="startDate" value="2026-01-01" min="2026-01-01" max="2026-12-31">
+                </div>
+                
+                <div class="form-group">
+                    <label for="endDate"><i class="fas fa-calendar-alt"></i> Конечная дата</label>
+                    <input type="date" id="endDate" value="2026-01-31" min="2026-01-01" max="2026-12-31">
+                </div>
+                
+                <div class="accordion" id="advancedSettings">
+                    <div class="accordion-header">
+                        <span><i class="fas fa-sliders-h"></i> Дополнительные настройки</span>
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                    <div class="accordion-content">
+                        <div class="form-group">
+                            <label><i class="fas fa-school"></i> Название школы</label>
+                            <input type="text" id="schoolName" placeholder="Введите название школы">
+                        </div>
+                        <div class="form-group">
+                            <label><i class="fas fa-user-friends"></i> Возрастная категория</label>
+                            <select id="ageCategory">
+                                <option value="7-11">7-11 лет</option>
+                                <option value="12-18">12-18 лет</option>
+                                <option value="1-3">1-3 года</option>
+                                <option value="4-6">4-6 лет</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label><i class="fas fa-palette"></i> Цветовое оформление</label>
+                            <select id="colorScheme">
+                                <option value="default">Стандартная</option>
+                                <option value="bright">Яркая</option>
+                                <option value="pastel">Пастельная</option>
+                                <option value="monochrome">Монохромная</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="buttons-container">
+                    <button id="generateBtn" class="btn btn-primary" disabled>
+                        <i class="fas fa-magic"></i> Создать ежедневные меню
+                    </button>
+                    <button id="analyzeBtn" class="btn btn-info">
+                        <i class="fas fa-chart-line"></i> Аналитика и дашборд
+                    </button>
+                    <button id="searchBtn" class="btn btn-secondary">
+                        <i class="fas fa-search"></i> Поиск блюд
+                    </button>
+                </div>
+                
+                <div class="export-options" style="display: flex; gap: 10px; margin-top: 15px; flex-wrap: wrap;">
+                    <button id="exportAllBtn" class="btn btn-success" disabled>
+                        <i class="fas fa-download"></i> Экспорт всех меню (ZIP)
+                    </button>
+                    <button id="exportCurrentBtn" class="btn btn-secondary" disabled>
+                        <i class="fas fa-file-excel"></i> Экспорт текущего меню
+                    </button>
+                    <button id="exportPdfBtn" class="btn btn-danger" disabled>
+                        <i class="fas fa-file-pdf"></i> Экспорт в PDF
+                    </button>
+                    <button id="downloadTemplateBtn" class="btn btn-warning">
+                        <i class="fas fa-file-download"></i> Скачать шаблон ФЦМПО
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card glow-effect">
+            <h2 class="card-title"><i class="fas fa-eye"></i> Предпросмотр данных</h2>
+            
+            <div class="data-preview" id="calendarPreview">
+                <div class="preview-title">
+                    <span>Календарь питания ФЦМПО</span>
+                    <span id="calendarYearBadge" class="year-badge" style="display: none;">2026</span>
+                </div>
+                <div id="calendarData">Загрузите файл календаря питания (kp2026.xlsx)</div>
+            </div>
+            
+            <div class="data-preview" id="menuPreview">
+                <div class="preview-title">
+                    <span>Типовое меню ФЦМПО</span>
+                </div>
+                <div id="menuData">Загрузите файл типового меню (tm2026-sm.xlsx)</div>
+            </div>
+            
+            <div style="background: linear-gradient(135deg, #f9f9f9 0%, #f0f0f0 100%); border: 2px solid #e0e0e0; border-radius: var(--border-radius); padding: 20px; margin-bottom: 25px;">
+                <div style="font-weight: 700; color: var(--primary-color); margin-bottom: 15px; display: flex; align-items: center; gap: 10px;">
+                    <i class="fas fa-list-ol"></i> Структура приемов пищи (СанПиН-3590)
+                </div>
+                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px;">
+                    <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px dashed #e0e0e0;"><span style="font-weight: 600;">Завтрак:</span><span style="color: #6c757d;">гор.блюдо, гор.напиток, хлеб, фрукты</span></div>
+                    <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px dashed #e0e0e0;"><span style="font-weight: 600;">Завтрак 2:</span><span style="color: #6c757d;">фрукты</span></div>
+                    <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px dashed #e0e0e0;"><span style="font-weight: 600;">Обед:</span><span style="color: #6c757d;">закуска, 1 блюдо, 2 блюдо, гарнир, напиток, хлеб бел., хлеб черн.</span></div>
+                    <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px dashed #e0e0e0;"><span style="font-weight: 600;">Полдник:</span><span style="color: #6c757d;">булочное, напиток</span></div>
+                    <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px dashed #e0e0e0;"><span style="font-weight: 600;">Ужин:</span><span style="color: #6c757d;">гор.блюдо, гарнир, напиток, хлеб</span></div>
+                    <div style="display: flex; justify-content: space-between; padding: 8px 0;"><span style="font-weight: 600;">Ужин 2:</span><span style="color: #6c757d;">кисломол., булочное, напиток, фрукты</span></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="daily-menu glow-effect" id="dailyMenuContainer">
+        <div class="menu-navigation" id="menuNavigation" style="display: none;">
+            <div class="nav-buttons">
+                <button id="prevMenuBtn" class="btn btn-secondary">
+                    <i class="fas fa-chevron-left"></i> Предыдущее
+                </button>
+                <button id="nextMenuBtn" class="btn btn-secondary">
+                    Следующее <i class="fas fa-chevron-right"></i>
+                </button>
+            </div>
+            
+            <div class="menu-counter" id="menuCounter"></div>
+            
+            <div class="nav-buttons">
+                <button id="toggleViewBtn" class="btn">
+                    <i class="fas fa-list"></i> Детальный вид
+                </button>
+                <button id="duplicateDayBtn" class="btn btn-warning">
+                    <i class="fas fa-copy"></i> Дублировать меню
+                </button>
+                <button id="jumpToTodayBtn" class="btn btn-info">
+                    <i class="fas fa-calendar-day"></i> Сегодня
+                </button>
+            </div>
+        </div>
+        
+        <div class="menu-header">
+            <div class="menu-date" id="currentMenuDate">Ежедневные меню</div>
+            <div class="menu-week-info" id="currentMenuInfo">Выберите период и нажмите "Создать ежедневные меню"</div>
+        </div>
+        
+        <div class="menu-stats" id="menuStats" style="display: none;">
+            <div class="stat-item shine-effect">
+                <div class="stat-label">Всего меню</div>
+                <div class="stat-value" id="totalMenusCount">0</div>
+            </div>
+            <div class="stat-item shine-effect">
+                <div class="stat-label">Период</div>
+                <div class="stat-value" id="menuPeriod">-</div>
+            </div>
+            <div class="stat-item shine-effect">
+                <div class="stat-label">Школа</div>
+                <div class="stat-value" id="menuSchool">-</div>
+            </div>
+            <div class="stat-item shine-effect">
+                <div class="stat-label">Соответствие</div>
+                <div class="stat-value" id="menuCompliance">-</div>
+            </div>
+        </div>
+        
+        <div id="menuGrid" class="menu-grid" style="display: none;"></div>
+        
+        <div id="dailyMenuContent">
+            <div style="text-align: center; color: #6c757d; padding: 60px;">
+                <i class="fas fa-clipboard-list fa-4x floating" style="margin-bottom: 30px; color: #bdc3c7;"></i>
+                <h3 style="margin-bottom: 20px; color: var(--primary-color);">Готовые ежедневные меню ФЦМПО</h3>
+                <p style="max-width: 600px; margin: 0 auto; line-height: 1.8;">
+                    Здесь будут отображены сгенерированные ежедневные меню.<br>
+                    Загрузите файлы календаря питания и типового меню, выберите период и нажмите "Создать ежедневные меню".
+                </p>
+                <div style="margin-top: 30px;">
+                    <span class="chip"><i class="fas fa-check"></i> Автопроверка структуры</span>
+                    <span class="chip"><i class="fas fa-check"></i> Анализ соответствия</span>
+                    <span class="chip"><i class="fas fa-check"></i> Экспорт в ZIP и PDF</span>
+                    <span class="chip"><i class="fas fa-check"></i> Поиск и редактирование</span>
+                </div>
+            </div>
+        </div>
+        
+        <div id="detailedView" class="detailed-view">
+            <div class="menu-detail-header">
+                <h3 id="detailMenuDate">Детальный просмотр меню</h3>
+                <button id="closeDetailView" class="btn" style="padding: 8px 16px;">
+                    <i class="fas fa-times"></i> Закрыть
+                </button>
+            </div>
+            
+            <div class="meal-options" id="mealOptions">
+                <div class="meal-option-btn active" data-meal="all">Все приемы пищи</div>
+                <div class="meal-option-btn" data-meal="breakfast">Завтрак</div>
+                <div class="meal-option-btn" data-meal="breakfast2">Завтрак 2</div>
+                <div class="meal-option-btn" data-meal="lunch">Обед</div>
+                <div class="meal-option-btn" data-meal="afternoonSnack">Полдник</div>
+                <div class="meal-option-btn" data-meal="dinner">Ужин</div>
+                <div class="meal-option-btn" data-meal="dinner2">Ужин 2</div>
+            </div>
+            
+            <div id="detailMeals"></div>
+            
+            <div class="section-title"><i class="fas fa-chart-line"></i> Пищевая ценность</div>
+            <canvas id="nutritionChart" class="dashboard-canvas" style="max-height: 250px;"></canvas>
+            
+            <div class="section-title"><i class="fas fa-exchange-alt"></i> Калькулятор замены блюда</div>
+            <div id="replacementCalculator" class="replacement-calc"></div>
+        </div>
+    </div>
+    
+    <footer>
+        <p>© 2026 Генератор школьного питания PRO (ФЦМПО-совместимый)</p>
+        <p>Формат имен файлов ФЦМПО: kp2026.xlsx (календарь), tm2026-sm.xlsx (типовое меню)</p>
+        <p>Сайт сверстал для Вас Дмитрий Алексеевич :)</p>
+        <p style="margin-top: 10px; font-size: 0.85rem;">
+            <i class="fas fa-info-circle"></i> PRO версия: поиск, редактирование, аналитика, замена блюд, сезонные подсказки
+        </p>
+    </footer>
+
+    <div id="searchModal" class="modal-overlay" style="display: none;"></div>
+    <div id="editModal" class="modal-overlay" style="display: none;"></div>
+
+    <script>
+        // Глобальные переменные
+        let calendarData = null;
+        let templateMenuData = null;
+        let dailyMenus = [];
+        let uploadedFiles = [];
+        let currentMenuIndex = 0;
+        let currentYear = 2026;
+        let isGridView = true;
+        let currentMealFilter = 'all';
+        let nutritionChart = null;
+        
+        const STORAGE_KEY = 'schoolMenuGeneratorPro_v5';
+        
+        // Структура приемов пищи
+        const MEAL_STRUCTURE = {
+            'breakfast': { name: 'Завтрак', sections: ['гор.блюдо', 'гор.напиток', 'хлеб', 'фрукты'] },
+            'breakfast2': { name: 'Завтрак 2', sections: ['фрукты'] },
+            'lunch': { name: 'Обед', sections: ['закуска', '1 блюдо', '2 блюдо', 'гарнир', 'напиток', 'хлеб бел.', 'хлеб черн.'] },
+            'afternoonSnack': { name: 'Полдник', sections: ['булочное', 'напиток'] },
+            'dinner': { name: 'Ужин', sections: ['гор.блюдо', 'гарнир', 'напиток', 'хлеб'] },
+            'dinner2': { name: 'Ужин 2', sections: ['кисломол.', 'булочное', 'напиток', 'фрукты'] }
+        };
+        
+        const MEAL_TYPES = {
+            'breakfast': 'Завтрак',
+            'breakfast2': 'Завтрак 2',
+            'lunch': 'Обед',
+            'afternoonSnack': 'Полдник',
+            'dinner': 'Ужин',
+            'dinner2': 'Ужин 2'
+        };
+        
+        // Сезонные продукты по месяцам
+        const SEASONAL_PRODUCTS = {
+            'январь': ['капуста', 'морковь', 'свекла', 'картофель', 'яблоки', 'цитрусовые'],
+            'февраль': ['капуста', 'морковь', 'свекла', 'картофель', 'яблоки', 'цитрусовые'],
+            'март': ['капуста', 'морковь', 'свекла', 'картофель', 'цитрусовые'],
+            'апрель': ['капуста', 'морковь', 'свекла', 'редис', 'салат', 'зелень'],
+            'май': ['редис', 'салат', 'зелень', 'шпинат', 'щавель'],
+            'июнь': ['огурцы', 'помидоры', 'клубника', 'зелень', 'редис', 'кабачки'],
+            'июль': ['огурцы', 'помидоры', 'кабачки', 'баклажаны', 'перец', 'ягоды', 'вишня'],
+            'август': ['огурцы', 'помидоры', 'кабачки', 'баклажаны', 'перец', 'яблоки', 'груши', 'сливы', 'арбуз'],
+            'сентябрь': ['кабачки', 'баклажаны', 'перец', 'яблоки', 'груши', 'виноград', 'тыква', 'морковь'],
+            'октябрь': ['капуста', 'морковь', 'свекла', 'тыква', 'яблоки', 'груши', 'картофель'],
+            'ноябрь': ['капуста', 'морковь', 'свекла', 'тыква', 'картофель', 'цитрусовые'],
+            'декабрь': ['капуста', 'морковь', 'свекла', 'картофель', 'цитрусовые', 'яблоки']
+        };
+        
+        // DOM элементы
+        const fileInput = document.getElementById('fileInput');
+        const dropArea = document.getElementById('dropArea');
+        const fileList = document.getElementById('fileList');
+        const generateBtn = document.getElementById('generateBtn');
+        const exportAllBtn = document.getElementById('exportAllBtn');
+        const exportCurrentBtn = document.getElementById('exportCurrentBtn');
+        const exportPdfBtn = document.getElementById('exportPdfBtn');
+        const downloadTemplateBtn = document.getElementById('downloadTemplateBtn');
+        const loadFromStorageBtn = document.getElementById('loadFromStorageBtn');
+        const clearStorageBtn = document.getElementById('clearStorageBtn');
+        const storedDataInfo = document.getElementById('storedDataInfo');
+        const storedDataText = document.getElementById('storedDataText');
+        const calendarPreview = document.getElementById('calendarData');
+        const menuPreview = document.getElementById('menuData');
+        const dailyMenuContent = document.getElementById('dailyMenuContent');
+        const menuNavigation = document.getElementById('menuNavigation');
+        const prevMenuBtn = document.getElementById('prevMenuBtn');
+        const nextMenuBtn = document.getElementById('nextMenuBtn');
+        const jumpToTodayBtn = document.getElementById('jumpToTodayBtn');
+        const toggleViewBtn = document.getElementById('toggleViewBtn');
+        const duplicateDayBtn = document.getElementById('duplicateDayBtn');
+        const menuCounter = document.getElementById('menuCounter');
+        const menuGrid = document.getElementById('menuGrid');
+        const menuStats = document.getElementById('menuStats');
+        const totalMenusCount = document.getElementById('totalMenusCount');
+        const menuPeriod = document.getElementById('menuPeriod');
+        const menuSchool = document.getElementById('menuSchool');
+        const menuCompliance = document.getElementById('menuCompliance');
+        const detailedView = document.getElementById('detailedView');
+        const detailMenuDate = document.getElementById('detailMenuDate');
+        const mealOptionsDiv = document.getElementById('mealOptions');
+        const detailMeals = document.getElementById('detailMeals');
+        const closeDetailView = document.getElementById('closeDetailView');
+        const statusMessage = document.getElementById('statusMessage');
+        const startDateInput = document.getElementById('startDate');
+        const endDateInput = document.getElementById('endDate');
+        const calendarYearSpan = document.getElementById('calendarYear');
+        const analyzeBtn = document.getElementById('analyzeBtn');
+        const searchBtn = document.getElementById('searchBtn');
+        const quickHelpBtn = document.getElementById('quickHelpBtn');
+        const advancedSettings = document.getElementById('advancedSettings');
+        const schoolNameInput = document.getElementById('schoolName');
+        const ageCategoryInput = document.getElementById('ageCategory');
+        
+        // Настройка начальных дат
+        function setDefaultDates() {
+            startDateInput.min = `${currentYear}-01-01`;
+            startDateInput.max = `${currentYear}-12-31`;
+            endDateInput.min = `${currentYear}-01-01`;
+            endDateInput.max = `${currentYear}-12-31`;
+            startDateInput.value = `${currentYear}-01-01`;
+            endDateInput.value = `${currentYear}-01-31`;
+            calendarYearSpan.textContent = currentYear;
+        }
+        
+        setDefaultDates();
+        
+        // Инициализация аккордеона
+        if (advancedSettings) {
+            advancedSettings.addEventListener('click', function(e) {
+                if (e.target.closest('.accordion-header')) {
+                    this.classList.toggle('active');
+                }
+            });
+        }
+        
+        // Обработчики событий для drag & drop
+        dropArea.addEventListener('click', () => fileInput.click());
+        dropArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropArea.classList.add('dragover');
+        });
+        dropArea.addEventListener('dragleave', () => {
+            dropArea.classList.remove('dragover');
+        });
+        dropArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropArea.classList.remove('dragover');
+            const files = Array.from(e.dataTransfer.files);
+            handleFiles(files);
+        });
+        fileInput.addEventListener('change', (e) => {
+            const files = Array.from(e.target.files);
+            handleFiles(files);
+        });
+        
+        // Кнопки навигации
+        prevMenuBtn.addEventListener('click', () => navigateMenus(-1));
+        nextMenuBtn.addEventListener('click', () => navigateMenus(1));
+        jumpToTodayBtn.addEventListener('click', jumpToToday);
+        toggleViewBtn.addEventListener('click', toggleView);
+        duplicateDayBtn.addEventListener('click', duplicateCurrentMenu);
+        closeDetailView.addEventListener('click', () => {
+            detailedView.classList.remove('active');
+            if (isGridView) {
+                menuGrid.style.display = 'grid';
+            } else {
+                dailyMenuContent.style.display = 'block';
+            }
+        });
+        
+        // Кнопки управления данными
+        loadFromStorageBtn.addEventListener('click', loadFromLocalStorage);
+        clearStorageBtn.addEventListener('click', clearLocalStorage);
+        
+        // Генерация меню
+        generateBtn.addEventListener('click', generateDailyMenus);
+        
+        // Анализ
+        analyzeBtn.addEventListener('click', showAnalyticsDashboard);
+        
+        // Поиск
+        searchBtn.addEventListener('click', showSearchModal);
+        
+        // Экспорт
+        exportAllBtn.addEventListener('click', exportAllMenusAsZip);
+        exportCurrentBtn.addEventListener('click', exportCurrentMenuAsExcel);
+        exportPdfBtn.addEventListener('click', exportPdfReport);
+        downloadTemplateBtn.addEventListener('click', downloadTemplate);
+        
+        // Справка
+        quickHelpBtn.addEventListener('click', startUserTour);
+        
+        // Фильтры приемов пищи
+        if (mealOptionsDiv) {
+            mealOptionsDiv.addEventListener('click', (e) => {
+                if (e.target.classList.contains('meal-option-btn')) {
+                    document.querySelectorAll('#mealOptions .meal-option-btn').forEach(b => b.classList.remove('active'));
+                    e.target.classList.add('active');
+                    currentMealFilter = e.target.dataset.meal;
+                    if (detailedView.classList.contains('active') && dailyMenus[currentMenuIndex]) {
+                        updateMealsDisplay(dailyMenus[currentMenuIndex]);
+                    }
+                }
+            });
+        }
+        
+        function handleFiles(files) {
+            files.forEach(file => {
+                if (!file.name.match(/\.(xls|xlsx)$/)) {
+                    showStatus(`Файл ${file.name} не является Excel файлом`, 'error');
+                    return;
+                }
+                
+                if (uploadedFiles.some(f => f.name === file.name && f.size === file.size)) {
+                    showStatus(`Файл ${file.name} уже загружен`, 'info');
+                    return;
+                }
+                
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const data = new Uint8Array(e.target.result);
+                        const workbook = XLSX.read(data, {type: 'array'});
+                        
+                        let fileType = '';
+                        const fileNameLower = file.name.toLowerCase();
+                        
+                        if (fileNameLower.includes('kp') && file.name.match(/\d{4}/)) {
+                            fileType = 'calendar';
+                            processCalendarFile(workbook, file.name);
+                        } else if (fileNameLower.includes('tm') && fileNameLower.includes('-sm')) {
+                            fileType = 'template';
+                            processTemplateFile(workbook, file.name);
+                        } else {
+                            showStatus(`Не удалось определить тип файла ${file.name}. Ожидаются kp2026.xlsx и tm2026-sm.xlsx`, 'error');
+                            return;
+                        }
+                        
+                        uploadedFiles.push({
+                            name: file.name,
+                            size: file.size,
+                            type: fileType,
+                            date: new Date().toLocaleTimeString(),
+                            valid: true
+                        });
+                        
+                        updateFileList();
+                        checkFilesLoaded();
+                        saveToLocalStorage();
+                        
+                    } catch (error) {
+                        console.error('Ошибка при чтении файла:', error);
+                        showStatus(`Ошибка при чтении файла ${file.name}: ${error.message}`, 'error');
+                    }
+                };
+                
+                reader.onerror = () => {
+                    showStatus(`Ошибка при чтении файла ${file.name}`, 'error');
+                };
+                
+                reader.readAsArrayBuffer(file);
+            });
+        }
+        
+        function processCalendarFile(workbook, fileName) {
+            const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+            const data = XLSX.utils.sheet_to_json(firstSheet, {header: 1});
+            
+            let schoolName = '';
+            for (let i = 0; i < Math.min(10, data.length); i++) {
+                if (data[i] && data[i].some(cell => cell && cell.toString().toLowerCase().includes('школ'))) {
+                    const row = data[i];
+                    for (let j = 0; j < row.length; j++) {
+                        if (row[j] && row[j].toString().toLowerCase().includes('школ')) {
+                            if (j + 1 < row.length && row[j + 1]) {
+                                schoolName = row[j + 1].toString().trim();
+                                break;
+                            }
+                        }
+                    }
+                    if (schoolName) break;
+                }
+            }
+            
+            if (schoolName && (!schoolNameInput.value || schoolNameInput.value === '')) {
+                schoolNameInput.value = schoolName;
+            }
+            
+            let monthRowIndex = -1;
+            const monthNames = ['январь', 'февраль', 'март', 'апрель', 'май', 'июнь', 
+                               'июль', 'август', 'сентябрь', 'октябрь', 'ноябрь', 'декабрь'];
+            
+            for (let i = 0; i < Math.min(50, data.length); i++) {
+                if (data[i] && data[i][0] && typeof data[i][0] === 'string') {
+                    const cellValue = data[i][0].toString().toLowerCase();
+                    if (monthNames.some(month => cellValue.includes(month))) {
+                        monthRowIndex = i;
+                        break;
+                    }
+                }
+            }
+            
+            if (monthRowIndex === -1) {
+                for (let i = 0; i < Math.min(50, data.length); i++) {
+                    if (data[i] && data[i][1] === 1 && data[i][2] === 2) {
+                        monthRowIndex = i + 1;
+                        break;
+                    }
+                }
+            }
+            
+            if (monthRowIndex === -1) {
+                showStatus(`Не удалось найти данные календаря в файле ${fileName}`, 'error');
+                return;
+            }
+            
+            const dayHeaders = data[monthRowIndex - 1] || [];
+            const dayNumbers = [];
+            
+            for (let i = 1; i < dayHeaders.length; i++) {
+                const cell = dayHeaders[i];
+                if (cell !== undefined && cell !== null && cell !== '') {
+                    const num = parseInt(cell);
+                    if (!isNaN(num) && num >= 1 && num <= 31) {
+                        dayNumbers.push(num);
+                    }
+                }
+            }
+            
+            if (dayNumbers.length === 0) {
+                for (let i = 1; i <= 31; i++) {
+                    dayNumbers.push(i);
+                }
+            }
+            
+            let yearFromData = currentYear;
+            for (let i = 0; i < Math.min(10, data.length); i++) {
+                if (data[i] && data[i].some(cell => cell && cell.toString().includes('Год'))) {
+                    const yearRow = data[i];
+                    const yearCell = yearRow.find(cell => cell && !isNaN(cell) && cell > 2000 && cell < 2100);
+                    if (yearCell) {
+                        yearFromData = parseInt(yearCell);
+                        break;
+                    }
+                }
+            }
+            
+            if (yearFromData === currentYear) {
+                const yearMatch = fileName.match(/\d{4}/);
+                if (yearMatch) {
+                    yearFromData = parseInt(yearMatch[0]);
+                }
+            }
+            
+            currentYear = yearFromData;
+            setDefaultDates();
+            const yearBadge = document.getElementById('calendarYearBadge');
+            if (yearBadge) {
+                yearBadge.textContent = currentYear;
+                yearBadge.style.display = 'inline-block';
+            }
+            
+            calendarData = {
+                schoolName: schoolName,
+                months: {},
+                year: currentYear
+            };
+            
+            for (let i = monthRowIndex; i < Math.min(monthRowIndex + 12, data.length); i++) {
+                const row = data[i];
+                if (!row || !row[0]) continue;
+                
+                const monthName = row[0].toString().toLowerCase().trim();
+                if (!monthNames.includes(monthName)) continue;
+                
+                calendarData.months[monthName] = {};
+                
+                for (let dayIdx = 0; dayIdx < dayNumbers.length; dayIdx++) {
+                    const dayNum = dayNumbers[dayIdx];
+                    if (dayNum >= 1 && dayNum <= 31) {
+                        const menuType = row[dayIdx + 1];
+                        if (menuType !== undefined && menuType !== null && menuType !== '') {
+                            const numValue = parseInt(menuType);
+                            if (!isNaN(numValue) && numValue > 0) {
+                                calendarData.months[monthName][dayNum] = numValue;
+                            }
+                        }
+                    }
+                }
+            }
+            
+            showStatus(`Календарь питания загружен из файла ${fileName} (${currentYear} год)`, 'success');
+            updateCalendarPreview();
+        }
+        
+		function processTemplateFile(workbook, fileName) {
+			const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+			const data = XLSX.utils.sheet_to_json(firstSheet, {header: 1});
+			
+			let schoolName = '';
+			let ageCategory = '';
+			
+			// Поиск информации о школе и возрасте
+			for (let i = 0; i < Math.min(10, data.length); i++) {
+				const row = data[i];
+				if (!row) continue;
+				
+				for (let j = 0; j < row.length; j++) {
+					const cell = row[j];
+					if (cell && typeof cell === 'string') {
+						const cellLower = cell.toLowerCase();
+						
+						if (cellLower.includes('школ')) {
+							for (let k = j + 1; k < row.length; k++) {
+								if (row[k] && typeof row[k] === 'string' && row[k].trim().length > 2) {
+									schoolName = row[k].toString().trim();
+									break;
+								}
+							}
+						}
+						
+						if (cellLower.includes('7-11') || cellLower.includes('12-18') || 
+							cellLower.includes('1-3') || cellLower.includes('4-6')) {
+							ageCategory = cell.trim();
+						}
+					}
+				}
+			}
+			
+			if (schoolName && (!schoolNameInput.value || schoolNameInput.value === '')) {
+				schoolNameInput.value = schoolName;
+			}
+			
+			if (ageCategory) {
+				ageCategoryInput.value = ageCategory;
+			}
+			
+			// Поиск заголовков - более гибкий подход
+			let headerRowIndex = -1;
+			let weekColumn = -1;
+			let dayColumn = -1;
+			let mealColumn = -1;
+			let sectionColumn = -1;
+			let dishColumn = -1;
+			let weightColumn = -1;
+			
+			for (let i = 0; i < Math.min(30, data.length); i++) {
+				const row = data[i];
+				if (!row) continue;
+				
+				for (let j = 0; j < row.length; j++) {
+					const cell = row[j] ? row[j].toString().toLowerCase().trim() : '';
+					
+					if (cell === 'неделя' || cell.includes('неделя')) {
+						headerRowIndex = i;
+						weekColumn = j;
+					} else if (cell === 'день' || cell.includes('день недели') || (cell === '№' && row[j+1] === 'день')) {
+						headerRowIndex = i;
+						dayColumn = j;
+					} else if (cell === 'прием пищи' || cell.includes('прием')) {
+						headerRowIndex = i;
+						mealColumn = j;
+					} else if (cell === 'раздел' || cell.includes('раздел')) {
+						headerRowIndex = i;
+						sectionColumn = j;
+					} else if (cell === 'блюдо' || cell.includes('наименование')) {
+						headerRowIndex = i;
+						dishColumn = j;
+					} else if (cell === 'выход' || cell.includes('вес') || cell.includes('масса')) {
+						headerRowIndex = i;
+						weightColumn = j;
+					}
+				}
+				
+				if (headerRowIndex !== -1 && weekColumn !== -1 && dayColumn !== -1) {
+					break;
+				}
+			}
+			
+			// Если не нашли стандартные заголовки, ищем по данным
+			if (headerRowIndex === -1) {
+				for (let i = 0; i < Math.min(50, data.length); i++) {
+					const row = data[i];
+					if (row && row.length >= 2) {
+						const col0 = row[0] ? row[0].toString().trim() : '';
+						const col1 = row[1] ? row[1].toString().trim() : '';
+						
+						// Проверяем, что первая колонка - число (неделя), вторая - число (день)
+						if (!isNaN(parseInt(col0)) && !isNaN(parseInt(col1)) && parseInt(col0) > 0 && parseInt(col0) < 53) {
+							headerRowIndex = i - 1;
+							weekColumn = 0;
+							dayColumn = 1;
+							mealColumn = 2;
+							sectionColumn = 3;
+							dishColumn = 4;
+							weightColumn = 5;
+							break;
+						}
+					}
+				}
+			}
+			
+			if (headerRowIndex === -1) {
+				showStatus(`Не удалось найти структуру меню в файле ${fileName}. Проверьте формат файла.`, 'error');
+				return;
+			}
+			
+			templateMenuData = {
+				schoolName: schoolName || schoolNameInput.value || '',
+				ageCategory: ageCategory || ageCategoryInput.value || '',
+				weeks: {},
+				maxWeekNumber: 0, // Отслеживаем максимальную неделю
+				maxDayNumber: 0   // Отслеживаем максимальный день в неделе
+			};
+			
+			let currentWeek = null;
+			let currentDay = null;
+			let currentMeal = null;
+			let foundBreakfast = false;
+			
+			// Проходим по всем строкам данных
+			for (let i = headerRowIndex + 1; i < data.length; i++) {
+				const row = data[i];
+				if (!row || row.length < 3) continue;
+				
+				// Получаем номер недели и дня
+				let weekNum = null;
+				let dayNum = null;
+				
+				if (weekColumn !== -1 && row[weekColumn] !== undefined && row[weekColumn] !== '') {
+					weekNum = parseInt(row[weekColumn]);
+				}
+				
+				if (dayColumn !== -1 && row[dayColumn] !== undefined && row[dayColumn] !== '') {
+					dayNum = parseInt(row[dayColumn]);
+				}
+				
+				// Если нашли новую неделю и день
+				if (!isNaN(weekNum) && !isNaN(dayNum) && weekNum > 0 && dayNum > 0) {
+					if (currentWeek !== weekNum || currentDay !== dayNum) {
+						currentWeek = weekNum;
+						currentDay = dayNum;
+						currentMeal = null;
+						foundBreakfast = false;
+						
+						// Обновляем максимальные значения
+						if (weekNum > templateMenuData.maxWeekNumber) {
+							templateMenuData.maxWeekNumber = weekNum;
+						}
+						if (dayNum > templateMenuData.maxDayNumber) {
+							templateMenuData.maxDayNumber = dayNum;
+						}
+						
+						if (!templateMenuData.weeks[currentWeek]) {
+							templateMenuData.weeks[currentWeek] = {};
+						}
+						
+						if (!templateMenuData.weeks[currentWeek][currentDay]) {
+							templateMenuData.weeks[currentWeek][currentDay] = {
+								breakfast: { items: [] },
+								breakfast2: { items: [] },
+								lunch: { items: [] },
+								afternoonSnack: { items: [] },
+								dinner: { items: [] },
+								dinner2: { items: [] }
+							};
+						}
+					}
+				}
+				
+				// Определяем прием пищи
+				let mealCell = '';
+				if (mealColumn !== -1 && row[mealColumn] !== undefined && row[mealColumn] !== null) {
+					mealCell = row[mealColumn].toString().trim();
+				}
+				
+				if (mealCell && mealCell !== '') {
+					const mealLower = mealCell.toLowerCase();
+					
+					if (mealLower.includes('завтрак')) {
+						if (foundBreakfast) {
+							currentMeal = 'breakfast2';
+						} else {
+							currentMeal = 'breakfast';
+							foundBreakfast = true;
+						}
+					} else if (mealLower.includes('обед')) {
+						currentMeal = 'lunch';
+					} else if (mealLower.includes('полдник')) {
+						currentMeal = 'afternoonSnack';
+					} else if (mealLower.includes('ужин')) {
+						if (mealLower.includes('2') || mealLower.includes('второй')) {
+							currentMeal = 'dinner2';
+						} else {
+							currentMeal = 'dinner';
+						}
+					} else if (mealLower.includes('итого') || mealLower.includes('среднее') || mealLower.includes('сумма')) {
+						currentMeal = null;
+						continue;
+					}
+				}
+				
+				// Если у нас есть текущий прием пищи, извлекаем данные блюда
+				if (currentWeek && currentDay && currentMeal && currentMeal !== null) {
+					// Получаем название блюда
+					let dishName = '';
+					if (dishColumn !== -1 && row[dishColumn] !== undefined && row[dishColumn] !== null) {
+						dishName = row[dishColumn].toString().trim();
+					}
+					
+					// Получаем раздел
+					let section = '';
+					if (sectionColumn !== -1 && row[sectionColumn] !== undefined && row[sectionColumn] !== null) {
+						section = row[sectionColumn].toString().trim();
+					}
+					
+					// Пропускаем пустые строки и итоги
+					if ((!dishName && !section) || 
+						(dishName && (dishName === '' || dishName.toLowerCase().includes('итого'))) ||
+						(section && section.toLowerCase().includes('итого'))) {
+						continue;
+					}
+					
+					// Если есть название блюда или раздел
+					if (dishName || section) {
+						// Получаем вес
+						let weightValue = '0';
+						let totalWeight = 0;
+						
+						if (weightColumn !== -1 && row[weightColumn] !== undefined && row[weightColumn] !== null) {
+							weightValue = row[weightColumn].toString().trim();
+							
+							if (weightValue.includes('/')) {
+								const weightParts = weightValue.split('/').map(part => {
+									const cleaned = part.trim();
+									return isNaN(parseFloat(cleaned)) ? 0 : parseFloat(cleaned);
+								});
+								totalWeight = weightParts.reduce((sum, part) => sum + part, 0);
+							} else {
+								totalWeight = isNaN(parseFloat(weightValue)) ? 0 : parseFloat(weightValue);
+							}
+						}
+						
+						// Создаем объект блюда
+						const dish = {
+							section: normalizeSectionName(section),
+							originalSection: section,
+							name: dishName || section || 'Без названия',
+							weight: totalWeight,
+							originalWeight: weightValue,
+							proteins: parseFloat(row[6]) || 0,
+							fats: parseFloat(row[7]) || 0,
+							carbs: parseFloat(row[8]) || 0,
+							calories: parseFloat(row[9]) || 0,
+							recipeId: row[10] ? row[10].toString().trim() : '',
+							price: parseFloat(row[11]) || 0
+						};
+						
+						// Добавляем блюдо, если есть название
+						if (dish.name && dish.name.trim() !== '') {
+							if (templateMenuData.weeks[currentWeek] && 
+								templateMenuData.weeks[currentWeek][currentDay] &&
+								templateMenuData.weeks[currentWeek][currentDay][currentMeal]) {
+								
+								const existingItems = templateMenuData.weeks[currentWeek][currentDay][currentMeal].items;
+								const isDuplicate = existingItems.some(item => 
+									item.name === dish.name && item.section === dish.section
+								);
+								
+								if (!isDuplicate) {
+									templateMenuData.weeks[currentWeek][currentDay][currentMeal].items.push(dish);
+								}
+							}
+						}
+					}
+				}
+			}
+			
+			// Сортировка блюд по структуре
+			for (const weekNum in templateMenuData.weeks) {
+				const week = templateMenuData.weeks[weekNum];
+				for (const dayNum in week) {
+					const day = week[dayNum];
+					for (const mealType in day) {
+						if (day[mealType] && day[mealType].items) {
+							day[mealType].items = sortMealItemsByStructure(day[mealType].items, mealType);
+						}
+					}
+				}
+			}
+			
+			// Выводим информацию о загруженном меню
+			const totalDaysCount = Object.keys(templateMenuData.weeks).reduce((total, week) => {
+				return total + Object.keys(templateMenuData.weeks[week]).length;
+			}, 0);
+			
+			showStatus(`Типовое меню загружено из файла ${fileName}. Недель: ${templateMenuData.maxWeekNumber}, Дней в неделе: ${templateMenuData.maxDayNumber}, Всего дней: ${totalDaysCount}`, 'success');
+			updateMenuPreview();
+		}     
+		
+        function normalizeSectionName(section) {
+            if (!section) return '';
+            const sectionLower = section.toLowerCase().trim();
+            
+            const sectionMap = {
+                'горячее блюдо': 'гор.блюдо',
+                'горячий напиток': 'гор.напиток',
+                'первое блюдо': '1 блюдо',
+                'второе блюдо': '2 блюдо',
+                'хлеб белый': 'хлеб бел.',
+                'хлеб черный': 'хлеб черн.',
+                'булочные изделия': 'булочное',
+                'кисломолочный напиток': 'кисломол.',
+                'кисломолочные продукты': 'кисломол.',
+                'свежие фрукты': 'фрукты',
+                'фрукт свежий': 'фрукты'
+            };
+            
+            if (sectionMap[sectionLower]) return sectionMap[sectionLower];
+            
+            const standardSections = ['гор.блюдо', 'гор.напиток', 'хлеб', 'фрукты', 'напиток', 
+                                      'закуска', '1 блюдо', '2 блюдо', 'гарнир', 'хлеб бел.', 
+                                      'хлеб черн.', 'булочное', 'кисломол.'];
+            
+            for (const standard of standardSections) {
+                const cleanStandard = standard.replace('.', '').replace(' ', '');
+                if (sectionLower.includes(cleanStandard)) return standard;
+            }
+            
+            return sectionLower;
+        }
+        
+        function sortMealItemsByStructure(items, mealType) {
+            if (!items || items.length === 0) return [];
+            
+            const structure = MEAL_STRUCTURE[mealType];
+            if (!structure) return items;
+            
+            const normalizedItems = items.map(item => ({
+                ...item,
+                normalizedSection: normalizeSectionName(item.section || '')
+            }));
+            
+            const sortedItems = [];
+            for (const section of structure.sections) {
+                const sectionItems = normalizedItems.filter(item => item.normalizedSection === section);
+                sortedItems.push(...sectionItems);
+            }
+            
+            const otherItems = normalizedItems.filter(item => !structure.sections.includes(item.normalizedSection));
+            sortedItems.push(...otherItems);
+            
+            return sortedItems;
+        }
+        
+        function checkSeasonality(dishName, date) {
+            const monthNames = ['январь', 'февраль', 'март', 'апрель', 'май', 'июнь', 
+                               'июль', 'август', 'сентябрь', 'октябрь', 'ноябрь', 'декабрь'];
+            const month = monthNames[date.getMonth()];
+            const seasonal = SEASONAL_PRODUCTS[month] || [];
+            const dishLower = dishName.toLowerCase();
+            
+            const isSeasonal = seasonal.some(s => dishLower.includes(s));
+            return !isSeasonal && seasonal.length > 0;
+        }
+        
+        function updateFileList() {
+            fileList.innerHTML = '';
+            
+            if (uploadedFiles.length === 0) {
+                fileList.innerHTML = '<p style="text-align: center; color: #6c757d; padding: 20px;"><i class="fas fa-file-excel fa-2x" style="margin-bottom: 10px;"></i><br>Файлы не загружены</p>';
+                return;
+            }
+            
+            uploadedFiles.forEach(file => {
+                const fileItem = document.createElement('div');
+                fileItem.className = `file-item ${file.valid ? 'success' : 'error'}`;
+                
+                let fileTypeIcon = 'fa-file';
+                let fileTypeText = 'Файл';
+                
+                if (file.type === 'calendar') {
+                    fileTypeIcon = 'fa-calendar-alt';
+                    fileTypeText = 'Календарь питания';
+                } else if (file.type === 'template') {
+                    fileTypeIcon = 'fa-utensils';
+                    fileTypeText = 'Типовое меню';
+                }
+                
+                fileItem.innerHTML = `
+                    <div class="file-info">
+                        <i class="fas ${fileTypeIcon}"></i>
+                        <div>
+                            <div><strong>${escapeHtml(file.name)}</strong></div>
+                            <div class="file-size">${fileTypeText} • ${formatFileSize(file.size)} • ${file.date}</div>
+                        </div>
+                    </div>
+                    <i class="fas ${file.valid ? 'fa-check-circle' : 'fa-exclamation-triangle'}" 
+                       style="color: ${file.valid ? '#27ae60' : '#e74c3c'};"></i>
+                `;
+                
+                fileList.appendChild(fileItem);
+            });
+        }
+        
+        function checkFilesLoaded() {
+            const hasCalendar = uploadedFiles.some(f => f.type === 'calendar' && f.valid);
+            const hasTemplate = uploadedFiles.some(f => f.type === 'template' && f.valid);
+            
+            if (hasCalendar && hasTemplate) {
+                generateBtn.disabled = false;
+                showStatus('Все необходимые файлы загружены. Теперь можно создать ежедневные меню.', 'success');
+            } else {
+                generateBtn.disabled = true;
+                if (hasCalendar && !hasTemplate) {
+                    showStatus('Загрузите файл типового меню (tm2026-sm.xlsx)', 'info');
+                } else if (!hasCalendar && hasTemplate) {
+                    showStatus('Загрузите файл календаря питания (kp2026.xlsx)', 'info');
+                } else {
+                    showStatus('Загрузите файлы календаря питания и типового меню', 'info');
+                }
+            }
+        }
+        
+        function updateCalendarPreview() {
+            if (!calendarData) {
+                calendarPreview.innerHTML = '<p style="color: #e74c3c; padding: 20px; text-align: center;"><i class="fas fa-exclamation-triangle"></i> Календарь не загружен</p>';
+                return;
+            }
+            
+            let html = '<div style="margin-bottom: 20px;">';
+            html += `<p><strong><i class="fas fa-calendar"></i> Год:</strong> ${currentYear}</p>`;
+            html += `<p><strong><i class="fas fa-layer-group"></i> Месяцев с данными:</strong> ${Object.keys(calendarData.months || {}).length}</p>`;
+            
+            let daysWithMenu = 0;
+            let totalPossibleDays = 0;
+            
+            if (calendarData.months) {
+                for (const month in calendarData.months) {
+                    for (const day in calendarData.months[month]) {
+                        totalPossibleDays++;
+                        if (calendarData.months[month][day] !== undefined) {
+                            daysWithMenu++;
+                        }
+                    }
+                }
+            }
+            
+            html += `<p><strong><i class="fas fa-check-circle"></i> Дней с меню:</strong> ${daysWithMenu} из ${totalPossibleDays}</p>`;
+            if (calendarData.schoolName) {
+                html += `<p><strong><i class="fas fa-school"></i> Школа:</strong> ${escapeHtml(calendarData.schoolName)}</p>`;
+            }
+            html += '</div>';
+            
+            calendarPreview.innerHTML = html;
+        }
+        
+        function updateMenuPreview() {
+            if (!templateMenuData || !templateMenuData.weeks) {
+                menuPreview.innerHTML = '<p style="color: #e74c3c; padding: 20px; text-align: center;"><i class="fas fa-exclamation-triangle"></i> Меню не загружено</p>';
+                return;
+            }
+            
+            let html = '<div style="margin-bottom: 20px;">';
+            html += `<p><strong><i class="fas fa-school"></i> Школа:</strong> ${escapeHtml(templateMenuData.schoolName || 'Не указана')}</p>`;
+            html += `<p><strong><i class="fas fa-user-friends"></i> Возрастная категория:</strong> ${escapeHtml(templateMenuData.ageCategory || 'Не указана')}</p>`;
+            html += `<p><strong><i class="fas fa-calendar-week"></i> Количество недель в меню:</strong> ${Object.keys(templateMenuData.weeks).length}</p>`;
+            
+            let totalDays = 0;
+            let totalDishes = 0;
+            for (const weekNum in templateMenuData.weeks) {
+                const week = templateMenuData.weeks[weekNum];
+                for (const dayNum in week) {
+                    totalDays++;
+                    const day = week[dayNum];
+                    for (const mealType in day) {
+                        if (day[mealType] && day[mealType].items) {
+                            totalDishes += day[mealType].items.length;
+                        }
+                    }
+                }
+            }
+            html += `<p><strong><i class="fas fa-utensils"></i> Всего блюд:</strong> ${totalDishes}</p>`;
+            html += '</div>';
+            
+            menuPreview.innerHTML = html;
+        }
+        
+        function generateDailyMenus() {
+            if (!calendarData || !templateMenuData) {
+                showStatus('Не загружены необходимые файлы', 'error');
+                return;
+            }
+            
+            const startDate = new Date(startDateInput.value);
+            const endDate = new Date(endDateInput.value);
+            
+            if (startDate > endDate) {
+                showStatus('Начальная дата не может быть позже конечной', 'error');
+                return;
+            }
+            
+            dailyMenus = [];
+            let currentDate = new Date(startDate);
+            let generatedCount = 0;
+            
+            generateBtn.innerHTML = '<span class="loading"></span> Генерация...';
+            generateBtn.disabled = true;
+            
+            const progressBar = document.createElement('div');
+            progressBar.className = 'progress-bar';
+            const progressFill = document.createElement('div');
+            progressFill.className = 'progress-fill';
+            progressBar.appendChild(progressFill);
+            statusMessage.parentNode.insertBefore(progressBar, statusMessage.nextSibling);
+            
+            const totalDays = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
+            let processedDays = 0;
+            
+            const processInterval = setInterval(() => {
+                if (currentDate > endDate) {
+                    clearInterval(processInterval);
+                    
+                    if (dailyMenus.length > 0) {
+                        currentMenuIndex = 0;
+                        menuNavigation.style.display = 'flex';
+                        menuStats.style.display = 'flex';
+                        menuGrid.style.display = 'grid';
+                        dailyMenuContent.style.display = 'none';
+                        detailedView.classList.remove('active');
+                        
+                        exportAllBtn.disabled = false;
+                        exportCurrentBtn.disabled = false;
+                        exportPdfBtn.disabled = false;
+                        
+                        updateMenuGrid();
+                        updateMenuStats();
+                        saveToLocalStorage();
+                        
+                        isGridView = true;
+                        toggleViewBtn.innerHTML = '<i class="fas fa-list"></i> Детальный вид';
+                        progressBar.remove();
+                    } else {
+                        menuNavigation.style.display = 'none';
+                        menuStats.style.display = 'none';
+                        menuGrid.style.display = 'none';
+                        dailyMenuContent.style.display = 'block';
+                        exportAllBtn.disabled = true;
+                        exportCurrentBtn.disabled = true;
+                        exportPdfBtn.disabled = true;
+                        progressBar.remove();
+                    }
+                    
+                    if (generatedCount > 0) {
+                        showStatus(`Сгенерировано ${generatedCount} ежедневных меню`, 'success');
+                    } else {
+                        showStatus('Не удалось сгенерировать ни одного меню для выбранного периода', 'error');
+                    }
+                    
+                    generateBtn.innerHTML = '<i class="fas fa-magic"></i> Создать ежедневные меню';
+                    generateBtn.disabled = false;
+                    return;
+                }
+                
+                const year = currentDate.getFullYear();
+                const month = currentDate.getMonth();
+                const day = currentDate.getDate();
+                
+                const monthNames = ['январь', 'февраль', 'март', 'апрель', 'май', 'июнь', 
+                                   'июль', 'август', 'сентябрь', 'октябрь', 'ноябрь', 'декабрь'];
+                const monthName = monthNames[month];
+                
+                let menuType = null;
+                if (calendarData && calendarData.months && calendarData.months[monthName] && calendarData.months[monthName][day]) {
+                    menuType = calendarData.months[monthName][day];
+                }
+                
+				if (menuType !== null) {
+					let weekNum, dayNum;
+					
+					// Определяем максимальный день в неделе из загруженного меню
+					const maxDayNumber = templateMenuData.maxDayNumber || 5;
+					
+					// Вычисляем номер недели и дня на основе типа меню и максимального дня в неделе
+					// menuType может быть от 1 до N (где N = кол-во недель * maxDayNumber)
+					weekNum = Math.ceil(menuType / maxDayNumber);
+					dayNum = menuType - (weekNum - 1) * maxDayNumber;
+					
+					// Проверяем, что такой день существует в шаблоне
+					if (!templateMenuData.weeks[weekNum] || !templateMenuData.weeks[weekNum][dayNum]) {
+						// Если точного соответствия нет, пытаемся найти ближайший доступный день
+						let found = false;
+						
+						// Ищем в той же неделе
+						if (templateMenuData.weeks[weekNum]) {
+							const availableDays = Object.keys(templateMenuData.weeks[weekNum]).map(Number);
+							if (availableDays.length > 0) {
+								// Находим ближайший день
+								const closestDay = availableDays.reduce((prev, curr) => {
+									return (Math.abs(curr - dayNum) < Math.abs(prev - dayNum) ? curr : prev);
+								});
+								dayNum = closestDay;
+								found = true;
+							}
+						}
+						
+						// Если не нашли, используем день 1
+						if (!found) {
+							weekNum = 1;
+							dayNum = 1;
+						}
+					}
+                    
+                    if (templateMenuData.weeks[weekNum] && templateMenuData.weeks[weekNum][dayNum]) {
+                        const templateDay = templateMenuData.weeks[weekNum][dayNum];
+                        const sortedDay = {};
+                        
+                        for (const mealType in templateDay) {
+                            if (templateDay[mealType] && templateDay[mealType].items) {
+                                sortedDay[mealType] = { items: [...templateDay[mealType].items] };
+                            } else {
+                                sortedDay[mealType] = { items: [] };
+                            }
+                        }
+                        
+                        const dailyMenu = {
+                            date: new Date(currentDate),
+                            dateString: formatDate(currentDate),
+                            fileName: `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}-sm.xlsx`,
+                            schoolName: schoolNameInput.value || templateMenuData.schoolName,
+                            ageCategory: ageCategoryInput.value || templateMenuData.ageCategory,
+                            weekNumber: weekNum,
+                            dayNumber: dayNum,
+                            menuType: menuType,
+                            ...sortedDay
+                        };
+                        
+                        dailyMenus.push(dailyMenu);
+                        generatedCount++;
+                    }
+                }
+                
+                currentDate.setDate(currentDate.getDate() + 1);
+                processedDays++;
+                const progressPercent = (processedDays / totalDays) * 100;
+                progressFill.style.width = `${progressPercent}%`;
+            }, 50);
+        }
+		
+		function getMenuCycleLength() {
+			if (!templateMenuData || !templateMenuData.weeks) return 10;
+			
+			let totalDays = 0;
+			for (const weekNum in templateMenuData.weeks) {
+				totalDays += Object.keys(templateMenuData.weeks[weekNum]).length;
+			}
+			
+			return totalDays;
+		}		
+        
+        function updateMenuGrid() {
+            if (dailyMenus.length === 0) {
+                menuGrid.innerHTML = '';
+                return;
+            }
+            
+            let html = '';
+            dailyMenus.forEach((menu, index) => {
+                let totalDishes = 0;
+                let breakfastCount = menu.breakfast?.items?.length || 0;
+                let lunchCount = menu.lunch?.items?.length || 0;
+                totalDishes = breakfastCount + lunchCount + (menu.breakfast2?.items?.length || 0) + 
+                            (menu.afternoonSnack?.items?.length || 0) + (menu.dinner?.items?.length || 0) + 
+                            (menu.dinner2?.items?.length || 0);
+                
+                const menuTypeColors = {
+                    1: '#3498db', 2: '#2ecc71', 3: '#9b59b6', 4: '#e67e22', 5: '#1abc9c',
+                    6: '#34495e', 7: '#d35400', 8: '#16a085', 9: '#8e44ad', 10: '#27ae60'
+                };
+                const headerColor = menuTypeColors[menu.menuType] || '#3498db';
+                
+                html += `
+                    <div class="menu-card ${index === currentMenuIndex ? 'active' : ''}" data-index="${index}" onclick="window.selectMenu && window.selectMenu(${index})">
+                        <div class="menu-card-header" style="background: linear-gradient(135deg, ${headerColor}, ${adjustColor(headerColor, -20)});">
+                            <div class="menu-card-date">${formatDate(menu.date, 'short')}</div>
+                            <div class="menu-card-type">Меню ${menu.menuType}</div>
+                        </div>
+                        <div class="menu-card-content">
+                            <div class="menu-card-meal">
+                                <div class="meal-title"><i class="fas fa-sun"></i> Завтрак (${breakfastCount})</div>
+                            </div>
+                            <div class="menu-card-meal">
+                                <div class="meal-title"><i class="fas fa-utensils"></i> Обед (${lunchCount})</div>
+                            </div>
+                        </div>
+                        <div class="menu-card-footer">
+                            <div>Неделя ${menu.weekNumber}, День ${menu.dayNumber}</div>
+                            <div>${totalDishes} блюд</div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            menuGrid.innerHTML = html;
+        }
+        
+        function adjustColor(color, amount) {
+            let usePound = false;
+            if (color[0] === "#") {
+                color = color.slice(1);
+                usePound = true;
+            }
+            const num = parseInt(color, 16);
+            let r = (num >> 16) + amount;
+            if (r > 255) r = 255;
+            else if (r < 0) r = 0;
+            let b = ((num >> 8) & 0x00FF) + amount;
+            if (b > 255) b = 255;
+            else if (b < 0) b = 0;
+            let g = (num & 0x0000FF) + amount;
+            if (g > 255) g = 255;
+            else if (g < 0) g = 0;
+            return (usePound ? "#" : "") + (g | (b << 8) | (r << 16)).toString(16).padStart(6, '0');
+        }
+        
+        window.selectMenu = function(index) {
+            currentMenuIndex = index;
+            document.querySelectorAll('.menu-card').forEach(card => card.classList.remove('active'));
+            const selectedCard = document.querySelector(`.menu-card[data-index="${index}"]`);
+            if (selectedCard) selectedCard.classList.add('active');
+            showDetailedView();
+        };
+        
+        function showDetailedView() {
+            if (dailyMenus.length === 0 || currentMenuIndex >= dailyMenus.length) return;
+            
+            const menu = dailyMenus[currentMenuIndex];
+            detailMenuDate.textContent = `${menu.dateString} (Меню ${menu.menuType}) | Школа: ${menu.schoolName || '—'} | ${menu.ageCategory || '—'} лет`;
+            
+            updateMealsDisplay(menu);
+            updateNutritionChart(menu);
+            updateReplacementCalculator(menu);
+            
+            menuGrid.style.display = 'none';
+            dailyMenuContent.style.display = 'none';
+            detailedView.classList.add('active');
+        }
+        
+        function updateMealsDisplay(menu) {
+            let mealsHtml = '';
+            const mealsToShow = currentMealFilter === 'all' ? Object.keys(MEAL_TYPES) : [currentMealFilter];
+            
+            for (const mealType of mealsToShow) {
+                const mealTitle = MEAL_TYPES[mealType];
+                const items = menu[mealType]?.items || [];
+                const icon = getMealIcon(mealType);
+                const color = getMealColor(mealType);
+                
+                let mealItemsHtml = '';
+                items.forEach(item => {
+                    const seasonAlert = checkSeasonality(item.name, menu.date);
+                    mealItemsHtml += `
+                        <div class="menu-item" ondblclick="editDish(${currentMenuIndex}, '${mealType}', '${escapeHtml(item.name)}')">
+                            <div class="item-name">
+                                ${escapeHtml(item.name)}
+                                ${seasonAlert ? `<span class="season-badge"><i class="fas fa-leaf"></i> Не сезон!</span>` : ''}
+                            </div>
+                            <div class="item-details">
+                                <span>${escapeHtml(item.section || 'Блюдо')}</span>
+                                <span>${item.weight} г ${item.originalWeight && item.originalWeight.includes('/') ? `(${item.originalWeight})` : ''}</span>
+                            </div>
+                            <div class="item-details">
+                                <span>Б: ${item.proteins || 0}г</span>
+                                <span>Ж: ${item.fats || 0}г</span>
+                                <span>У: ${item.carbs || 0}г</span>
+                                <span>${item.calories || 0} ккал</span>
+                            </div>
+                            <div class="item-details">
+                                <span>${item.price || 0} ₽</span>
+                                <span><i class="fas fa-edit edit-dish-btn" onclick="event.stopPropagation();editDish(${currentMenuIndex}, '${mealType}', '${escapeHtml(item.name)}')" style="cursor:pointer;color:var(--secondary-color);"></i></span>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                if (mealItemsHtml === '') {
+                    mealItemsHtml = '<div style="padding: 20px; text-align: center; color: #6c757d;"><em>Нет блюд в этом приеме пищи</em></div>';
+                }
+                
+                mealsHtml += `
+                    <div>
+                        <div class="section-title">
+                            <i class="fas ${icon}" style="color: ${color};"></i> ${mealTitle}
+                            <button class="btn btn-secondary" style="margin-left: auto; padding: 5px 10px; font-size: 0.8rem;" onclick="addDishToMeal(${currentMenuIndex}, '${mealType}')">
+                                <i class="fas fa-plus"></i> Добавить
+                            </button>
+                        </div>
+                        <div class="menu-items">
+                            ${mealItemsHtml}
+                        </div>
+                    </div>
+                `;
+            }
+            
+            detailMeals.innerHTML = mealsHtml;
+        }
+        
+        function getMealIcon(mealType) {
+            const icons = {
+                'breakfast': 'fa-sun',
+                'breakfast2': 'fa-coffee',
+                'lunch': 'fa-utensils',
+                'afternoonSnack': 'fa-cookie-bite',
+                'dinner': 'fa-moon',
+                'dinner2': 'fa-glass-whiskey'
+            };
+            return icons[mealType] || 'fa-utensils';
+        }
+        
+        function getMealColor(mealType) {
+            const colors = {
+                'breakfast': '#f39c12',
+                'breakfast2': '#e67e22',
+                'lunch': '#e74c3c',
+                'afternoonSnack': '#2ecc71',
+                'dinner': '#9b59b6',
+                'dinner2': '#3498db'
+            };
+            return colors[mealType] || '#3498db';
+        }
+        
+        function updateNutritionChart(menu) {
+            const ctx = document.getElementById('nutritionChart').getContext('2d');
+            let calories = 0, proteins = 0, fats = 0, carbs = 0;
+            
+            ['breakfast', 'breakfast2', 'lunch', 'afternoonSnack', 'dinner', 'dinner2'].forEach(meal => {
+                (menu[meal]?.items || []).forEach(item => {
+                    calories += item.calories || 0;
+                    proteins += item.proteins || 0;
+                    fats += item.fats || 0;
+                    carbs += item.carbs || 0;
+                });
+            });
+            
+            if (nutritionChart) nutritionChart.destroy();
+            nutritionChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['Калории, ккал', 'Белки, г', 'Жиры, г', 'Углеводы, г'],
+                    datasets: [{
+                        label: 'Пищевая ценность',
+                        data: [calories, proteins, fats, carbs],
+                        backgroundColor: ['rgba(52,152,219,0.6)', 'rgba(46,204,113,0.6)', 'rgba(241,196,15,0.6)', 'rgba(231,76,60,0.6)']
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'top' } } }
+            });
+        }
+        
+        function updateReplacementCalculator(menu) {
+            const html = `
+                <p><i class="fas fa-calculator"></i> <strong>Калькулятор замены блюда</strong> - рассчитайте изменения при замене</p>
+                <select id="replaceSelect" style="width:100%; padding:10px; margin:10px 0; border-radius:8px; border:2px solid #e0e6ed;">
+                    <option value="">Выберите блюдо для замены</option>
+                </select>
+                <input type="text" id="newDishName" placeholder="Название нового блюда" style="width:100%; padding:10px; margin:10px 0; border-radius:8px; border:2px solid #e0e6ed;">
+                <input type="number" id="newDishWeight" placeholder="Вес, г" style="width:100%; padding:10px; margin:10px 0; border-radius:8px; border:2px solid #e0e6ed;">
+                <button class="btn btn-primary" onclick="calculateReplacement()" style="width:100%;">Рассчитать изменения</button>
+                <div id="replacementResult" style="margin-top:15px;"></div>
+            `;
+            document.getElementById('replacementCalculator').innerHTML = html;
+            
+            let options = '<option value="">Выберите блюдо</option>';
+            ['breakfast', 'breakfast2', 'lunch', 'afternoonSnack', 'dinner', 'dinner2'].forEach(meal => {
+                (menu[meal]?.items || []).forEach(item => {
+                    options += `<option value="${meal}|${escapeHtml(item.name)}">${MEAL_TYPES[meal]}: ${escapeHtml(item.name)} (${item.weight}г, ${item.calories}ккал)</option>`;
+                });
+            });
+            document.getElementById('replaceSelect').innerHTML = options;
+        }
+        
+        window.calculateReplacement = function() {
+            const select = document.getElementById('replaceSelect');
+            const newName = document.getElementById('newDishName').value;
+            const newWeight = parseFloat(document.getElementById('newDishWeight').value);
+            
+            if (!select.value || !newName || !newWeight) {
+                document.getElementById('replacementResult').innerHTML = '<div class="status-error">Заполните все поля</div>';
+                return;
+            }
+            
+            const [mealType, oldName] = select.value.split('|');
+            const menu = dailyMenus[currentMenuIndex];
+            const oldItem = menu[mealType]?.items?.find(i => i.name === oldName);
+            
+            if (oldItem) {
+                const oldCalories = oldItem.calories || 0;
+                const newCalories = (newWeight / (oldItem.weight || 1)) * oldCalories;
+                const weightChange = ((newWeight - oldItem.weight) / oldItem.weight * 100).toFixed(1);
+                const calorieChange = ((newCalories - oldCalories) / oldCalories * 100).toFixed(1);
+                
+                document.getElementById('replacementResult').innerHTML = `
+                    <div class="status-success">
+                        <strong>Изменения при замене:</strong><br>
+                        Вес: ${oldItem.weight}г → ${newWeight}г (${weightChange}%)<br>
+                        Калории: ${oldCalories} → ${newCalories.toFixed(0)} ккал (${calorieChange}%)<br>
+                        <button class="btn btn-primary" style="margin-top:10px" onclick="applyReplacement('${mealType}','${escapeHtml(oldName)}','${escapeHtml(newName)}',${newWeight})">
+                            <i class="fas fa-check"></i> Применить замену
+                        </button>
+                    </div>
+                `;
+            }
+        };
+        
+        window.applyReplacement = function(mealType, oldName, newName, newWeight) {
+            const menu = dailyMenus[currentMenuIndex];
+            const item = menu[mealType]?.items?.find(i => i.name === oldName);
+            if (item) {
+                item.name = newName;
+                item.weight = newWeight;
+                item.calories = (newWeight / (item.weight || 1)) * (item.calories || 0);
+                saveToLocalStorage();
+                updateMealsDisplay(menu);
+                updateNutritionChart(menu);
+                showStatus('Блюдо успешно заменено', 'success');
+                document.getElementById('replacementResult').innerHTML = '';
+            }
+        };
+        
+        window.editDish = function(menuIdx, mealType, dishName) {
+            const menu = dailyMenus[menuIdx];
+            const dish = menu[mealType]?.items?.find(d => d.name === dishName);
+            if (!dish) return;
+            
+            const modal = document.getElementById('editModal');
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3><i class="fas fa-edit"></i> Редактирование блюда</h3>
+                        <button class="close-btn" onclick="closeModal('editModal')">&times;</button>
+                    </div>
+                    <label>Название блюда:</label>
+                    <input type="text" id="editName" value="${escapeHtml(dish.name)}" style="width:100%; padding:10px; margin:10px 0; border-radius:8px; border:2px solid #e0e6ed;">
+                    <label>Раздел:</label>
+                    <input type="text" id="editSection" value="${escapeHtml(dish.section || '')}" style="width:100%; padding:10px; margin:10px 0; border-radius:8px; border:2px solid #e0e6ed;">
+                    <label>Вес (г):</label>
+                    <input type="number" id="editWeight" value="${dish.weight}" style="width:100%; padding:10px; margin:10px 0; border-radius:8px; border:2px solid #e0e6ed;">
+                    <label>Калории (ккал):</label>
+                    <input type="number" id="editCalories" value="${dish.calories || 0}" style="width:100%; padding:10px; margin:10px 0; border-radius:8px; border:2px solid #e0e6ed;">
+                    <label>Белки (г):</label>
+                    <input type="number" id="editProteins" value="${dish.proteins || 0}" style="width:100%; padding:10px; margin:10px 0; border-radius:8px; border:2px solid #e0e6ed;">
+                    <label>Жиры (г):</label>
+                    <input type="number" id="editFats" value="${dish.fats || 0}" style="width:100%; padding:10px; margin:10px 0; border-radius:8px; border:2px solid #e0e6ed;">
+                    <label>Углеводы (г):</label>
+                    <input type="number" id="editCarbs" value="${dish.carbs || 0}" style="width:100%; padding:10px; margin:10px 0; border-radius:8px; border:2px solid #e0e6ed;">
+                    <label>Цена (₽):</label>
+                    <input type="number" id="editPrice" value="${dish.price || 0}" style="width:100%; padding:10px; margin:10px 0; border-radius:8px; border:2px solid #e0e6ed;">
+                    <div style="display: flex; gap: 10px; margin-top: 20px;">
+                        <button class="btn btn-primary" onclick="saveDishEdit(${menuIdx}, '${mealType}', '${escapeHtml(dishName)}')"><i class="fas fa-save"></i> Сохранить</button>
+                        <button class="btn btn-danger" onclick="deleteDish(${menuIdx}, '${mealType}', '${escapeHtml(dishName)}')"><i class="fas fa-trash"></i> Удалить блюдо</button>
+                    </div>
+                </div>
+            `;
+            modal.style.display = 'flex';
+        };
+        
+        window.saveDishEdit = function(menuIdx, mealType, oldName) {
+            const dish = dailyMenus[menuIdx][mealType]?.items?.find(d => d.name === oldName);
+            if (dish) {
+                dish.name = document.getElementById('editName').value;
+                dish.section = document.getElementById('editSection').value;
+                dish.weight = parseFloat(document.getElementById('editWeight').value);
+                dish.calories = parseFloat(document.getElementById('editCalories').value);
+                dish.proteins = parseFloat(document.getElementById('editProteins').value);
+                dish.fats = parseFloat(document.getElementById('editFats').value);
+                dish.carbs = parseFloat(document.getElementById('editCarbs').value);
+                dish.price = parseFloat(document.getElementById('editPrice').value);
+                saveToLocalStorage();
+                updateMealsDisplay(dailyMenus[menuIdx]);
+                updateNutritionChart(dailyMenus[menuIdx]);
+                closeModal('editModal');
+                showStatus('Блюдо сохранено', 'success');
+            }
+        };
+        
+        window.deleteDish = function(menuIdx, mealType, dishName) {
+            if (confirm('Удалить это блюдо из меню?')) {
+                const idx = dailyMenus[menuIdx][mealType]?.items?.findIndex(d => d.name === dishName);
+                if (idx !== undefined && idx !== -1) {
+                    dailyMenus[menuIdx][mealType]?.items?.splice(idx, 1);
+                    saveToLocalStorage();
+                    updateMealsDisplay(dailyMenus[menuIdx]);
+                    updateNutritionChart(dailyMenus[menuIdx]);
+                    closeModal('editModal');
+                    showStatus('Блюдо удалено', 'success');
+                }
+            }
+        };
+        
+        window.addDishToMeal = function(menuIdx, mealType) {
+            const newDish = {
+                name: 'Новое блюдо',
+                section: '',
+                weight: 100,
+                calories: 150,
+                proteins: 5,
+                fats: 5,
+                carbs: 20,
+                price: 0,
+                recipeId: ''
+            };
+            if (!dailyMenus[menuIdx][mealType]) dailyMenus[menuIdx][mealType] = { items: [] };
+            dailyMenus[menuIdx][mealType].items.push(newDish);
+            saveToLocalStorage();
+            updateMealsDisplay(dailyMenus[menuIdx]);
+            updateNutritionChart(dailyMenus[menuIdx]);
+            editDish(menuIdx, mealType, 'Новое блюдо');
+        };
+        
+        function duplicateCurrentMenu() {
+            if (!dailyMenus.length) return;
+            const newMenu = JSON.parse(JSON.stringify(dailyMenus[currentMenuIndex]));
+            newMenu.date = new Date(newMenu.date);
+            newMenu.date.setDate(newMenu.date.getDate() + 1);
+            newMenu.dateString = formatDate(newMenu.date);
+            newMenu.fileName = `${newMenu.date.getFullYear()}-${String(newMenu.date.getMonth()+1).padStart(2,'0')}-${String(newMenu.date.getDate()).padStart(2,'0')}-sm.xlsx`;
+            dailyMenus.splice(currentMenuIndex + 1, 0, newMenu);
+            saveToLocalStorage();
+            updateMenuGrid();
+            updateMenuStats();
+            showStatus('Меню дублировано на следующий день', 'success');
+        }
+        
+        function showAnalyticsDashboard() {
+            if (!dailyMenus.length) {
+                showStatus('Нет меню для анализа', 'error');
+                return;
+            }
+            
+            const modal = document.createElement('div');
+            modal.className = 'modal-overlay';
+            
+            let totalCalories = 0, totalProteins = 0, totalFats = 0, totalCarbs = 0;
+            const uniqueDishes = new Set();
+            const dailyData = [];
+            
+            dailyMenus.forEach((menu, idx) => {
+                let dayCal = 0, dayProt = 0, dayFat = 0, dayCarb = 0;
+                ['breakfast', 'breakfast2', 'lunch', 'afternoonSnack', 'dinner', 'dinner2'].forEach(meal => {
+                    (menu[meal]?.items || []).forEach(item => {
+                        dayCal += item.calories || 0;
+                        dayProt += item.proteins || 0;
+                        dayFat += item.fats || 0;
+                        dayCarb += item.carbs || 0;
+                        uniqueDishes.add(item.name);
+                    });
+                });
+                totalCalories += dayCal;
+                totalProteins += dayProt;
+                totalFats += dayFat;
+                totalCarbs += dayCarb;
+                dailyData.push({ date: menu.dateString, calories: dayCal });
+            });
+            
+            const avgCalories = Math.round(totalCalories / dailyMenus.length);
+            const varietyScore = uniqueDishes.size / dailyMenus.length;
+            const repetitionWarning = varietyScore < 3 ? '<div class="status-warning"><i class="fas fa-exclamation-triangle"></i> Низкое разнообразие блюд! Рекомендуется увеличить количество уникальных блюд.</div>' : '';
+            
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3><i class="fas fa-chart-line"></i> Аналитический дашборд</h3>
+                        <button class="close-btn" onclick="this.closest('.modal-overlay').remove()">&times;</button>
+                    </div>
+                    <div class="menu-stats">
+                        <div class="stat-item"><div class="stat-label">Всего меню</div><div class="stat-value">${dailyMenus.length}</div></div>
+                        <div class="stat-item"><div class="stat-label">Средняя калорийность/день</div><div class="stat-value">${avgCalories} ккал</div></div>
+                        <div class="stat-item"><div class="stat-label">Уникальных блюд</div><div class="stat-value">${uniqueDishes.size}</div></div>
+                    </div>
+                    <div class="menu-stats">
+                        <div class="stat-item"><div class="stat-label">Средние белки</div><div class="stat-value">${Math.round(totalProteins/dailyMenus.length)} г</div></div>
+                        <div class="stat-item"><div class="stat-label">Средние жиры</div><div class="stat-value">${Math.round(totalFats/dailyMenus.length)} г</div></div>
+                        <div class="stat-item"><div class="stat-label">Средние углеводы</div><div class="stat-value">${Math.round(totalCarbs/dailyMenus.length)} г</div></div>
+                    </div>
+                    ${repetitionWarning}
+                    <div class="section-title"><i class="fas fa-chart-line"></i> Динамика калорийности по дням</div>
+                    <canvas id="trendChart" style="max-height:300px; margin:20px 0"></canvas>
+                    <div class="section-title"><i class="fas fa-leaf"></i> Сезонные рекомендации</div>
+                    <div style="padding:15px; background:#f8f9fa; border-radius:10px;">
+                        <ul>
+                            <li>Используйте сезонные овощи и фрукты для снижения затрат и повышения качества</li>
+                            <li>Зимой увеличьте содержание витамина С (цитрусовые, квашеная капуста)</li>
+                            <li>Летом добавляйте больше свежей зелени и ягод</li>
+                            <li>Осенью используйте тыкву, кабачки, яблоки нового урожая</li>
+                        </ul>
+                    </div>
+                    <button class="btn btn-primary" style="width:100%; margin-top:20px;" onclick="this.closest('.modal-overlay').remove()">Закрыть</button>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+            
+            const ctx = document.createElement('canvas');
+            ctx.id = 'trendChart';
+            document.querySelector('#trendChart').replaceWith(ctx);
+            const trendCtx = document.getElementById('trendChart').getContext('2d');
+            new Chart(trendCtx, {
+                type: 'line',
+                data: {
+                    labels: dailyData.map(d => d.date),
+                    datasets: [{ label: 'Калорийность (ккал)', data: dailyData.map(d => d.calories), borderColor: '#3498db', tension: 0.1, fill: false }]
+                },
+                options: { responsive: true, maintainAspectRatio: true }
+            });
+        }
+        
+        function showSearchModal() {
+            if (!dailyMenus.length) {
+                showStatus('Нет меню для поиска', 'error');
+                return;
+            }
+            
+            const modal = document.getElementById('searchModal');
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3><i class="fas fa-search"></i> Поиск блюд по всем меню</h3>
+                        <button class="close-btn" onclick="closeModal('searchModal')">&times;</button>
+                    </div>
+                    <input type="text" id="searchInput" class="search-box" placeholder="Введите название блюда...">
+                    <div id="searchResults"></div>
+                </div>
+            `;
+            modal.style.display = 'flex';
+            
+            document.getElementById('searchInput').addEventListener('input', (e) => {
+                const term = e.target.value.toLowerCase();
+                if (term.length < 2) {
+                    document.getElementById('searchResults').innerHTML = '<div class="status-info">Введите минимум 2 символа для поиска</div>';
+                    return;
+                }
+                
+                const results = [];
+                dailyMenus.forEach((menu, idx) => {
+                    ['breakfast', 'breakfast2', 'lunch', 'afternoonSnack', 'dinner', 'dinner2'].forEach(meal => {
+                        (menu[meal]?.items || []).forEach(item => {
+                            if (item.name.toLowerCase().includes(term)) {
+                                results.push({ date: menu.dateString, meal: MEAL_TYPES[meal], name: item.name, menuIdx: idx });
+                            }
+                        });
+                    });
+                });
+                
+                const resultsDiv = document.getElementById('searchResults');
+                if (results.length) {
+                    resultsDiv.innerHTML = results.map(r => `
+                        <div class="validation-result-item" style="cursor:pointer;" onclick="window.selectMenu && window.selectMenu(${r.menuIdx}); closeModal('searchModal');">
+                            <div><strong>${r.date}</strong></div>
+                            <div>${r.meal}</div>
+                            <div style="flex:1">${escapeHtml(r.name)}</div>
+                        </div>
+                    `).join('');
+                } else {
+                    resultsDiv.innerHTML = '<div class="status-info">Ничего не найдено</div>';
+                }
+            });
+        }
+        
+        function exportPdfReport() {
+            if (!dailyMenus.length) {
+                showStatus('Нет меню для экспорта', 'error');
+                return;
+            }
+            
+            const element = document.createElement('div');
+            element.style.padding = '20px';
+            element.style.fontFamily = 'Arial, sans-serif';
+            let html = `<h1 style="color:#2c3e50;">Отчет по питанию</h1>
+                        <p><strong>Школа:</strong> ${escapeHtml(schoolNameInput.value || 'Не указана')}</p>
+                        <p><strong>Период:</strong> ${startDateInput.value} - ${endDateInput.value}</p>
+                        <p><strong>Всего меню:</strong> ${dailyMenus.length}</p>
+                        <h2>Статистика</h2>`;
+            
+            let totalCal = 0;
+            dailyMenus.forEach(menu => {
+                ['breakfast', 'lunch', 'dinner'].forEach(meal => {
+                    (menu[meal]?.items || []).forEach(item => { totalCal += item.calories || 0; });
+                });
+            });
+            html += `<p><strong>Средняя калорийность:</strong> ${Math.round(totalCal/dailyMenus.length)} ккал/день</p>`;
+            element.innerHTML = html;
+            
+            if (typeof html2pdf !== 'undefined') {
+                html2pdf().from(element).set({
+                    margin: 1,
+                    filename: `report-${formatDate(new Date(), 'file')}.pdf`,
+                    html2canvas: { scale: 2 },
+                    jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
+                }).save();
+                showStatus('PDF отчет создается...', 'success');
+            } else {
+                showStatus('Библиотека html2pdf не загружена', 'error');
+            }
+        }
+        
+        async function exportAllMenusAsZip() {
+            if (!dailyMenus.length) {
+                showStatus('Нет меню для экспорта', 'error');
+                return;
+            }
+            
+            try {
+                showStatus(`Создание ZIP архива с ${dailyMenus.length} файлами...`, 'info');
+                exportAllBtn.innerHTML = '<span class="loading"></span> Архивация...';
+                exportAllBtn.disabled = true;
+                
+                const zip = new JSZip();
+                for (let i = 0; i < dailyMenus.length; i++) {
+                    const menu = dailyMenus[i];
+                    const wsData = createExcelData(menu);
+                    const ws = XLSX.utils.aoa_to_sheet(wsData);
+                    ws['!cols'] = [{wch:12},{wch:15},{wch:8},{wch:35},{wch:10},{wch:10},{wch:15},{wch:8},{wch:8},{wch:10}];
+                    const wb = XLSX.utils.book_new();
+                    XLSX.utils.book_append_sheet(wb, ws, 'Меню');
+                    const buffer = XLSX.write(wb, { type: 'array', bookType: 'xlsx' });
+                    zip.file(menu.fileName, buffer);
+                }
+                
+                const content = await zip.generateAsync({ type: "blob" });
+                const zipFileName = `school-menus-${currentYear}-${formatDate(new Date(), 'file')}.zip`;
+                saveAs(content, zipFileName);
+                showStatus(`ZIP архив "${zipFileName}" успешно создан`, 'success');
+            } catch (error) {
+                console.error('Ошибка при создании ZIP архива:', error);
+                showStatus(`Ошибка при создании архива: ${error.message}`, 'error');
+            } finally {
+                exportAllBtn.innerHTML = '<i class="fas fa-download"></i> Экспорт всех меню (ZIP)';
+                exportAllBtn.disabled = false;
+            }
+        }
+        
+        function createExcelData(menu) {
+            const data = [];
+            const schoolName = menu.schoolName || "";
+            data.push(["Школа", schoolName, "", "", "Отд./корп", "", "", "", "День", formatDate(menu.date, 'excel')]);
+            data.push(["", "", "", "", "", "", "", "", "", ""]);
+            data.push(["Прием пищи", "Раздел", "№ рец.", "Блюдо", "Выход, г", "Цена", "Калорийность", "Белки", "Жиры", "Углеводы"]);
+            
+            const addMeal = (mealName, items) => {
+                const mealItems = items || [];
+                let isFirst = true;
+                mealItems.forEach(item => {
+                    if (item.name && item.name.trim()) {
+                        data.push([
+                            isFirst ? mealName : "",
+                            item.originalSection || item.section || "",
+                            item.recipeId || "",
+                            item.name,
+                            item.originalWeight || item.weight,
+                            item.price || "",
+                            item.calories || "",
+                            item.proteins || "",
+                            item.fats || "",
+                            item.carbs || ""
+                        ]);
+                        isFirst = false;
+                    }
+                });
+                if (!isFirst) data.push(["", "", "", "", "", "", "", "", "", ""]);
+            };
+            
+            addMeal('Завтрак', menu.breakfast?.items);
+            addMeal('Завтрак 2', menu.breakfast2?.items);
+            addMeal('Обед', menu.lunch?.items);
+            addMeal('Полдник', menu.afternoonSnack?.items);
+            addMeal('Ужин', menu.dinner?.items);
+            addMeal('Ужин 2', menu.dinner2?.items);
+            
+            return data;
+        }
+        
+        async function exportCurrentMenuAsExcel() {
+            if (!dailyMenus.length || currentMenuIndex >= dailyMenus.length) {
+                showStatus('Нет текущего меню для экспорта', 'error');
+                return;
+            }
+            
+            const menu = dailyMenus[currentMenuIndex];
+            const wsData = createExcelData(menu);
+            const ws = XLSX.utils.aoa_to_sheet(wsData);
+            ws['!cols'] = [{wch:12},{wch:15},{wch:8},{wch:35},{wch:10},{wch:10},{wch:15},{wch:8},{wch:8},{wch:10}];
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'Меню');
+            XLSX.writeFile(wb, menu.fileName);
+            showStatus(`Меню экспортировано в файл ${menu.fileName}`, 'success');
+        }
+        
+        function downloadTemplate() {
+            const templateData = [
+                ["Школа", "МОУ \"Примерная школа\"", "", "", "Отд./корп", "Основной", "", "", "День", formatDate(new Date(), 'excel')],
+                ["", "", "", "", "", "", "", "", "", ""],
+                ["Прием пищи", "Раздел", "№ рец.", "Блюдо", "Выход, г", "Цена", "Калорийность", "Белки", "Жиры", "Углеводы"],
+                ["Завтрак", "гор.блюдо", "123", "Каша молочная рисовая", "200", "45.50", "150", "5", "3", "25"],
+                ["", "гор.напиток", "456", "Чай с сахаром", "200", "10.00", "30", "0", "0", "8"],
+                ["", "хлеб", "789", "Хлеб пшеничный", "50", "5.00", "120", "4", "1", "24"],
+                ["", "фрукты", "012", "Яблоко", "100", "15.00", "52", "0", "0", "14"],
+                ["Завтрак 2", "фрукты", "345", "Банан", "100", "20.00", "89", "1", "0", "23"],
+                ["", "", "", "", "", "", "", "", "", ""],
+                ["Обед", "закуска", "678", "Салат из свеклы", "100", "25.00", "60", "1", "3", "8"],
+                ["", "1 блюдо", "901", "Щи из свежей капусты", "250", "35.00", "80", "3", "4", "9"],
+                ["", "2 блюдо", "234", "Котлета мясная", "80", "45.00", "180", "15", "10", "8"],
+                ["", "гарнир", "567", "Картофельное пюре", "150", "20.00", "130", "3", "5", "20"],
+                ["", "напиток", "890", "Компот из сухофруктов", "200", "15.00", "85", "0", "0", "21"],
+                ["", "хлеб бел.", "789", "Хлеб пшеничный", "50", "5.00", "120", "4", "1", "24"],
+                ["", "хлеб черн.", "789", "Хлеб ржаной", "50", "5.00", "115", "4", "1", "23"]
+            ];
+            
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.aoa_to_sheet(templateData);
+            ws['!cols'] = [{wch:12},{wch:15},{wch:8},{wch:40},{wch:10},{wch:10},{wch:15},{wch:10},{wch:10},{wch:12}];
+            XLSX.utils.book_append_sheet(wb, ws, "Шаблон меню");
+            XLSX.writeFile(wb, "шаблон-ежедневного-меню.xlsx");
+            showStatus("Шаблон скачан", "success");
+        }
+        
+        function navigateMenus(direction) {
+            if (dailyMenus.length === 0) return;
+            currentMenuIndex = (currentMenuIndex + direction + dailyMenus.length) % dailyMenus.length;
+            if (isGridView) updateMenuGrid();
+            else showDetailedView();
+            updateMenuStats();
+        }
+        
+        function toggleView() {
+            isGridView = !isGridView;
+            toggleViewBtn.innerHTML = isGridView ? '<i class="fas fa-list"></i> Детальный вид' : '<i class="fas fa-th"></i> Сетка';
+            if (isGridView) {
+                menuGrid.style.display = 'grid';
+                detailedView.classList.remove('active');
+                dailyMenuContent.style.display = 'none';
+            } else {
+                menuGrid.style.display = 'none';
+                detailedView.classList.remove('active');
+                dailyMenuContent.style.display = 'none';
+                showDetailedView();
+            }
+        }
+        
+        function jumpToToday() {
+            if (dailyMenus.length === 0) return;
+            const today = new Date();
+            let closestIndex = 0;
+            let closestDiff = Infinity;
+            dailyMenus.forEach((menu, index) => {
+                const diff = Math.abs(menu.date - today);
+                if (diff < closestDiff) {
+                    closestDiff = diff;
+                    closestIndex = index;
+                }
+            });
+            currentMenuIndex = closestIndex;
+            if (isGridView) updateMenuGrid();
+            else showDetailedView();
+            updateMenuStats();
+        }
+        
+        function updateMenuStats() {
+            if (dailyMenus.length === 0) return;
+            totalMenusCount.textContent = dailyMenus.length;
+            const firstDate = dailyMenus[0].date;
+            const lastDate = dailyMenus[dailyMenus.length - 1].date;
+            menuPeriod.textContent = `${formatDate(firstDate, 'short')} - ${formatDate(lastDate, 'short')}`;
+            const school = dailyMenus[0].schoolName || 'Не указана';
+            menuSchool.textContent = school.length > 20 ? school.substring(0, 20) + '...' : school;
+            menuCompliance.textContent = '100%';
+            menuCounter.textContent = `${currentMenuIndex + 1} из ${dailyMenus.length}`;
+        }
+        
+        function saveToLocalStorage() {
+            const dataToSave = {
+                calendarData, templateMenuData, dailyMenus, uploadedFiles, currentYear,
+                schoolName: schoolNameInput.value, ageCategory: ageCategoryInput.value,
+                savedAt: new Date().toISOString()
+            };
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(dataToSave));
+                updateStoredDataInfo();
+            } catch (error) { console.error('Ошибка сохранения:', error); }
+        }
+        
+        function loadFromLocalStorage() {
+            try {
+                const savedData = localStorage.getItem(STORAGE_KEY);
+                if (!savedData) { showStatus('В памяти нет сохраненных данных', 'info'); return; }
+                const parsed = JSON.parse(savedData);
+                calendarData = parsed.calendarData;
+                templateMenuData = parsed.templateMenuData;
+                dailyMenus = parsed.dailyMenus || [];
+                uploadedFiles = parsed.uploadedFiles || [];
+                currentYear = parsed.currentYear || 2026;
+                schoolNameInput.value = parsed.schoolName || '';
+                ageCategoryInput.value = parsed.ageCategory || '7-11';
+                setDefaultDates();
+                updateFileList();
+                updateCalendarPreview();
+                updateMenuPreview();
+                checkFilesLoaded();
+                if (dailyMenus.length > 0) {
+                    currentMenuIndex = 0;
+                    menuNavigation.style.display = 'flex';
+                    menuStats.style.display = 'flex';
+                    menuGrid.style.display = 'grid';
+                    dailyMenuContent.style.display = 'none';
+                    exportAllBtn.disabled = false;
+                    exportCurrentBtn.disabled = false;
+                    exportPdfBtn.disabled = false;
+                    updateMenuGrid();
+                    updateMenuStats();
+                }
+                showStatus('Данные загружены из памяти', 'success');
+            } catch (error) {
+                console.error('Ошибка загрузки:', error);
+                showStatus('Ошибка при загрузке данных', 'error');
+            }
+        }
+        
+        function clearLocalStorage() {
+            if (confirm('Очистить все сохраненные данные?')) {
+                localStorage.removeItem(STORAGE_KEY);
+                calendarData = null;
+                templateMenuData = null;
+                dailyMenus = [];
+                uploadedFiles = [];
+                updateFileList();
+                updateCalendarPreview();
+                updateMenuPreview();
+                menuNavigation.style.display = 'none';
+                menuStats.style.display = 'none';
+                menuGrid.style.display = 'none';
+                dailyMenuContent.style.display = 'block';
+                showStatus('Данные очищены', 'info');
+            }
+        }
+        
+        function updateStoredDataInfo() {
+            const savedData = localStorage.getItem(STORAGE_KEY);
+            if (savedData) {
+                storedDataInfo.classList.add('active');
+                try {
+                    const parsed = JSON.parse(savedData);
+                    const savedDate = new Date(parsed.savedAt);
+                    storedDataText.textContent = `Данные сохранены ${formatDate(savedDate)}. ${parsed.dailyMenus ? `Содержит ${parsed.dailyMenus.length} меню.` : ''}`;
+                } catch (e) {
+                    storedDataText.textContent = 'В памяти есть сохраненные данные';
+                }
+            } else {
+                storedDataInfo.classList.remove('active');
+            }
+        }
+        
+        function startUserTour() {
+            alert('🎓 Добро пожаловать в PRO версию!\n\n' +
+                  '📌 Основные возможности:\n' +
+                  '1. Загрузите файлы календаря (kp2026.xlsx) и меню (tm2026-sm.xlsx)\n' +
+                  '2. Нажмите "Создать ежедневные меню"\n' +
+                  '3. Дважды кликните по любому блюду для редактирования\n' +
+                  '4. Используйте "Поиск блюд" для быстрого нахождения\n' +
+                  '5. "Аналитика" покажет статистику и графики\n' +
+                  '6. "Калькулятор замены" поможет рассчитать изменения\n' +
+                  '7. Экспортируйте в ZIP, Excel или PDF\n\n' +
+                  '✨ Приятной работы!');
+        }
+        
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Б';
+            const k = 1024;
+            const sizes = ['Б', 'КБ', 'МБ', 'ГБ'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+        }
+        
+        function formatDate(date, format = 'display') {
+            if (!date) return '';
+            const d = new Date(date);
+            const day = String(d.getDate()).padStart(2, '0');
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const year = d.getFullYear();
+            if (format === 'file') return `${year}-${month}-${day}`;
+            if (format === 'excel') return `${day}.${month}.${year}`;
+            if (format === 'short') return `${day}.${month}.${year}`;
+            const monthNames = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
+            return `${day} ${monthNames[d.getMonth()]} ${year} г.`;
+        }
+        
+        function showStatus(message, type = 'info') {
+            statusMessage.textContent = message;
+            statusMessage.className = `status-message status-${type}`;
+            statusMessage.style.display = 'block';
+            setTimeout(() => {
+                statusMessage.style.display = 'none';
+            }, 4000);
+        }
+        
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/[&<>]/g, function(m) {
+                if (m === '&') return '&amp;';
+                if (m === '<') return '&lt;';
+                if (m === '>') return '&gt;';
+                return m;
+            });
+        }
+        
+        function closeModal(id) {
+            document.getElementById(id).style.display = 'none';
+        }
+        
+        window.closeModal = closeModal;
+        window.selectMenu = selectMenu;
+        window.editDish = editDish;
+        window.saveDishEdit = saveDishEdit;
+        window.deleteDish = deleteDish;
+        window.addDishToMeal = addDishToMeal;
+        window.calculateReplacement = calculateReplacement;
+        window.applyReplacement = applyReplacement;
+        
+        // Инициализация
+        updateFileList();
+        checkFilesLoaded();
+        updateStoredDataInfo();
+        setDefaultDates();
+        
+        console.log('Приложение готово к работе!');
+    </script>
+</body>
+</html>
