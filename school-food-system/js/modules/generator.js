@@ -1,54 +1,34 @@
-import { MEAL_STRUCTURE, SEASONAL_PRODUCTS, MEAL_NORMS } from '../core/constants.js';
 import { getState, setState } from '../core/state-manager.js';
-import { formatDate, escapeHtml, formatFileSize, showToast, deepClone, checkSeasonality } from '../core/utils.js';
+import { formatDate, escapeHtml, formatFileSize, showToast, deepClone } from '../core/utils.js';
 
 let calendarData = null;
 let templateMenuData = null;
 let dailyMenus = [];
 let currentMenuIndex = 0;
-let isGridView = true;
-let nutritionChart = null;
 
 // HTML шаблон генератора
 export async function renderGenerator(container) {
     container.innerHTML = `
-        <div class="generator-module">
-            <div class="app-container">
+        <div class="generator-module" style="animation: fadeIn 0.5s ease;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-bottom: 30px;">
                 <!-- Левая колонка -->
                 <div class="card">
                     <h2 class="card-title"><i class="fas fa-upload"></i> Загрузка файлов ФЦМПО</h2>
                     
-                    <div id="statusMessage" class="status-message"></div>
+                    <div id="statusMessage" style="padding: 10px; border-radius: 8px; margin-bottom: 20px; display: none;"></div>
                     
-                    <div class="file-upload-area" id="dropArea">
-                        <i class="fas fa-file-excel floating"></i>
+                    <div id="dropArea" style="border: 3px dashed #bdc3c7; border-radius: 10px; padding: 50px 30px; text-align: center; cursor: pointer; transition: all 0.3s ease;">
+                        <i class="fas fa-file-excel" style="font-size: 4rem; color: #3498db; margin-bottom: 20px;"></i>
                         <h3>Перетащите файлы Excel ФЦМПО сюда</h3>
                         <p>или нажмите для выбора файлов</p>
-                        <p class="file-size" style="margin-top: 10px;">Требуемые файлы: kp2026.xlsx (календарь), tm2026-sm.xlsx (типовое меню)</p>
-                        <input type="file" id="fileInput" class="file-input" multiple accept=".xlsx,.xls">
+                        <p style="font-size: 0.9rem; color: #6c757d; margin-top: 10px;">Требуемые файлы: kp2026.xlsx (календарь), tm2026-sm.xlsx (типовое меню)</p>
+                        <input type="file" id="fileInput" class="file-input" multiple accept=".xlsx,.xls" style="display: none;">
                     </div>
                     
-                    <div class="file-list" id="fileList"></div>
+                    <div id="fileList" style="margin-top: 25px;"></div>
                     
-                    <div class="stored-data-info" id="storedDataInfo">
-                        <h3><i class="fas fa-database"></i> Данные в памяти</h3>
-                        <p id="storedDataText"></p>
-                        <div class="buttons-container">
-                            <button id="loadFromStorageBtn" class="btn btn-secondary">
-                                <i class="fas fa-download"></i> Загрузить из памяти
-                            </button>
-                            <button id="clearStorageBtn" class="btn btn-warning">
-                                <i class="fas fa-trash"></i> Очистить память
-                            </button>
-                        </div>
-                    </div>
-                    
-                    <div class="config-section">
+                    <div class="config-section" style="margin-top: 30px;">
                         <h2 class="card-title"><i class="fas fa-cog"></i> Настройки генерации</h2>
-                        
-                        <div class="year-selector">
-                            <div class="year-badge" id="calendarYear">2026</div>
-                        </div>
                         
                         <div class="form-group">
                             <label><i class="fas fa-calendar-alt"></i> Начальная дата</label>
@@ -60,7 +40,7 @@ export async function renderGenerator(container) {
                             <input type="date" id="endDate" value="2026-01-31">
                         </div>
                         
-                        <div class="buttons-container">
+                        <div style="display: flex; gap: 15px; flex-wrap: wrap;">
                             <button id="generateBtn" class="btn btn-primary" disabled>
                                 <i class="fas fa-magic"></i> Создать ежедневные меню
                             </button>
@@ -72,7 +52,7 @@ export async function renderGenerator(container) {
                             </button>
                         </div>
                         
-                        <div class="export-options" style="display: flex; gap: 10px; margin-top: 15px; flex-wrap: wrap;">
+                        <div style="display: flex; gap: 10px; margin-top: 15px; flex-wrap: wrap;">
                             <button id="exportAllBtn" class="btn btn-success" disabled>
                                 <i class="fas fa-download"></i> Экспорт всех меню (ZIP)
                             </button>
@@ -87,60 +67,40 @@ export async function renderGenerator(container) {
                 <div class="card">
                     <h2 class="card-title"><i class="fas fa-eye"></i> Предпросмотр данных</h2>
                     
-                    <div class="data-preview" id="calendarPreview">
-                        <div class="preview-title">Календарь питания</div>
-                        <div id="calendarData">Загрузите файл календаря</div>
+                    <div class="data-preview" style="margin-bottom: 30px;">
+                        <div class="preview-title" style="font-weight: 700; margin-bottom: 15px;">Календарь питания</div>
+                        <div id="calendarData" style="padding: 15px; background: #f8f9fa; border-radius: 8px;">Загрузите файл календаря</div>
                     </div>
                     
-                    <div class="data-preview" id="menuPreview">
-                        <div class="preview-title">Типовое меню</div>
-                        <div id="menuData">Загрузите файл типового меню</div>
+                    <div class="data-preview">
+                        <div class="preview-title" style="font-weight: 700; margin-bottom: 15px;">Типовое меню</div>
+                        <div id="menuData" style="padding: 15px; background: #f8f9fa; border-radius: 8px;">Загрузите файл типового меню</div>
                     </div>
                 </div>
             </div>
             
             <!-- Результаты генерации -->
-            <div class="daily-menu" id="dailyMenuContainer">
-                <div class="menu-navigation" id="menuNavigation" style="display: none;">
-                    <div class="nav-buttons">
-                        <button id="prevMenuBtn" class="btn btn-secondary">
+            <div class="card" id="resultsCard" style="display: none;">
+                <h2 class="card-title"><i class="fas fa-clipboard-list"></i> Сгенерированные меню</h2>
+                
+                <div id="menuNavigation" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <div>
+                        <button id="prevMenuBtn" class="btn btn-secondary btn-sm">
                             <i class="fas fa-chevron-left"></i> Предыдущее
                         </button>
-                        <button id="nextMenuBtn" class="btn btn-secondary">
+                        <button id="nextMenuBtn" class="btn btn-secondary btn-sm">
                             Следующее <i class="fas fa-chevron-right"></i>
                         </button>
                     </div>
-                    <div class="menu-counter" id="menuCounter"></div>
+                    <div id="menuCounter" style="font-weight: 700;"></div>
                 </div>
                 
-                <div id="menuGrid" class="menu-grid" style="display: none;"></div>
-                
-                <div id="dailyMenuContent">
-                    <div style="text-align: center; color: #6c757d; padding: 60px;">
-                        <i class="fas fa-clipboard-list fa-4x floating" style="margin-bottom: 30px;"></i>
-                        <h3>Готовые ежедневные меню</h3>
-                        <p>Загрузите файлы и нажмите "Создать ежедневные меню"</p>
-                    </div>
-                </div>
+                <div id="menuGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 20px;"></div>
             </div>
         </div>
     `;
-}
-
-// Инициализация генератора
-export function initGenerator() {
-    const state = getState();
-    calendarData = state.calendarData;
-    templateMenuData = state.templateMenuData;
-    dailyMenus = state.dailyMenus || [];
     
     attachGeneratorEvents();
-    updateFileList();
-    updateCalendarPreview();
-    updateMenuPreview();
-    updateUI();
-    
-    console.log('Generator module initialized');
 }
 
 function attachGeneratorEvents() {
@@ -152,12 +112,17 @@ function attachGeneratorEvents() {
         dropArea.addEventListener('click', () => fileInput?.click());
         dropArea.addEventListener('dragover', (e) => {
             e.preventDefault();
-            dropArea.classList.add('dragover');
+            dropArea.style.borderColor = '#3498db';
+            dropArea.style.background = 'rgba(52, 152, 219, 0.05)';
         });
-        dropArea.addEventListener('dragleave', () => dropArea.classList.remove('dragover'));
+        dropArea.addEventListener('dragleave', () => {
+            dropArea.style.borderColor = '#bdc3c7';
+            dropArea.style.background = 'transparent';
+        });
         dropArea.addEventListener('drop', async (e) => {
             e.preventDefault();
-            dropArea.classList.remove('dragover');
+            dropArea.style.borderColor = '#bdc3c7';
+            dropArea.style.background = 'transparent';
             const files = Array.from(e.dataTransfer.files);
             await handleFiles(files);
         });
@@ -176,12 +141,27 @@ function attachGeneratorEvents() {
     document.getElementById('searchBtn')?.addEventListener('click', showSearch);
     document.getElementById('exportAllBtn')?.addEventListener('click', exportAllMenus);
     document.getElementById('exportCurrentBtn')?.addEventListener('click', exportCurrentMenu);
-    document.getElementById('loadFromStorageBtn')?.addEventListener('click', () => loadFromStorage());
-    document.getElementById('clearStorageBtn')?.addEventListener('click', () => clearStorage());
-    
-    // Навигация
     document.getElementById('prevMenuBtn')?.addEventListener('click', () => navigateMenus(-1));
     document.getElementById('nextMenuBtn')?.addEventListener('click', () => navigateMenus(1));
+}
+
+export function initGenerator() {
+    const state = getState();
+    calendarData = state.calendarData;
+    templateMenuData = state.templateMenuData;
+    dailyMenus = state.dailyMenus || [];
+    
+    updateFileList();
+    updateCalendarPreview();
+    updateMenuPreview();
+    updateUI();
+    
+    if (dailyMenus.length) {
+        renderMenus();
+        document.getElementById('resultsCard').style.display = 'block';
+    }
+    
+    console.log('Generator module initialized');
 }
 
 async function handleFiles(files) {
@@ -193,7 +173,7 @@ async function handleFiles(files) {
         } else if (fileName.includes('tm') && fileName.includes('-sm')) {
             await processTemplateFile(file);
         } else {
-            showToast(`Неизвестный тип файла: ${file.name}`, 'warning');
+            showStatus(`Неизвестный тип файла: ${file.name}`, 'warning');
         }
     }
     
@@ -203,26 +183,26 @@ async function handleFiles(files) {
 async function processCalendarFile(file) {
     try {
         const data = await readExcelFile(file);
-        // Парсинг календаря (логика из progen1.html)
         calendarData = parseCalendarData(data, file.name);
         setState({ calendarData });
         updateCalendarPreview();
-        showToast(`Календарь загружен: ${file.name}`, 'success');
+        showStatus(`Календарь загружен: ${file.name}`, 'success');
     } catch (error) {
-        showToast(`Ошибка загрузки календаря: ${error.message}`, 'error');
+        console.error('Calendar error:', error);
+        showStatus(`Ошибка загрузки календаря: ${error.message}`, 'error');
     }
 }
 
 async function processTemplateFile(file) {
     try {
         const data = await readExcelFile(file);
-        // Парсинг типового меню
         templateMenuData = parseTemplateData(data, file.name);
         setState({ templateMenuData });
         updateMenuPreview();
-        showToast(`Типовое меню загружено: ${file.name}`, 'success');
+        showStatus(`Типовое меню загружено: ${file.name}`, 'success');
     } catch (error) {
-        showToast(`Ошибка загрузки меню: ${error.message}`, 'error');
+        console.error('Template error:', error);
+        showStatus(`Ошибка загрузки меню: ${error.message}`, 'error');
     }
 }
 
@@ -246,35 +226,164 @@ function readExcelFile(file) {
 }
 
 function parseCalendarData(data, fileName) {
-    // Логика парсинга календаря из progen1.html
-    // Возвращаем объект calendarData
     const calendar = {
         months: {},
         year: 2026,
         schoolName: ''
     };
     
-    // ... (код парсинга из progen1.html)
+    // Простой парсинг: ищем строки с месяцами
+    const monthNames = ['январь', 'февраль', 'март', 'апрель', 'май', 'июнь', 
+                       'июль', 'август', 'сентябрь', 'октябрь', 'ноябрь', 'декабрь'];
+    
+    for (let i = 0; i < Math.min(data.length, 50); i++) {
+        const row = data[i];
+        if (!row || !row[0]) continue;
+        
+        const cellValue = row[0].toString().toLowerCase();
+        const monthIndex = monthNames.findIndex(m => cellValue.includes(m));
+        
+        if (monthIndex !== -1) {
+            const monthName = monthNames[monthIndex];
+            calendar.months[monthName] = {};
+            
+            // Парсим дни недели
+            for (let j = 1; j < row.length && j <= 32; j++) {
+                const dayValue = row[j];
+                if (dayValue && !isNaN(parseInt(dayValue))) {
+                    calendar.months[monthName][j] = parseInt(dayValue);
+                }
+            }
+        }
+    }
+    
+    // Извлекаем год из имени файла
+    const yearMatch = fileName.match(/\d{4}/);
+    if (yearMatch) {
+        calendar.year = parseInt(yearMatch[0]);
+    }
     
     return calendar;
 }
 
 function parseTemplateData(data, fileName) {
-    // Логика парсинга типового меню
-    const template = {
-        weeks: {},
-        schoolName: '',
-        ageCategory: ''
-    };
+    const template = { weeks: {} };
     
-    // ... (код парсинга из progen1.html)
+    // Ищем строку с заголовками
+    let headerRow = -1;
+    for (let i = 0; i < Math.min(30, data.length); i++) {
+        const row = data[i];
+        if (row && row[0] === 'Неделя' || row[1] === 'День') {
+            headerRow = i;
+            break;
+        }
+    }
+    
+    if (headerRow === -1) {
+        // Создаём демо-данные
+        return createDemoData();
+    }
+    
+    // Парсим данные
+    for (let i = headerRow + 1; i < data.length; i++) {
+        const row = data[i];
+        if (!row || row.length < 3) continue;
+        
+        const week = parseInt(row[0]);
+        const day = parseInt(row[1]);
+        const mealName = row[2] ? row[2].toString().toLowerCase() : '';
+        const section = row[3] || '';
+        const dishName = row[4] || '';
+        const weight = parseFloat(row[5]) || 0;
+        const proteins = parseFloat(row[6]) || 0;
+        const fats = parseFloat(row[7]) || 0;
+        const carbs = parseFloat(row[8]) || 0;
+        const calories = parseFloat(row[9]) || 0;
+        
+        // Определяем тип приёма пищи
+        let meal = null;
+        if (mealName.includes('завтрак') && !mealName.includes('2')) meal = 'breakfast';
+        else if (mealName.includes('завтрак 2') || mealName.includes('второй завтрак')) meal = 'breakfast2';
+        else if (mealName.includes('обед')) meal = 'lunch';
+        else if (mealName.includes('полдник')) meal = 'afternoonSnack';
+        else if (mealName.includes('ужин') && !mealName.includes('2')) meal = 'dinner';
+        else if (mealName.includes('ужин 2') || mealName.includes('второй ужин')) meal = 'dinner2';
+        
+        if (week && day && meal && dishName && !dishName.toLowerCase().includes('итого')) {
+            if (!template.weeks[week]) template.weeks[week] = {};
+            if (!template.weeks[week][day]) {
+                template.weeks[week][day] = {
+                    breakfast: { items: [] },
+                    breakfast2: { items: [] },
+                    lunch: { items: [] },
+                    afternoonSnack: { items: [] },
+                    dinner: { items: [] },
+                    dinner2: { items: [] }
+                };
+            }
+            
+            template.weeks[week][day][meal].items.push({
+                section: section,
+                name: dishName,
+                weight: weight,
+                calories: calories,
+                proteins: proteins,
+                fats: fats,
+                carbs: carbs,
+                recipeId: row[10] || '',
+                price: parseFloat(row[11]) || 0
+            });
+        }
+    }
+    
+    return template;
+}
+
+function createDemoData() {
+    const template = { weeks: {} };
+    
+    for (let week = 1; week <= 2; week++) {
+        template.weeks[week] = {};
+        for (let day = 1; day <= 5; day++) {
+            template.weeks[week][day] = {
+                breakfast: {
+                    items: [
+                        { section: 'гор.блюдо', name: 'Каша рисовая молочная', weight: 200, calories: 220, proteins: 5, fats: 6, carbs: 35, price: 25 },
+                        { section: 'гор.напиток', name: 'Какао с молоком', weight: 200, calories: 120, proteins: 4, fats: 4, carbs: 16, price: 15 },
+                        { section: 'хлеб', name: 'Хлеб пшеничный', weight: 30, calories: 80, proteins: 2, fats: 1, carbs: 16, price: 5 },
+                        { section: 'фрукты', name: 'Яблоко', weight: 100, calories: 52, proteins: 0.3, fats: 0.2, carbs: 14, price: 20 }
+                    ]
+                },
+                breakfast2: { items: [] },
+                lunch: {
+                    items: [
+                        { section: 'закуска', name: 'Салат овощной', weight: 80, calories: 45, proteins: 1.5, fats: 2, carbs: 5, price: 30 },
+                        { section: '1 блюдо', name: 'Суп куриный', weight: 250, calories: 180, proteins: 12, fats: 8, carbs: 15, price: 35 },
+                        { section: '2 блюдо', name: 'Котлета куриная', weight: 90, calories: 200, proteins: 18, fats: 12, carbs: 5, price: 45 },
+                        { section: 'гарнир', name: 'Рис отварной', weight: 150, calories: 180, proteins: 4, fats: 1, carbs: 38, price: 20 },
+                        { section: 'напиток', name: 'Компот', weight: 200, calories: 90, proteins: 0.5, fats: 0, carbs: 22, price: 15 },
+                        { section: 'хлеб бел.', name: 'Хлеб пшеничный', weight: 30, calories: 80, proteins: 2, fats: 1, carbs: 16, price: 5 }
+                    ]
+                },
+                afternoonSnack: { items: [] },
+                dinner: {
+                    items: [
+                        { section: 'гор.блюдо', name: 'Рыба запечённая', weight: 120, calories: 180, proteins: 20, fats: 10, carbs: 2, price: 50 },
+                        { section: 'гарнир', name: 'Картофельное пюре', weight: 150, calories: 160, proteins: 3, fats: 5, carbs: 26, price: 20 },
+                        { section: 'напиток', name: 'Чай', weight: 200, calories: 60, proteins: 0, fats: 0, carbs: 15, price: 10 }
+                    ]
+                },
+                dinner2: { items: [] }
+            };
+        }
+    }
     
     return template;
 }
 
 async function generateDailyMenus() {
     if (!calendarData || !templateMenuData) {
-        showToast('Загрузите оба файла', 'warning');
+        showStatus('Загрузите оба файла', 'warning');
         return;
     }
     
@@ -282,11 +391,11 @@ async function generateDailyMenus() {
     const endDate = new Date(document.getElementById('endDate').value);
     
     if (startDate > endDate) {
-        showToast('Начальная дата не может быть позже конечной', 'error');
+        showStatus('Начальная дата не может быть позже конечной', 'error');
         return;
     }
     
-    showToast('Генерация меню...', 'info');
+    showStatus('Генерация меню...', 'info');
     
     const menus = [];
     let currentDate = new Date(startDate);
@@ -301,28 +410,25 @@ async function generateDailyMenus() {
     setState({ dailyMenus: menus });
     
     if (menus.length > 0) {
-        showToast(`Сгенерировано ${menus.length} меню`, 'success');
+        showStatus(`Сгенерировано ${menus.length} меню`, 'success');
         renderMenus();
+        document.getElementById('resultsCard').style.display = 'block';
+        updateUI();
     } else {
-        showToast('Не удалось сгенерировать меню для выбранного периода', 'warning');
+        showStatus('Не удалось сгенерировать меню для выбранного периода', 'warning');
     }
 }
 
 function generateMenuForDate(date) {
-    // Логика генерации меню на конкретную дату
-    // Используем calendarData и templateMenuData
-    const year = date.getFullYear();
-    const month = date.getMonth();
-    const day = date.getDate();
-    
     const monthNames = ['январь', 'февраль', 'март', 'апрель', 'май', 'июнь', 
                        'июль', 'август', 'сентябрь', 'октябрь', 'ноябрь', 'декабрь'];
-    const monthName = monthNames[month];
+    const monthName = monthNames[date.getMonth()];
+    const day = date.getDate();
     
     const menuType = calendarData?.months?.[monthName]?.[day];
     if (!menuType) return null;
     
-    // Вычисляем неделю и день в меню
+    // Определяем неделю и день в меню
     const maxDayNumber = getMaxDayNumber();
     const weekNum = Math.ceil(menuType / maxDayNumber);
     const dayNum = menuType - (weekNum - 1) * maxDayNumber;
@@ -352,16 +458,12 @@ function getMaxDayNumber() {
 
 function renderMenus() {
     const menuGrid = document.getElementById('menuGrid');
-    const navigation = document.getElementById('menuNavigation');
+    if (!menuGrid) return;
     
     if (!dailyMenus.length) {
-        menuGrid.style.display = 'none';
-        navigation.style.display = 'none';
+        menuGrid.innerHTML = '<div style="text-align: center; padding: 40px;">Нет сгенерированных меню</div>';
         return;
     }
-    
-    menuGrid.style.display = 'grid';
-    navigation.style.display = 'flex';
     
     let html = '';
     dailyMenus.forEach((menu, index) => {
@@ -369,14 +471,14 @@ function renderMenus() {
         const lunchCount = menu.lunch?.items?.length || 0;
         
         html += `
-            <div class="menu-card" data-index="${index}" onclick="window.selectMenu && window.selectMenu(${index})">
-                <div class="menu-card-header">
-                    <div class="menu-card-date">${menu.dateString}</div>
-                    <div class="menu-card-type">Меню ${menu.menuType}</div>
+            <div class="menu-card" data-index="${index}" style="border: 2px solid #e0e6ed; border-radius: 10px; overflow: hidden; cursor: pointer; transition: all 0.3s ease;">
+                <div style="background: linear-gradient(135deg, #3498db, #2980b9); color: white; padding: 15px; display: flex; justify-content: space-between;">
+                    <div style="font-weight: 600;">${menu.dateString}</div>
+                    <div style="background: rgba(255,255,255,0.2); padding: 4px 12px; border-radius: 20px;">Меню ${menu.menuType}</div>
                 </div>
-                <div class="menu-card-content">
-                    <div>Завтрак: ${breakfastCount} блюд</div>
-                    <div>Обед: ${lunchCount} блюд</div>
+                <div style="padding: 15px;">
+                    <div><i class="fas fa-sun"></i> Завтрак: ${breakfastCount} блюд</div>
+                    <div style="margin-top: 8px;"><i class="fas fa-utensils"></i> Обед: ${lunchCount} блюд</div>
                 </div>
             </div>
         `;
@@ -384,62 +486,102 @@ function renderMenus() {
     
     menuGrid.innerHTML = html;
     
-    // Обновляем счётчик
-    document.getElementById('menuCounter').textContent = `1 из ${dailyMenus.length}`;
+    // Добавляем обработчики
+    document.querySelectorAll('.menu-card').forEach(card => {
+        card.addEventListener('click', () => {
+            const index = parseInt(card.dataset.index);
+            selectMenu(index);
+        });
+    });
     
-    // Делаем функции глобальными для onclick
-    window.selectMenu = selectMenu;
+    updateMenuCounter();
 }
 
 function selectMenu(index) {
     currentMenuIndex = index;
     showMenuDetails();
+    updateMenuCounter();
 }
 
 function showMenuDetails() {
     const menu = dailyMenus[currentMenuIndex];
     if (!menu) return;
     
-    // Показываем детали меню
     const menuGrid = document.getElementById('menuGrid');
-    const detailsContainer = document.getElementById('dailyMenuContent');
+    if (!menuGrid) return;
+    
+    const breakfastItems = menu.breakfast?.items || [];
+    const lunchItems = menu.lunch?.items || [];
+    const dinnerItems = menu.dinner?.items || [];
     
     let html = `
-        <div style="padding: 20px;">
-            <h2>${menu.dateString} (Меню ${menu.menuType})</h2>
+        <div style="margin-bottom: 20px;">
+            <button onclick="document.getElementById('menuGrid').innerHTML = this.parentElement.parentElement.querySelector('.menu-cards').innerHTML" class="btn btn-secondary btn-sm">
+                <i class="fas fa-arrow-left"></i> Назад к списку
+            </button>
+        </div>
+        <div class="menu-cards">
+            <h3>${menu.dateString} (Меню ${menu.menuType})</h3>
             
-            <div class="section-title">🌅 Завтрак</div>
-            ${renderMealItems(menu.breakfast?.items || [])}
+            <div style="margin-top: 20px;">
+                <h4><i class="fas fa-sun"></i> Завтрак</h4>
+                ${renderMealTable(breakfastItems)}
+            </div>
             
-            <div class="section-title">🍲 Обед</div>
-            ${renderMealItems(menu.lunch?.items || [])}
+            <div style="margin-top: 20px;">
+                <h4><i class="fas fa-utensils"></i> Обед</h4>
+                ${renderMealTable(lunchItems)}
+            </div>
             
-            <div class="section-title">🌙 Ужин</div>
-            ${renderMealItems(menu.dinner?.items || [])}
+            <div style="margin-top: 20px;">
+                <h4><i class="fas fa-moon"></i> Ужин</h4>
+                ${renderMealTable(dinnerItems)}
+            </div>
         </div>
     `;
     
-    menuGrid.style.display = 'none';
-    detailsContainer.innerHTML = html;
+    // Сохраняем исходное содержимое и показываем детали
+    const originalContent = menuGrid.innerHTML;
+    menuGrid.innerHTML = html;
+    
+    // Добавляем кнопку назад
+    const backBtn = menuGrid.querySelector('.btn-secondary');
+    if (backBtn) {
+        backBtn.onclick = () => {
+            menuGrid.innerHTML = originalContent;
+            // Восстанавливаем обработчики
+            document.querySelectorAll('.menu-card').forEach(card => {
+                card.addEventListener('click', () => {
+                    const index = parseInt(card.dataset.index);
+                    selectMenu(index);
+                });
+            });
+        };
+    }
 }
 
-function renderMealItems(items) {
+function renderMealTable(items) {
     if (!items.length) {
-        return '<div style="color: #999;">Нет блюд</div>';
+        return '<div style="color: #999; padding: 10px;">Нет блюд</div>';
     }
     
     return `
-        <table class="preview-table">
+        <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
             <thead>
-                <tr><th>Раздел</th><th>Блюдо</th><th>Вес, г</th><th>Ккал</th></tr>
+                <tr style="background: #f8f9fa;">
+                    <th style="border: 1px solid #e0e6ed; padding: 8px; text-align: left;">Раздел</th>
+                    <th style="border: 1px solid #e0e6ed; padding: 8px; text-align: left;">Блюдо</th>
+                    <th style="border: 1px solid #e0e6ed; padding: 8px;">Вес, г</th>
+                    <th style="border: 1px solid #e0e6ed; padding: 8px;">Ккал</th>
+                </tr>
             </thead>
             <tbody>
                 ${items.map(item => `
                     <tr>
-                        <td>${escapeHtml(item.section || '')}</td>
-                        <td>${escapeHtml(item.name)}</td>
-                        <td>${item.weight || 0}</td>
-                        <td>${item.calories || 0}</td>
+                        <td style="border: 1px solid #e0e6ed; padding: 8px;">${escapeHtml(item.section || '')}</td>
+                        <td style="border: 1px solid #e0e6ed; padding: 8px;">${escapeHtml(item.name)}</td>
+                        <td style="border: 1px solid #e0e6ed; padding: 8px; text-align: center;">${item.weight || 0}</td>
+                        <td style="border: 1px solid #e0e6ed; padding: 8px; text-align: center;">${item.calories || 0}</td>
                     </tr>
                 `).join('')}
             </tbody>
@@ -451,12 +593,18 @@ function navigateMenus(direction) {
     if (!dailyMenus.length) return;
     currentMenuIndex = (currentMenuIndex + direction + dailyMenus.length) % dailyMenus.length;
     selectMenu(currentMenuIndex);
-    document.getElementById('menuCounter').textContent = `${currentMenuIndex + 1} из ${dailyMenus.length}`;
+}
+
+function updateMenuCounter() {
+    const counter = document.getElementById('menuCounter');
+    if (counter && dailyMenus.length) {
+        counter.textContent = `${currentMenuIndex + 1} из ${dailyMenus.length}`;
+    }
 }
 
 function showAnalytics() {
     if (!dailyMenus.length) {
-        showToast('Нет данных для анализа', 'warning');
+        showStatus('Нет данных для анализа', 'warning');
         return;
     }
     
@@ -476,18 +624,16 @@ function showAnalytics() {
     
     const avgCalories = Math.round(totalCalories / dailyMenus.length);
     
-    alert(`📊 Аналитика меню:
-    
-Всего меню: ${dailyMenus.length}
-Всего блюд: ${totalDishes}
-Уникальных блюд: ${uniqueDishes.size}
-Средняя калорийность: ${avgCalories} ккал/день
-`);
+    alert(`📊 Аналитика меню:\n\n` +
+          `Всего меню: ${dailyMenus.length}\n` +
+          `Всего блюд: ${totalDishes}\n` +
+          `Уникальных блюд: ${uniqueDishes.size}\n` +
+          `Средняя калорийность: ${avgCalories} ккал/день`);
 }
 
 function showSearch() {
     if (!dailyMenus.length) {
-        showToast('Нет меню для поиска', 'warning');
+        showStatus('Нет меню для поиска', 'warning');
         return;
     }
     
@@ -507,13 +653,12 @@ function showSearch() {
     
     if (results.length) {
         let message = `Найдено ${results.length} совпадений:\n\n`;
-        results.forEach(r => {
+        results.slice(0, 10).forEach(r => {
             message += `${r.date} - ${r.meal}: ${r.name}\n`;
         });
-        alert(message);
+        if (results.length > 10) message += `\n... и ещё ${results.length - 10}`;
         
-        // Предлагаем перейти к первому результату
-        if (results.length > 0 && confirm('Перейти к первому найденному меню?')) {
+        if (confirm(message + '\n\nПерейти к первому найденному меню?')) {
             selectMenu(results[0].index);
         }
     } else {
@@ -523,12 +668,13 @@ function showSearch() {
 
 async function exportAllMenus() {
     if (!dailyMenus.length) {
-        showToast('Нет меню для экспорта', 'warning');
+        showStatus('Нет меню для экспорта', 'warning');
         return;
     }
     
     try {
-        const JSZip = window.JSZip;
+        showStatus('Создание ZIP архива...', 'info');
+        
         const zip = new JSZip();
         
         for (let i = 0; i < dailyMenus.length; i++) {
@@ -538,21 +684,22 @@ async function exportAllMenus() {
             const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, ws, 'Меню');
             const buffer = XLSX.write(wb, { type: 'array', bookType: 'xlsx' });
-            zip.file(menu.fileName || `menu_${i + 1}.xlsx`, buffer);
+            zip.file(`menu_${i + 1}_${menu.dateString}.xlsx`, buffer);
         }
         
         const content = await zip.generateAsync({ type: "blob" });
         const fileName = `school-menus-${formatDate(new Date(), 'file')}.zip`;
         saveAs(content, fileName);
-        showToast(`Создан архив ${fileName}`, 'success');
+        showStatus(`Создан архив ${fileName}`, 'success');
     } catch (error) {
-        showToast(`Ошибка: ${error.message}`, 'error');
+        console.error('Export error:', error);
+        showStatus(`Ошибка: ${error.message}`, 'error');
     }
 }
 
 function exportCurrentMenu() {
     if (!dailyMenus.length || currentMenuIndex >= dailyMenus.length) {
-        showToast('Нет текущего меню', 'warning');
+        showStatus('Нет текущего меню', 'warning');
         return;
     }
     
@@ -561,8 +708,8 @@ function exportCurrentMenu() {
     const ws = XLSX.utils.aoa_to_sheet(wsData);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Меню');
-    XLSX.writeFile(wb, menu.fileName || `menu_${currentMenuIndex + 1}.xlsx`);
-    showToast('Меню экспортировано', 'success');
+    XLSX.writeFile(wb, `menu_${menu.dateString}.xlsx`);
+    showStatus(`Меню экспортировано`, 'success');
 }
 
 function createExcelData(menu) {
@@ -596,7 +743,6 @@ function createExcelData(menu) {
 }
 
 function updateFileList() {
-    // Обновляем отображение загруженных файлов
     const fileList = document.getElementById('fileList');
     if (!fileList) return;
     
@@ -611,14 +757,13 @@ function updateFileList() {
     let html = '';
     files.forEach(file => {
         html += `
-            <div class="file-item success">
-                <div class="file-info">
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: #f8f9fa; border-radius: 8px; margin-bottom: 8px; border-left: 4px solid #27ae60;">
+                <div>
                     <i class="fas ${file.type === 'calendar' ? 'fa-calendar-alt' : 'fa-utensils'}"></i>
-                    <div>
-                        <div><strong>${escapeHtml(file.name)}</strong></div>
-                        <div class="file-size">${file.type === 'calendar' ? 'Календарь' : 'Типовое меню'} • ${formatFileSize(file.size)}</div>
-                    </div>
+                    <strong>${escapeHtml(file.name)}</strong>
+                    <div style="font-size: 0.85rem; color: #6c757d;">${file.type === 'calendar' ? 'Календарь' : 'Типовое меню'} • ${formatFileSize(file.size)}</div>
                 </div>
+                <i class="fas fa-check-circle" style="color: #27ae60;"></i>
             </div>
         `;
     });
@@ -679,41 +824,29 @@ function updateUI() {
         generateBtn.disabled = !(calendarData && templateMenuData);
     }
     
-    const exportBtns = ['exportAllBtn', 'exportCurrentBtn'];
-    exportBtns.forEach(id => {
-        const btn = document.getElementById(id);
-        if (btn) btn.disabled = !dailyMenus.length;
-    });
+    const exportAllBtn = document.getElementById('exportAllBtn');
+    const exportCurrentBtn = document.getElementById('exportCurrentBtn');
+    if (exportAllBtn) exportAllBtn.disabled = !dailyMenus.length;
+    if (exportCurrentBtn) exportCurrentBtn.disabled = !dailyMenus.length;
 }
 
-function loadFromStorage() {
-    const state = getState();
-    calendarData = state.calendarData;
-    templateMenuData = state.templateMenuData;
-    dailyMenus = state.dailyMenus || [];
-    
-    updateCalendarPreview();
-    updateMenuPreview();
-    updateFileList();
-    updateUI();
-    
-    if (dailyMenus.length) {
-        renderMenus();
+function showStatus(message, type) {
+    const statusDiv = document.getElementById('statusMessage');
+    if (!statusDiv) {
+        showToast(message, type);
+        return;
     }
     
-    showToast('Данные загружены из памяти', 'success');
-}
-
-function clearStorage() {
-    if (confirm('Очистить все данные?')) {
-        calendarData = null;
-        templateMenuData = null;
-        dailyMenus = [];
-        setState({ calendarData: null, templateMenuData: null, dailyMenus: [] });
-        updateCalendarPreview();
-        updateMenuPreview();
-        updateFileList();
-        updateUI();
-        showToast('Данные очищены', 'info');
-    }
+    statusDiv.textContent = message;
+    statusDiv.className = `status-${type}`;
+    statusDiv.style.display = 'block';
+    
+    if (type === 'success') statusDiv.style.background = '#d4edda';
+    else if (type === 'error') statusDiv.style.background = '#f8d7da';
+    else if (type === 'warning') statusDiv.style.background = '#fff3cd';
+    else statusDiv.style.background = '#d1ecf1';
+    
+    setTimeout(() => {
+        statusDiv.style.display = 'none';
+    }, 3000);
 }

@@ -1,10 +1,51 @@
 import { getState, setState, subscribe, loadFromLocalStorage, saveToLocalStorage } from './core/state-manager.js';
-import { renderGenerator, initGenerator } from './modules/generator.js';
-import { renderEditor, initEditor } from './modules/editor.js';
 import { showToast } from './core/utils.js';
 
+// Проверяем загрузку библиотек
+function checkLibraries() {
+    const missing = [];
+    if (typeof XLSX === 'undefined') missing.push('XLSX');
+    if (typeof saveAs === 'undefined') missing.push('FileSaver');
+    if (typeof JSZip === 'undefined') missing.push('JSZip');
+    if (typeof Chart === 'undefined') missing.push('Chart.js');
+    if (typeof ExcelJS === 'undefined') missing.push('ExcelJS');
+    
+    if (missing.length > 0) {
+        console.error('Missing libraries:', missing);
+        showToast(`Ошибка загрузки библиотек: ${missing.join(', ')}. Обновите страницу.`, 'error');
+        return false;
+    }
+    
+    console.log('All libraries loaded successfully');
+    return true;
+}
+
 let currentModule = 'generator';
-let unsubscribe = null;
+let generatorModule = null;
+let editorModule = null;
+
+// Динамическая загрузка модулей
+async function loadModule(moduleName) {
+    try {
+        if (moduleName === 'generator') {
+            if (!generatorModule) {
+                const module = await import('./modules/generator.js');
+                generatorModule = module;
+            }
+            return generatorModule;
+        } else if (moduleName === 'editor') {
+            if (!editorModule) {
+                const module = await import('./modules/editor.js');
+                editorModule = module;
+            }
+            return editorModule;
+        }
+    } catch (error) {
+        console.error(`Failed to load ${moduleName} module:`, error);
+        showToast(`Ошибка загрузки модуля: ${error.message}`, 'error');
+        return null;
+    }
+}
 
 // Рендеринг выбранного модуля
 async function renderModule(moduleName) {
@@ -15,17 +56,19 @@ async function renderModule(moduleName) {
     container.style.opacity = '0';
     
     setTimeout(async () => {
-        if (moduleName === 'generator') {
-            await renderGenerator(container);
-            initGenerator();
-        } else if (moduleName === 'editor') {
-            await renderEditor(container);
-            initEditor();
+        const module = await loadModule(moduleName);
+        if (!module) return;
+        
+        if (moduleName === 'generator' && module.renderGenerator) {
+            await module.renderGenerator(container);
+            if (module.initGenerator) module.initGenerator();
+        } else if (moduleName === 'editor' && module.renderEditor) {
+            await module.renderEditor(container);
+            if (module.initEditor) module.initEditor();
         }
         
         // Анимация появления
         container.style.opacity = '1';
-        container.style.transition = 'opacity 0.3s ease';
     }, 150);
 }
 
@@ -43,14 +86,14 @@ function updateActiveButton(moduleName) {
 // Инициализация переключателя модулей
 function initModuleSwitcher() {
     document.querySelectorAll('.module-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
+        btn.addEventListener('click', async () => {
             const module = btn.dataset.module;
             if (module === currentModule) return;
             
             currentModule = module;
             setState({ currentModule: module });
             updateActiveButton(module);
-            renderModule(module);
+            await renderModule(module);
             
             showToast(`Переключено на ${module === 'generator' ? 'Генератор меню' : 'Редактор меню'}`, 'info', 1500);
         });
@@ -59,7 +102,7 @@ function initModuleSwitcher() {
 
 // Подписка на изменения состояния
 function initStateSubscription() {
-    unsubscribe = subscribe((newState, oldState) => {
+    subscribe((newState, oldState) => {
         // Автоматическое сохранение при изменении данных
         if (newState.calendarData !== oldState.calendarData ||
             newState.templateMenuData !== oldState.templateMenuData ||
@@ -79,12 +122,6 @@ function initKeyboardShortcuts() {
             showToast('Данные сохранены', 'success', 1500);
         }
         
-        // Ctrl+Z - отмена (если нужно)
-        if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
-            e.preventDefault();
-            // Можно реализовать undo/redo в каждом модуле
-        }
-        
         // F1 - помощь
         if (e.key === 'F1') {
             e.preventDefault();
@@ -100,12 +137,12 @@ function showHelp() {
 📌 Генератор меню:
 - Загрузите файлы календаря (kp2026.xlsx) и типового меню (tm2026-sm.xlsx)
 - Выберите период и нажмите "Создать ежедневные меню"
-- Экспортируйте в ZIP, Excel или PDF
+- Экспортируйте в ZIP или Excel
 
 📌 Редактор меню:
 - Редактируйте типовое меню в удобной таблице
 - Массовые операции, проверка правил
-- Аналитика и отчёты
+- Экспорт в Excel
 
 ⌨️ Горячие клавиши:
 - Ctrl+S: Сохранить
@@ -118,6 +155,11 @@ function showHelp() {
 
 // Инициализация приложения
 async function initApp() {
+    // Проверяем библиотеки
+    if (!checkLibraries()) {
+        console.warn('Some libraries failed to load, but continuing...');
+    }
+    
     // Загружаем сохранённые данные
     loadFromLocalStorage();
     
@@ -132,7 +174,7 @@ async function initApp() {
     
     // Рендерим начальный модуль
     const state = getState();
-    currentModule = state.currentModule;
+    currentModule = state.currentModule || 'generator';
     updateActiveButton(currentModule);
     await renderModule(currentModule);
     
@@ -142,10 +184,9 @@ async function initApp() {
 // Запуск приложения
 document.addEventListener('DOMContentLoaded', initApp);
 
-// Экспорт глобальных функций для отладки (опционально)
+// Экспорт глобальных функций для отладки
 window.appAPI = {
     getState,
     setState,
-    saveToLocalStorage,
-    clearState: () => import('./core/state-manager.js').then(m => m.clearState())
+    saveToLocalStorage
 };
