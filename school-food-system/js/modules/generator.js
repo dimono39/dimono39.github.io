@@ -1,4 +1,4 @@
-// generator-pro.js - Полноценная PRO версия генератора меню
+// generator.js - Полноценная PRO версия генератора меню
 // Совмещает модульную структуру с расширенным функционалом
 
 import { getState, setState } from '../core/state-manager.js';
@@ -13,6 +13,8 @@ let currentYear = 2026;
 let isGridView = true;
 let currentMealFilter = 'all';
 let nutritionChart = null;
+let uploadedFiles = [];
+let detailedViewVisible = false;
 
 const STORAGE_KEY = 'schoolMenuGeneratorPro';
 
@@ -35,6 +37,13 @@ const MEAL_TYPES = {
     'dinner2': 'Ужин 2'
 };
 
+// ========== ЦВЕТА ДЛЯ ТИПОВ МЕНЮ ==========
+const MENU_TYPE_COLORS = {
+    1: '#3498db', 2: '#2ecc71', 3: '#9b59b6', 4: '#e67e22', 5: '#1abc9c',
+    6: '#34495e', 7: '#d35400', 8: '#16a085', 9: '#8e44ad', 10: '#27ae60',
+    11: '#2980b9', 12: '#27ae60', 13: '#f39c12', 14: '#e74c3c', 15: '#1abc9c'
+};
+
 // ========== СЕЗОННЫЕ ПРОДУКТЫ ==========
 const SEASONAL_PRODUCTS = {
     'январь': ['капуста', 'морковь', 'свекла', 'картофель', 'яблоки', 'цитрусовые'],
@@ -52,6 +61,61 @@ const SEASONAL_PRODUCTS = {
 };
 
 // ========== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ==========
+function adjustColor(color, amount) {
+    let usePound = false;
+    if (color[0] === "#") {
+        color = color.slice(1);
+        usePound = true;
+    }
+    const num = parseInt(color, 16);
+    let r = (num >> 16) + amount;
+    if (r > 255) r = 255;
+    else if (r < 0) r = 0;
+    let b = ((num >> 8) & 0x00FF) + amount;
+    if (b > 255) b = 255;
+    else if (b < 0) b = 0;
+    let g = (num & 0x0000FF) + amount;
+    if (g > 255) g = 255;
+    else if (g < 0) g = 0;
+    return (usePound ? "#" : "") + (g | (b << 8) | (r << 16)).toString(16).padStart(6, '0');
+}
+
+function getMealIcon(mealType) {
+    const icons = {
+        'breakfast': 'fa-sun',
+        'breakfast2': 'fa-coffee',
+        'lunch': 'fa-utensils',
+        'afternoonSnack': 'fa-cookie-bite',
+        'dinner': 'fa-moon',
+        'dinner2': 'fa-glass-whiskey'
+    };
+    return icons[mealType] || 'fa-utensils';
+}
+
+function getMealColor(mealType) {
+    const colors = {
+        'breakfast': '#f39c12',
+        'breakfast2': '#e67e22',
+        'lunch': '#e74c3c',
+        'afternoonSnack': '#2ecc71',
+        'dinner': '#9b59b6',
+        'dinner2': '#3498db'
+    };
+    return colors[mealType] || '#3498db';
+}
+
+function checkSeasonality(dishName, date) {
+    if (!date) return false;
+    const monthNames = ['январь', 'февраль', 'март', 'апрель', 'май', 'июнь', 
+                       'июль', 'август', 'сентябрь', 'октябрь', 'ноябрь', 'декабрь'];
+    const month = monthNames[date.getMonth()];
+    const seasonal = SEASONAL_PRODUCTS[month] || [];
+    const dishLower = dishName.toLowerCase();
+    
+    const isSeasonal = seasonal.some(s => dishLower.includes(s));
+    return !isSeasonal && seasonal.length > 0;
+}
+
 function normalizeSectionName(section) {
     if (!section) return '';
     const sectionLower = section.toLowerCase().trim();
@@ -107,61 +171,6 @@ function sortMealItemsByStructure(items, mealType) {
     return sortedItems;
 }
 
-function checkSeasonality(dishName, date) {
-    if (!date) return false;
-    const monthNames = ['январь', 'февраль', 'март', 'апрель', 'май', 'июнь', 
-                       'июль', 'август', 'сентябрь', 'октябрь', 'ноябрь', 'декабрь'];
-    const month = monthNames[date.getMonth()];
-    const seasonal = SEASONAL_PRODUCTS[month] || [];
-    const dishLower = dishName.toLowerCase();
-    
-    const isSeasonal = seasonal.some(s => dishLower.includes(s));
-    return !isSeasonal && seasonal.length > 0;
-}
-
-function getMealIcon(mealType) {
-    const icons = {
-        'breakfast': 'fa-sun',
-        'breakfast2': 'fa-coffee',
-        'lunch': 'fa-utensils',
-        'afternoonSnack': 'fa-cookie-bite',
-        'dinner': 'fa-moon',
-        'dinner2': 'fa-glass-whiskey'
-    };
-    return icons[mealType] || 'fa-utensils';
-}
-
-function getMealColor(mealType) {
-    const colors = {
-        'breakfast': '#f39c12',
-        'breakfast2': '#e67e22',
-        'lunch': '#e74c3c',
-        'afternoonSnack': '#2ecc71',
-        'dinner': '#9b59b6',
-        'dinner2': '#3498db'
-    };
-    return colors[mealType] || '#3498db';
-}
-
-function adjustColor(color, amount) {
-    let usePound = false;
-    if (color[0] === "#") {
-        color = color.slice(1);
-        usePound = true;
-    }
-    const num = parseInt(color, 16);
-    let r = (num >> 16) + amount;
-    if (r > 255) r = 255;
-    else if (r < 0) r = 0;
-    let b = ((num >> 8) & 0x00FF) + amount;
-    if (b > 255) b = 255;
-    else if (b < 0) b = 0;
-    let g = (num & 0x0000FF) + amount;
-    if (g > 255) g = 255;
-    else if (g < 0) g = 0;
-    return (usePound ? "#" : "") + (g | (b << 8) | (r << 16)).toString(16).padStart(6, '0');
-}
-
 // ========== ПАРСИНГ ФАЙЛОВ ==========
 async function readExcelFile(file) {
     return new Promise((resolve, reject) => {
@@ -186,7 +195,6 @@ async function processCalendarFile(file) {
     try {
         const data = await readExcelFile(file);
         
-        // Поиск названия школы
         let schoolName = '';
         for (let i = 0; i < Math.min(10, data.length); i++) {
             if (data[i] && data[i].some(cell => cell && cell.toString().toLowerCase().includes('школ'))) {
@@ -203,7 +211,6 @@ async function processCalendarFile(file) {
             }
         }
         
-        // Поиск строки с месяцами
         let monthRowIndex = -1;
         const monthNames = ['январь', 'февраль', 'март', 'апрель', 'май', 'июнь', 
                            'июль', 'август', 'сентябрь', 'октябрь', 'ноябрь', 'декабрь'];
@@ -223,7 +230,6 @@ async function processCalendarFile(file) {
             return false;
         }
         
-        // Получение номеров дней
         const dayHeaders = data[monthRowIndex - 1] || [];
         const dayNumbers = [];
         
@@ -241,7 +247,6 @@ async function processCalendarFile(file) {
             for (let i = 1; i <= 31; i++) dayNumbers.push(i);
         }
         
-        // Определение года
         let yearFromData = currentYear;
         const yearMatch = file.name.match(/\d{4}/);
         if (yearMatch) {
@@ -256,7 +261,6 @@ async function processCalendarFile(file) {
             year: currentYear
         };
         
-        // Парсинг месяцев и типов меню
         for (let i = monthRowIndex; i < Math.min(monthRowIndex + 12, data.length); i++) {
             const row = data[i];
             if (!row || !row[0]) continue;
@@ -295,7 +299,6 @@ async function processTemplateFile(file) {
     try {
         const data = await readExcelFile(file);
         
-        // Поиск информации о школе и возрасте
         let schoolName = '';
         let ageCategory = '';
         
@@ -325,7 +328,6 @@ async function processTemplateFile(file) {
             }
         }
         
-        // Поиск заголовков
         let headerRowIndex = -1;
         let weekColumn = -1, dayColumn = -1, mealColumn = -1;
         let sectionColumn = -1, dishColumn = -1, weightColumn = -1;
@@ -361,7 +363,6 @@ async function processTemplateFile(file) {
             if (headerRowIndex !== -1 && weekColumn !== -1 && dayColumn !== -1) break;
         }
         
-        // Если не нашли стандартные заголовки, ищем по данным
         if (headerRowIndex === -1) {
             for (let i = 0; i < Math.min(50, data.length); i++) {
                 const row = data[i];
@@ -436,7 +437,6 @@ async function processTemplateFile(file) {
                 }
             }
             
-            // Определение приёма пищи
             let mealCell = '';
             if (mealColumn !== -1 && row[mealColumn] !== undefined && row[mealColumn] !== null) {
                 mealCell = row[mealColumn].toString().trim();
@@ -468,7 +468,6 @@ async function processTemplateFile(file) {
                 }
             }
             
-            // Добавление блюда
             if (currentWeek && currentDay && currentMeal && currentMeal !== null) {
                 let dishName = '';
                 if (dishColumn !== -1 && row[dishColumn] !== undefined && row[dishColumn] !== null) {
@@ -536,7 +535,6 @@ async function processTemplateFile(file) {
             }
         }
         
-        // Сортировка блюд по структуре
         for (const weekNum in templateMenuData.weeks) {
             const week = templateMenuData.weeks[weekNum];
             for (const dayNum in week) {
@@ -576,7 +574,6 @@ function generateMenuForDate(date) {
     let weekNum = Math.ceil(menuType / maxDayNumber);
     let dayNum = menuType - (weekNum - 1) * maxDayNumber;
     
-    // Проверка существования дня в шаблоне
     if (!templateMenuData.weeks[weekNum] || !templateMenuData.weeks[weekNum][dayNum]) {
         if (templateMenuData.weeks[weekNum]) {
             const availableDays = Object.keys(templateMenuData.weeks[weekNum]).map(Number);
@@ -689,7 +686,7 @@ function createExcelData(menu) {
     return data;
 }
 
-async function exportAllMenusAsZip(menus, schoolName) {
+async function exportAllMenusAsZip(menus) {
     if (!menus.length) {
         showToast('Нет меню для экспорта', 'warning');
         return;
@@ -771,7 +768,7 @@ function getAnalyticsData(menus) {
     const uniqueDishes = new Set();
     const dailyData = [];
     
-    menus.forEach((menu, idx) => {
+    menus.forEach((menu) => {
         let dayCal = 0, dayProt = 0, dayFat = 0, dayCarb = 0;
         ['breakfast', 'breakfast2', 'lunch', 'afternoonSnack', 'dinner', 'dinner2'].forEach(meal => {
             (menu[meal]?.items || []).forEach(item => {
@@ -826,45 +823,6 @@ function searchDishes(menus, searchTerm) {
     return results;
 }
 
-// ========== РЕДАКТИРОВАНИЕ ==========
-function updateDish(menu, mealType, oldName, newDishData) {
-    const items = menu[mealType]?.items;
-    if (!items) return false;
-    
-    const index = items.findIndex(item => item.name === oldName);
-    if (index === -1) return false;
-    
-    items[index] = { ...items[index], ...newDishData };
-    return true;
-}
-
-function addDishToMeal(menu, mealType, dish) {
-    if (!menu[mealType]) {
-        menu[mealType] = { items: [] };
-    }
-    menu[mealType].items.push(dish);
-    return true;
-}
-
-function deleteDish(menu, mealType, dishName) {
-    const items = menu[mealType]?.items;
-    if (!items) return false;
-    
-    const index = items.findIndex(item => item.name === dishName);
-    if (index === -1) return false;
-    
-    items.splice(index, 1);
-    return true;
-}
-
-function duplicateMenu(menu, newDate) {
-    const newMenu = deepClone(menu);
-    newMenu.date = new Date(newDate);
-    newMenu.dateString = formatDate(newDate);
-    newMenu.fileName = `${newDate.getFullYear()}-${String(newDate.getMonth() + 1).padStart(2, '0')}-${String(newDate.getDate()).padStart(2, '0')}-sm.xlsx`;
-    return newMenu;
-}
-
 // ========== ХРАНЕНИЕ ==========
 function saveToLocalStorage(data) {
     const saveData = {
@@ -911,10 +869,10 @@ function clearLocalStorage() {
 // ========== ОСНОВНОЙ МОДУЛЬ ==========
 export async function renderGenerator(container) {
     container.innerHTML = `
-        <div class="generator-module-pro" style="animation: fadeIn 0.5s ease;">
-            <!-- Верхняя панель: загрузка файлов и настройки -->
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-bottom: 30px;">
-                <!-- Левая колонка - загрузка -->
+        <div class="generator-module">
+            <!-- Верхняя панель -->
+            <div class="app-container">
+                <!-- Левая колонка -->
                 <div class="card">
                     <h2 class="card-title"><i class="fas fa-upload"></i> Загрузка файлов ФЦМПО</h2>
                     
@@ -924,16 +882,16 @@ export async function renderGenerator(container) {
                         <i class="fas fa-file-excel floating"></i>
                         <h3>Перетащите файлы Excel ФЦМПО сюда</h3>
                         <p>или нажмите для выбора файлов</p>
-                        <p style="font-size: 0.9rem; color: #6c757d;">Требуемые файлы: kp2026.xlsx (календарь), tm2026-sm.xlsx (типовое меню)</p>
-                        <input type="file" id="fileInput" class="file-input" multiple accept=".xlsx,.xls" style="display: none;">
+                        <p class="file-size">Требуемые файлы: kp2026.xlsx (календарь), tm2026-sm.xlsx (типовое меню)</p>
+                        <input type="file" id="fileInput" class="file-input" multiple accept=".xlsx,.xls">
                     </div>
                     
                     <div id="fileList" class="file-list"></div>
                     
-                    <div id="storedDataInfo" class="stored-data-info" style="display: none;">
+                    <div id="storedDataInfo" class="stored-data-info">
                         <h3><i class="fas fa-database"></i> Данные в памяти</h3>
                         <p id="storedDataText"></p>
-                        <div style="display: flex; gap: 10px;">
+                        <div class="buttons-container">
                             <button id="loadFromStorageBtn" class="btn btn-secondary btn-sm">
                                 <i class="fas fa-download"></i> Загрузить
                             </button>
@@ -945,6 +903,11 @@ export async function renderGenerator(container) {
                     
                     <div class="config-section">
                         <h2 class="card-title"><i class="fas fa-cog"></i> Настройки генерации</h2>
+                        
+                        <div class="year-selector">
+                            <div class="year-badge" id="calendarYear">2026</div>
+                            <div>Выберите период в пределах календарного года</div>
+                        </div>
                         
                         <div class="form-group">
                             <label><i class="fas fa-calendar-alt"></i> Начальная дата</label>
@@ -983,7 +946,7 @@ export async function renderGenerator(container) {
                             </button>
                         </div>
                         
-                        <div class="export-options" style="display: flex; gap: 10px; margin-top: 15px; flex-wrap: wrap;">
+                        <div class="export-options">
                             <button id="exportAllBtn" class="btn btn-success" disabled>
                                 <i class="fas fa-download"></i> Экспорт всех (ZIP)
                             </button>
@@ -997,7 +960,7 @@ export async function renderGenerator(container) {
                     </div>
                 </div>
                 
-                <!-- Правая колонка - предпросмотр -->
+                <!-- Правая колонка -->
                 <div class="card">
                     <h2 class="card-title"><i class="fas fa-eye"></i> Предпросмотр данных</h2>
                     
@@ -1012,8 +975,8 @@ export async function renderGenerator(container) {
                     </div>
                     
                     <div class="meal-structure-info">
-                        <div style="font-weight: 700; margin-bottom: 10px;"><i class="fas fa-list-ol"></i> Структура приемов пищи (СанПиН-3590)</div>
-                        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; font-size: 0.85rem;">
+                        <div class="preview-title"><i class="fas fa-list-ol"></i> Структура приемов пищи (СанПиН-3590)</div>
+                        <div class="meal-structure-grid">
                             <div>🍳 Завтрак: гор.блюдо, гор.напиток, хлеб, фрукты</div>
                             <div>🍎 Завтрак 2: фрукты</div>
                             <div>🍲 Обед: закуска, 1 блюдо, 2 блюдо, гарнир, напиток, хлеб</div>
@@ -1024,7 +987,7 @@ export async function renderGenerator(container) {
                 </div>
             </div>
             
-            <!-- Результаты генерации -->
+            <!-- Результаты -->
             <div class="card" id="resultsCard" style="display: none;">
                 <h2 class="card-title"><i class="fas fa-clipboard-list"></i> Сгенерированные меню</h2>
                 
@@ -1080,57 +1043,109 @@ export async function renderGenerator(container) {
                 <canvas id="nutritionChart" style="max-height: 250px; width: 100%;"></canvas>
                 
                 <div class="section-title"><i class="fas fa-exchange-alt"></i> Калькулятор замены блюда</div>
-                <div id="replacementCalculator"></div>
+                <div id="replacementCalculator" class="replacement-calc"></div>
             </div>
             
             <!-- Модальные окна -->
             <div id="searchModal" class="modal-overlay" style="display: none;"></div>
             <div id="editModal" class="modal-overlay" style="display: none;"></div>
             
-            <!-- Прогресс-бар -->
-            <div id="progressContainer" style="display: none;">
+            <!-- Прогресс -->
+            <div id="progressContainer" class="progress-container" style="display: none;">
                 <div class="progress-bar">
                     <div id="progressFill" class="progress-fill" style="width: 0%;"></div>
                 </div>
-                <div id="progressText" style="text-align: center; margin-top: 10px;"></div>
+                <div id="progressText" class="progress-text"></div>
             </div>
         </div>
     `;
     
     // Добавляем стили
-    addProStyles();
+    addStyles();
     
-    // Инициализация обработчиков
-    attachGeneratorEvents();
-    
-    // Загрузка сохранённых данных
+    // Инициализация
+    attachEvents();
     loadStoredDataInfo();
 }
 
-function addProStyles() {
-    if (document.getElementById('pro-styles')) return;
+function addStyles() {
+    if (document.getElementById('generator-styles')) return;
     
     const style = document.createElement('style');
-    style.id = 'pro-styles';
+    style.id = 'generator-styles';
     style.textContent = `
-        .generator-module-pro .file-upload-area {
+        .generator-module {
+            animation: fadeIn 0.5s ease;
+        }
+        
+        .app-container {
+            display: grid;
+            grid-template-columns: 1fr 1.2fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+        
+        @media (max-width: 1200px) {
+            .app-container {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            padding: 25px;
+            transition: all 0.3s ease;
+        }
+        
+        .card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+        
+        .card-title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 20px;
+            color: #2c3e50;
+            border-bottom: 2px solid #ecf0f1;
+            padding-bottom: 12px;
+        }
+        
+        .card-title i {
+            font-size: 1.5rem;
+            color: #3498db;
+        }
+        
+        .file-upload-area {
             border: 3px dashed #bdc3c7;
             border-radius: 10px;
             padding: 40px 20px;
             text-align: center;
             cursor: pointer;
             transition: all 0.3s ease;
-            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
         }
-        .generator-module-pro .file-upload-area.dragover {
+        
+        .file-upload-area:hover, .file-upload-area.dragover {
             border-color: #3498db;
-            background: linear-gradient(135deg, rgba(52,152,219,0.1) 0%, rgba(41,128,185,0.05) 100%);
+            background: rgba(52,152,219,0.05);
             transform: scale(1.02);
         }
-        .generator-module-pro .file-list {
+        
+        .file-upload-area i {
+            font-size: 3rem;
+            color: #3498db;
+            margin-bottom: 15px;
+        }
+        
+        .file-list {
             margin-top: 20px;
         }
-        .generator-module-pro .file-item {
+        
+        .file-item {
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -1140,13 +1155,169 @@ function addProStyles() {
             margin-bottom: 8px;
             border-left: 4px solid #27ae60;
         }
-        .generator-module-pro .menu-grid {
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 10px 12px;
+            border: 2px solid #e0e6ed;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+        
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+        
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(52,152,219,0.4);
+        }
+        
+        .btn-success {
+            background: linear-gradient(135deg, #27ae60, #219653);
+            color: white;
+        }
+        
+        .btn-success:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(39,174,96,0.4);
+        }
+        
+        .btn-secondary {
+            background: linear-gradient(135deg, #6c757d, #5a6268);
+            color: white;
+        }
+        
+        .btn-info {
+            background: linear-gradient(135deg, #17a2b8, #138496);
+            color: white;
+        }
+        
+        .btn-warning {
+            background: linear-gradient(135deg, #f39c12, #e67e22);
+            color: white;
+        }
+        
+        .btn-danger {
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+            color: white;
+        }
+        
+        .btn-sm {
+            padding: 6px 12px;
+            font-size: 12px;
+        }
+        
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        
+        .buttons-container, .export-options {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 15px;
+        }
+        
+        .data-preview {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border: 1px solid #e0e6ed;
+        }
+        
+        .preview-title {
+            font-weight: 700;
+            margin-bottom: 10px;
+            color: #2c3e50;
+        }
+        
+        .meal-structure-info {
+            margin-top: 20px;
+            padding: 15px;
+            background: #e8f4fc;
+            border-radius: 8px;
+        }
+        
+        .meal-structure-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 8px;
+            font-size: 13px;
+        }
+        
+        .status-message {
+            padding: 12px 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            animation: slideIn 0.3s ease;
+        }
+        
+        .status-success {
+            background: #d4edda;
+            color: #155724;
+            border-left: 4px solid #27ae60;
+        }
+        
+        .status-error {
+            background: #f8d7da;
+            color: #721c24;
+            border-left: 4px solid #e74c3c;
+        }
+        
+        .status-info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border-left: 4px solid #17a2b8;
+        }
+        
+        .status-warning {
+            background: #fff3cd;
+            color: #856404;
+            border-left: 4px solid #f39c12;
+        }
+        
+        .menu-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
             gap: 20px;
             margin-top: 20px;
         }
-        .generator-module-pro .menu-card {
+        
+        .menu-card {
             border: 2px solid #e0e6ed;
             border-radius: 10px;
             overflow: hidden;
@@ -1154,63 +1325,97 @@ function addProStyles() {
             transition: all 0.3s ease;
             background: white;
         }
-        .generator-module-pro .menu-card:hover {
+        
+        .menu-card:hover {
             transform: translateY(-5px);
             box-shadow: 0 10px 25px rgba(0,0,0,0.15);
             border-color: #3498db;
         }
-        .generator-module-pro .menu-card.active {
+        
+        .menu-card.active {
             border-color: #3498db;
             box-shadow: 0 0 0 3px rgba(52,152,219,0.2);
         }
-        .generator-module-pro .menu-card-header {
+        
+        .menu-card-header {
             background: linear-gradient(135deg, #3498db, #2980b9);
             color: white;
             padding: 15px;
             display: flex;
             justify-content: space-between;
+            align-items: center;
         }
-        .generator-module-pro .menu-card-content {
+        
+        .menu-card-date {
+            font-weight: 600;
+        }
+        
+        .menu-card-type {
+            background: rgba(255,255,255,0.2);
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+        }
+        
+        .menu-card-content {
             padding: 15px;
         }
-        .generator-module-pro .menu-items {
+        
+        .menu-navigation {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+        
+        .nav-buttons {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .menu-counter {
+            font-weight: 700;
+            color: #2c3e50;
+        }
+        
+        .menu-stats {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
             gap: 15px;
+            margin-bottom: 20px;
         }
-        .generator-module-pro .menu-item {
-            border: 1px solid #e0e6ed;
+        
+        .stat-item {
+            background: linear-gradient(135deg, #f0f7ff, #e1f0ff);
+            padding: 12px 15px;
             border-radius: 8px;
-            padding: 12px;
-            transition: all 0.2s ease;
-            cursor: pointer;
+            border-left: 4px solid #3498db;
         }
-        .generator-module-pro .menu-item:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-            border-color: #3498db;
+        
+        .stat-label {
+            font-size: 12px;
+            color: #6c757d;
+            margin-bottom: 5px;
         }
-        .generator-module-pro .meal-option-btn {
-            padding: 8px 16px;
-            background: #e8f4fc;
-            border: 1px solid #b6d4fe;
-            border-radius: 20px;
-            cursor: pointer;
-            transition: all 0.2s ease;
+        
+        .stat-value {
+            font-weight: 700;
+            font-size: 18px;
+            color: #2c3e50;
         }
-        .generator-module-pro .meal-option-btn.active {
-            background: linear-gradient(135deg, #3498db, #2980b9);
-            color: white;
-            border-color: #3498db;
-        }
-        .generator-module-pro .detailed-view {
-            margin-top: 30px;
-            padding: 25px;
+        
+        .detailed-view {
+            margin-top: 20px;
+            padding: 20px;
             background: #f8f9fa;
             border-radius: 10px;
             border: 2px solid #e0e6ed;
         }
-        .generator-module-pro .detailed-view-header {
+        
+        .detailed-view-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -1218,7 +1423,85 @@ function addProStyles() {
             padding-bottom: 15px;
             border-bottom: 2px solid #e0e6ed;
         }
-        .generator-module-pro .modal-overlay {
+        
+        .meal-options {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+        
+        .meal-option-btn {
+            padding: 8px 16px;
+            background: #e8f4fc;
+            border: 1px solid #b6d4fe;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .meal-option-btn.active {
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            color: white;
+            border-color: #3498db;
+        }
+        
+        .menu-items {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .menu-item {
+            border: 1px solid #e0e6ed;
+            border-radius: 8px;
+            padding: 12px;
+            background: white;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+        
+        .menu-item:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            border-color: #3498db;
+        }
+        
+        .item-name {
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #2c3e50;
+        }
+        
+        .item-details {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            color: #6c757d;
+            margin-top: 5px;
+        }
+        
+        .section-title {
+            background: #f8f9fa;
+            padding: 10px 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            font-weight: 600;
+            color: #2c3e50;
+            border-left: 4px solid #3498db;
+        }
+        
+        .season-badge {
+            background: #27ae60;
+            color: white;
+            border-radius: 20px;
+            padding: 2px 8px;
+            font-size: 10px;
+            margin-left: 8px;
+        }
+        
+        .modal-overlay {
             position: fixed;
             top: 0;
             left: 0;
@@ -1230,80 +1513,96 @@ function addProStyles() {
             align-items: center;
             z-index: 2000;
         }
-        .generator-module-pro .modal-content {
+        
+        .modal-content {
             background: white;
-            border-radius: 10px;
+            border-radius: 12px;
             padding: 25px;
             max-width: 500px;
             width: 90%;
             max-height: 80vh;
             overflow-y: auto;
         }
-        .generator-module-pro .progress-bar {
+        
+        .progress-container {
+            margin-top: 20px;
+        }
+        
+        .progress-bar {
             height: 8px;
             background: #e9ecef;
             border-radius: 4px;
             overflow: hidden;
-            margin: 20px 0;
         }
-        .generator-module-pro .progress-fill {
+        
+        .progress-fill {
             height: 100%;
             background: linear-gradient(90deg, #27ae60, #3498db);
             width: 0%;
             transition: width 0.3s ease;
         }
-        .generator-module-pro .status-message {
-            padding: 12px 20px;
+        
+        .progress-text {
+            text-align: center;
+            margin-top: 8px;
+            font-size: 13px;
+            color: #6c757d;
+        }
+        
+        .replacement-calc {
+            padding: 15px;
+            background: white;
             border-radius: 8px;
+            margin-top: 10px;
+        }
+        
+        .year-selector {
+            display: flex;
+            align-items: center;
+            gap: 15px;
             margin-bottom: 20px;
-            animation: slideIn 0.3s ease;
         }
-        .generator-module-pro .status-success {
-            background: #d4edda;
-            color: #155724;
-            border-left: 4px solid #27ae60;
-        }
-        .generator-module-pro .status-error {
-            background: #f8d7da;
-            color: #721c24;
-            border-left: 4px solid #e74c3c;
-        }
-        .generator-module-pro .status-info {
-            background: #d1ecf1;
-            color: #0c5460;
-            border-left: 4px solid #17a2b8;
-        }
-        .generator-module-pro .status-warning {
-            background: #fff3cd;
-            color: #856404;
-            border-left: 4px solid #f39c12;
-        }
-        .generator-module-pro .season-badge {
-            background: #27ae60;
+        
+        .year-badge {
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
             color: white;
+            padding: 5px 15px;
             border-radius: 20px;
-            padding: 2px 8px;
-            font-size: 0.7rem;
-            margin-left: 8px;
+            font-weight: 600;
         }
+        
+        .stored-data-info {
+            background: #e8f4fc;
+            border: 1px solid #b6d4fe;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+            display: none;
+        }
+        
+        .floating {
+            animation: floating 3s ease-in-out infinite;
+        }
+        
+        @keyframes floating {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
         @keyframes slideIn {
             from { opacity: 0; transform: translateY(-20px); }
             to { opacity: 1; transform: translateY(0); }
-        }
-        .generator-module-pro .floating {
-            animation: floating 3s ease-in-out infinite;
-        }
-        @keyframes floating {
-            0% { transform: translateY(0px); }
-            50% { transform: translateY(-10px); }
-            100% { transform: translateY(0px); }
         }
     `;
     document.head.appendChild(style);
 }
 
-function attachGeneratorEvents() {
-    // Drag & Drop
+function attachEvents() {
     const dropArea = document.getElementById('dropArea');
     const fileInput = document.getElementById('fileInput');
     
@@ -1319,34 +1618,30 @@ function attachGeneratorEvents() {
         dropArea.addEventListener('drop', async (e) => {
             e.preventDefault();
             dropArea.classList.remove('dragover');
-            const files = Array.from(e.dataTransfer.files);
-            await handleFiles(files);
+            await handleFiles(Array.from(e.dataTransfer.files));
         });
     }
     
     if (fileInput) {
         fileInput.addEventListener('change', async (e) => {
-            const files = Array.from(e.target.files);
-            await handleFiles(files);
+            await handleFiles(Array.from(e.target.files));
         });
     }
     
-    // Кнопки
-    document.getElementById('generateBtn')?.addEventListener('click', () => startGeneration());
-    document.getElementById('analyzeBtn')?.addEventListener('click', () => showAnalytics());
-    document.getElementById('searchBtn')?.addEventListener('click', () => showSearch());
-    document.getElementById('exportAllBtn')?.addEventListener('click', () => exportAll());
-    document.getElementById('exportCurrentBtn')?.addEventListener('click', () => exportCurrent());
-    document.getElementById('downloadTemplateBtn')?.addEventListener('click', () => downloadTemplate());
-    document.getElementById('loadFromStorageBtn')?.addEventListener('click', () => loadStoredData());
-    document.getElementById('clearStorageBtn')?.addEventListener('click', () => clearStoredData());
+    document.getElementById('generateBtn')?.addEventListener('click', startGeneration);
+    document.getElementById('analyzeBtn')?.addEventListener('click', showAnalytics);
+    document.getElementById('searchBtn')?.addEventListener('click', showSearch);
+    document.getElementById('exportAllBtn')?.addEventListener('click', () => exportAllMenusAsZip(dailyMenus));
+    document.getElementById('exportCurrentBtn')?.addEventListener('click', () => exportCurrentMenuAsExcel(dailyMenus[currentMenuIndex]));
+    document.getElementById('downloadTemplateBtn')?.addEventListener('click', downloadTemplate);
+    document.getElementById('loadFromStorageBtn')?.addEventListener('click', loadStoredData);
+    document.getElementById('clearStorageBtn')?.addEventListener('click', clearStoredData);
     document.getElementById('prevMenuBtn')?.addEventListener('click', () => navigateMenus(-1));
     document.getElementById('nextMenuBtn')?.addEventListener('click', () => navigateMenus(1));
-    document.getElementById('toggleViewBtn')?.addEventListener('click', () => toggleView());
-    document.getElementById('duplicateDayBtn')?.addEventListener('click', () => duplicateCurrent());
-    document.getElementById('closeDetailView')?.addEventListener('click', () => closeDetailedView());
+    document.getElementById('toggleViewBtn')?.addEventListener('click', toggleView);
+    document.getElementById('duplicateDayBtn')?.addEventListener('click', duplicateCurrentMenu);
+    document.getElementById('closeDetailView')?.addEventListener('click', closeDetailedView);
     
-    // Фильтры приёмов пищи
     const mealOptions = document.getElementById('mealOptions');
     if (mealOptions) {
         mealOptions.addEventListener('click', (e) => {
@@ -1363,13 +1658,10 @@ function attachGeneratorEvents() {
     }
 }
 
-let uploadedFiles = [];
-let detailedViewVisible = false;
-
 async function handleFiles(files) {
     for (const file of files) {
         if (!file.name.match(/\.(xls|xlsx)$/)) {
-            showStatus(`Файл ${file.name} не является Excel файлом`, 'error');
+            showStatus(`Файл ${file.name} не является Excel`, 'error');
             continue;
         }
         
@@ -1378,16 +1670,12 @@ async function handleFiles(files) {
         
         if (fileName.includes('kp') && file.name.match(/\d{4}/)) {
             success = await processCalendarFile(file);
-            if (success) {
-                uploadedFiles.push({ name: file.name, size: file.size, type: 'calendar' });
-            }
+            if (success) uploadedFiles.push({ name: file.name, size: file.size, type: 'calendar' });
         } else if (fileName.includes('tm') && fileName.includes('-sm')) {
             success = await processTemplateFile(file);
-            if (success) {
-                uploadedFiles.push({ name: file.name, size: file.size, type: 'template' });
-            }
+            if (success) uploadedFiles.push({ name: file.name, size: file.size, type: 'template' });
         } else {
-            showStatus(`Неизвестный тип файла: ${file.name}`, 'warning');
+            showStatus(`Неизвестный тип: ${file.name}`, 'warning');
         }
     }
     
@@ -1399,20 +1687,20 @@ async function handleFiles(files) {
 }
 
 function updateFileList() {
-    const fileListDiv = document.getElementById('fileList');
-    if (!fileListDiv) return;
+    const container = document.getElementById('fileList');
+    if (!container) return;
     
     if (uploadedFiles.length === 0) {
-        fileListDiv.innerHTML = '<p style="text-align: center; color: #6c757d;">Файлы не загружены</p>';
+        container.innerHTML = '<p style="text-align: center; color: #6c757d;">Файлы не загружены</p>';
         return;
     }
     
-    fileListDiv.innerHTML = uploadedFiles.map(file => `
+    container.innerHTML = uploadedFiles.map(file => `
         <div class="file-item">
             <div>
                 <i class="fas ${file.type === 'calendar' ? 'fa-calendar-alt' : 'fa-utensils'}"></i>
                 <strong>${escapeHtml(file.name)}</strong>
-                <div style="font-size: 0.85rem; color: #6c757d;">${file.type === 'calendar' ? 'Календарь' : 'Типовое меню'} • ${formatFileSize(file.size)}</div>
+                <div style="font-size: 12px; color: #6c757d;">${file.type === 'calendar' ? 'Календарь' : 'Типовое меню'} • ${formatFileSize(file.size)}</div>
             </div>
             <i class="fas fa-check-circle" style="color: #27ae60;"></i>
         </div>
@@ -1435,7 +1723,7 @@ function updateCalendarPreview() {
     
     container.innerHTML = `
         <p><strong>Год:</strong> ${calendarData.year || 2026}</p>
-        <p><strong>Месяцев с данными:</strong> ${Object.keys(calendarData.months || {}).length}</p>
+        <p><strong>Месяцев:</strong> ${Object.keys(calendarData.months || {}).length}</p>
         <p><strong>Дней с меню:</strong> ${daysWithMenu}</p>
         ${calendarData.schoolName ? `<p><strong>Школа:</strong> ${escapeHtml(calendarData.schoolName)}</p>` : ''}
     `;
@@ -1451,7 +1739,7 @@ function updateMenuPreview() {
     }
     
     let totalDishes = 0;
-    for (const week of Object.values(templateMenuData.wecks || {})) {
+    for (const week of Object.values(templateMenuData.weeks || {})) {
         for (const day of Object.values(week)) {
             for (const meal of Object.values(day)) {
                 totalDishes += meal?.items?.length || 0;
@@ -1460,7 +1748,7 @@ function updateMenuPreview() {
     }
     
     container.innerHTML = `
-        <p><strong>Недель в меню:</strong> ${Object.keys(templateMenuData.weeks || {}).length}</p>
+        <p><strong>Недель:</strong> ${Object.keys(templateMenuData.weeks || {}).length}</p>
         <p><strong>Всего блюд:</strong> ${totalDishes}</p>
         ${templateMenuData.schoolName ? `<p><strong>Школа:</strong> ${escapeHtml(templateMenuData.schoolName)}</p>` : ''}
         ${templateMenuData.ageCategory ? `<p><strong>Возраст:</strong> ${escapeHtml(templateMenuData.ageCategory)}</p>` : ''}
@@ -1469,9 +1757,7 @@ function updateMenuPreview() {
 
 function updateUI() {
     const generateBtn = document.getElementById('generateBtn');
-    if (generateBtn) {
-        generateBtn.disabled = !(calendarData && templateMenuData);
-    }
+    if (generateBtn) generateBtn.disabled = !(calendarData && templateMenuData);
     
     const exportAllBtn = document.getElementById('exportAllBtn');
     const exportCurrentBtn = document.getElementById('exportCurrentBtn');
@@ -1531,7 +1817,7 @@ async function startGeneration() {
         renderResults();
         saveCurrentState();
     } else {
-        showStatus('Не удалось сгенерировать меню для выбранного периода', 'warning');
+        showStatus('Не удалось сгенерировать меню', 'warning');
     }
 }
 
@@ -1540,13 +1826,11 @@ function renderResults() {
     const menuNavigation = document.getElementById('menuNavigation');
     const menuStats = document.getElementById('menuStats');
     const menuGrid = document.getElementById('menuGrid');
-    const dailyMenuContent = document.getElementById('dailyMenuContent');
     
     resultsCard.style.display = 'block';
     menuNavigation.style.display = 'flex';
     menuStats.style.display = 'flex';
     menuGrid.style.display = 'grid';
-    dailyMenuContent.style.display = 'none';
     detailedViewVisible = false;
     document.getElementById('detailedView').style.display = 'none';
     
@@ -1564,15 +1848,10 @@ function updateMenuGrid() {
         return;
     }
     
-    const menuTypeColors = {
-        1: '#3498db', 2: '#2ecc71', 3: '#9b59b6', 4: '#e67e22', 5: '#1abc9c',
-        6: '#34495e', 7: '#d35400', 8: '#16a085', 9: '#8e44ad', 10: '#27ae60'
-    };
-    
     menuGrid.innerHTML = dailyMenus.map((menu, index) => {
         const breakfastCount = menu.breakfast?.items?.length || 0;
         const lunchCount = menu.lunch?.items?.length || 0;
-        const headerColor = menuTypeColors[menu.menuType] || '#3498db';
+        const headerColor = MENU_TYPE_COLORS[menu.menuType] || '#3498db';
         
         return `
             <div class="menu-card ${index === currentMenuIndex ? 'active' : ''}" data-index="${index}" onclick="window.selectMenu && window.selectMenu(${index})">
@@ -1589,7 +1868,6 @@ function updateMenuGrid() {
         `;
     }).join('');
     
-    // Глобальная функция для выбора меню
     window.selectMenu = (index) => {
         currentMenuIndex = index;
         document.querySelectorAll('.menu-card').forEach(card => card.classList.remove('active'));
@@ -1606,7 +1884,6 @@ function showDetailedView() {
     const detailMenuDate = document.getElementById('detailMenuDate');
     const detailedView = document.getElementById('detailedView');
     const menuGrid = document.getElementById('menuGrid');
-    const dailyMenuContent = document.getElementById('dailyMenuContent');
     
     detailMenuDate.textContent = `${menu.dateString} (Меню ${menu.menuType}) | Школа: ${menu.schoolName || '—'} | ${menu.ageCategory || '—'} лет`;
     
@@ -1615,7 +1892,6 @@ function showDetailedView() {
     updateReplacementCalculator(menu);
     
     menuGrid.style.display = 'none';
-    dailyMenuContent.style.display = 'none';
     detailedView.style.display = 'block';
     detailedViewVisible = true;
 }
@@ -1654,7 +1930,7 @@ function updateMealsDisplay(menu) {
                     </div>
                     <div class="item-details">
                         <span>${item.price || 0} ₽</span>
-                        <span><i class="fas fa-edit" style="cursor:pointer;color:#3498db;"></i></span>
+                        <span><i class="fas fa-edit" style="cursor:pointer; color:#3498db;"></i></span>
                     </div>
                 </div>
             `;
@@ -1726,17 +2002,16 @@ function updateReplacementCalculator(menu) {
     });
     
     container.innerHTML = `
-        <select id="replaceSelect" style="width:100%; padding:10px; margin:10px 0; border-radius:8px; border:2px solid #e0e6ed;">
+        <select id="replaceSelect" style="width:100%; padding:8px; margin:10px 0; border-radius:6px; border:1px solid #ddd;">
             ${options}
         </select>
-        <input type="text" id="newDishName" placeholder="Название нового блюда" style="width:100%; padding:10px; margin:10px 0; border-radius:8px; border:2px solid #e0e6ed;">
-        <input type="number" id="newDishWeight" placeholder="Вес, г" style="width:100%; padding:10px; margin:10px 0; border-radius:8px; border:2px solid #e0e6ed;">
-        <button class="btn btn-primary" onclick="window.calculateReplacement && window.calculateReplacement()" style="width:100%;">Рассчитать изменения</button>
-        <div id="replacementResult" style="margin-top:15px;"></div>
+        <input type="text" id="newDishName" placeholder="Название нового блюда" style="width:100%; padding:8px; margin:10px 0; border-radius:6px; border:1px solid #ddd;">
+        <input type="number" id="newDishWeight" placeholder="Вес, г" style="width:100%; padding:8px; margin:10px 0; border-radius:6px; border:1px solid #ddd;">
+        <button class="btn btn-primary" onclick="window.calculateReplacement()" style="width:100%;">Рассчитать изменения</button>
+        <div id="replacementResult" style="margin-top:10px;"></div>
     `;
 }
 
-// Глобальные функции для модальных окон и редактирования
 window.calculateReplacement = function() {
     const select = document.getElementById('replaceSelect');
     const newName = document.getElementById('newDishName').value;
@@ -1759,7 +2034,7 @@ window.calculateReplacement = function() {
         
         document.getElementById('replacementResult').innerHTML = `
             <div class="status-success">
-                <strong>Изменения при замене:</strong><br>
+                <strong>Изменения:</strong><br>
                 Вес: ${oldItem.weight}г → ${newWeight}г (${weightChange}%)<br>
                 Калории: ${oldCalories} → ${newCalories.toFixed(0)} ккал (${calorieChange}%)<br>
                 <button class="btn btn-primary" style="margin-top:10px" onclick="window.applyReplacement('${mealType}','${escapeHtml(oldName)}','${escapeHtml(newName)}',${newWeight})">
@@ -1780,7 +2055,7 @@ window.applyReplacement = function(mealType, oldName, newName, newWeight) {
         saveCurrentState();
         updateMealsDisplay(menu);
         updateNutritionChart(menu);
-        showStatus('Блюдо успешно заменено', 'success');
+        showStatus('Блюдо заменено', 'success');
         document.getElementById('replacementResult').innerHTML = '';
     }
 };
@@ -1793,27 +2068,27 @@ window.editDish = function(menuIdx, mealType, dishName) {
     const modal = document.getElementById('editModal');
     modal.innerHTML = `
         <div class="modal-content">
-            <div class="modal-header" style="display: flex; justify-content: space-between; margin-bottom: 20px;">
-                <h3><i class="fas fa-edit"></i> Редактирование блюда</h3>
-                <button class="close-btn" onclick="window.closeModal('editModal')" style="background:none; border:none; font-size:1.5rem; cursor:pointer;">&times;</button>
+            <div class="modal-header" style="display: flex; justify-content: space-between; margin-bottom: 15px;">
+                <h3><i class="fas fa-edit"></i> Редактирование</h3>
+                <button class="close-btn" onclick="window.closeModal('editModal')" style="background:none; border:none; font-size:24px; cursor:pointer;">&times;</button>
             </div>
             <label>Название:</label>
-            <input type="text" id="editName" value="${escapeHtml(dish.name)}" style="width:100%; padding:10px; margin:10px 0; border-radius:8px; border:2px solid #e0e6ed;">
+            <input type="text" id="editName" value="${escapeHtml(dish.name)}" style="width:100%; padding:8px; margin:8px 0; border-radius:6px; border:1px solid #ddd;">
             <label>Раздел:</label>
-            <input type="text" id="editSection" value="${escapeHtml(dish.section || '')}" style="width:100%; padding:10px; margin:10px 0; border-radius:8px; border:2px solid #e0e6ed;">
+            <input type="text" id="editSection" value="${escapeHtml(dish.section || '')}" style="width:100%; padding:8px; margin:8px 0; border-radius:6px; border:1px solid #ddd;">
             <label>Вес (г):</label>
-            <input type="number" id="editWeight" value="${dish.weight}" style="width:100%; padding:10px; margin:10px 0; border-radius:8px; border:2px solid #e0e6ed;">
+            <input type="number" id="editWeight" value="${dish.weight}" style="width:100%; padding:8px; margin:8px 0; border-radius:6px; border:1px solid #ddd;">
             <label>Калории:</label>
-            <input type="number" id="editCalories" value="${dish.calories || 0}" style="width:100%; padding:10px; margin:10px 0; border-radius:8px; border:2px solid #e0e6ed;">
+            <input type="number" id="editCalories" value="${dish.calories || 0}" style="width:100%; padding:8px; margin:8px 0; border-radius:6px; border:1px solid #ddd;">
             <label>Белки:</label>
-            <input type="number" id="editProteins" value="${dish.proteins || 0}" style="width:100%; padding:10px; margin:10px 0; border-radius:8px; border:2px solid #e0e6ed;">
+            <input type="number" id="editProteins" value="${dish.proteins || 0}" style="width:100%; padding:8px; margin:8px 0; border-radius:6px; border:1px solid #ddd;">
             <label>Жиры:</label>
-            <input type="number" id="editFats" value="${dish.fats || 0}" style="width:100%; padding:10px; margin:10px 0; border-radius:8px; border:2px solid #e0e6ed;">
+            <input type="number" id="editFats" value="${dish.fats || 0}" style="width:100%; padding:8px; margin:8px 0; border-radius:6px; border:1px solid #ddd;">
             <label>Углеводы:</label>
-            <input type="number" id="editCarbs" value="${dish.carbs || 0}" style="width:100%; padding:10px; margin:10px 0; border-radius:8px; border:2px solid #e0e6ed;">
+            <input type="number" id="editCarbs" value="${dish.carbs || 0}" style="width:100%; padding:8px; margin:8px 0; border-radius:6px; border:1px solid #ddd;">
             <label>Цена:</label>
-            <input type="number" id="editPrice" value="${dish.price || 0}" style="width:100%; padding:10px; margin:10px 0; border-radius:8px; border:2px solid #e0e6ed;">
-            <div style="display: flex; gap: 10px; margin-top: 20px;">
+            <input type="number" id="editPrice" value="${dish.price || 0}" style="width:100%; padding:8px; margin:8px 0; border-radius:6px; border:1px solid #ddd;">
+            <div style="display: flex; gap: 10px; margin-top: 15px;">
                 <button class="btn btn-primary" onclick="window.saveDishEdit(${menuIdx}, '${mealType}', '${escapeHtml(dishName)}')">Сохранить</button>
                 <button class="btn btn-danger" onclick="window.deleteDish(${menuIdx}, '${mealType}', '${escapeHtml(dishName)}')">Удалить</button>
             </div>
@@ -1886,11 +2161,9 @@ window.closeModal = function(id) {
 function closeDetailedView() {
     const detailedView = document.getElementById('detailedView');
     const menuGrid = document.getElementById('menuGrid');
-    const dailyMenuContent = document.getElementById('dailyMenuContent');
     
     detailedView.style.display = 'none';
     menuGrid.style.display = 'grid';
-    dailyMenuContent.style.display = 'none';
     detailedViewVisible = false;
 }
 
@@ -1907,20 +2180,17 @@ function navigateMenus(direction) {
 
 function toggleView() {
     const toggleBtn = document.getElementById('toggleViewBtn');
-    const isDetailed = detailedViewVisible;
     
-    if (isDetailed) {
+    if (detailedViewVisible) {
         closeDetailedView();
         toggleBtn.innerHTML = '<i class="fas fa-list"></i> Детальный вид';
-    } else {
-        if (dailyMenus.length) {
-            showDetailedView();
-            toggleBtn.innerHTML = '<i class="fas fa-th"></i> Сетка';
-        }
+    } else if (dailyMenus.length) {
+        showDetailedView();
+        toggleBtn.innerHTML = '<i class="fas fa-th"></i> Сетка';
     }
 }
 
-function duplicateCurrent() {
+function duplicateCurrentMenu() {
     if (!dailyMenus.length) return;
     
     const newMenu = deepClone(dailyMenus[currentMenuIndex]);
@@ -1934,7 +2204,7 @@ function duplicateCurrent() {
     saveCurrentState();
     updateMenuGrid();
     updateMenuStats();
-    showStatus('Меню дублировано на следующий день', 'success');
+    showStatus('Меню дублировано', 'success');
 }
 
 function updateMenuStats() {
@@ -1944,11 +2214,9 @@ function updateMenuStats() {
         return;
     }
     
-    const totalMenusCount = document.getElementById('totalMenusCount');
     const menuCounterSpan = document.getElementById('menuCounter');
     const menuStatsDiv = document.getElementById('menuStats');
     
-    if (totalMenusCount) totalMenusCount.textContent = dailyMenus.length;
     if (menuCounterSpan) menuCounterSpan.textContent = `${currentMenuIndex + 1} из ${dailyMenus.length}`;
     
     if (menuStatsDiv) {
@@ -1958,7 +2226,6 @@ function updateMenuStats() {
             <div class="stat-item"><div class="stat-label">Всего меню</div><div class="stat-value">${dailyMenus.length}</div></div>
             <div class="stat-item"><div class="stat-label">Период</div><div class="stat-value">${firstDate} - ${lastDate}</div></div>
             <div class="stat-item"><div class="stat-label">Школа</div><div class="stat-value">${escapeHtml(dailyMenus[0].schoolName || '—')}</div></div>
-            <div class="stat-item"><div class="stat-label">Соответствие</div><div class="stat-value">100%</div></div>
         `;
     }
 }
@@ -1972,33 +2239,29 @@ function showAnalytics() {
     const analytics = getAnalyticsData(dailyMenus);
     if (!analytics) return;
     
-    const repetitionWarning = analytics.varietyScore < 3 ? 
-        '<div class="status-warning" style="margin: 15px 0;"><i class="fas fa-exclamation-triangle"></i> Низкое разнообразие блюд! Рекомендуется увеличить количество уникальных блюд.</div>' : '';
-    
     const modal = document.getElementById('searchModal');
     modal.innerHTML = `
-        <div class="modal-content" style="max-width: 700px;">
-            <div class="modal-header" style="display: flex; justify-content: space-between; margin-bottom: 20px;">
-                <h3><i class="fas fa-chart-line"></i> Аналитический дашборд</h3>
-                <button class="close-btn" onclick="window.closeModal('searchModal')" style="background:none; border:none; font-size:1.5rem; cursor:pointer;">&times;</button>
+        <div class="modal-content" style="max-width: 600px;">
+            <div class="modal-header" style="display: flex; justify-content: space-between; margin-bottom: 15px;">
+                <h3><i class="fas fa-chart-line"></i> Аналитика</h3>
+                <button class="close-btn" onclick="window.closeModal('searchModal')" style="background:none; border:none; font-size:24px; cursor:pointer;">&times;</button>
             </div>
-            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-bottom: 20px;">
+            <div style="display: grid; grid-template-columns: repeat(2,1fr); gap: 10px; margin-bottom: 15px;">
                 <div class="stat-item"><div class="stat-label">Всего меню</div><div class="stat-value">${analytics.menuCount}</div></div>
                 <div class="stat-item"><div class="stat-label">Средняя калорийность</div><div class="stat-value">${analytics.avgCalories} ккал</div></div>
                 <div class="stat-item"><div class="stat-label">Уникальных блюд</div><div class="stat-value">${analytics.uniqueDishesCount}</div></div>
-                <div class="stat-item"><div class="stat-label">Средние белки/жиры/углеводы</div><div class="stat-value">${analytics.avgProteins}/${analytics.avgFats}/${analytics.avgCarbs} г</div></div>
+                <div class="stat-item"><div class="stat-label">Белки/Жиры/Углеводы</div><div class="stat-value">${analytics.avgProteins}/${analytics.avgFats}/${analytics.avgCarbs} г</div></div>
             </div>
-            ${repetitionWarning}
+            ${analytics.varietyScore < 3 ? '<div class="status-warning">⚠️ Низкое разнообразие блюд!</div>' : ''}
             <div class="section-title"><i class="fas fa-leaf"></i> Сезонные рекомендации</div>
-            <div style="padding: 15px; background: #f8f9fa; border-radius: 10px; margin-top: 10px;">
+            <div style="padding: 10px; background: #f8f9fa; border-radius: 8px;">
                 <ul style="margin: 0; padding-left: 20px;">
-                    <li>Используйте сезонные овощи и фрукты для снижения затрат</li>
-                    <li>Зимой увеличьте содержание витамина С (цитрусовые, квашеная капуста)</li>
-                    <li>Летом добавляйте больше свежей зелени и ягод</li>
-                    <li>Осенью используйте тыкву, кабачки, яблоки нового урожая</li>
+                    <li>Используйте сезонные овощи и фрукты</li>
+                    <li>Зимой увеличьте витамин С (цитрусовые)</li>
+                    <li>Летом добавляйте свежую зелень и ягоды</li>
                 </ul>
             </div>
-            <button class="btn btn-primary" style="width:100%; margin-top: 20px;" onclick="window.closeModal('searchModal')">Закрыть</button>
+            <button class="btn btn-primary" style="width:100%; margin-top:15px;" onclick="window.closeModal('searchModal')">Закрыть</button>
         </div>
     `;
     modal.style.display = 'flex';
@@ -2012,19 +2275,18 @@ function showSearch() {
     
     const modal = document.getElementById('searchModal');
     modal.innerHTML = `
-        <div class="modal-content" style="max-width: 600px;">
-            <div class="modal-header" style="display: flex; justify-content: space-between; margin-bottom: 20px;">
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header" style="display: flex; justify-content: space-between; margin-bottom: 15px;">
                 <h3><i class="fas fa-search"></i> Поиск блюд</h3>
-                <button class="close-btn" onclick="window.closeModal('searchModal')" style="background:none; border:none; font-size:1.5rem; cursor:pointer;">&times;</button>
+                <button class="close-btn" onclick="window.closeModal('searchModal')" style="background:none; border:none; font-size:24px; cursor:pointer;">&times;</button>
             </div>
-            <input type="text" id="searchInput" class="search-box" placeholder="Введите название блюда..." style="width:100%; padding:12px; border-radius:8px; border:2px solid #e0e6ed; margin-bottom: 20px;">
+            <input type="text" id="searchInput" placeholder="Введите название блюда..." style="width:100%; padding:10px; border-radius:8px; border:1px solid #ddd; margin-bottom: 15px;">
             <div id="searchResults"></div>
         </div>
     `;
     modal.style.display = 'flex';
     
-    const searchInput = document.getElementById('searchInput');
-    searchInput.addEventListener('input', (e) => {
+    document.getElementById('searchInput').addEventListener('input', (e) => {
         const term = e.target.value;
         if (term.length < 2) {
             document.getElementById('searchResults').innerHTML = '<div class="status-info">Введите минимум 2 символа</div>';
@@ -2036,28 +2298,15 @@ function showSearch() {
         
         if (results.length) {
             resultsDiv.innerHTML = results.map(r => `
-                <div class="validation-result-item" style="cursor:pointer; padding: 12px; margin-bottom: 8px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #3498db;" onclick="window.selectMenu && window.selectMenu(${r.menuIdx}); window.closeModal('searchModal');">
-                    <div><strong>${r.date}</strong></div>
-                    <div>${r.meal}</div>
-                    <div style="flex:1">${escapeHtml(r.name)}</div>
+                <div style="cursor:pointer; padding: 10px; margin-bottom: 8px; background: #f8f9fa; border-radius: 6px; border-left: 3px solid #3498db;" onclick="window.selectMenu && window.selectMenu(${r.menuIdx}); window.closeModal('searchModal');">
+                    <div><strong>${r.date}</strong> - ${r.meal}</div>
+                    <div>${escapeHtml(r.name)}</div>
                 </div>
             `).join('');
         } else {
             resultsDiv.innerHTML = '<div class="status-info">Ничего не найдено</div>';
         }
     });
-}
-
-async function exportAll() {
-    await exportAllMenusAsZip(dailyMenus, schoolNameInput?.value);
-}
-
-function exportCurrent() {
-    if (dailyMenus.length && currentMenuIndex < dailyMenus.length) {
-        exportCurrentMenuAsExcel(dailyMenus[currentMenuIndex]);
-    } else {
-        showStatus('Нет текущего меню', 'warning');
-    }
 }
 
 function saveCurrentState() {
@@ -2077,7 +2326,7 @@ function loadStoredDataInfo() {
         try {
             const parsed = JSON.parse(savedData);
             storedInfo.style.display = 'block';
-            storedText.textContent = `Сохранено ${parsed.savedAt ? new Date(parsed.savedAt).toLocaleString() : 'ранее'}. ${parsed.dailyMenus?.length || 0} меню в памяти.`;
+            storedText.textContent = `Сохранено ${parsed.savedAt ? new Date(parsed.savedAt).toLocaleString() : 'ранее'}. ${parsed.dailyMenus?.length || 0} меню.`;
         } catch (e) {
             storedInfo.style.display = 'none';
         }
@@ -2100,11 +2349,9 @@ function loadStoredData() {
         updateMenuPreview();
         updateUI();
         
-        if (dailyMenus.length > 0) {
-            renderResults();
-        }
+        if (dailyMenus.length) renderResults();
         
-        showStatus('Данные загружены из памяти', 'success');
+        showStatus('Данные загружены', 'success');
     } else {
         showStatus('Нет сохранённых данных', 'info');
     }
@@ -2122,7 +2369,6 @@ function clearStoredData() {
     }
 }
 
-// Экспорт функций для глобального доступа
 export function initGenerator() {
     const state = getState();
     calendarData = state.calendarData;
@@ -2135,9 +2381,7 @@ export function initGenerator() {
     updateUI();
     loadStoredDataInfo();
     
-    if (dailyMenus.length) {
-        renderResults();
-    }
+    if (dailyMenus.length) renderResults();
     
     console.log('Generator PRO module initialized');
 }
