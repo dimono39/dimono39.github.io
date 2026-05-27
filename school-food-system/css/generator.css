@@ -1,0 +1,369 @@
+/* Стили для модуля генератора меню */
+
+/* Контейнер генератора */
+.generator-module {
+    animation: fadeIn 0.5s ease;
+}
+
+/* Контейнер приложений (две колонки) */
+.app-container {
+    display: grid;
+    grid-template-columns: 1fr 1.2fr;
+    gap: 30px;
+    margin-bottom: 30px;
+}
+
+@media (max-width: 1200px) {
+    .app-container {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Статус сообщения */
+.status-message {
+    padding: 15px 20px;
+    border-radius: 10px;
+    margin-bottom: 20px;
+    display: none;
+    animation: slideIn 0.5s ease;
+}
+
+.status-success {
+    background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+    color: #155724;
+    border-left: 5px solid #27ae60;
+}
+
+.status-error {
+    background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
+    color: #721c24;
+    border-left: 5px solid #e74c3c;
+}
+
+.status-info {
+    background: linear-gradient(135deg, #d1ecf1 0%, #bee5eb 100%);
+    color: #0c5460;
+    border-left: 5px solid #17a2b8;
+}
+
+.status-warning {
+    background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+    color: #856404;
+    border-left: 5px solid #f39c12;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Область загрузки файлов */
+.file-upload-area {
+    border: 3px dashed #bdc3c7;
+    border-radius: 10px;
+    padding: 50px 30px;
+    text-align: center;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+}
+
+.file-upload-area:hover {
+    border-color: #3498db;
+    background: linear-gradient(135deg, rgba(52, 152, 219, 0.1) 0%, rgba(41, 128, 185, 0.05) 100%);
+    transform: scale(1.02);
+}
+
+.file-upload-area.dragover {
+    border-color: #3498db;
+    background: rgba(52, 152, 219, 0.1);
+}
+
+.file-upload-area i {
+    font-size: 4rem;
+    color: #3498db;
+    margin-bottom: 20px;
+    transition: all 0.3s ease;
+}
+
+.file-upload-area:hover i {
+    transform: scale(1.1) rotate(10deg);
+}
+
+/* Список файлов */
+.file-list {
+    margin-top: 25px;
+}
+
+.file-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border-radius: 10px;
+    margin-bottom: 10px;
+    border-left: 4px solid #3498db;
+    transition: all 0.3s ease;
+}
+
+.file-item:hover {
+    transform: translateX(5px);
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+}
+
+.file-item.success {
+    border-left-color: #27ae60;
+}
+
+.file-item.error {
+    border-left-color: #e74c3c;
+}
+
+.file-info {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.file-info i {
+    font-size: 1.5rem;
+    color: #3498db;
+}
+
+.file-size {
+    color: #6c757d;
+    font-size: 0.85rem;
+}
+
+/* Секция конфигурации */
+.config-section {
+    margin-top: 30px;
+}
+
+.year-selector {
+    display: flex;
+    gap: 15px;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.year-badge {
+    background: linear-gradient(135deg, #e74c3c, #c0392b);
+    color: white;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 1rem;
+    font-weight: 600;
+    box-shadow: 0 3px 10px rgba(231, 76, 60, 0.3);
+}
+
+/* Предпросмотр данных */
+.data-preview {
+    margin-top: 25px;
+    max-height: 400px;
+    overflow-y: auto;
+    border: 2px solid #e0e6ed;
+    border-radius: 10px;
+    padding: 20px;
+    background: white;
+}
+
+.preview-title {
+    font-weight: 700;
+    margin-bottom: 15px;
+    color: #2c3e50;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 1.1rem;
+}
+
+/* Результаты генерации */
+.daily-menu {
+    background-color: white;
+    border-radius: 10px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    padding: 30px;
+    margin-top: 30px;
+}
+
+.menu-navigation {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+    padding: 20px;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border-radius: 10px;
+}
+
+.nav-buttons {
+    display: flex;
+    gap: 12px;
+}
+
+.menu-counter {
+    font-weight: 700;
+    color: #2c3e50;
+    font-size: 1.1rem;
+}
+
+/* Сетка меню */
+.menu-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    gap: 25px;
+}
+
+.menu-card {
+    border: 2px solid #e0e6ed;
+    border-radius: 10px;
+    overflow: hidden;
+    background-color: white;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    position: relative;
+}
+
+.menu-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 5px;
+    background: linear-gradient(90deg, #3498db, #27ae60);
+}
+
+.menu-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+    border-color: #3498db;
+}
+
+.menu-card.active {
+    border-color: #3498db;
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+}
+
+.menu-card-header {
+    background: linear-gradient(135deg, #3498db, #2980b9);
+    color: white;
+    padding: 15px 20px;
+    font-weight: 600;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.menu-card-date {
+    font-size: 1.1rem;
+}
+
+.menu-card-type {
+    background-color: rgba(255, 255, 255, 0.2);
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+}
+
+.menu-card-content {
+    padding: 15px 20px;
+}
+
+.menu-card-footer {
+    padding: 12px 20px;
+    background: #f8f9fa;
+    border-top: 1px solid #e0e6ed;
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.85rem;
+    color: #6c757d;
+}
+
+/* Таблица предпросмотра */
+.preview-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+}
+
+.preview-table th,
+.preview-table td {
+    border: 1px solid #e0e6ed;
+    padding: 8px 12px;
+    text-align: left;
+}
+
+.preview-table th {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+/* Анимации */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.floating {
+    animation: floating 3s ease-in-out infinite;
+}
+
+@keyframes floating {
+    0% {
+        transform: translateY(0px);
+    }
+    50% {
+        transform: translateY(-10px);
+    }
+    100% {
+        transform: translateY(0px);
+    }
+}
+
+/* Стили для кнопок в карточках меню */
+.buttons-container {
+    display: flex;
+    gap: 15px;
+    flex-wrap: wrap;
+    margin-top: 25px;
+}
+
+/* Стили для экспорта */
+.export-options {
+    display: flex;
+    gap: 10px;
+    margin-top: 15px;
+    flex-wrap: wrap;
+}
+
+/* Информация о сохранённых данных */
+.stored-data-info {
+    background: linear-gradient(135deg, #e8f4fc 0%, #d1e7ff 100%);
+    border: 2px solid #b6d4fe;
+    padding: 20px;
+    border-radius: 10px;
+    margin-top: 25px;
+    display: none;
+}
+
+.stored-data-info.active {
+    display: block;
+    animation: slideIn 0.5s ease;
+}
