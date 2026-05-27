@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PRO Система управления школьным питанием</title>
+    
+    <!-- Общие стили -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/common.css">
+    <link rel="stylesheet" href="css/generator.css">
+    <link rel="stylesheet" href="css/editor.css">
+    
+    <!-- Карта импортов для ES модулей -->
+    <script type="importmap">
+        {
+            "imports": {
+                "xlsx": "https://unpkg.com/xlsx@0.18.5/dist/xlsx.full.min.js",
+                "file-saver": "https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js",
+                "jszip": "https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js",
+                "chart.js": "https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js",
+                "exceljs": "https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"
+            }
+        }
+    </script>
+</head>
+<body>
+    <div id="app">
+        <!-- Шапка с навигацией -->
+        <header class="main-header">
+            <div class="header-content">
+                <div class="logo">
+                    <i class="fas fa-utensils"></i>
+                    <h1>PRO Школьное питание</h1>
+                </div>
+                <div class="module-switcher">
+                    <button class="module-btn active" data-module="generator">
+                        <i class="fas fa-magic"></i>
+                        <span>Генератор меню</span>
+                    </button>
+                    <button class="module-btn" data-module="editor">
+                        <i class="fas fa-edit"></i>
+                        <span>Редактор меню</span>
+                    </button>
+                </div>
+                <div class="user-info">
+                    <span id="saveIndicator" class="save-indicator">
+                        <i class="fas fa-save"></i>
+                        <span>Автосохранение</span>
+                    </span>
+                </div>
+            </div>
+        </header>
+        
+        <!-- Контейнер для активного модуля -->
+        <main id="module-container"></main>
+        
+        <!-- Глобальные уведомления -->
+        <div id="global-toast" class="toast-notification"></div>
+    </div>
+    
+    <!-- Точка входа -->
+    <script type="module" src="js/main.js"></script>
+</body>
+</html>
