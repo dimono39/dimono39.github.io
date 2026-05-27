@@ -526,7 +526,7 @@ function renderEditorContent() {
                 <td class="cell-fats"><input type="number" value="${item.fats}" data-id="${item.id}" data-field="fats" step="0.1"></td>
                 <td class="cell-carbs"><input type="number" value="${item.carbs}" data-id="${item.id}" data-field="carbs" step="0.1"></td>
                 <td><input type="text" value="${item.recipeId || ''}" data-id="${item.id}" data-field="recipeId"></td>
-                <td><input type="number" value="${item.price || 0}" data-id="${item.id}" data-field="price" step="0.5" min="0" style="width:80px;"></td>
+				<td><input type="number" value="${(item.price || 0).toFixed(2)}" data-id="${item.id}" data-field="price" step="0.01" min="0" style="width:80px;"></td>
                 <td><button class="btn btn-secondary" style="padding:4px 12px;" data-del="${item.id}"><i class="fas fa-trash"></i></button></td>
             `;
             html += `</tr>`;
@@ -1788,46 +1788,125 @@ function loadSchoolInfoFromStorage() {
 }
 
 // ========== ОТЧЁТ ==========
+// ========== ОТЧЁТ ==========
 function showReport() {
-    if (!currentTemplateData) { showStatus('Нет данных для анализа', 'error'); return; }
+    if (!currentTemplateData) { 
+        showStatus('Нет данных для анализа', 'error'); 
+        return; 
+    }
     allViolations = runAllRules(currentTemplateData);
     
-    let html = `<div style="overflow-x:auto;"><table class="violation-table"><thead><tr><th>День</th><th>Приём пищи</th><th>Раздел</th><th>Блюдо</th><th>Нарушение</th><th>Значение</th><th>Норма</th></tr></thead><tbody>`;
-    for (let v of allViolations) {
-        let mealName = '', sectionName = '', dishName = '';
-        const mealNames = { 'breakfast':'Завтрак','breakfast2':'2-й завтрак','lunch':'Обед','afternoonSnack':'Полдник','dinner':'Ужин','dinner2':'2-й ужин' };
-        mealName = (v.meal && mealNames[v.meal]) || (v.meal || 'Весь день');
-        if (v.itemIndex !== undefined && v.meal) {
-            const mealData = currentTemplateData.weeks[v.week]?.[v.day]?.[v.meal];
-            if (mealData && mealData.items && mealData.items[v.itemIndex]) {
-                const item = mealData.items[v.itemIndex];
-                dishName = item.name || '—';
-                sectionName = item.section || '—';
+    const totalWeight = flatItems.reduce((s, i) => s + i.weight, 0);
+    const totalCalories = flatItems.reduce((s, i) => s + i.calories, 0);
+    const totalDays = Object.keys(currentTemplateData.weeks).reduce((sum, w) => sum + Object.keys(currentTemplateData.weeks[w]).length, 0);
+    const totalWeeks = Object.keys(currentTemplateData.weeks).length;
+    const avgWeightPerDay = totalDays > 0 ? (totalWeight / totalDays).toFixed(0) : 0;
+    
+    const errorsCount = allViolations.filter(v => v.code === 15).length;
+    const warningsCount = allViolations.filter(v => v.code !== 15 && v.code !== 17).length;
+    const duplicatesCount = allViolations.filter(v => v.code === 17).length;
+    
+    let html = `
+        <style>
+            .report-section { margin-bottom: 24px; }
+            .report-title { font-size: 1.1rem; font-weight: 700; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 2px solid #e2e8f0; }
+            .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 20px; }
+            .stat-item { background: #f8fafc; padding: 12px; border-radius: 16px; text-align: center; }
+            .stat-value { font-size: 1.4rem; font-weight: 800; color: #0f172a; }
+            .stat-label { font-size: 0.7rem; color: #64748b; margin-top: 4px; }
+            .violation-table { width: 100%; border-collapse: collapse; font-size: 0.75rem; margin-bottom: 16px; }
+            .violation-table th, .violation-table td { border: 1px solid #e2e8f0; padding: 8px 10px; text-align: left; vertical-align: top; }
+            .violation-table th { background: #f1f5f9; font-weight: 700; }
+            .violation-critical { background: #fef2f2; border-left: 3px solid #ef4444; }
+            .violation-warning { background: #fffbeb; border-left: 3px solid #f59e0b; }
+            .violation-duplicate { background: #fdf2f8; border-left: 3px solid #ec4899; }
+            .badge { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 0.65rem; font-weight: 600; }
+            .badge-error { background: #fee2e2; color: #dc2626; }
+            .badge-warning { background: #fef3c7; color: #d97706; }
+            .summary-box { background: linear-gradient(135deg, #f0fdf4, #dcfce7); padding: 16px; border-radius: 16px; margin-bottom: 20px; }
+        </style>
+        
+        <div class="report-section">
+            <div class="report-title"><i class="fas fa-chart-pie"></i> Общая статистика</div>
+            <div class="stat-grid">
+                <div class="stat-item"><div class="stat-value">${flatItems.length}</div><div class="stat-label">🍽️ Всего блюд</div></div>
+                <div class="stat-item"><div class="stat-value">${totalWeeks}</div><div class="stat-label">📅 Недель</div></div>
+                <div class="stat-item"><div class="stat-value">${totalDays}</div><div class="stat-label">📆 Дней</div></div>
+                <div class="stat-item"><div class="stat-value">${avgWeightPerDay}</div><div class="stat-label">⚖️ Средний вес/день (г)</div></div>
+                <div class="stat-item"><div class="stat-value">${totalWeight}</div><div class="stat-label">🏋️ Общий вес (г)</div></div>
+                <div class="stat-item"><div class="stat-value">${totalCalories}</div><div class="stat-label">🔥 Общая калорийность</div></div>
+            </div>
+        </div>
+        
+        <div class="summary-box" style="border-left: 4px solid ${allViolations.length === 0 ? '#10b981' : (errorsCount > 0 ? '#ef4444' : '#f59e0b')};">
+            <strong>📊 Статус проверки:</strong> 
+            ${allViolations.length === 0 ? '✅ Все правила выполнены' : `⚠️ Найдено ${allViolations.length} нарушений (${errorsCount} критических, ${warningsCount} предупреждений, ${duplicatesCount} дубликатов)`}
+        </div>
+    `;
+    
+    if (allViolations.length > 0) {
+        html += `
+            <div class="report-section">
+                <div class="report-title"><i class="fas fa-list"></i> Детальный список нарушений</div>
+                <table class="violation-table">
+                    <thead><tr><th>День</th><th>Приём пищи</th><th>Раздел</th><th>Блюдо</th><th>Нарушение</th><th>Значение</th><th>Норма</th></tr></thead>
+                    <tbody>
+        `;
+        
+        for (let v of allViolations.slice(0, 50)) {
+            let mealName = '', sectionName = '', dishName = '';
+            const mealNames = { 'breakfast':'Завтрак','breakfast2':'2-й завтрак','lunch':'Обед','afternoonSnack':'Полдник','dinner':'Ужин','dinner2':'2-й ужин' };
+            mealName = (v.meal && mealNames[v.meal]) || (v.meal || 'Весь день');
+            
+            if (v.itemIndex !== undefined && v.meal) {
+                const mealData = currentTemplateData.weeks[v.week]?.[v.day]?.[v.meal];
+                if (mealData && mealData.items && mealData.items[v.itemIndex]) {
+                    const item = mealData.items[v.itemIndex];
+                    dishName = item.name || '—';
+                    sectionName = item.section || '—';
+                }
             }
+            
+            let violationText = '', currentValue = '', normValue = '';
+            switch(v.code) {
+                case 1: violationText='Вес завтрака'; currentValue=v.details.match(/(\d+)г/)?.[1]||'?'; normValue='≥500г'; break;
+                case 2: violationText='Вес обеда'; currentValue=v.details.match(/(\d+)г/)?.[1]||'?'; normValue='≥700г'; break;
+                case 3: violationText='Вес гор.блюда'; currentValue=v.details.match(/(\d+)г/)?.[1]||'?'; normValue='≥150г'; break;
+                case 4: violationText='Вес закуски'; currentValue=v.details.match(/(\d+)г/)?.[1]||'?'; normValue='≥60г'; break;
+                case 5: violationText='Вес 1 блюда'; currentValue=v.details.match(/(\d+)г/)?.[1]||'?'; normValue='≥200г'; break;
+                case 6: violationText='Вес 2 блюда'; currentValue=v.details.match(/(\d+)г/)?.[1]||'?'; normValue='≥90г'; break;
+                case 8: violationText='Вес гарнира'; currentValue=v.details.match(/(\d+)г/)?.[1]||'?'; normValue='≥150г'; break;
+                case 9: violationText='Вес 2 завтрака'; currentValue=v.details.match(/(\d+)г/)?.[1]||'?'; normValue='≥200г'; break;
+                case 10: violationText='Вес полдника'; currentValue=v.details.match(/(\d+)г/)?.[1]||'?'; normValue='≥300г'; break;
+                case 11: violationText='Вес ужина'; currentValue=v.details.match(/(\d+)г/)?.[1]||'?'; normValue='≥500г'; break;
+                case 12: violationText='Вес 2 ужина'; currentValue=v.details.match(/(\d+)г/)?.[1]||'?'; normValue='≥200г'; break;
+                case 13: violationText='Калории завтрака'; currentValue=v.details.match(/(\d+)ккал/)?.[1]||'?'; normValue='≥470ккал'; break;
+                case 14: violationText='Калории обеда'; currentValue=v.details.match(/(\d+)ккал/)?.[1]||'?'; normValue='≥705ккал'; break;
+                case 15: violationText='БЖУ > веса'; currentValue=v.details; normValue='БЖУ ≤ вес'; break;
+                case 16: violationText='Фрукты за день'; currentValue=v.details.match(/(\d+)г/)?.[1]||'?'; normValue='≥100г'; break;
+                case 17: violationText='Дубликат блюда'; currentValue=v.details.replace('Повтор блюда: "','').replace('"',''); normValue='Уникальные блюда'; break;
+                default: violationText=v.details; currentValue='—'; normValue='—';
+            }
+            
+            const statusClass = v.code === 15 ? 'violation-critical' : (v.code === 17 ? 'violation-duplicate' : 'violation-warning');
+            html += `<tr class="${statusClass}">
+                <td>Неделя ${v.week}, День ${v.day}</td>
+                <td>${mealName}</td>
+                <td>${escapeHtml(sectionName)}</td>
+                <td>${escapeHtml(dishName)}</td>
+                <td>${violationText}</td>
+                <td>${escapeHtml(currentValue)}</td>
+                <td>${normValue}</td>
+            </tr>`;
         }
-        let violationText = '', currentValue = '', normValue = '';
-        switch(v.code) {
-            case 1: violationText='Вес завтрака'; currentValue=v.details.match(/(\d+)г/)?.[1]||'?'; normValue='≥500г'; break;
-            case 2: violationText='Вес обеда'; currentValue=v.details.match(/(\d+)г/)?.[1]||'?'; normValue='≥700г'; break;
-            case 3: violationText='Вес гор.блюда'; currentValue=v.details.match(/(\d+)г/)?.[1]||'?'; normValue='≥150г'; break;
-            case 4: violationText='Вес закуски'; currentValue=v.details.match(/(\d+)г/)?.[1]||'?'; normValue='≥60г'; break;
-            case 5: violationText='Вес 1 блюда'; currentValue=v.details.match(/(\d+)г/)?.[1]||'?'; normValue='≥200г'; break;
-            case 6: violationText='Вес 2 блюда'; currentValue=v.details.match(/(\d+)г/)?.[1]||'?'; normValue='≥90г'; break;
-            case 8: violationText='Вес гарнира'; currentValue=v.details.match(/(\d+)г/)?.[1]||'?'; normValue='≥150г'; break;
-            case 9: violationText='Вес 2 завтрака'; currentValue=v.details.match(/(\d+)г/)?.[1]||'?'; normValue='≥200г'; break;
-            case 10: violationText='Вес полдника'; currentValue=v.details.match(/(\d+)г/)?.[1]||'?'; normValue='≥300г'; break;
-            case 11: violationText='Вес ужина'; currentValue=v.details.match(/(\d+)г/)?.[1]||'?'; normValue='≥500г'; break;
-            case 12: violationText='Вес 2 ужина'; currentValue=v.details.match(/(\d+)г/)?.[1]||'?'; normValue='≥200г'; break;
-            case 13: violationText='Калории завтрака'; currentValue=v.details.match(/(\d+)ккал/)?.[1]||'?'; normValue='≥470ккал'; break;
-            case 14: violationText='Калории обеда'; currentValue=v.details.match(/(\d+)ккал/)?.[1]||'?'; normValue='≥705ккал'; break;
-            case 15: violationText='БЖУ > веса'; currentValue=v.details; normValue='БЖУ ≤ вес'; break;
-            case 16: violationText='Фрукты за день'; currentValue=v.details.match(/(\d+)г/)?.[1]||'?'; normValue='≥100г'; break;
-            case 17: violationText='Дубликат блюда'; currentValue=v.details.replace('Повтор блюда: "','').replace('"',''); normValue='Уникальные блюда'; break;
-            default: violationText=v.details; currentValue='—'; normValue='—';
+        
+        if (allViolations.length > 50) {
+            html += `<tr><td colspan="7">... и ещё ${allViolations.length - 50} нарушений</td></tr>`;
         }
-        html += `<tr><td>Неделя ${v.week}, День ${v.day}</td><td>${mealName}</td><td>${escapeHtml(sectionName)}</td><td>${escapeHtml(dishName)}</td><td>${violationText}</td><td>${escapeHtml(currentValue)}</td><td>${normValue}</td></tr>`;
+        
+        html += `</tbody></table></div>`;
     }
-    html += `</tbody></table></div>`;
+    
     document.getElementById('reportContent').innerHTML = html;
     document.getElementById('reportModal').style.display = 'flex';
 }
@@ -1884,9 +1963,154 @@ function loadFromStorage() {
 }
 
 // ========== УМНЫЙ ПОМОЩНИК ==========
+// ========== УМНЫЙ ПОМОЩНИК ==========
 function showAssistant() {
     const modal = document.getElementById('assistantModal');
-    if (modal) modal.style.display = 'flex';
+    const content = document.getElementById('assistantContent');
+    if (!modal || !content) return;
+    
+    content.innerHTML = `
+        <div class="assistant-message assistant-ai">
+            <div class="assistant-avatar">
+                <i class="fas fa-robot" style="color: #7c3aed;"></i>
+                <span>🤖 Помощник</span>
+            </div>
+            <div>Здравствуйте! Я ваш персональный помощник по работе с меню.</div>
+        </div>
+        
+        <div class="quick-actions">
+            <button class="quick-btn" data-action="check-all"><i class="fas fa-check-double"></i> Проверить всё меню</button>
+            <button class="quick-btn" data-action="fix-bju"><i class="fas fa-calculator"></i> Как исправить БЖУ?</button>
+            <button class="quick-btn" data-action="weight-norms"><i class="fas fa-weight-hanging"></i> Нормы веса</button>
+            <button class="quick-btn" data-action="calories-norms"><i class="fas fa-fire"></i> Нормы калорий</button>
+            <button class="quick-btn" data-action="duplicates"><i class="fas fa-copy"></i> Как избежать дубликатов?</button>
+        </div>
+        
+        <div class="assistant-message assistant-tip">
+            <div class="assistant-avatar">
+                <i class="fas fa-lightbulb"></i>
+                <span>💡 Полезные советы</span>
+            </div>
+            <ul style="margin-left: 20px;">
+                <li>Используйте массовые операции для быстрого изменения веса блюд</li>
+                <li>Правило 15 (БЖУ) — самое важное! Сумма белков, жиров и углеводов не должна превышать вес</li>
+                <li>Для проверки соответствия нормам используйте кнопку "Проверить"</li>
+                <li>Автосохранение работает каждые 30 секунд</li>
+                <li>Нажмите на любое правило в панели правил — помощник покажет где ошибка</li>
+            </ul>
+        </div>
+        
+        <div class="assistant-message assistant-ai">
+            <div class="assistant-avatar">
+                <i class="fas fa-question-circle"></i>
+                <span>❓ Частые вопросы</span>
+            </div>
+            <div>
+                <details>
+                    <summary><strong>Что делать, если БЖУ превышает вес блюда?</strong></summary>
+                    <div style="margin-top: 8px; padding-left: 16px;">
+                        Это критическая ошибка! Есть два способа исправления:<br>
+                        1. Уменьшить значения белков, жиров или углеводов<br>
+                        2. Увеличить вес блюда (используйте кнопку "Умножить вес")
+                    </div>
+                </details>
+                <details style="margin-top: 8px;">
+                    <summary><strong>Как добавить новое блюдо?</strong></summary>
+                    <div style="margin-top: 8px; padding-left: 16px;">
+                        Нажмите кнопку "Добавить блюдо" в конце каждой группы приёма пищи.
+                    </div>
+                </details>
+                <details style="margin-top: 8px;">
+                    <summary><strong>Какие блюда обязательно должны быть на завтрак?</strong></summary>
+                    <div style="margin-top: 8px; padding-left: 16px;">
+                        Обязательно: горячее блюдо (каша, омлет, запеканка). Рекомендуется: горячий напиток, хлеб, фрукты.
+                    </div>
+                </details>
+            </div>
+        </div>
+    `;
+    
+    // Добавляем обработчики быстрых действий
+    content.querySelectorAll('.quick-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const action = btn.dataset.action;
+            handleAssistantAction(action, content);
+        });
+    });
+    
+    modal.style.display = 'flex';
+}
+
+function handleAssistantAction(action, content) {
+    switch(action) {
+        case 'check-all':
+            renderEditorContent();
+            showStatus('✅ Проверка выполнена', 'success');
+            break;
+        case 'fix-bju':
+            content.innerHTML += `
+                <div class="assistant-message assistant-ai">
+                    <div class="assistant-avatar"><i class="fas fa-calculator"></i><span>Как исправить БЖУ > вес</span></div>
+                    <div>
+                        <strong>Пошаговая инструкция:</strong>
+                        <ol style="margin-left: 20px; margin-top: 8px;">
+                            <li>Найдите блюда с красной подсветкой (правило 15)</li>
+                            <li>Проверьте правильность данных</li>
+                            <li>Исправьте одно из двух: уменьшите БЖУ или увеличьте вес блюда</li>
+                            <li>После исправления нажмите "Проверить"</li>
+                        </ol>
+                    </div>
+                </div>
+            `;
+            break;
+        case 'weight-norms':
+            content.innerHTML += `
+                <div class="assistant-message assistant-tip">
+                    <div class="assistant-avatar"><i class="fas fa-weight-hanging"></i><span>Нормы веса по приёмам пищи</span></div>
+                    <div>
+                        <ul style="margin-left: 20px;">
+                            <li>🌅 Завтрак: ≥500г</li>
+                            <li>🍎 2-й завтрак: ≥200г</li>
+                            <li>🍲 Обед: ≥700г</li>
+                            <li>🍪 Полдник: ≥300г</li>
+                            <li>🌙 Ужин: ≥500г</li>
+                            <li>🥛 2-й ужин: ≥200г</li>
+                        </ul>
+                    </div>
+                </div>
+            `;
+            break;
+        case 'calories-norms':
+            content.innerHTML += `
+                <div class="assistant-message assistant-tip">
+                    <div class="assistant-avatar"><i class="fas fa-fire"></i><span>Нормы калорийности</span></div>
+                    <div>
+                        <ul style="margin-left: 20px;">
+                            <li>🌅 Завтрак: ≥470 ккал</li>
+                            <li>🍲 Обед: ≥705 ккал</li>
+                        </ul>
+                    </div>
+                </div>
+            `;
+            break;
+        case 'duplicates':
+            content.innerHTML += `
+                <div class="assistant-message assistant-ai">
+                    <div class="assistant-avatar"><i class="fas fa-copy"></i><span>Как избежать дубликатов блюд</span></div>
+                    <div>
+                        <strong>Правило 17 запрещает одинаковые блюда в один день.</strong><br><br>
+                        <strong>Способы избежать:</strong>
+                        <ol style="margin-left: 20px;">
+                            <li>Используйте разные названия для похожих блюд</li>
+                            <li>Разнообразьте меню — не повторяйте блюда в течение дня</li>
+                            <li>При копировании дня меняйте названия блюд</li>
+                        </ol>
+                    </div>
+                </div>
+            `;
+            break;
+    }
+    content.scrollTop = content.scrollHeight;
 }
 
 // ========== ИНИЦИАЛИЗАЦИЯ МОДУЛЯ ==========
