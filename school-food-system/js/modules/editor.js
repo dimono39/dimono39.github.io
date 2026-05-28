@@ -1113,48 +1113,101 @@ function handleAddMealConfirm() {
 }
 
 // ========== СОЗДАНИЕ ТИПОВОГО МЕНЮ ==========
+// ========== СОЗДАНИЕ ТИПОВОГО МЕНЮ ==========
 function createStandardMenu() {
     const modal = document.createElement('div');
     modal.className = 'modal';
     modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);backdrop-filter:blur(8px);z-index:20000;display:flex;justify-content:center;align-items:center;';
+    
     modal.innerHTML = `
         <div style="background:white;border-radius:32px;padding:32px;max-width:600px;width:90%;max-height:85vh;overflow-y:auto;">
             <div style="display:flex;align-items:center;gap:12px;margin-bottom:24px;">
                 <i class="fas fa-calendar-alt" style="font-size:32px;color:#8b5cf6;"></i>
                 <h2 style="color:#0f172a;">Создание типового меню</h2>
             </div>
+            
             <div style="margin-bottom:24px;">
                 <label style="display:block;margin-bottom:12px;font-weight:600;">Количество дней:</label>
                 <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;">
-                    ${[10,12,14,15,20].map(d => `<button data-days="${d}" class="menu-days-btn" style="padding:12px;border:2px solid #e2e8f0;border-radius:16px;background:white;cursor:pointer;"><div style="font-size:24px;font-weight:bold;">${d}</div><div style="font-size:11px;color:#64748b;">${d === 10 ? '2 нед. × 5 дн.' : d === 12 ? '2 нед. × 6 дн.' : d === 14 ? '2 нед. × 7 дн.' : d === 15 ? '3 нед. × 5 дн.' : '4 нед. × 5 дн.'}</div></button>`).join('')}
+                    <button data-days="10" class="menu-days-btn" style="padding:12px;border:2px solid #e2e8f0;border-radius:16px;background:white;cursor:pointer;transition:all 0.2s;">
+                        <div style="font-size:24px;font-weight:bold;">10</div>
+                        <div style="font-size:11px;color:#64748b;">2 нед. × 5 дн.</div>
+                    </button>
+                    <button data-days="12" class="menu-days-btn" style="padding:12px;border:2px solid #e2e8f0;border-radius:16px;background:white;cursor:pointer;transition:all 0.2s;">
+                        <div style="font-size:24px;font-weight:bold;">12</div>
+                        <div style="font-size:11px;color:#64748b;">2 нед. × 6 дн.</div>
+                    </button>
+                    <button data-days="14" class="menu-days-btn" style="padding:12px;border:2px solid #e2e8f0;border-radius:16px;background:white;cursor:pointer;transition:all 0.2s;">
+                        <div style="font-size:24px;font-weight:bold;">14</div>
+                        <div style="font-size:11px;color:#64748b;">2 нед. × 7 дн.</div>
+                    </button>
+                    <button data-days="15" class="menu-days-btn" style="padding:12px;border:2px solid #e2e8f0;border-radius:16px;background:white;cursor:pointer;transition:all 0.2s;">
+                        <div style="font-size:24px;font-weight:bold;">15</div>
+                        <div style="font-size:11px;color:#64748b;">3 нед. × 5 дн.</div>
+                    </button>
+                    <button data-days="20" class="menu-days-btn" style="padding:12px;border:2px solid #e2e8f0;border-radius:16px;background:white;cursor:pointer;transition:all 0.2s;">
+                        <div style="font-size:24px;font-weight:bold;">20</div>
+                        <div style="font-size:11px;color:#64748b;">4 нед. × 5 дн.</div>
+                    </button>
                 </div>
             </div>
+            
             <div style="margin-bottom:24px;">
                 <label style="display:block;margin-bottom:12px;font-weight:600;">Дополнительные приёмы пищи:</label>
                 <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;">
-                    <label style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:#f8fafc;border-radius:12px;cursor:pointer;"><input type="checkbox" value="breakfast2" class="meal-checkbox"><span>🍎 Второй завтрак</span></label>
-                    <label style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:#f8fafc;border-radius:12px;cursor:pointer;"><input type="checkbox" value="afternoonSnack" class="meal-checkbox"><span>🍪 Полдник</span></label>
-                    <label style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:#f8fafc;border-radius:12px;cursor:pointer;"><input type="checkbox" value="dinner" class="meal-checkbox" checked><span>🌙 Ужин</span></label>
-                    <label style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:#f8fafc;border-radius:12px;cursor:pointer;"><input type="checkbox" value="dinner2" class="meal-checkbox"><span>🥛 Второй ужин</span></label>
+                    <label style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:#f8fafc;border-radius:12px;cursor:pointer;">
+                        <input type="checkbox" value="breakfast2" class="meal-checkbox"> <span>🍎 Второй завтрак</span>
+                    </label>
+                    <label style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:#f8fafc;border-radius:12px;cursor:pointer;">
+                        <input type="checkbox" value="afternoonSnack" class="meal-checkbox"> <span>🍪 Полдник</span>
+                    </label>
+                    <label style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:#f8fafc;border-radius:12px;cursor:pointer;">
+                        <input type="checkbox" value="dinner" class="meal-checkbox" checked> <span>🌙 Ужин</span>
+                    </label>
+                    <label style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:#f8fafc;border-radius:12px;cursor:pointer;">
+                        <input type="checkbox" value="dinner2" class="meal-checkbox"> <span>🥛 Второй ужин</span>
+                    </label>
                 </div>
+                <p style="font-size:11px;color:#64748b;margin-top:8px;">
+                    <i class="fas fa-info-circle"></i> Завтрак и обед добавляются всегда
+                </p>
             </div>
-            <div class="modal-buttons" style="display:flex;gap:12px;justify-content:flex-end;">
+            
+            <div class="modal-buttons" style="display:flex;gap:12px;justify-content:flex-end;margin-top:20px;">
                 <button id="cancelMenuCreate" class="btn btn-secondary">Отмена</button>
-                <button id="confirmMenuCreate" class="btn btn-primary" style="background:linear-gradient(135deg,#8b5cf6,#7c3aed);">Создать меню</button>
+                <button id="confirmMenuCreate" class="btn btn-primary" style="background:linear-gradient(135deg,#8b5cf6,#7c3aed);">
+                    <i class="fas fa-check"></i> Создать меню
+                </button>
             </div>
         </div>
     `;
+    
     document.body.appendChild(modal);
     
     let selectedDays = 10;
-    modal.querySelectorAll('.menu-days-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            modal.querySelectorAll('.menu-days-btn').forEach(b => b.classList.remove('selected'));
-            btn.classList.add('selected');
-            selectedDays = parseInt(btn.dataset.days);
+    const dayButtons = modal.querySelectorAll('.menu-days-btn');
+    
+    // Функция обновления выделения
+    function updateSelectedButton() {
+        dayButtons.forEach(btn => {
+            if (parseInt(btn.dataset.days) === selectedDays) {
+                btn.classList.add('selected');
+            } else {
+                btn.classList.remove('selected');
+            }
         });
-        if (btn.dataset.days === '10') btn.classList.add('selected');
+    }
+    
+    // Обработчики для кнопок дней
+    dayButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+            selectedDays = parseInt(btn.dataset.days);
+            updateSelectedButton();
+        });
     });
+    
+    // Выделяем кнопку 10 дней по умолчанию
+    updateSelectedButton();
     
     modal.querySelector('#cancelMenuCreate').addEventListener('click', () => modal.remove());
     modal.querySelector('#confirmMenuCreate').addEventListener('click', () => {
@@ -1176,17 +1229,32 @@ function createMenuStructure(totalDays, selectedMeals) {
     else if (totalDays === 20) { weeksCount = 4; daysPerWeek = 5; }
     else { weeksCount = Math.ceil(totalDays / 5); daysPerWeek = 5; }
     
-    const emptyItems = (sections) => sections.map(s => ({ section: s, name: '', weight: 0, calories: 0, proteins: 0, fats: 0, carbs: 0, recipeId: '', price: 0 }));
+    // Полная структура с пустыми названиями, но с правильными разделами
+    const createEmptyItems = (sections) => {
+        return sections.map(s => ({ 
+            section: s, 
+            name: '', 
+            weight: 0, 
+            calories: 0, 
+            proteins: 0, 
+            fats: 0, 
+            carbs: 0, 
+            recipeId: '', 
+            price: 0 
+        }));
+    };
+    
     const templates = {
-        breakfast: { items: emptyItems(['гор.блюдо', 'гор.напиток', 'хлеб', 'фрукты']) },
-        breakfast2: { items: emptyItems(['фрукты', 'напиток']) },
-        lunch: { items: emptyItems(['закуска', '1 блюдо', '2 блюдо', 'гарнир', 'напиток', 'хлеб бел.']) },
-        afternoonSnack: { items: emptyItems(['булочное', 'напиток']) },
-        dinner: { items: emptyItems(['гор.блюдо', 'гарнир', 'напиток', 'хлеб']) },
-        dinner2: { items: emptyItems(['кисломол.', 'булочное']) }
+        breakfast: { items: createEmptyItems(['гор.блюдо', 'гор.напиток', 'хлеб', 'фрукты']) },
+        breakfast2: { items: createEmptyItems(['фрукты', 'напиток']) },
+        lunch: { items: createEmptyItems(['закуска', '1 блюдо', '2 блюдо', 'гарнир', 'напиток', 'хлеб бел.']) },
+        afternoonSnack: { items: createEmptyItems(['булочное', 'напиток']) },
+        dinner: { items: createEmptyItems(['гор.блюдо', 'гарнир', 'напиток', 'хлеб']) },
+        dinner2: { items: createEmptyItems(['кисломол.', 'булочное']) }
     };
     
     const newTemplate = { weeks: {} };
+    
     for (let week = 1; week <= weeksCount; week++) {
         newTemplate.weeks[week] = {};
         for (let day = 1; day <= daysPerWeek; day++) {
@@ -1200,14 +1268,22 @@ function createMenuStructure(totalDays, selectedMeals) {
             };
         }
     }
+    
     currentTemplateData = newTemplate;
     originalTemplateData = deepClone(newTemplate);
     historyStack = [deepClone(newTemplate)];
     historyIndex = 0;
     flatItems = buildFlatFromTemplate(currentTemplateData);
     renderEditorContent();
-    showStatus(`✨ Создано типовое меню: ${totalDays} дней (${weeksCount} нед. × ${daysPerWeek} дн.)`, 'success');
+    
+    const mealNames = { breakfast2: '2-й завтрак', afternoonSnack: 'полдник', dinner: 'ужин', dinner2: '2-й ужин' };
+    const enabledMeals = selectedMeals.filter(m => m !== 'breakfast' && m !== 'lunch').map(m => mealNames[m]);
+    const mealsText = enabledMeals.length > 0 ? ` + ${enabledMeals.join(', ')}` : '';
+    
+    showStatus(`✨ Создано типовое меню: ${totalDays} дней (${weeksCount} нед. × ${daysPerWeek} дн.)${mealsText}`, 'success');
 }
+
+
 
 // ========== ПЕЧАТЬ ==========
 function printView() {
@@ -1952,12 +2028,26 @@ function loadFromStorage() {
     const saved = localStorage.getItem('autoSavedMenu');
     if (saved) {
         try {
-            currentTemplateData = JSON.parse(saved);
-            flatItems = buildFlatFromTemplate(currentTemplateData);
-            renderEditorContent();
-            showStatus('💾 Загружено автосохранение', 'info');
-            return true;
-        } catch(e) {}
+            const parsed = JSON.parse(saved);
+            // Проверяем и восстанавливаем структуру
+            if (parsed && parsed.weeks) {
+                // Убеждаемся, что у каждого дня есть все приёмы пищи
+                for (let w in parsed.weeks) {
+                    for (let d in parsed.weeks[w]) {
+                        for (let mt of MEAL_TYPES) {
+                            if (!parsed.weeks[w][d][mt]) {
+                                parsed.weeks[w][d][mt] = { items: [] };
+                            }
+                        }
+                    }
+                }
+                currentTemplateData = parsed;
+                flatItems = buildFlatFromTemplate(currentTemplateData);
+                renderEditorContent();
+                showStatus('💾 Загружено автосохранение', 'info');
+                return true;
+            }
+        } catch(e) { console.error('Load from storage error:', e); }
     }
     return false;
 }
@@ -2215,8 +2305,25 @@ export async function renderEditor(container) {
             <div class="modal-buttons" style="margin-top:20px;"><button id="copyConfirmBtn" class="btn btn-primary">Копировать</button><button id="copyCancelBtn" class="btn btn-secondary">Отмена</button></div>
         </div></div>
         
-        <div id="reportModal" class="modal" style="display:none;"><div class="modal-content"><div class="card-title"><i class="fas fa-chart-line"></i> Детальный отчёт</div><div id="reportContent"></div><div class="modal-buttons"><button id="reportCloseBtn" class="btn btn-primary">Закрыть</button></div></div></div>
-        
+		<div id="reportModal" class="modal" style="display:none;">
+			<div class="modal-content" style="max-width:1400px; width:95%;">
+				<div class="card-title" style="margin-bottom:20px; justify-content:space-between; display:flex; align-items:center;">
+					<div><i class="fas fa-chart-line"></i> <span>Детальный аналитический отчёт по меню</span></div>
+					<div style="display:flex; gap:8px;">
+						<button id="exportHtmlReportBtn" class="btn btn-primary" style="padding:6px 12px; font-size:0.7rem;"><i class="fas fa-file-code"></i> HTML</button>
+						<button id="exportTxtReportBtn" class="btn btn-secondary" style="padding:6px 12px; font-size:0.7rem;"><i class="fas fa-file-alt"></i> TXT</button>
+						<button id="exportCsvReportBtn" class="btn btn-info" style="padding:6px 12px; font-size:0.7rem;"><i class="fas fa-file-csv"></i> CSV</button>
+					</div>
+				</div>
+				<div id="reportContent" style="overflow-x:auto;"></div>
+				<div class="modal-buttons" style="display:flex; gap:12px; justify-content:flex-end; margin-top:20px;">
+					<button id="reportCloseBtn" class="btn btn-primary">Закрыть</button>
+				</div>
+			</div>
+		</div>
+		
+		
+		
         <div id="assistantModal" class="modal" style="display:none;"><div class="modal-content"><div class="card-title"><i class="fas fa-robot"></i> Умный помощник</div><div id="assistantContent"></div><div class="modal-buttons"><button id="closeAssistantBtn" class="btn btn-secondary">Закрыть</button></div></div></div>
         
         <button id="assistantFloatingBtn" class="floating-btn" style="position:fixed; bottom:90px; right:24px; background:linear-gradient(135deg,#7c3aed,#8b5cf6);"><i class="fas fa-robot"></i></button>

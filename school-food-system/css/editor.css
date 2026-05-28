@@ -1122,3 +1122,61 @@
     color: #64748b;
     margin: 4px 0 0;
 }
+/* Улучшенные модальные окна */
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(8px);
+    z-index: 2000;
+    justify-content: center;
+    align-items: center;
+}
+
+.modal-content {
+    background: white;
+    padding: 28px;
+    border-radius: 32px;
+    max-width: 1400px;
+    width: 95%;
+    max-height: 85vh;
+    overflow-y: auto;
+    animation: slideUp 0.3s ease;
+}
+
+/* Специально для отчёта */
+#reportModal .modal-content {
+    max-width: 1400px;
+    width: 95%;
+}
+
+/* Ширина колонок в таблице */
+.editor-table th:nth-child(4) { width: 100px; } /* Приём пищи - уже */
+.editor-table th:nth-child(5) { width: 140px; } /* Раздел - шире */
+.editor-table th:nth-child(6) { min-width: 200px; } /* Блюдо - самое широкое */
+.editor-table th:nth-child(7),
+.editor-table th:nth-child(8),
+.editor-table th:nth-child(9),
+.editor-table th:nth-child(10),
+.editor-table th:nth-child(11),
+.editor-table th:nth-child(12),
+.editor-table th:nth-child(13) { width: 70px; }
+
+/* Стили для кнопок выбора дней в модальном окне создания меню */
+.menu-days-btn {
+    transition: all 0.2s ease;
+}
+
+.menu-days-btn.selected {
+    border-color: #8b5cf6 !important;
+    background: #ede9fe !important;
+    box-shadow: 0 4px 12px rgba(139, 92, 246, 0.2);
+}
+
+.menu-days-btn.selected div:first-child {
+    color: #7c3aed;
+}
