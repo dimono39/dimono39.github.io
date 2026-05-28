@@ -5027,7 +5027,7 @@
 				worksheet.getRow(row).height = 18;  // Остальные строки (данные, итого, среднее)
 			}
 
-			// ===== УМНАЯ ЗАЩИТА ЛИСТА (ИСПРАВЛЕННАЯ) =====
+			// ===== ЗАЩИТА ЛИСТА (УПРОЩЁННАЯ И НАДЁЖНАЯ) =====
 
 			try {
 				// 1. Сначала разблокируем ВСЕ ячейки в столбцах D-L с 6 строки
@@ -5058,19 +5058,18 @@
 				worksheet.getCell('J3').protection = { locked: false };
 				
 				// 3. СТАНДАРТНЫЕ РАЗДЕЛЫ ДЛЯ КАЖДОГО ПРИЁМА ПИЩИ
-				// Первые вхождения КАЖДОГО из этих разделов будут заблокированы
 				const standardSectionsByMeal = {
-					'breakfast': ['гор.блюдо', 'гор.напиток', 'хлеб', 'фрукты'],
-					'breakfast2': ['фрукты', 'напиток'],
-					'lunch': ['закуска', '1 блюдо', '2 блюдо', 'гарнир', 'напиток', 'хлеб бел.', 'хлеб черн.'],
-					'afternoonSnack': ['булочное', 'напиток'],
-					'dinner': ['гор.блюдо', 'гарнир', 'напиток', 'хлеб'],
-					'dinner2': ['кисломол.', 'булочное', 'напиток', 'фрукты']
+					'Завтрак': ['гор.блюдо', 'гор.напиток', 'хлеб', 'фрукты'],
+					'Второй завтрак': ['фрукты', 'напиток'],
+					'Обед': ['закуска', '1 блюдо', '2 блюдо', 'гарнир', 'напиток', 'хлеб бел.', 'хлеб черн.'],
+					'Полдник': ['булочное', 'напиток', 'фрукты'],
+					'Ужин': ['гор.блюдо', 'гарнир', 'напиток', 'хлеб'],
+					'Второй ужин': ['кисломол.', 'булочное', 'напиток', 'фрукты']
 				};
 				
-				// 4. Проходим по строкам и блокируем ПЕРВЫЕ вхождения КАЖДОГО стандартного раздела
-				// Используем Map для отслеживания: ключ = приём_пищи|раздел, значение = уже заблокирован?
-				const lockedSectionsMap = new Map(); // ключ: "week_day_mealType_section"
+				// 4. БЛОКИРУЕМ ВСЕ СТАНДАРТНЫЕ РАЗДЕЛЫ (не только первые)
+				// Проходим по всем строкам и блокируем ячейки с разделами, которые входят в стандартный список
+				let lockedCount = 0;
 				
 				for (let row = 6; row <= currentRow; row++) {
 					const weekCell = worksheet.getCell(row, 1);
@@ -5078,72 +5077,56 @@
 					const mealCell = worksheet.getCell(row, 3);
 					const sectionCell = worksheet.getCell(row, 4);
 					
-					const week = weekCell.value?.toString() || '';
-					const day = dayCell.value?.toString() || '';
 					const mealValue = mealCell.value?.toString() || '';
 					const section = sectionCell.value?.toString() || '';
 					
-					// Пропускаем строки "итого" и пустые
-					if (mealValue.toLowerCase().includes('итого') || !section) continue;
+					// Пропускаем строки "итого"
+					if (mealValue.toLowerCase().includes('итого')) continue;
 					
-					// Определяем тип приёма пищи по названию
+					// Пропускаем пустые разделы
+					if (!section || section === '') continue;
+					
+					// Определяем тип приёма пищи
 					let mealType = null;
-					if (mealValue.includes('Завтрак') && !mealValue.includes('2') && !mealValue.includes('Второй')) mealType = 'breakfast';
-					else if (mealValue.includes('Второй завтрак') || mealValue.includes('2-й завтрак')) mealType = 'breakfast2';
-					else if (mealValue.includes('Обед')) mealType = 'lunch';
-					else if (mealValue.includes('Полдник')) mealType = 'afternoonSnack';
-					else if (mealValue.includes('Ужин') && !mealValue.includes('2') && !mealValue.includes('Второй')) mealType = 'dinner';
-					else if (mealValue.includes('Второй ужин') || mealValue.includes('2-й ужин')) mealType = 'dinner2';
+					if (mealValue === 'Завтрак') mealType = 'Завтрак';
+					else if (mealValue === 'Второй завтрак') mealType = 'Второй завтрак';
+					else if (mealValue === 'Обед') mealType = 'Обед';
+					else if (mealValue === 'Полдник') mealType = 'Полдник';
+					else if (mealValue === 'Ужин') mealType = 'Ужин';
+					else if (mealValue === 'Второй ужин') mealType = 'Второй ужин';
 					
-					if (!mealType) continue;
+					// Если не удалось определить приём пищи по заголовку, 
+					// ищем ближайший заголовок выше
+					if (!mealType) {
+						for (let r = row - 1; r >= 6; r--) {
+							const prevMealCell = worksheet.getCell(r, 3);
+							const prevMealValue = prevMealCell.value?.toString() || '';
+							if (prevMealValue === 'Завтрак') { mealType = 'Завтрак'; break; }
+							else if (prevMealValue === 'Второй завтрак') { mealType = 'Второй завтрак'; break; }
+							else if (prevMealValue === 'Обед') { mealType = 'Обед'; break; }
+							else if (prevMealValue === 'Полдник') { mealType = 'Полдник'; break; }
+							else if (prevMealValue === 'Ужин') { mealType = 'Ужин'; break; }
+							else if (prevMealValue === 'Второй ужин') { mealType = 'Второй ужин'; break; }
+						}
+					}
 					
-					// Получаем список стандартных разделов для этого типа приёма пищи
-					const standardSections = standardSectionsByMeal[mealType] || [];
-					
-					// Проверяем, является ли текущий раздел стандартным
-					if (standardSections.includes(section)) {
-						// Формируем уникальный ключ: неделя_день_тип_приёма_раздел
-						const lockKey = `${week}_${day}_${mealType}_${section}`;
+					if (mealType) {
+						const standardSections = standardSectionsByMeal[mealType] || [];
 						
-						// Если этот раздел ещё не был заблокирован в текущем приёме пищи
-						if (!lockedSectionsMap.has(lockKey)) {
-							// БЛОКИРУЕМ первое вхождение КАЖДОГО стандартного раздела
+						if (standardSections.includes(section)) {
+							// Блокируем этот раздел
 							sectionCell.protection = { locked: true };
-							lockedSectionsMap.set(lockKey, true);
-							console.log(`🔒 [${row}] ЗАБЛОКИРОВАН: ${mealType} -> "${section}" (первое вхождение)`);
+							lockedCount++;
+							console.log(`🔒 [${row}] ЗАБЛОКИРОВАН: ${mealType} -> "${section}"`);
 						} else {
-							// Повторное вхождение - ОСТАВЛЯЕМ РАЗБЛОКИРОВАННЫМ
-							console.log(`🔓 [${row}] РАЗБЛОКИРОВАН: ${mealType} -> "${section}" (повторное вхождение)`);
+							console.log(`🔓 [${row}] РАЗБЛОКИРОВАН: ${mealType} -> "${section}" (нестандартный раздел)`);
 						}
 					} else {
-						// Нестандартный раздел - всегда разблокирован
-						console.log(`🔓 [${row}] РАЗБЛОКИРОВАН: ${mealType} -> "${section}" (нестандартный раздел)`);
+						console.log(`⚠️ [${row}] Не удалось определить приём пищи для раздела "${section}"`);
 					}
 				}
 				
-				// 5. Дополнительно: блокируем также столбец D (разделы) для ПЕРВЫХ строк каждого приёма пищи
-				// (это блокирует названия разделов, но оставляет возможность редактировать сами данные)
-				let lastMealKey = '';
-				for (let row = 6; row <= currentRow; row++) {
-					const weekCell = worksheet.getCell(row, 1);
-					const dayCell = worksheet.getCell(row, 2);
-					const mealCell = worksheet.getCell(row, 3);
-					
-					const week = weekCell.value?.toString() || '';
-					const day = dayCell.value?.toString() || '';
-					const mealValue = mealCell.value?.toString() || '';
-					
-					if (mealValue && !mealValue.toLowerCase().includes('итого') && mealValue !== '') {
-						const mealKey = `${week}_${day}_${mealValue}`;
-						if (mealKey !== lastMealKey) {
-							// Первая строка приёма пищи - блокируем название приёма (столбец C)
-							mealCell.protection = { locked: true };
-							lastMealKey = mealKey;
-						}
-					}
-				}
-				
-				// 6. ЗАБЛОКИРУЕМ итоговые строки
+				// 5. ЗАБЛОКИРУЕМ итоговые строки
 				for (let row of dayTotalRows) {
 					for (let col = 1; col <= 12; col++) {
 						const cell = worksheet.getCell(row, col);
@@ -5190,6 +5173,15 @@
 					}
 				}
 				
+				// Блокируем столбец C (Приём пищи) для строк с названиями приёмов
+				for (let row = 6; row <= currentRow; row++) {
+					const mealCell = worksheet.getCell(row, 3);
+					const mealValue = mealCell.value?.toString() || '';
+					if (mealValue && !mealValue.toLowerCase().includes('итого') && mealValue !== '') {
+						mealCell.protection = { locked: true };
+					}
+				}
+				
 				// Включаем защиту листа
 				await worksheet.protect('', {
 					selectLockedCells: true,
@@ -5207,14 +5199,11 @@
 				});
 				
 				console.log('✅ Умная защита листа включена');
-				console.log('   - Первые вхождения КАЖДОГО стандартного раздела: ЗАБЛОКИРОВАНЫ');
-				console.log('   - Все стандартные разделы (гор.блюдо, гор.напиток, хлеб, фрукты и т.д.): блокируются при первом появлении');
-				console.log('   - Повторяющиеся стандартные разделы: ДОСТУПНЫ ДЛЯ РЕДАКТИРОВАНИЯ');
+				console.log(`   - Заблокировано разделов: ${lockedCount}`);
 				
 			} catch(e) {
 				console.warn('Ошибка при установке защиты:', e);
 			}
-			
 			
 			// После установки защиты, добавьте подсветку для защищённых ячеек
 			// Это поможет пользователю видеть, какие разделы нельзя редактировать
@@ -7808,6 +7797,8 @@
 			flatItems = buildFlatFromTemplate(currentTemplateData);
 			renderEditor();
 			
+			saveToStorage();
+			
 			// Обновляем UI
 			addAddMealButtonToUI();
 			addTotalPriceButton();
@@ -8223,33 +8214,49 @@
             if (currentTemplateData) saveToStorage();
         }, 30000);
 
-        if (!loadFromStorage()) {
-            currentTemplateData = { weeks: {} };
-            originalTemplateData = { weeks: {} };
-            for (let w = 1; w <= 2; w++) {
-                currentTemplateData.weeks[w] = {};
-                for (let d = 1; d <= 5; d++) {
-                    currentTemplateData.weeks[w][d] = {
-                        breakfast: { items: [{ section: 'гор.блюдо', name: 'Каша рисовая', weight: 200, calories: 220,
-                                proteins: 5, fats: 6, carbs: 35, recipeId: '001', price: 15 }] },
-                        breakfast2: { items: [{ section: 'фрукты', name: 'Яблоко', weight: 100, calories: 52, proteins: 0.3,
-                                fats: 0.2, carbs: 14, recipeId: '003', price: 20 }] },
-                        lunch: { items: [{ section: '1 блюдо', name: 'Суп куриный', weight: 250, calories: 120, proteins: 8,
-                                fats: 5, carbs: 10, recipeId: '004', price: 25 }] },
-                        afternoonSnack: { items: [] },
-                        dinner: { items: [{ section: 'гор.блюдо', name: 'Котлета', weight: 100, calories: 250,
-                                proteins: 15, fats: 18, carbs: 10, recipeId: '005', price: 30 }] },
-                        dinner2: { items: [] }
-                    };
-                }
-            }
-            flatItems = buildFlatFromTemplate(currentTemplateData);
-            originalTemplateData = JSON.parse(JSON.stringify(currentTemplateData));
-            historyStack = [JSON.parse(JSON.stringify(currentTemplateData))];
-            historyIndex = 0;
-            renderEditor();
-            showStatus('🎯 Загружены демо-данные. Нажмите на поле для загрузки файла.', 'info');
-        }
+		if (!loadFromStorage()) {
+			// Создаём демо-данные: 2 недели по 5 дней = 10 дней
+			currentTemplateData = { weeks: {} };
+			originalTemplateData = { weeks: {} };
+			
+			const demoBreakfast = {
+				items: [{ section: 'гор.блюдо', name: 'Каша рисовая', weight: 200, calories: 220,
+						proteins: 5, fats: 6, carbs: 35, recipeId: '001', price: 15 }]
+			};
+			const demoBreakfast2 = {
+				items: [{ section: 'фрукты', name: 'Яблоко', weight: 100, calories: 52, proteins: 0.3,
+						fats: 0.2, carbs: 14, recipeId: '003', price: 20 }]
+			};
+			const demoLaunch = {
+				items: [{ section: '1 блюдо', name: 'Суп куриный', weight: 250, calories: 120, proteins: 8,
+						fats: 5, carbs: 10, recipeId: '004', price: 25 }]
+			};
+			const demoDinner = {
+				items: [{ section: 'гор.блюдо', name: 'Котлета', weight: 100, calories: 250,
+						proteins: 15, fats: 18, carbs: 10, recipeId: '005', price: 30 }]
+			};
+			
+			for (let w = 1; w <= 2; w++) {
+				currentTemplateData.weeks[w] = {};
+				for (let d = 1; d <= 5; d++) {
+					currentTemplateData.weeks[w][d] = {
+						breakfast: JSON.parse(JSON.stringify(demoBreakfast)),
+						breakfast2: JSON.parse(JSON.stringify(demoBreakfast2)),
+						lunch: JSON.parse(JSON.stringify(demoLaunch)),
+						afternoonSnack: { items: [] },
+						dinner: JSON.parse(JSON.stringify(demoDinner)),
+						dinner2: { items: [] }
+					};
+				}
+			}
+			
+			flatItems = buildFlatFromTemplate(currentTemplateData);
+			originalTemplateData = JSON.parse(JSON.stringify(currentTemplateData));
+			historyStack = [JSON.parse(JSON.stringify(currentTemplateData))];
+			historyIndex = 0;
+			renderEditor();
+			showStatus('🎯 Загружены демо-данные (10 дней). Нажмите на поле для загрузки файла или используйте "Создать типовое меню".', 'info');
+		}
 
         window.onclick = function(event) {
 			if (event.target.classList && event.target.classList.contains('modal')) {
