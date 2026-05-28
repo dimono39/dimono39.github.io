@@ -2203,6 +2203,246 @@ function handleAssistantAction(action, content) {
     content.scrollTop = content.scrollHeight;
 }
 
+// ========== ЭКСПОРТ ОТЧЁТА ==========
+
+function getReportDataForExport() {
+    allViolations = runAllRules(currentTemplateData);
+    
+    const totalWeight = flatItems.reduce((s, i) => s + i.weight, 0);
+    const totalCalories = flatItems.reduce((s, i) => s + i.calories, 0);
+    const totalDays = Object.keys(currentTemplateData.weeks).reduce((sum, w) => sum + Object.keys(currentTemplateData.weeks[w]).length, 0);
+    const totalWeeks = Object.keys(currentTemplateData.weeks).length;
+    const avgWeightPerDay = totalDays > 0 ? (totalWeight / totalDays).toFixed(0) : 0;
+    
+    const errorsCount = allViolations.filter(v => v.code === 15).length;
+    const warningsCount = allViolations.filter(v => v.code !== 15 && v.code !== 17).length;
+    const duplicatesCount = allViolations.filter(v => v.code === 17).length;
+    
+    const violationsList = [];
+    for (let v of allViolations) {
+        let mealName = '', sectionName = '', dishName = '';
+        const mealNames = { 'breakfast':'Завтрак','breakfast2':'2-й завтрак','lunch':'Обед','afternoonSnack':'Полдник','dinner':'Ужин','dinner2':'2-й ужин' };
+        mealName = (v.meal && mealNames[v.meal]) || (v.meal || 'Весь день');
+        
+        if (v.itemIndex !== undefined && v.meal) {
+            const mealData = currentTemplateData.weeks[v.week]?.[v.day]?.[v.meal];
+            if (mealData && mealData.items && mealData.items[v.itemIndex]) {
+                const item = mealData.items[v.itemIndex];
+                dishName = item.name || '—';
+                sectionName = item.section || '—';
+            }
+        }
+        
+        let violationText = '', currentValue = '', normValue = '';
+        switch(v.code) {
+            case 1: violationText='Вес завтрака'; currentValue=v.details.match(/(\d+)г/)?.[1]||'?'; normValue='≥500г'; break;
+            case 2: violationText='Вес обеда'; currentValue=v.details.match(/(\d+)г/)?.[1]||'?'; normValue='≥700г'; break;
+            case 3: violationText='Вес гор.блюда'; currentValue=v.details.match(/(\d+)г/)?.[1]||'?'; normValue='≥150г'; break;
+            case 4: violationText='Вес закуски'; currentValue=v.details.match(/(\d+)г/)?.[1]||'?'; normValue='≥60г'; break;
+            case 5: violationText='Вес 1 блюда'; currentValue=v.details.match(/(\d+)г/)?.[1]||'?'; normValue='≥200г'; break;
+            case 6: violationText='Вес 2 блюда'; currentValue=v.details.match(/(\d+)г/)?.[1]||'?'; normValue='≥90г'; break;
+            case 8: violationText='Вес гарнира'; currentValue=v.details.match(/(\d+)г/)?.[1]||'?'; normValue='≥150г'; break;
+            case 9: violationText='Вес 2 завтрака'; currentValue=v.details.match(/(\d+)г/)?.[1]||'?'; normValue='≥200г'; break;
+            case 10: violationText='Вес полдника'; currentValue=v.details.match(/(\d+)г/)?.[1]||'?'; normValue='≥300г'; break;
+            case 11: violationText='Вес ужина'; currentValue=v.details.match(/(\d+)г/)?.[1]||'?'; normValue='≥500г'; break;
+            case 12: violationText='Вес 2 ужина'; currentValue=v.details.match(/(\d+)г/)?.[1]||'?'; normValue='≥200г'; break;
+            case 13: violationText='Калории завтрака'; currentValue=v.details.match(/(\d+)ккал/)?.[1]||'?'; normValue='≥470ккал'; break;
+            case 14: violationText='Калории обеда'; currentValue=v.details.match(/(\d+)ккал/)?.[1]||'?'; normValue='≥705ккал'; break;
+            case 15: violationText='БЖУ > веса (крит.)'; currentValue=v.details; normValue='БЖУ ≤ вес'; break;
+            case 16: violationText='Фрукты за день'; currentValue=v.details.match(/(\d+)г/)?.[1]||'?'; normValue='≥100г'; break;
+            case 17: violationText='Дубликат блюда'; currentValue=v.details.replace('Повтор блюда: "','').replace('"',''); normValue='Уникальные блюда'; break;
+            default: violationText=v.details; currentValue='—'; normValue='—';
+        }
+        
+        violationsList.push({
+            week: v.week, day: v.day, meal: mealName, section: sectionName, dish: dishName,
+            violation: violationText, currentValue: currentValue, norm: normValue, code: v.code
+        });
+    }
+    
+    return {
+        stats: {
+            totalDishes: flatItems.length, totalWeeks: totalWeeks, totalDays: totalDays,
+            avgWeightPerDay: avgWeightPerDay, totalWeight: totalWeight, totalCalories: totalCalories,
+            errorsCount: errorsCount, warningsCount: warningsCount, duplicatesCount: duplicatesCount,
+            totalViolations: allViolations.length,
+            schoolName: schoolInfo.name || '—', approvalDate: schoolInfo.approval.date || '—'
+        },
+        violations: violationsList
+    };
+}
+
+function exportReportToHTML() {
+    const data = getReportDataForExport();
+    const now = new Date();
+    const dateStr = now.toLocaleString('ru-RU');
+    
+    let violationsHtml = '';
+    for (let v of data.violations) {
+        const criticalClass = v.code === 15 ? 'critical' : (v.code === 17 ? 'duplicate' : 'warning');
+        violationsHtml += `
+            <tr class="violation-${criticalClass}">
+                <td>Неделя ${v.week}, День ${v.day}</td>
+                <td>${v.meal}</td>
+                <td>${escapeHtml(v.section)}</td>
+                <td>${escapeHtml(v.dish)}</td>
+                <td>${v.violation}</td>
+                <td>${escapeHtml(v.currentValue)}</td>
+                <td>${v.norm}</td>
+            </tr>
+        `;
+    }
+    
+    const html = `<!DOCTYPE html>
+    <html lang="ru">
+    <head>
+        <meta charset="UTF-8">
+        <title>Отчёт по меню от ${dateStr}</title>
+        <style>
+            * { font-family: 'Segoe UI', Arial, sans-serif; }
+            body { padding: 40px; background: #f5f5f5; }
+            .container { max-width: 1400px; margin: 0 auto; background: white; border-radius: 16px; padding: 30px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
+            h1 { color: #059669; }
+            .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin: 20px 0; }
+            .stat-card { background: #f8fafc; padding: 15px; border-radius: 12px; text-align: center; border-left: 4px solid #059669; }
+            .stat-value { font-size: 24px; font-weight: bold; }
+            .violation-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+            .violation-table th, .violation-table td { border: 1px solid #e2e8f0; padding: 8px; text-align: left; }
+            .violation-table th { background: #f1f5f9; }
+            .violation-critical { background: #fef2f2; }
+            .violation-warning { background: #fffbeb; }
+            .violation-duplicate { background: #fdf2f8; }
+            .summary { background: #fef3c7; padding: 15px; border-radius: 12px; margin: 20px 0; border-left: 4px solid #f59e0b; }
+            @media print { body { padding: 0; background: white; } }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h1>📊 Детальный аналитический отчёт по типовому меню</h1>
+            <p><strong>${escapeHtml(data.stats.schoolName)}</strong> | Дата утверждения: ${data.stats.approvalDate} | Сформирован: ${dateStr}</p>
+            
+            <div class="stats-grid">
+                <div class="stat-card"><div class="stat-value">${data.stats.totalDishes}</div><div>🍽️ Блюд</div></div>
+                <div class="stat-card"><div class="stat-value">${data.stats.totalWeeks}</div><div>📅 Недель</div></div>
+                <div class="stat-card"><div class="stat-value">${data.stats.totalDays}</div><div>📆 Дней</div></div>
+                <div class="stat-card"><div class="stat-value">${data.stats.avgWeightPerDay}</div><div>⚖️ Ср. вес/день (г)</div></div>
+                <div class="stat-card"><div class="stat-value">${data.stats.totalWeight}</div><div>🏋️ Общий вес (г)</div></div>
+            </div>
+            
+            <div class="summary">
+                <strong>📊 Статус проверки:</strong> 
+                ${data.stats.totalViolations === 0 ? '✅ Все правила выполнены' : 
+                  `⚠️ Найдено ${data.stats.totalViolations} нарушений (${data.stats.errorsCount} критических, ${data.stats.warningsCount} предупреждений, ${data.stats.duplicatesCount} дубликатов)`}
+            </div>
+            
+            ${data.violations.length > 0 ? `
+                <h2>📋 Список нарушений</h2>
+                <table class="violation-table">
+                    <thead><tr><th>День</th><th>Приём пищи</th><th>Раздел</th><th>Блюдо</th><th>Нарушение</th><th>Значение</th><th>Норма</th></tr></thead>
+                    <tbody>${violationsHtml}</tbody>
+                </table>
+            ` : '<div style="text-align:center;padding:40px;">🎉 Отлично! Все правила соблюдены.</div>'}
+            
+            <div style="margin-top:30px; text-align:center; color:#94a3b8; font-size:12px;">
+                Отчёт сгенерирован автоматически | PRO Редактор типового меню ФЦМПО
+            </div>
+        </div>
+    </body>
+    </html>`;
+    
+    const blob = new Blob([html], { type: 'text/html' });
+    saveAs(blob, `report_menu_${now.toISOString().slice(0, 19).replace(/:/g, '-')}.html`);
+    showStatus('📄 Отчёт сохранён в формате HTML', 'success');
+}
+
+function exportReportToTXT() {
+    const data = getReportDataForExport();
+    const now = new Date();
+    const dateStr = now.toLocaleString('ru-RU');
+    
+    let lines = [];
+    lines.push('=' .repeat(80));
+    lines.push(`ДЕТАЛЬНЫЙ АНАЛИТИЧЕСКИЙ ОТЧЁТ ПО ТИПОВОМУ МЕНЮ`);
+    lines.push(`Сформирован: ${dateStr}`);
+    lines.push(`Организация: ${data.stats.schoolName}`);
+    lines.push(`Дата утверждения: ${data.stats.approvalDate}`);
+    lines.push('=' .repeat(80));
+    lines.push('');
+    lines.push('📊 ОБЩАЯ СТАТИСТИКА');
+    lines.push('-'.repeat(80));
+    lines.push(`Всего блюд: ${data.stats.totalDishes}`);
+    lines.push(`Недель: ${data.stats.totalWeeks}`);
+    lines.push(`Дней: ${data.stats.totalDays}`);
+    lines.push(`Средний вес на день: ${data.stats.avgWeightPerDay} г`);
+    lines.push(`Общий вес: ${data.stats.totalWeight} г`);
+    lines.push('');
+    lines.push('📊 СТАТУС ПРОВЕРКИ');
+    lines.push('-'.repeat(80));
+    
+    if (data.stats.totalViolations === 0) {
+        lines.push('✅ Все правила выполнены!');
+    } else {
+        lines.push(`⚠️ Найдено нарушений: ${data.stats.totalViolations}`);
+        lines.push(`   - Критические ошибки: ${data.stats.errorsCount}`);
+        lines.push(`   - Предупреждения: ${data.stats.warningsCount}`);
+        lines.push(`   - Дубликаты: ${data.stats.duplicatesCount}`);
+    }
+    lines.push('');
+    
+    if (data.violations.length > 0) {
+        lines.push('📋 ДЕТАЛЬНЫЙ СПИСОК НАРУШЕНИЙ');
+        lines.push('-'.repeat(80));
+        for (let v of data.violations) {
+            lines.push(`[${v.code === 15 ? 'КРИТИЧНО' : (v.code === 17 ? 'ДУБЛИКАТ' : 'ПРЕДУПРЕЖДЕНИЕ')}]`);
+            lines.push(`  День: Неделя ${v.week}, День ${v.day}`);
+            lines.push(`  Приём пищи: ${v.meal}`);
+            lines.push(`  Блюдо: ${v.dish}`);
+            lines.push(`  Нарушение: ${v.violation} | Значение: ${v.currentValue} | Норма: ${v.norm}`);
+            lines.push('');
+        }
+    }
+    
+    lines.push('=' .repeat(80));
+    lines.push('Отчёт сгенерирован автоматически | PRO Редактор типового меню ФЦМПО');
+    
+    const blob = new Blob([lines.join('\n')], { type: 'text/plain;charset=utf-8' });
+    saveAs(blob, `report_menu_${now.toISOString().slice(0, 19).replace(/:/g, '-')}.txt`);
+    showStatus('📄 Отчёт сохранён в формате TXT', 'success');
+}
+
+function exportReportToCSV() {
+    const data = getReportDataForExport();
+    const now = new Date();
+    
+    let csvRows = [['Тип', 'Неделя', 'День', 'Приём пищи', 'Раздел', 'Блюдо', 'Нарушение', 'Значение', 'Норма']];
+    
+    for (let v of data.violations) {
+        let type = '';
+        if (v.code === 15) type = 'Критическая ошибка';
+        else if (v.code === 17) type = 'Дубликат';
+        else type = 'Предупреждение';
+        
+        csvRows.push([
+            type, v.week, v.day, v.meal, v.section, v.dish,
+            v.violation, v.currentValue, v.norm
+        ]);
+    }
+    
+    csvRows.push([]);
+    csvRows.push(['СТАТИСТИКА', '', '', '', '', '', '', '', '']);
+    csvRows.push(['Всего блюд', data.stats.totalDishes]);
+    csvRows.push(['Всего недель', data.stats.totalWeeks]);
+    csvRows.push(['Всего дней', data.stats.totalDays]);
+    csvRows.push(['Средний вес/день', data.stats.avgWeightPerDay]);
+    csvRows.push(['Общий вес', data.stats.totalWeight]);
+    csvRows.push(['Всего нарушений', data.stats.totalViolations]);
+    
+    const csvContent = csvRows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(';')).join('\n');
+    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8' });
+    saveAs(blob, `report_menu_${now.toISOString().slice(0, 19).replace(/:/g, '-')}.csv`);
+    showStatus('📄 Отчёт сохранён в формате CSV', 'success');
+}
+
 // ========== ИНИЦИАЛИЗАЦИЯ МОДУЛЯ ==========
 export async function renderEditor(container) {
     container.innerHTML = `
@@ -2378,6 +2618,10 @@ export async function renderEditor(container) {
         document.getElementById('compareBtn')?.addEventListener('click', showReport);
         document.getElementById('resetToOriginalBtn')?.addEventListener('click', resetToOriginal);
         document.getElementById('createStandardMenuBtn')?.addEventListener('click', createStandardMenu);
+		// Экспорт отчёта
+		document.getElementById('exportHtmlReportBtn')?.addEventListener('click', exportReportToHTML);
+		document.getElementById('exportTxtReportBtn')?.addEventListener('click', exportReportToTXT);
+		document.getElementById('exportCsvReportBtn')?.addEventListener('click', exportReportToCSV);
         
         document.getElementById('copyDayBtn')?.addEventListener('click', () => {
             if (!currentTemplateData) { showStatus('Сначала загрузите файл', 'error'); return; }

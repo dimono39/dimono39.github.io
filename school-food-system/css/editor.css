@@ -93,50 +93,50 @@
     width: 100%;
     border-collapse: collapse;
     font-size: 0.75rem;
-    min-width: 1200px;
+    min-width: 1300px; /* Минимальная ширина для всех колонок */
+    table-layout: fixed;
 }
 
-.editor-table th,
 .editor-table td {
-    border: 1px solid #e2e8f0;
-    padding: 10px 12px;
-    vertical-align: top;
-    transition: background 0.2s ease;
+    padding: 8px 6px;
+    vertical-align: middle;
+    border-bottom: 1px solid #f1f5f9;
 }
 
 .editor-table th {
+    padding: 12px 6px;
     background: linear-gradient(135deg, #f8fafc, #f1f5f9);
     font-weight: 700;
-    position: sticky;
-    top: 0;
-    z-index: 20;
     font-size: 0.7rem;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
     color: #475569;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    border-bottom: 2px solid #e2e8f0;
 }
 
 .editor-table tr:hover td {
     background: #faf5ff;
 }
 
+/* Поля ввода в таблице */
 .editor-table input,
 .editor-table select {
     width: 100%;
-    padding: 6px 10px;
+    padding: 6px 8px;
     border: 1px solid #e2e8f0;
     border-radius: 8px;
     font-size: 0.75rem;
     background: white;
-    transition: all 0.2s ease;
+    box-sizing: border-box;
 }
 
 .editor-table input:focus,
 .editor-table select:focus {
     outline: none;
     border-color: #10b981;
-    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
-    transform: scale(1.02);
+    box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.1);
 }
 
 /* Цвета для ячеек с ошибками */
@@ -951,10 +951,16 @@
         padding: 0 !important;
     }
     
-    .editor-wrapper-premium {
-        overflow: visible !important;
-        max-height: none !important;
-    }
+	/* Обёртка таблицы с горизонтальной прокруткой */
+	.editor-wrapper-premium {
+		overflow-x: auto;
+		overflow-y: auto;
+		background: white;
+		max-height: 65vh;
+		border-radius: 16px;
+		border: 1px solid #e2e8f0;
+		position: relative;
+	}
     
     .editor-table th, .editor-table td {
         border: 1px solid #000 !important;
@@ -1155,16 +1161,20 @@
 }
 
 /* Ширина колонок в таблице */
-.editor-table th:nth-child(4) { width: 100px; } /* Приём пищи - уже */
-.editor-table th:nth-child(5) { width: 140px; } /* Раздел - шире */
-.editor-table th:nth-child(6) { min-width: 200px; } /* Блюдо - самое широкое */
-.editor-table th:nth-child(7),
-.editor-table th:nth-child(8),
-.editor-table th:nth-child(9),
-.editor-table th:nth-child(10),
-.editor-table th:nth-child(11),
-.editor-table th:nth-child(12),
-.editor-table th:nth-child(13) { width: 70px; }
+.editor-table th:nth-child(1) { width: 40px; }  /* Чекбокс */
+.editor-table th:nth-child(2) { width: 60px; }  /* Неделя */
+.editor-table th:nth-child(3) { width: 60px; }  /* День */
+.editor-table th:nth-child(4) { width: 100px; } /* Приём пищи */
+.editor-table th:nth-child(5) { width: 120px; } /* Раздел */
+.editor-table th:nth-child(6) { width: 200px; } /* Блюдо */
+.editor-table th:nth-child(7) { width: 70px; }  /* Вес */
+.editor-table th:nth-child(8) { width: 70px; }  /* Ккал */
+.editor-table th:nth-child(9) { width: 70px; }  /* Белки */
+.editor-table th:nth-child(10) { width: 70px; } /* Жиры */
+.editor-table th:nth-child(11) { width: 70px; } /* Углеводы */
+.editor-table th:nth-child(12) { width: 80px; } /* № рец. */
+.editor-table th:nth-child(13) { width: 80px; } /* Цена */
+.editor-table th:nth-child(14) { width: 60px; } /* Действия */
 
 /* Стили для кнопок выбора дней в модальном окне создания меню */
 .menu-days-btn {

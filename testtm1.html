@@ -6946,38 +6946,88 @@
 			`;
 			
 			modal.innerHTML = `
-				<div style="background: white; border-radius: 32px; padding: 32px; max-width: 600px; width: 90%; animation: slideUp 0.3s ease; max-height: 85vh; overflow-y: auto;">
+				<div style="background: white; border-radius: 32px; padding: 32px; max-width: 700px; width: 90%; animation: slideUp 0.3s ease; max-height: 85vh; overflow-y: auto;">
 					<div style="display: flex; align-items: center; gap: 12px; margin-bottom: 24px;">
 						<i class="fas fa-calendar-alt" style="font-size: 32px; color: #8b5cf6;"></i>
 						<h2 style="color: #0f172a;">Создание типового меню</h2>
 					</div>
 					
-					<!-- Выбор количества дней -->
-					<div style="margin-bottom: 24px;">
-						<label style="display: block; margin-bottom: 12px; font-weight: 600;">
-							<i class="fas fa-chart-line"></i> Количество дней:
-						</label>
-						<div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px;">
-							<button data-days="10" class="menu-days-btn" style="padding: 12px; border: 2px solid #e2e8f0; border-radius: 16px; background: white; cursor: pointer; transition: all 0.2s;">
-								<div style="font-size: 24px; font-weight: bold;">10</div>
-								<div style="font-size: 11px; color: #64748b;">2 нед. × 5 дн.</div>
-							</button>
-							<button data-days="12" class="menu-days-btn" style="padding: 12px; border: 2px solid #e2e8f0; border-radius: 16px; background: white; cursor: pointer; transition: all 0.2s;">
-								<div style="font-size: 24px; font-weight: bold;">12</div>
-								<div style="font-size: 11px; color: #64748b;">2 нед. × 6 дн.</div>
-							</button>
-							<button data-days="14" class="menu-days-btn" style="padding: 12px; border: 2px solid #e2e8f0; border-radius: 16px; background: white; cursor: pointer; transition: all 0.2s;">
-								<div style="font-size: 24px; font-weight: bold;">14</div>
-								<div style="font-size: 11px; color: #64748b;">2 нед. × 7 дн.</div>
-							</button>
-							<button data-days="15" class="menu-days-btn" style="padding: 12px; border: 2px solid #e2e8f0; border-radius: 16px; background: white; cursor: pointer; transition: all 0.2s;">
-								<div style="font-size: 24px; font-weight: bold;">15</div>
-								<div style="font-size: 11px; color: #64748b;">3 нед. × 5 дн.</div>
-							</button>
-							<button data-days="20" class="menu-days-btn" style="padding: 12px; border: 2px solid #e2e8f0; border-radius: 16px; background: white; cursor: pointer; transition: all 0.2s;">
-								<div style="font-size: 24px; font-weight: bold;">20</div>
-								<div style="font-size: 11px; color: #64748b;">4 нед. × 5 дн.</div>
-							</button>
+					<!-- Вкладки: Быстрый выбор / Расширенный -->
+					<div style="display: flex; gap: 8px; margin-bottom: 24px; border-bottom: 1px solid #e2e8f0;">
+						<button id="quickTabBtn" class="menu-tab-btn active" style="padding: 10px 20px; background: none; border: none; cursor: pointer; font-weight: 600; color: #059669; border-bottom: 2px solid #059669;">
+							<i class="fas fa-bolt"></i> Быстрый выбор
+						</button>
+						<button id="customTabBtn" class="menu-tab-btn" style="padding: 10px 20px; background: none; border: none; cursor: pointer; font-weight: 600; color: #64748b;">
+							<i class="fas fa-sliders-h"></i> Расширенный
+						</button>
+					</div>
+					
+					<!-- Панель быстрого выбора -->
+					<div id="quickPanel" class="menu-panel">
+						<div style="margin-bottom: 24px;">
+							<label style="display: block; margin-bottom: 12px; font-weight: 600;">
+								<i class="fas fa-chart-line"></i> Количество дней:
+							</label>
+							<div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px;">
+								<button data-days="10" class="menu-days-btn" style="padding: 12px; border: 2px solid #e2e8f0; border-radius: 16px; background: white; cursor: pointer; transition: all 0.2s;">
+									<div style="font-size: 24px; font-weight: bold;">10</div>
+									<div style="font-size: 11px; color: #64748b;">2 нед. × 5 дн.</div>
+								</button>
+								<button data-days="12" class="menu-days-btn" style="padding: 12px; border: 2px solid #e2e8f0; border-radius: 16px; background: white; cursor: pointer; transition: all 0.2s;">
+									<div style="font-size: 24px; font-weight: bold;">12</div>
+									<div style="font-size: 11px; color: #64748b;">2 нед. × 6 дн.</div>
+								</button>
+								<button data-days="14" class="menu-days-btn" style="padding: 12px; border: 2px solid #e2e8f0; border-radius: 16px; background: white; cursor: pointer; transition: all 0.2s;">
+									<div style="font-size: 24px; font-weight: bold;">14</div>
+									<div style="font-size: 11px; color: #64748b;">2 нед. × 7 дн.</div>
+								</button>
+								<button data-days="15" class="menu-days-btn" style="padding: 12px; border: 2px solid #e2e8f0; border-radius: 16px; background: white; cursor: pointer; transition: all 0.2s;">
+									<div style="font-size: 24px; font-weight: bold;">15</div>
+									<div style="font-size: 11px; color: #64748b;">3 нед. × 5 дн.</div>
+								</button>
+								<button data-days="20" class="menu-days-btn" style="padding: 12px; border: 2px solid #e2e8f0; border-radius: 16px; background: white; cursor: pointer; transition: all 0.2s;">
+									<div style="font-size: 24px; font-weight: bold;">20</div>
+									<div style="font-size: 11px; color: #64748b;">4 нед. × 5 дн.</div>
+								</button>
+							</div>
+						</div>
+					</div>
+					
+					<!-- Панель расширенного выбора -->
+					<div id="customPanel" class="menu-panel" style="display: none;">
+						<div style="margin-bottom: 24px;">
+							<label style="display: block; margin-bottom: 12px; font-weight: 600;">
+								<i class="fas fa-calendar-week"></i> Количество недель:
+							</label>
+							<div style="display: flex; align-items: center; gap: 16px;">
+								<input type="number" id="customWeeks" min="1" max="12" value="2" step="1" style="width: 100px; padding: 10px; border-radius: 12px; border: 1px solid #e2e8f0; text-align: center; font-size: 16px;">
+								<span style="color: #64748b;">недель</span>
+								<div style="flex: 1;"></div>
+							</div>
+						</div>
+						
+						<div style="margin-bottom: 24px;">
+							<label style="display: block; margin-bottom: 12px; font-weight: 600;">
+								<i class="fas fa-calendar-day"></i> Дней в неделе:
+							</label>
+							<div style="display: flex; gap: 12px; flex-wrap: wrap;">
+								<label style="display: flex; align-items: center; gap: 8px; padding: 8px 16px; background: #f8fafc; border-radius: 40px; cursor: pointer;">
+									<input type="radio" name="daysPerWeek" value="5" checked> 5 дней (Пн-Пт)
+								</label>
+								<label style="display: flex; align-items: center; gap: 8px; padding: 8px 16px; background: #f8fafc; border-radius: 40px; cursor: pointer;">
+									<input type="radio" name="daysPerWeek" value="6"> 6 дней (Пн-Сб)
+								</label>
+								<label style="display: flex; align-items: center; gap: 8px; padding: 8px 16px; background: #f8fafc; border-radius: 40px; cursor: pointer;">
+									<input type="radio" name="daysPerWeek" value="7"> 7 дней (Пн-Вс)
+								</label>
+							</div>
+						</div>
+						
+						<div style="margin-bottom: 24px; background: #f0fdf4; padding: 12px; border-radius: 16px;">
+							<div style="display: flex; justify-content: space-between; align-items: center;">
+								<span><i class="fas fa-calculator"></i> <strong>Итого дней:</strong></span>
+								<span id="totalDaysPreview" style="font-size: 24px; font-weight: bold; color: #059669;">10</span>
+							</div>
 						</div>
 					</div>
 					
@@ -7017,7 +7067,7 @@
 						</div>
 						<ul style="margin-left: 20px; color: #4c1d95; font-size: 12px; line-height: 1.6;">
 							<li>✅ <strong>Завтрак</strong> — 4 позиции (гор.блюдо, напиток, хлеб, фрукты)</li>
-							<li>✅ <strong>Обед</strong> — 6 позиции (закуска, 1 блюдо, 2 блюдо, гарнир, напиток, хлеб)</li>
+							<li>✅ <strong>Обед</strong> — 6 позиций (закуска, 1 блюдо, 2 блюдо, гарнир, напиток, хлеб)</li>
 							<li id="previewBreakfast2" style="color: #9ca3af;">⬜ Второй завтрак — 2 позиции (фрукты, напиток)</li>
 							<li id="previewAfternoonSnack" style="color: #9ca3af;">⬜ Полдник — 2 позиции (булочное, напиток)</li>
 							<li id="previewDinner" style="color: #10b981;">✅ Ужин — 4 позиции (гор.блюдо, гарнир, напиток, хлеб)</li>
@@ -7036,91 +7086,145 @@
 			
 			document.body.appendChild(modal);
 			
-			// Стили для кнопок
+			// Стили для кнопок и анимации
 			const style = document.createElement('style');
 			style.textContent = `
-				.menu-days-btn:hover {
-					border-color: #8b5cf6 !important;
-					background: #f3e8ff !important;
-					transform: translateY(-2px);
-				}
-				.menu-days-btn.selected {
+				.menu-days-btn:hover, .menu-days-btn.selected {
 					border-color: #8b5cf6 !important;
 					background: #ede9fe !important;
+					transform: translateY(-2px);
 					box-shadow: 0 4px 12px rgba(139, 92, 246, 0.2);
+				}
+				.menu-tab-btn {
+					transition: all 0.2s ease;
+				}
+				.menu-tab-btn:hover {
+					background: #f1f5f9;
+				}
+				.menu-panel {
+					transition: all 0.3s ease;
 				}
 			`;
 			modal.appendChild(style);
 			
-			let selectedDays = 10; // По умолчанию 10 дней
+			// Переменные
+			let selectedDays = 10;
+			let currentTab = 'quick';
+			let customWeeks = 2;
+			let customDaysPerWeek = 5;
 			
-			// Получаем элементы предпросмотра
-			const previewElements = {
-				breakfast2: document.getElementById('previewBreakfast2'),
-				afternoonSnack: document.getElementById('previewAfternoonSnack'),
-				dinner: document.getElementById('previewDinner'),
-				dinner2: document.getElementById('previewDinner2')
-			};
+			// Получаем элементы
+			const quickTab = modal.querySelector('#quickTabBtn');
+			const customTab = modal.querySelector('#customTabBtn');
+			const quickPanel = modal.querySelector('#quickPanel');
+			const customPanel = modal.querySelector('#customPanel');
+			const customWeeksInput = modal.querySelector('#customWeeks');
+			const daysPerWeekRadios = modal.querySelectorAll('input[name="daysPerWeek"]');
+			const totalDaysPreviewSpan = modal.querySelector('#totalDaysPreview');
 			
-			// Функция обновления предпросмотра (правильно находит чекбоксы)
-			function updatePreview() {
-				// Находим чекбоксы внутри модального окна
-				const breakfast2Checkbox = modal.querySelector('.meal-checkbox[data-meal="breakfast2"]');
-				const afternoonSnackCheckbox = modal.querySelector('.meal-checkbox[data-meal="afternoonSnack"]');
-				const dinnerCheckbox = modal.querySelector('.meal-checkbox[data-meal="dinner"]');
-				const dinner2Checkbox = modal.querySelector('.meal-checkbox[data-meal="dinner2"]');
-				
-				// Обновляем предпросмотр для второго завтрака
-				if (previewElements.breakfast2) {
-					const isChecked = breakfast2Checkbox ? breakfast2Checkbox.checked : false;
-					previewElements.breakfast2.style.color = isChecked ? '#10b981' : '#9ca3af';
-					previewElements.breakfast2.innerHTML = isChecked 
-						? '✅ Второй завтрак — 2 позиции (фрукты, напиток)' 
-						: '⬜ Второй завтрак — 2 позиции (фрукты, напиток)';
+			// Функция обновления предпросмотра дней в расширенном режиме
+			function updateTotalDaysPreview() {
+				const weeks = parseInt(customWeeksInput?.value) || 1;
+				const daysPerWeek = parseInt(document.querySelector('input[name="daysPerWeek"]:checked')?.value) || 5;
+				const total = weeks * daysPerWeek;
+				if (totalDaysPreviewSpan) {
+					totalDaysPreviewSpan.textContent = total;
 				}
-				
-				// Обновляем предпросмотр для полдника
-				if (previewElements.afternoonSnack) {
-					const isChecked = afternoonSnackCheckbox ? afternoonSnackCheckbox.checked : false;
-					previewElements.afternoonSnack.style.color = isChecked ? '#10b981' : '#9ca3af';
-					previewElements.afternoonSnack.innerHTML = isChecked 
-						? '✅ Полдник — 2 позиции (булочное, напиток)' 
-						: '⬜ Полдник — 2 позиции (булочное, напиток)';
-				}
-				
-				// Обновляем предпросмотр для ужина
-				if (previewElements.dinner) {
-					const isChecked = dinnerCheckbox ? dinnerCheckbox.checked : false;
-					previewElements.dinner.style.color = isChecked ? '#10b981' : '#9ca3af';
-					previewElements.dinner.innerHTML = isChecked 
-						? '✅ Ужин — 4 позиции (гор.блюдо, гарнир, напиток, хлеб)' 
-						: '⬜ Ужин — 4 позиции (гор.блюдо, гарнир, напиток, хлеб)';
-				}
-				
-				// Обновляем предпросмотр для второго ужина
-				if (previewElements.dinner2) {
-					const isChecked = dinner2Checkbox ? dinner2Checkbox.checked : false;
-					previewElements.dinner2.style.color = isChecked ? '#10b981' : '#9ca3af';
-					previewElements.dinner2.innerHTML = isChecked 
-						? '✅ Второй ужин — 2 позиции (кисломол., булочное)' 
-						: '⬜ Второй ужин — 2 позиции (кисломол., булочное)';
-				}
+				customWeeks = weeks;
+				customDaysPerWeek = daysPerWeek;
 			}
 			
-			// Обработчики выбора дней
+			// Переключение вкладок
+			if (quickTab && customTab) {
+				quickTab.addEventListener('click', () => {
+					currentTab = 'quick';
+					quickTab.classList.add('active');
+					quickTab.style.color = '#059669';
+					quickTab.style.borderBottom = '2px solid #059669';
+					customTab.classList.remove('active');
+					customTab.style.color = '#64748b';
+					customTab.style.borderBottom = 'none';
+					quickPanel.style.display = 'block';
+					customPanel.style.display = 'none';
+				});
+				
+				customTab.addEventListener('click', () => {
+					currentTab = 'custom';
+					customTab.classList.add('active');
+					customTab.style.color = '#059669';
+					customTab.style.borderBottom = '2px solid #059669';
+					quickTab.classList.remove('active');
+					quickTab.style.color = '#64748b';
+					quickTab.style.borderBottom = 'none';
+					quickPanel.style.display = 'none';
+					customPanel.style.display = 'block';
+					updateTotalDaysPreview();
+				});
+			}
+			
+			// Обработчики выбора дней (быстрый режим)
 			modal.querySelectorAll('.menu-days-btn').forEach(btn => {
 				btn.addEventListener('click', () => {
 					modal.querySelectorAll('.menu-days-btn').forEach(b => b.classList.remove('selected'));
 					btn.classList.add('selected');
 					selectedDays = parseInt(btn.dataset.days);
 				});
-				// Выбираем 10 дней по умолчанию
 				if (btn.dataset.days === '10') btn.classList.add('selected');
 			});
 			
-			// Обработчики чекбоксов для обновления предпросмотра
+			// Обработчики расширенного режима
+			if (customWeeksInput) {
+				customWeeksInput.addEventListener('input', updateTotalDaysPreview);
+			}
+			daysPerWeekRadios.forEach(radio => {
+				radio.addEventListener('change', updateTotalDaysPreview);
+			});
+			
+			// Функция обновления предпросмотра приёмов пищи
+			function updateMealPreview() {
+				const breakfast2Checkbox = modal.querySelector('.meal-checkbox[data-meal="breakfast2"]');
+				const afternoonSnackCheckbox = modal.querySelector('.meal-checkbox[data-meal="afternoonSnack"]');
+				const dinnerCheckbox = modal.querySelector('.meal-checkbox[data-meal="dinner"]');
+				const dinner2Checkbox = modal.querySelector('.meal-checkbox[data-meal="dinner2"]');
+				
+				const previewBreakfast2 = document.getElementById('previewBreakfast2');
+				const previewAfternoonSnack = document.getElementById('previewAfternoonSnack');
+				const previewDinner = document.getElementById('previewDinner');
+				const previewDinner2 = document.getElementById('previewDinner2');
+				
+				if (previewBreakfast2) {
+					const isChecked = breakfast2Checkbox ? breakfast2Checkbox.checked : false;
+					previewBreakfast2.style.color = isChecked ? '#10b981' : '#9ca3af';
+					previewBreakfast2.innerHTML = isChecked 
+						? '✅ Второй завтрак — 2 позиции (фрукты, напиток)' 
+						: '⬜ Второй завтрак — 2 позиции (фрукты, напиток)';
+				}
+				if (previewAfternoonSnack) {
+					const isChecked = afternoonSnackCheckbox ? afternoonSnackCheckbox.checked : false;
+					previewAfternoonSnack.style.color = isChecked ? '#10b981' : '#9ca3af';
+					previewAfternoonSnack.innerHTML = isChecked 
+						? '✅ Полдник — 2 позиции (булочное, напиток)' 
+						: '⬜ Полдник — 2 позиции (булочное, напиток)';
+				}
+				if (previewDinner) {
+					const isChecked = dinnerCheckbox ? dinnerCheckbox.checked : false;
+					previewDinner.style.color = isChecked ? '#10b981' : '#9ca3af';
+					previewDinner.innerHTML = isChecked 
+						? '✅ Ужин — 4 позиции (гор.блюдо, гарнир, напиток, хлеб)' 
+						: '⬜ Ужин — 4 позиции (гор.блюдо, гарнир, напиток, хлеб)';
+				}
+				if (previewDinner2) {
+					const isChecked = dinner2Checkbox ? dinner2Checkbox.checked : false;
+					previewDinner2.style.color = isChecked ? '#10b981' : '#9ca3af';
+					previewDinner2.innerHTML = isChecked 
+						? '✅ Второй ужин — 2 позиции (кисломол., булочное)' 
+						: '⬜ Второй ужин — 2 позиции (кисломол., булочное)';
+				}
+			}
+			
+			// Обработчики чекбоксов
 			modal.querySelectorAll('.meal-checkbox').forEach(cb => {
-				cb.addEventListener('change', updatePreview);
+				cb.addEventListener('change', updateMealPreview);
 			});
 			
 			// Отмена
@@ -7128,18 +7232,40 @@
 			
 			// Подтверждение
 			modal.querySelector('#confirmMenuCreate').addEventListener('click', () => {
-				if (!selectedDays) {
-					showStatus('Пожалуйста, выберите количество дней', 'error');
-					return;
+				let totalDays = selectedDays;
+				let weeksCount = 0;
+				let daysPerWeek = 5;
+				
+				if (currentTab === 'custom') {
+					weeksCount = parseInt(customWeeksInput?.value) || 1;
+					daysPerWeek = parseInt(document.querySelector('input[name="daysPerWeek"]:checked')?.value) || 5;
+					totalDays = weeksCount * daysPerWeek;
+					
+					if (weeksCount < 1 || weeksCount > 12) {
+						showStatus('Количество недель должно быть от 1 до 12', 'error');
+						return;
+					}
+					if (daysPerWeek < 5 || daysPerWeek > 7) {
+						showStatus('Количество дней в неделе должно быть от 5 до 7', 'error');
+						return;
+					}
+				} else {
+					// Быстрый режим - определяем структуру
+					if (selectedDays === 10) { weeksCount = 2; daysPerWeek = 5; }
+					else if (selectedDays === 12) { weeksCount = 2; daysPerWeek = 6; }
+					else if (selectedDays === 14) { weeksCount = 2; daysPerWeek = 7; }
+					else if (selectedDays === 15) { weeksCount = 3; daysPerWeek = 5; }
+					else if (selectedDays === 20) { weeksCount = 4; daysPerWeek = 5; }
+					else { weeksCount = Math.ceil(selectedDays / 5); daysPerWeek = 5; }
 				}
 				
 				// Собираем выбранные приёмы пищи
 				const selectedMeals = Array.from(modal.querySelectorAll('.meal-checkbox:checked')).map(cb => cb.value);
-				// Всегда добавляем завтрак и обед (если их нет в списке)
 				if (!selectedMeals.includes('breakfast')) selectedMeals.push('breakfast');
 				if (!selectedMeals.includes('lunch')) selectedMeals.push('lunch');
 				
-				createMenuStructure(selectedDays, true, selectedMeals);
+				// Создаём меню с выбранными параметрами
+				createMenuStructureCustom(weeksCount, daysPerWeek, selectedMeals);
 				modal.remove();
 			});
 			
@@ -7148,9 +7274,133 @@
 				if (e.target === modal) modal.remove();
 			});
 			
-			// Инициализация предпросмотра (вызываем сразу)
-			setTimeout(updatePreview, 100);
+			// Инициализация предпросмотра
+			setTimeout(updateMealPreview, 100);
 		}
+		
+		function createMenuStructureCustom(weeksCount, daysPerWeek, selectedMeals) {
+			// Шаблоны для ВСЕХ приёмов пищи с ПУСТЫМИ названиями
+			const templates = {
+				breakfast: {
+					items: [
+						{ section: 'гор.блюдо', name: '', weight: 200, calories: 0, proteins: 0, fats: 0, carbs: 0, recipeId: '', price: 0 },
+						{ section: 'гор.напиток', name: '', weight: 200, calories: 0, proteins: 0, fats: 0, carbs: 0, recipeId: '', price: 0 },
+						{ section: 'хлеб', name: '', weight: 30, calories: 0, proteins: 0, fats: 0, carbs: 0, recipeId: '', price: 0 },
+						{ section: 'фрукты', name: '', weight: 100, calories: 0, proteins: 0, fats: 0, carbs: 0, recipeId: '', price: 0 }
+					]
+				},
+				breakfast2: {
+					items: [
+						{ section: 'фрукты', name: '', weight: 100, calories: 0, proteins: 0, fats: 0, carbs: 0, recipeId: '', price: 0 },
+						{ section: 'напиток', name: '', weight: 200, calories: 0, proteins: 0, fats: 0, carbs: 0, recipeId: '', price: 0 }
+					]
+				},
+				lunch: {
+					items: [
+						{ section: 'закуска', name: '', weight: 80, calories: 0, proteins: 0, fats: 0, carbs: 0, recipeId: '', price: 0 },
+						{ section: '1 блюдо', name: '', weight: 250, calories: 0, proteins: 0, fats: 0, carbs: 0, recipeId: '', price: 0 },
+						{ section: '2 блюдо', name: '', weight: 90, calories: 0, proteins: 0, fats: 0, carbs: 0, recipeId: '', price: 0 },
+						{ section: 'гарнир', name: '', weight: 150, calories: 0, proteins: 0, fats: 0, carbs: 0, recipeId: '', price: 0 },
+						{ section: 'напиток', name: '', weight: 200, calories: 0, proteins: 0, fats: 0, carbs: 0, recipeId: '', price: 0 },
+						{ section: 'хлеб бел.', name: '', weight: 30, calories: 0, proteins: 0, fats: 0, carbs: 0, recipeId: '', price: 0 }
+					]
+				},
+				afternoonSnack: {
+					items: [
+						{ section: 'булочное', name: '', weight: 70, calories: 0, proteins: 0, fats: 0, carbs: 0, recipeId: '', price: 0 },
+						{ section: 'напиток', name: '', weight: 200, calories: 0, proteins: 0, fats: 0, carbs: 0, recipeId: '', price: 0 }
+					]
+				},
+				dinner: {
+					items: [
+						{ section: 'гор.блюдо', name: '', weight: 120, calories: 0, proteins: 0, fats: 0, carbs: 0, recipeId: '', price: 0 },
+						{ section: 'гарнир', name: '', weight: 150, calories: 0, proteins: 0, fats: 0, carbs: 0, recipeId: '', price: 0 },
+						{ section: 'напиток', name: '', weight: 200, calories: 0, proteins: 0, fats: 0, carbs: 0, recipeId: '', price: 0 },
+						{ section: 'хлеб', name: '', weight: 30, calories: 0, proteins: 0, fats: 0, carbs: 0, recipeId: '', price: 0 }
+					]
+				},
+				dinner2: {
+					items: [
+						{ section: 'кисломол.', name: '', weight: 200, calories: 0, proteins: 0, fats: 0, carbs: 0, recipeId: '', price: 0 },
+						{ section: 'булочное', name: '', weight: 30, calories: 0, proteins: 0, fats: 0, carbs: 0, recipeId: '', price: 0 }
+					]
+				}
+			};
+			
+			// Создаём новую структуру
+			const newTemplate = { weeks: {} };
+			
+			for (let week = 1; week <= weeksCount; week++) {
+				newTemplate.weeks[week] = {};
+				
+				for (let day = 1; day <= daysPerWeek; day++) {
+					const dayMeals = {};
+					
+					// Добавляем выбранные приёмы пищи
+					if (selectedMeals.includes('breakfast')) {
+						dayMeals.breakfast = JSON.parse(JSON.stringify(templates.breakfast));
+					} else {
+						dayMeals.breakfast = { items: [] };
+					}
+					
+					if (selectedMeals.includes('breakfast2')) {
+						dayMeals.breakfast2 = JSON.parse(JSON.stringify(templates.breakfast2));
+					} else {
+						dayMeals.breakfast2 = { items: [] };
+					}
+					
+					if (selectedMeals.includes('lunch')) {
+						dayMeals.lunch = JSON.parse(JSON.stringify(templates.lunch));
+					} else {
+						dayMeals.lunch = { items: [] };
+					}
+					
+					if (selectedMeals.includes('afternoonSnack')) {
+						dayMeals.afternoonSnack = JSON.parse(JSON.stringify(templates.afternoonSnack));
+					} else {
+						dayMeals.afternoonSnack = { items: [] };
+					}
+					
+					if (selectedMeals.includes('dinner')) {
+						dayMeals.dinner = JSON.parse(JSON.stringify(templates.dinner));
+					} else {
+						dayMeals.dinner = { items: [] };
+					}
+					
+					if (selectedMeals.includes('dinner2')) {
+						dayMeals.dinner2 = JSON.parse(JSON.stringify(templates.dinner2));
+					} else {
+						dayMeals.dinner2 = { items: [] };
+					}
+					
+					newTemplate.weeks[week][day] = dayMeals;
+				}
+			}
+			
+			// Применяем новую структуру
+			currentTemplateData = newTemplate;
+			originalTemplateData = JSON.parse(JSON.stringify(newTemplate));
+			
+			historyStack = [JSON.parse(JSON.stringify(newTemplate))];
+			historyIndex = 0;
+			flatItems = buildFlatFromTemplate(currentTemplateData);
+			renderEditor();
+			
+			// Формируем текст о включённых приёмах пищи
+			const mealNames = {
+				breakfast: 'Завтрак',
+				breakfast2: '2-й завтрак',
+				lunch: 'Обед',
+				afternoonSnack: 'Полдник',
+				dinner: 'Ужин',
+				dinner2: '2-й ужин'
+			};
+			const enabledMeals = selectedMeals.map(m => mealNames[m]).filter(Boolean);
+			const mealsText = enabledMeals.join(', ');
+			
+			const totalDays = weeksCount * daysPerWeek;
+			showStatus(`✨ Создано типовое меню: ${totalDays} дней (${weeksCount} нед. × ${daysPerWeek} дн.) | Приёмы: ${mealsText}`, 'success');
+		}		
 
 		function createMenuStructure(totalDays, includeDinner, selectedMeals) {
 			// Определяем структуру недель
