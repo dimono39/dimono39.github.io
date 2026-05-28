@@ -4758,6 +4758,168 @@
 				worksheet.getRow(row).height = 18;  // Остальные строки (данные, итого, среднее)
 			}
 
+			// ===== УМНАЯ ЗАЩИТА ЛИСТА =====
+			// Блокируем только первые вхождения каждого раздела в приёме пищи
+
+			try {
+				// 1. Сначала разблокируем ВСЕ ячейки в столбцах D-L с 6 строки
+				for (let row = 6; row <= currentRow; row++) {
+					for (let col = 4; col <= 12; col++) {
+						const cell = worksheet.getCell(row, col);
+						cell.protection = { locked: false };
+					}
+				}
+				
+				// 2. Разблокируем ячейки шапки документа
+				worksheet.getCell('C1').protection = { locked: false };
+				worksheet.getCell('D1').protection = { locked: false };
+				worksheet.getCell('E1').protection = { locked: false };
+				
+				worksheet.getCell('H1').protection = { locked: false };
+				worksheet.getCell('I1').protection = { locked: false };
+				worksheet.getCell('J1').protection = { locked: false };
+				worksheet.getCell('K1').protection = { locked: false };
+				
+				worksheet.getCell('H2').protection = { locked: false };
+				worksheet.getCell('I2').protection = { locked: false };
+				worksheet.getCell('J2').protection = { locked: false };
+				worksheet.getCell('K2').protection = { locked: false };
+				
+				worksheet.getCell('H3').protection = { locked: false };
+				worksheet.getCell('I3').protection = { locked: false };
+				worksheet.getCell('J3').protection = { locked: false };
+				
+				// 3. УМНАЯ БЛОКИРОВКА РАЗДЕЛОВ (столбец D)
+				// Отслеживаем, какие разделы уже были в текущем приёме пищи
+				let currentMealKey = '';
+				let seenSections = new Set();
+				
+				for (let row = 6; row <= currentRow; row++) {
+					const weekCell = worksheet.getCell(row, 1);  // A - неделя
+					const dayCell = worksheet.getCell(row, 2);   // B - день
+					const mealCell = worksheet.getCell(row, 3);  // C - приём пищи
+					const sectionCell = worksheet.getCell(row, 4); // D - раздел
+					
+					const week = weekCell.value?.toString() || '';
+					const day = dayCell.value?.toString() || '';
+					const meal = mealCell.value?.toString() || '';
+					const section = sectionCell.value?.toString() || '';
+					
+					// Формируем ключ для текущего приёма пищи
+					const mealKey = `${week}_${day}_${meal}`;
+					
+					// Если перешли к новому приёму пищи, сбрасываем счётчик разделов
+					if (mealKey !== currentMealKey) {
+						currentMealKey = mealKey;
+						seenSections.clear();
+					}
+					
+					// Проверяем, является ли это строкой с разделом (не "итого" и не пустая)
+					const isMealHeader = meal && !meal.toLowerCase().includes('итого');
+					const isSectionRow = section && section.trim() !== '' && !section.toLowerCase().includes('итого');
+					
+					if (isMealHeader && isSectionRow) {
+						// Если этот раздел уже встречался в текущем приёме пищи - ОСТАВЛЯЕМ РАЗБЛОКИРОВАННЫМ
+						// Если встречается впервые - БЛОКИРУЕМ
+						if (!seenSections.has(section)) {
+							// Первое вхождение раздела - блокируем
+							sectionCell.protection = { locked: true };
+							seenSections.add(section);
+							console.log(`🔒 Заблокирован раздел "${section}" в строке ${row} (первое вхождение)`);
+						} else {
+							// Повторное вхождение раздела - оставляем разблокированным
+							console.log(`🔓 Раздел "${section}" в строке ${row} (повторное) - доступен для редактирования`);
+						}
+					}
+				}
+				
+				// 4. ЗАБЛОКИРУЕМ итоговые строки (формулы)
+				// Блокируем строки "итого" для каждого приёма пищи
+				for (let row of dayTotalRows) {
+					for (let col = 1; col <= 12; col++) {
+						const cell = worksheet.getCell(row, col);
+						cell.protection = { locked: true };
+					}
+				}
+				
+				// Блокируем строки "Итого за день"
+				if (dayTotalRows.length > 0) {
+					// dayTotalRows уже содержит строки с "итого" для каждого дня
+					// Дополнительно блокируем строки между ними, которые могут быть "Итого за день"
+					for (let row = 6; row <= currentRow; row++) {
+						const mealCell = worksheet.getCell(row, 3);
+						const mealValue = mealCell.value?.toString() || '';
+						if (mealValue.includes('Итого за день') || mealValue.includes('итого за день')) {
+							for (let col = 1; col <= 12; col++) {
+								const cell = worksheet.getCell(row, col);
+								cell.protection = { locked: true };
+							}
+						}
+					}
+				}
+				
+				// Блокируем строку "Среднее значение за период"
+				if (currentRow > 0) {
+					const avgRow = currentRow;
+					for (let col = 1; col <= 12; col++) {
+						const cell = worksheet.getCell(avgRow, col);
+						cell.protection = { locked: true };
+					}
+				}
+				
+				// Блокируем заголовки таблицы (строка 5)
+				for (let col = 1; col <= 12; col++) {
+					const cell = worksheet.getCell(5, col);
+					cell.protection = { locked: true };
+				}
+				
+				// Блокируем столбцы A, B (Неделя, День) - чтобы структура не менялась
+				for (let row = 6; row <= currentRow; row++) {
+					const weekCell = worksheet.getCell(row, 1);
+					const dayCell = worksheet.getCell(row, 2);
+					if (weekCell.value && weekCell.value.toString() !== '') {
+						weekCell.protection = { locked: true };
+					}
+					if (dayCell.value && dayCell.value.toString() !== '') {
+						dayCell.protection = { locked: true };
+					}
+				}
+				
+				// Блокируем столбец C (Приём пищи) для строк с названиями приёмов (не "итого")
+				for (let row = 6; row <= currentRow; row++) {
+					const mealCell = worksheet.getCell(row, 3);
+					const mealValue = mealCell.value?.toString() || '';
+					// Блокируем только строки с названиями приёмов пищи (не "итого")
+					if (mealValue && !mealValue.toLowerCase().includes('итого') && mealValue !== '') {
+						mealCell.protection = { locked: true };
+					}
+				}
+				
+				// Включаем защиту листа (без пароля)
+				await worksheet.protect('', {
+					selectLockedCells: true,      // Можно выделять защищённые ячейки
+					selectUnlockedCells: true,    // Можно выделять незащищённые ячейки
+					formatCells: false,           // Нельзя форматировать ячейки
+					formatColumns: false,         // Нельзя менять ширину столбцов
+					formatRows: false,            // Нельзя менять высоту строк
+					insertColumns: false,         // Нельзя вставлять столбцы
+					insertRows: false,            // Нельзя вставлять строки
+					deleteColumns: false,         // Нельзя удалять столбцы
+					deleteRows: false,            // Нельзя удалять строки
+					sort: false,                  // Нельзя сортировать
+					autoFilter: false,            // Нельзя использовать фильтры
+					pivotTables: false            // Нельзя создавать сводные таблицы
+				});
+				
+				console.log('✅ Умная защита листа включена');
+				console.log('   - Первые вхождения разделов в приёме пищи: ЗАБЛОКИРОВАНЫ');
+				console.log('   - Повторяющиеся разделы: ДОСТУПНЫ ДЛЯ РЕДАКТИРОВАНИЯ');
+				console.log('   - Итоговые строки: ЗАБЛОКИРОВАНЫ');
+				
+			} catch(e) {
+				console.warn('Ошибка при установке защиты:', e);
+			}
+			
 			const buffer = await workbook.xlsx.writeBuffer();
 			const blob = new Blob([buffer], {
 				type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
@@ -7302,7 +7464,8 @@
 						{ section: '2 блюдо', name: '', weight: 90, calories: 0, proteins: 0, fats: 0, carbs: 0, recipeId: '', price: 0 },
 						{ section: 'гарнир', name: '', weight: 150, calories: 0, proteins: 0, fats: 0, carbs: 0, recipeId: '', price: 0 },
 						{ section: 'напиток', name: '', weight: 200, calories: 0, proteins: 0, fats: 0, carbs: 0, recipeId: '', price: 0 },
-						{ section: 'хлеб бел.', name: '', weight: 30, calories: 0, proteins: 0, fats: 0, carbs: 0, recipeId: '', price: 0 }
+						{ section: 'хлеб бел.', name: '', weight: 30, calories: 0, proteins: 0, fats: 0, carbs: 0, recipeId: '', price: 0 },
+						{ section: 'хлеб черн.', name: '', weight: 30, calories: 0, proteins: 0, fats: 0, carbs: 0, recipeId: '', price: 0 }
 					]
 				},
 				afternoonSnack: {
@@ -7437,7 +7600,8 @@
 						{ section: '2 блюдо', name: '', weight: 0, calories: 0, proteins: 0, fats: 0, carbs: 0, recipeId: '', price: 0 },
 						{ section: 'гарнир', name: '', weight: 0, calories: 0, proteins: 0, fats: 0, carbs: 0, recipeId: '', price: 0 },
 						{ section: 'напиток', name: '', weight: 0, calories: 0, proteins: 0, fats: 0, carbs: 0, recipeId: '', price: 0 },
-						{ section: 'хлеб бел.', name: '', weight: 0, calories: 0, proteins: 0, fats: 0, carbs: 0, recipeId: '', price: 0 }
+						{ section: 'хлеб бел.', name: '', weight: 0, calories: 0, proteins: 0, fats: 0, carbs: 0, recipeId: '', price: 0 },
+						{ section: 'хлеб черн.', name: '', weight: 0, calories: 0, proteins: 0, fats: 0, carbs: 0, recipeId: '', price: 0 }
 					]
 				},
 				afternoonSnack: {
