@@ -4270,6 +4270,275 @@
 				`;
 			}
 			
+			// ===== АНАЛИЗ СБАЛАНСИРОВАННОСТИ МЕНЮ =====
+			const balanceData = analyzeMealBalance();
+
+			if (balanceData && balanceData.meals.some(m => m.hasData)) {
+				html += `
+					<div class="report-section">
+						<div class="report-title" style="background: linear-gradient(135deg, #f0fdf4, #dcfce7);">
+							<i class="fas fa-balance-scale"></i> Сбалансированность меню
+							<span style="font-size: 12px; margin-left: 12px; color: ${balanceData.overallStatusColor};">${balanceData.overallStatusText}</span>
+						</div>
+						<div style="margin-bottom: 16px; padding: 12px; background: #f8fafc; border-radius: 16px;">
+							<p><strong>📊 Возрастная категория:</strong> ${balanceData.ageCategory}</p>
+							<p><strong>📈 Общий уровень сбалансированности:</strong> 
+								<span style="font-weight: bold; color: ${balanceData.overallStatusColor};">${balanceData.overallBalance}%</span>
+							</p>
+						</div>
+						
+						<div style="overflow-x: auto;">
+							<table class="violation-table" style="min-width: 900px;">
+								<thead>
+									<tr style="background: #f1f5f9;">
+										<th>Приём пищи</th>
+										<th colspan="2">Вес (г)</th>
+										<th colspan="2">Калории (ккал)</th>
+										<th>Белки (г)</th>
+										<th>Жиры (г)</th>
+										<th>Углеводы (г)</th>
+										<th>Соответствие</th>
+									</tr>
+									<tr style="background: #f8fafc; font-size: 11px;">
+										<th></th>
+										<th>Средний</th>
+										<th>Норма</th>
+										<th>Средняя</th>
+										<th>Норма</th>
+										<th>Средние</th>
+										<th>Средние</th>
+										<th>Средние</th>
+										<th></th>
+									</tr>
+								</thead>
+								<tbody>
+				`;
+				
+				for (let meal of balanceData.meals) {
+					if (!meal.hasData) {
+						html += `<tr style="background: #f1f5f9;">
+							<td><strong>${meal.name}</strong></td>
+							<td colspan="8" style="color: #94a3b8; text-align: center;">✖️ Не представлен в меню</td>
+						</tr>`;
+						continue;
+					}
+					
+					const weightStatus = meal.avgWeight >= meal.norm.weight ? 'good' : 'bad';
+					const caloriesStatus = meal.avgCalories >= meal.norm.calories ? 'good' : 'bad';
+					const weightColor = weightStatus === 'good' ? '#10b981' : '#dc2626';
+					const caloriesColor = caloriesStatus === 'good' ? '#10b981' : '#dc2626';
+					
+					// Прогресс-бар для соответствия
+					const complianceWidth = meal.compliancePercent;
+					const complianceColor = meal.status === 'good' ? '#10b981' : (meal.status === 'warning' ? '#f59e0b' : '#dc2626');
+					
+					html += `
+						<tr style="border-bottom: 1px solid #e2e8f0;">
+							<td><strong>${meal.name}</strong><br><span style="font-size: 10px; color: #64748b;">${meal.count} дней</span></td>
+							<td style="color: ${weightColor}; font-weight: ${weightStatus === 'bad' ? 'bold' : 'normal'};">${meal.avgWeight}</td>
+							<td style="color: #64748b;">≥${meal.norm.weight}</td>
+							<td style="color: ${caloriesColor}; font-weight: ${caloriesStatus === 'bad' ? 'bold' : 'normal'};">${meal.avgCalories}</td>
+							<td style="color: #64748b;">≥${meal.norm.calories}</td>
+							<td>${meal.avgProteins}</td>
+							<td>${meal.avgFats}</td>
+							<td>${meal.avgCarbs}</td>
+							<td style="min-width: 100px;">
+								<div style="display: flex; align-items: center; gap: 8px;">
+									<div style="flex: 1; height: 8px; background: #e2e8f0; border-radius: 4px; overflow: hidden;">
+										<div style="width: ${complianceWidth}%; height: 100%; background: ${complianceColor}; border-radius: 4px;"></div>
+									</div>
+									<span style="font-size: 11px; font-weight: bold; color: ${complianceColor};">${meal.compliancePercent}%</span>
+								</div>
+								<div style="font-size: 10px; color: ${meal.statusColor}; margin-top: 4px;">${meal.statusText}</div>
+							</td>
+						</tr>
+					`;
+				}
+				
+				html += `
+								</tbody>
+							</table>
+						</div>
+				`;
+				
+				// Добавляем рекомендации по сбалансированности
+				const unbalancedMeals = balanceData.meals.filter(m => m.hasData && m.compliancePercent < 80);
+				if (unbalancedMeals.length > 0) {
+					html += `
+						<div style="margin-top: 16px; padding: 16px; background: #fffbeb; border-radius: 16px; border-left: 4px solid #f59e0b;">
+							<strong><i class="fas fa-clipboard-list"></i> Рекомендации по улучшению сбалансированности:</strong>
+							<ul style="margin-top: 12px; margin-left: 20px; line-height: 1.8;">
+					`;
+					
+					for (let meal of unbalancedMeals) {
+						const issues = [];
+						if (meal.avgWeight < meal.norm.weight) issues.push(`вес (${meal.avgWeight}г < ${meal.norm.weight}г)`);
+						if (meal.avgCalories < meal.norm.calories) issues.push(`калорийность (${meal.avgCalories}ккал < ${meal.norm.calories}ккал)`);
+						
+						if (issues.length > 0) {
+							html += `<li><strong>${meal.name}:</strong> недостаточная ${issues.join(' и ')}. Рекомендуется увеличить порции или добавить более питательные блюда.</li>`;
+						} else if (meal.compliancePercent < 80) {
+							html += `<li><strong>${meal.name}:</strong> только ${meal.compliancePercent}% дней соответствует нормам. Проверьте отдельные дни с отклонениями.</li>`;
+						}
+					}
+					
+					html += `</ul></div>`;
+				}
+				
+				// Добавляем рекомендуемое соотношение БЖУ
+				// Рассчитываем фактическое соотношение БЖУ по всему меню
+				let totalProteins = 0;
+				let totalFats = 0;
+				let totalCarbs = 0;
+
+				for (let item of flatItems) {
+					totalProteins += item.proteins || 0;
+					totalFats += item.fats || 0;
+					totalCarbs += item.carbs || 0;
+				}
+
+				// Нормализуем соотношение
+				let ratioProteins = 1;
+				let ratioFats = 1;
+				let ratioCarbs = 4;
+
+				if (totalProteins > 0 || totalFats > 0 || totalCarbs > 0) {
+					// Находим минимальное значение для нормализации
+					const minValue = Math.min(totalProteins, totalFats, totalCarbs);
+					if (minValue > 0) {
+						ratioProteins = Math.round((totalProteins / minValue) * 10) / 10;
+						ratioFats = Math.round((totalFats / minValue) * 10) / 10;
+						ratioCarbs = Math.round((totalCarbs / minValue) * 10) / 10;
+					}
+				}
+
+				// Оценка соотношения
+				let bjuStatus = 'good';
+				let bjuStatusText = '✅ Соотношение близко к норме';
+				let bjuStatusColor = '#10b981';
+
+				const idealRatio = { proteins: 1, fats: 1, carbs: 4 };
+				const actualRatio = { proteins: ratioProteins, fats: ratioFats, carbs: ratioCarbs };
+
+				// Проверяем отклонения (допустимое отклонение 30%)
+				const proteinDeviation = Math.abs(actualRatio.proteins - idealRatio.proteins) / idealRatio.proteins;
+				const fatDeviation = Math.abs(actualRatio.fats - idealRatio.fats) / idealRatio.fats;
+				const carbDeviation = Math.abs(actualRatio.carbs - idealRatio.carbs) / idealRatio.carbs;
+
+				const maxDeviation = Math.max(proteinDeviation, fatDeviation, carbDeviation);
+
+				if (maxDeviation > 0.5) {
+					bjuStatus = 'bad';
+					bjuStatusText = '❌ Соотношение далеко от нормы';
+					bjuStatusColor = '#dc2626';
+				} else if (maxDeviation > 0.3) {
+					bjuStatus = 'warning';
+					bjuStatusText = '⚠️ Соотношение отличается от рекомендуемого';
+					bjuStatusColor = '#f59e0b';
+				}
+
+				html += `
+					<div style="margin-top: 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+						<div style="padding: 16px; background: #f0fdf4; border-radius: 16px; border-left: 4px solid #10b981;">
+							<strong><i class="fas fa-chart-pie"></i> Рекомендуемое соотношение БЖУ:</strong>
+							<div style="display: flex; align-items: center; justify-content: center; gap: 20px; margin-top: 12px; flex-wrap: wrap;">
+								<div style="text-align: center;">
+									<div style="width: 60px; height: 60px; border-radius: 50%; background: #3b82f6; display: flex; align-items: center; justify-content: center; margin: 0 auto;">
+										<span style="color: white; font-weight: bold; font-size: 20px;">1</span>
+									</div>
+									<div style="margin-top: 8px; font-weight: bold;">Белки</div>
+									<div style="font-size: 11px; color: #64748b;">12-15%</div>
+								</div>
+								<div style="font-size: 24px; color: #94a3b8;">:</div>
+								<div style="text-align: center;">
+									<div style="width: 60px; height: 60px; border-radius: 50%; background: #ef4444; display: flex; align-items: center; justify-content: center; margin: 0 auto;">
+										<span style="color: white; font-weight: bold; font-size: 20px;">1</span>
+									</div>
+									<div style="margin-top: 8px; font-weight: bold;">Жиры</div>
+									<div style="font-size: 11px; color: #64748b;">25-30%</div>
+								</div>
+								<div style="font-size: 24px; color: #94a3b8;">:</div>
+								<div style="text-align: center;">
+									<div style="width: 60px; height: 60px; border-radius: 50%; background: #f59e0b; display: flex; align-items: center; justify-content: center; margin: 0 auto;">
+										<span style="color: white; font-weight: bold; font-size: 20px;">4</span>
+									</div>
+									<div style="margin-top: 8px; font-weight: bold;">Углеводы</div>
+									<div style="font-size: 11px; color: #64748b;">55-60%</div>
+								</div>
+							</div>
+							<div style="text-align: center; margin-top: 12px; font-size: 12px; color: #475569;">
+								<i class="fas fa-heart" style="color: #10b981;"></i> Оптимальное соотношение для детей школьного возраста
+							</div>
+						</div>
+						
+						<div style="padding: 16px; background: #f8fafc; border-radius: 16px; border-left: 4px solid ${bjuStatusColor};">
+							<strong><i class="fas fa-chart-line"></i> Фактическое соотношение БЖУ:</strong>
+							<div style="display: flex; align-items: center; justify-content: center; gap: 20px; margin-top: 12px; flex-wrap: wrap;">
+								<div style="text-align: center;">
+									<div style="width: 60px; height: 60px; border-radius: 50%; background: #3b82f6; display: flex; align-items: center; justify-content: center; margin: 0 auto; opacity: 0.8;">
+										<span style="color: white; font-weight: bold; font-size: 20px;">${ratioProteins}</span>
+									</div>
+									<div style="margin-top: 8px; font-weight: bold;">Белки</div>
+									<div style="font-size: 11px; color: #64748b;">${Math.round((totalProteins / (totalProteins + totalFats + totalCarbs)) * 100)}%</div>
+								</div>
+								<div style="font-size: 24px; color: #94a3b8;">:</div>
+								<div style="text-align: center;">
+									<div style="width: 60px; height: 60px; border-radius: 50%; background: #ef4444; display: flex; align-items: center; justify-content: center; margin: 0 auto; opacity: 0.8;">
+										<span style="color: white; font-weight: bold; font-size: 20px;">${ratioFats}</span>
+									</div>
+									<div style="margin-top: 8px; font-weight: bold;">Жиры</div>
+									<div style="font-size: 11px; color: #64748b;">${Math.round((totalFats / (totalProteins + totalFats + totalCarbs)) * 100)}%</div>
+								</div>
+								<div style="font-size: 24px; color: #94a3b8;">:</div>
+								<div style="text-align: center;">
+									<div style="width: 60px; height: 60px; border-radius: 50%; background: #f59e0b; display: flex; align-items: center; justify-content: center; margin: 0 auto; opacity: 0.8;">
+										<span style="color: white; font-weight: bold; font-size: 20px;">${ratioCarbs}</span>
+									</div>
+									<div style="margin-top: 8px; font-weight: bold;">Углеводы</div>
+									<div style="font-size: 11px; color: #64748b;">${Math.round((totalCarbs / (totalProteins + totalFats + totalCarbs)) * 100)}%</div>
+								</div>
+							</div>
+							<div style="text-align: center; margin-top: 12px;">
+								<span style="font-size: 13px; font-weight: bold; color: ${bjuStatusColor};">${bjuStatusText}</span>
+							</div>
+						</div>
+					</div>
+				`;
+
+				// Добавляем детальную расшифровку
+				html += `
+					<div style="margin-top: 16px; padding: 12px 16px; background: #f1f5f9; border-radius: 16px;">
+						<strong><i class="fas fa-info-circle"></i> Расшифровка соотношения БЖУ:</strong>
+						<div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 8px; text-align: center;">
+							<div>
+								<span style="color: #3b82f6;">🔵 Белки (1 часть)</span><br>
+								<span style="font-size: 11px;">Строительный материал для организма</span><br>
+								<span style="font-size: 10px; color: #64748b;">Рекомендуемые продукты: мясо, рыба, яйца, бобовые</span>
+							</div>
+							<div>
+								<span style="color: #ef4444;">🔴 Жиры (1 часть)</span><br>
+								<span style="font-size: 11px;">Источник энергии и витаминов</span><br>
+								<span style="font-size: 10px; color: #64748b;">Рекомендуемые продукты: масла, орехи, жирная рыба</span>
+							</div>
+							<div>
+								<span style="color: #f59e0b;">🟠 Углеводы (4 части)</span><br>
+								<span style="font-size: 11px;">Основной источник энергии</span><br>
+								<span style="font-size: 10px; color: #64748b;">Рекомендуемые продукты: крупы, хлеб, фрукты, овощи</span>
+							</div>
+						</div>
+						<div style="margin-top: 12px; font-size: 12px; padding: 8px; background: #e0f2fe; border-radius: 12px;">
+							<i class="fas fa-lightbulb" style="color: #f59e0b;"></i> 
+							<strong>Совет:</strong> Соотношение Б:Ж:У = ${ratioProteins}:${ratioFats}:${ratioCarbs}
+							${Math.abs(ratioProteins - 1) <= 0.5 && Math.abs(ratioFats - 1) <= 0.5 && Math.abs(ratioCarbs - 4) <= 1.5 ? 
+								'✅ Вы близки к идеальному балансу! Так держать.' : 
+								'Рекомендуется скорректировать меню: добавьте больше круп и овощей (углеводы) или уменьшите количество жиров.'}
+						</div>
+					</div>
+				`;
+				
+				html += `</div>`;
+			}			
+			
 			document.getElementById('reportContent').innerHTML = html;
 			document.getElementById('reportModal').style.display = 'flex';
 		}
@@ -4758,8 +5027,7 @@
 				worksheet.getRow(row).height = 18;  // Остальные строки (данные, итого, среднее)
 			}
 
-			// ===== УМНАЯ ЗАЩИТА ЛИСТА =====
-			// Блокируем только первые вхождения каждого раздела в приёме пищи
+			// ===== УМНАЯ ЗАЩИТА ЛИСТА (ИСПРАВЛЕННАЯ) =====
 
 			try {
 				// 1. Сначала разблокируем ВСЕ ячейки в столбцах D-L с 6 строки
@@ -4789,52 +5057,93 @@
 				worksheet.getCell('I3').protection = { locked: false };
 				worksheet.getCell('J3').protection = { locked: false };
 				
-				// 3. УМНАЯ БЛОКИРОВКА РАЗДЕЛОВ (столбец D)
-				// Отслеживаем, какие разделы уже были в текущем приёме пищи
-				let currentMealKey = '';
-				let seenSections = new Set();
+				// 3. СТАНДАРТНЫЕ РАЗДЕЛЫ ДЛЯ КАЖДОГО ПРИЁМА ПИЩИ
+				// Первые вхождения КАЖДОГО из этих разделов будут заблокированы
+				const standardSectionsByMeal = {
+					'breakfast': ['гор.блюдо', 'гор.напиток', 'хлеб', 'фрукты'],
+					'breakfast2': ['фрукты', 'напиток'],
+					'lunch': ['закуска', '1 блюдо', '2 блюдо', 'гарнир', 'напиток', 'хлеб бел.', 'хлеб черн.'],
+					'afternoonSnack': ['булочное', 'напиток'],
+					'dinner': ['гор.блюдо', 'гарнир', 'напиток', 'хлеб'],
+					'dinner2': ['кисломол.', 'булочное', 'напиток', 'фрукты']
+				};
+				
+				// 4. Проходим по строкам и блокируем ПЕРВЫЕ вхождения КАЖДОГО стандартного раздела
+				// Используем Map для отслеживания: ключ = приём_пищи|раздел, значение = уже заблокирован?
+				const lockedSectionsMap = new Map(); // ключ: "week_day_mealType_section"
 				
 				for (let row = 6; row <= currentRow; row++) {
-					const weekCell = worksheet.getCell(row, 1);  // A - неделя
-					const dayCell = worksheet.getCell(row, 2);   // B - день
-					const mealCell = worksheet.getCell(row, 3);  // C - приём пищи
-					const sectionCell = worksheet.getCell(row, 4); // D - раздел
+					const weekCell = worksheet.getCell(row, 1);
+					const dayCell = worksheet.getCell(row, 2);
+					const mealCell = worksheet.getCell(row, 3);
+					const sectionCell = worksheet.getCell(row, 4);
 					
 					const week = weekCell.value?.toString() || '';
 					const day = dayCell.value?.toString() || '';
-					const meal = mealCell.value?.toString() || '';
+					const mealValue = mealCell.value?.toString() || '';
 					const section = sectionCell.value?.toString() || '';
 					
-					// Формируем ключ для текущего приёма пищи
-					const mealKey = `${week}_${day}_${meal}`;
+					// Пропускаем строки "итого" и пустые
+					if (mealValue.toLowerCase().includes('итого') || !section) continue;
 					
-					// Если перешли к новому приёму пищи, сбрасываем счётчик разделов
-					if (mealKey !== currentMealKey) {
-						currentMealKey = mealKey;
-						seenSections.clear();
-					}
+					// Определяем тип приёма пищи по названию
+					let mealType = null;
+					if (mealValue.includes('Завтрак') && !mealValue.includes('2') && !mealValue.includes('Второй')) mealType = 'breakfast';
+					else if (mealValue.includes('Второй завтрак') || mealValue.includes('2-й завтрак')) mealType = 'breakfast2';
+					else if (mealValue.includes('Обед')) mealType = 'lunch';
+					else if (mealValue.includes('Полдник')) mealType = 'afternoonSnack';
+					else if (mealValue.includes('Ужин') && !mealValue.includes('2') && !mealValue.includes('Второй')) mealType = 'dinner';
+					else if (mealValue.includes('Второй ужин') || mealValue.includes('2-й ужин')) mealType = 'dinner2';
 					
-					// Проверяем, является ли это строкой с разделом (не "итого" и не пустая)
-					const isMealHeader = meal && !meal.toLowerCase().includes('итого');
-					const isSectionRow = section && section.trim() !== '' && !section.toLowerCase().includes('итого');
+					if (!mealType) continue;
 					
-					if (isMealHeader && isSectionRow) {
-						// Если этот раздел уже встречался в текущем приёме пищи - ОСТАВЛЯЕМ РАЗБЛОКИРОВАННЫМ
-						// Если встречается впервые - БЛОКИРУЕМ
-						if (!seenSections.has(section)) {
-							// Первое вхождение раздела - блокируем
+					// Получаем список стандартных разделов для этого типа приёма пищи
+					const standardSections = standardSectionsByMeal[mealType] || [];
+					
+					// Проверяем, является ли текущий раздел стандартным
+					if (standardSections.includes(section)) {
+						// Формируем уникальный ключ: неделя_день_тип_приёма_раздел
+						const lockKey = `${week}_${day}_${mealType}_${section}`;
+						
+						// Если этот раздел ещё не был заблокирован в текущем приёме пищи
+						if (!lockedSectionsMap.has(lockKey)) {
+							// БЛОКИРУЕМ первое вхождение КАЖДОГО стандартного раздела
 							sectionCell.protection = { locked: true };
-							seenSections.add(section);
-							console.log(`🔒 Заблокирован раздел "${section}" в строке ${row} (первое вхождение)`);
+							lockedSectionsMap.set(lockKey, true);
+							console.log(`🔒 [${row}] ЗАБЛОКИРОВАН: ${mealType} -> "${section}" (первое вхождение)`);
 						} else {
-							// Повторное вхождение раздела - оставляем разблокированным
-							console.log(`🔓 Раздел "${section}" в строке ${row} (повторное) - доступен для редактирования`);
+							// Повторное вхождение - ОСТАВЛЯЕМ РАЗБЛОКИРОВАННЫМ
+							console.log(`🔓 [${row}] РАЗБЛОКИРОВАН: ${mealType} -> "${section}" (повторное вхождение)`);
+						}
+					} else {
+						// Нестандартный раздел - всегда разблокирован
+						console.log(`🔓 [${row}] РАЗБЛОКИРОВАН: ${mealType} -> "${section}" (нестандартный раздел)`);
+					}
+				}
+				
+				// 5. Дополнительно: блокируем также столбец D (разделы) для ПЕРВЫХ строк каждого приёма пищи
+				// (это блокирует названия разделов, но оставляет возможность редактировать сами данные)
+				let lastMealKey = '';
+				for (let row = 6; row <= currentRow; row++) {
+					const weekCell = worksheet.getCell(row, 1);
+					const dayCell = worksheet.getCell(row, 2);
+					const mealCell = worksheet.getCell(row, 3);
+					
+					const week = weekCell.value?.toString() || '';
+					const day = dayCell.value?.toString() || '';
+					const mealValue = mealCell.value?.toString() || '';
+					
+					if (mealValue && !mealValue.toLowerCase().includes('итого') && mealValue !== '') {
+						const mealKey = `${week}_${day}_${mealValue}`;
+						if (mealKey !== lastMealKey) {
+							// Первая строка приёма пищи - блокируем название приёма (столбец C)
+							mealCell.protection = { locked: true };
+							lastMealKey = mealKey;
 						}
 					}
 				}
 				
-				// 4. ЗАБЛОКИРУЕМ итоговые строки (формулы)
-				// Блокируем строки "итого" для каждого приёма пищи
+				// 6. ЗАБЛОКИРУЕМ итоговые строки
 				for (let row of dayTotalRows) {
 					for (let col = 1; col <= 12; col++) {
 						const cell = worksheet.getCell(row, col);
@@ -4843,17 +5152,13 @@
 				}
 				
 				// Блокируем строки "Итого за день"
-				if (dayTotalRows.length > 0) {
-					// dayTotalRows уже содержит строки с "итого" для каждого дня
-					// Дополнительно блокируем строки между ними, которые могут быть "Итого за день"
-					for (let row = 6; row <= currentRow; row++) {
-						const mealCell = worksheet.getCell(row, 3);
-						const mealValue = mealCell.value?.toString() || '';
-						if (mealValue.includes('Итого за день') || mealValue.includes('итого за день')) {
-							for (let col = 1; col <= 12; col++) {
-								const cell = worksheet.getCell(row, col);
-								cell.protection = { locked: true };
-							}
+				for (let row = 6; row <= currentRow; row++) {
+					const mealCell = worksheet.getCell(row, 3);
+					const mealValue = mealCell.value?.toString() || '';
+					if (mealValue.includes('Итого за день') || mealValue.includes('итого за день')) {
+						for (let col = 1; col <= 12; col++) {
+							const cell = worksheet.getCell(row, col);
+							cell.protection = { locked: true };
 						}
 					}
 				}
@@ -4873,7 +5178,7 @@
 					cell.protection = { locked: true };
 				}
 				
-				// Блокируем столбцы A, B (Неделя, День) - чтобы структура не менялась
+				// Блокируем столбцы A, B (Неделя, День)
 				for (let row = 6; row <= currentRow; row++) {
 					const weekCell = worksheet.getCell(row, 1);
 					const dayCell = worksheet.getCell(row, 2);
@@ -4885,40 +5190,49 @@
 					}
 				}
 				
-				// Блокируем столбец C (Приём пищи) для строк с названиями приёмов (не "итого")
-				for (let row = 6; row <= currentRow; row++) {
-					const mealCell = worksheet.getCell(row, 3);
-					const mealValue = mealCell.value?.toString() || '';
-					// Блокируем только строки с названиями приёмов пищи (не "итого")
-					if (mealValue && !mealValue.toLowerCase().includes('итого') && mealValue !== '') {
-						mealCell.protection = { locked: true };
-					}
-				}
-				
-				// Включаем защиту листа (без пароля)
+				// Включаем защиту листа
 				await worksheet.protect('', {
-					selectLockedCells: true,      // Можно выделять защищённые ячейки
-					selectUnlockedCells: true,    // Можно выделять незащищённые ячейки
-					formatCells: false,           // Нельзя форматировать ячейки
-					formatColumns: false,         // Нельзя менять ширину столбцов
-					formatRows: false,            // Нельзя менять высоту строк
-					insertColumns: false,         // Нельзя вставлять столбцы
-					insertRows: false,            // Нельзя вставлять строки
-					deleteColumns: false,         // Нельзя удалять столбцы
-					deleteRows: false,            // Нельзя удалять строки
-					sort: false,                  // Нельзя сортировать
-					autoFilter: false,            // Нельзя использовать фильтры
-					pivotTables: false            // Нельзя создавать сводные таблицы
+					selectLockedCells: true,
+					selectUnlockedCells: true,
+					formatCells: false,
+					formatColumns: false,
+					formatRows: false,
+					insertColumns: false,
+					insertRows: false,
+					deleteColumns: false,
+					deleteRows: false,
+					sort: false,
+					autoFilter: false,
+					pivotTables: false
 				});
 				
 				console.log('✅ Умная защита листа включена');
-				console.log('   - Первые вхождения разделов в приёме пищи: ЗАБЛОКИРОВАНЫ');
-				console.log('   - Повторяющиеся разделы: ДОСТУПНЫ ДЛЯ РЕДАКТИРОВАНИЯ');
-				console.log('   - Итоговые строки: ЗАБЛОКИРОВАНЫ');
+				console.log('   - Первые вхождения КАЖДОГО стандартного раздела: ЗАБЛОКИРОВАНЫ');
+				console.log('   - Все стандартные разделы (гор.блюдо, гор.напиток, хлеб, фрукты и т.д.): блокируются при первом появлении');
+				console.log('   - Повторяющиеся стандартные разделы: ДОСТУПНЫ ДЛЯ РЕДАКТИРОВАНИЯ');
 				
 			} catch(e) {
 				console.warn('Ошибка при установке защиты:', e);
 			}
+			
+			
+			// После установки защиты, добавьте подсветку для защищённых ячеек
+			// Это поможет пользователю видеть, какие разделы нельзя редактировать
+
+			for (let row = 6; row <= currentRow; row++) {
+				const sectionCell = worksheet.getCell(row, 4);
+				if (sectionCell.protection && sectionCell.protection.locked === true) {
+					// Подсвечиваем защищённые ячейки раздела светло-серым
+					sectionCell.fill = {
+						type: 'pattern',
+						pattern: 'solid',
+						fgColor: { argb: 'FFFFFFFF' }  // Светло-серый фон
+					};
+					// Добавляем комментарий-подсказку
+					sectionCell.note = '🔒 Этот раздел защищён (основной в приёме пищи).\nДля добавления дополнительных блюд используйте те же разделы в новых строках.';
+				}
+			}			
+			
 			
 			const buffer = await workbook.xlsx.writeBuffer();
 			const blob = new Blob([buffer], {
@@ -7248,7 +7562,7 @@
 			
 			document.body.appendChild(modal);
 			
-			// Стили для кнопок и анимации
+			// Стили для кнопок
 			const style = document.createElement('style');
 			style.textContent = `
 				.menu-days-btn:hover, .menu-days-btn.selected {
@@ -7269,13 +7583,9 @@
 			`;
 			modal.appendChild(style);
 			
-			// Переменные
 			let selectedDays = 10;
 			let currentTab = 'quick';
-			let customWeeks = 2;
-			let customDaysPerWeek = 5;
 			
-			// Получаем элементы
 			const quickTab = modal.querySelector('#quickTabBtn');
 			const customTab = modal.querySelector('#customTabBtn');
 			const quickPanel = modal.querySelector('#quickPanel');
@@ -7284,16 +7594,11 @@
 			const daysPerWeekRadios = modal.querySelectorAll('input[name="daysPerWeek"]');
 			const totalDaysPreviewSpan = modal.querySelector('#totalDaysPreview');
 			
-			// Функция обновления предпросмотра дней в расширенном режиме
 			function updateTotalDaysPreview() {
 				const weeks = parseInt(customWeeksInput?.value) || 1;
 				const daysPerWeek = parseInt(document.querySelector('input[name="daysPerWeek"]:checked')?.value) || 5;
 				const total = weeks * daysPerWeek;
-				if (totalDaysPreviewSpan) {
-					totalDaysPreviewSpan.textContent = total;
-				}
-				customWeeks = weeks;
-				customDaysPerWeek = daysPerWeek;
+				if (totalDaysPreviewSpan) totalDaysPreviewSpan.textContent = total;
 			}
 			
 			// Переключение вкладок
@@ -7335,12 +7640,8 @@
 			});
 			
 			// Обработчики расширенного режима
-			if (customWeeksInput) {
-				customWeeksInput.addEventListener('input', updateTotalDaysPreview);
-			}
-			daysPerWeekRadios.forEach(radio => {
-				radio.addEventListener('change', updateTotalDaysPreview);
-			});
+			if (customWeeksInput) customWeeksInput.addEventListener('input', updateTotalDaysPreview);
+			daysPerWeekRadios.forEach(radio => radio.addEventListener('change', updateTotalDaysPreview));
 			
 			// Функция обновления предпросмотра приёмов пищи
 			function updateMealPreview() {
@@ -7357,51 +7658,38 @@
 				if (previewBreakfast2) {
 					const isChecked = breakfast2Checkbox ? breakfast2Checkbox.checked : false;
 					previewBreakfast2.style.color = isChecked ? '#10b981' : '#9ca3af';
-					previewBreakfast2.innerHTML = isChecked 
-						? '✅ Второй завтрак — 2 позиции (фрукты, напиток)' 
-						: '⬜ Второй завтрак — 2 позиции (фрукты, напиток)';
+					previewBreakfast2.innerHTML = isChecked ? '✅ Второй завтрак — 2 позиции (фрукты, напиток)' : '⬜ Второй завтрак — 2 позиции (фрукты, напиток)';
 				}
 				if (previewAfternoonSnack) {
 					const isChecked = afternoonSnackCheckbox ? afternoonSnackCheckbox.checked : false;
 					previewAfternoonSnack.style.color = isChecked ? '#10b981' : '#9ca3af';
-					previewAfternoonSnack.innerHTML = isChecked 
-						? '✅ Полдник — 2 позиции (булочное, напиток)' 
-						: '⬜ Полдник — 2 позиции (булочное, напиток)';
+					previewAfternoonSnack.innerHTML = isChecked ? '✅ Полдник — 2 позиции (булочное, напиток)' : '⬜ Полдник — 2 позиции (булочное, напиток)';
 				}
 				if (previewDinner) {
 					const isChecked = dinnerCheckbox ? dinnerCheckbox.checked : false;
 					previewDinner.style.color = isChecked ? '#10b981' : '#9ca3af';
-					previewDinner.innerHTML = isChecked 
-						? '✅ Ужин — 4 позиции (гор.блюдо, гарнир, напиток, хлеб)' 
-						: '⬜ Ужин — 4 позиции (гор.блюдо, гарнир, напиток, хлеб)';
+					previewDinner.innerHTML = isChecked ? '✅ Ужин — 4 позиции (гор.блюдо, гарнир, напиток, хлеб)' : '⬜ Ужин — 4 позиции (гор.блюдо, гарнир, напиток, хлеб)';
 				}
 				if (previewDinner2) {
 					const isChecked = dinner2Checkbox ? dinner2Checkbox.checked : false;
 					previewDinner2.style.color = isChecked ? '#10b981' : '#9ca3af';
-					previewDinner2.innerHTML = isChecked 
-						? '✅ Второй ужин — 2 позиции (кисломол., булочное)' 
-						: '⬜ Второй ужин — 2 позиции (кисломол., булочное)';
+					previewDinner2.innerHTML = isChecked ? '✅ Второй ужин — 2 позиции (кисломол., булочное)' : '⬜ Второй ужин — 2 позиции (кисломол., булочное)';
 				}
 			}
 			
-			// Обработчики чекбоксов
-			modal.querySelectorAll('.meal-checkbox').forEach(cb => {
-				cb.addEventListener('change', updateMealPreview);
-			});
+			modal.querySelectorAll('.meal-checkbox').forEach(cb => cb.addEventListener('change', updateMealPreview));
 			
 			// Отмена
 			modal.querySelector('#cancelMenuCreate').addEventListener('click', () => modal.remove());
 			
 			// Подтверждение
 			modal.querySelector('#confirmMenuCreate').addEventListener('click', () => {
-				let totalDays = selectedDays;
 				let weeksCount = 0;
 				let daysPerWeek = 5;
 				
 				if (currentTab === 'custom') {
 					weeksCount = parseInt(customWeeksInput?.value) || 1;
 					daysPerWeek = parseInt(document.querySelector('input[name="daysPerWeek"]:checked')?.value) || 5;
-					totalDays = weeksCount * daysPerWeek;
 					
 					if (weeksCount < 1 || weeksCount > 12) {
 						showStatus('Количество недель должно быть от 1 до 12', 'error');
@@ -7426,22 +7714,19 @@
 				if (!selectedMeals.includes('breakfast')) selectedMeals.push('breakfast');
 				if (!selectedMeals.includes('lunch')) selectedMeals.push('lunch');
 				
-				// Создаём меню с выбранными параметрами
-				createMenuStructureCustom(weeksCount, daysPerWeek, selectedMeals);
+				// Создаём меню
+				createMenuStructure(weeksCount, daysPerWeek, selectedMeals);
 				modal.remove();
 			});
 			
-			// Закрытие по клику на фон
-			modal.addEventListener('click', (e) => {
-				if (e.target === modal) modal.remove();
-			});
-			
-			// Инициализация предпросмотра
+			modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
 			setTimeout(updateMealPreview, 100);
 		}
-		
-		function createMenuStructureCustom(weeksCount, daysPerWeek, selectedMeals) {
-			// Шаблоны для ВСЕХ приёмов пищи с ПУСТЫМИ названиями
+
+		function createMenuStructure(weeksCount, daysPerWeek, selectedMeals) {
+			console.log('Создание меню:', { weeksCount, daysPerWeek, selectedMeals });
+			
+			// Шаблоны с ПУСТЫМИ названиями, но с весами
 			const templates = {
 				breakfast: {
 					items: [
@@ -7500,41 +7785,12 @@
 					const dayMeals = {};
 					
 					// Добавляем выбранные приёмы пищи
-					if (selectedMeals.includes('breakfast')) {
-						dayMeals.breakfast = JSON.parse(JSON.stringify(templates.breakfast));
-					} else {
-						dayMeals.breakfast = { items: [] };
-					}
-					
-					if (selectedMeals.includes('breakfast2')) {
-						dayMeals.breakfast2 = JSON.parse(JSON.stringify(templates.breakfast2));
-					} else {
-						dayMeals.breakfast2 = { items: [] };
-					}
-					
-					if (selectedMeals.includes('lunch')) {
-						dayMeals.lunch = JSON.parse(JSON.stringify(templates.lunch));
-					} else {
-						dayMeals.lunch = { items: [] };
-					}
-					
-					if (selectedMeals.includes('afternoonSnack')) {
-						dayMeals.afternoonSnack = JSON.parse(JSON.stringify(templates.afternoonSnack));
-					} else {
-						dayMeals.afternoonSnack = { items: [] };
-					}
-					
-					if (selectedMeals.includes('dinner')) {
-						dayMeals.dinner = JSON.parse(JSON.stringify(templates.dinner));
-					} else {
-						dayMeals.dinner = { items: [] };
-					}
-					
-					if (selectedMeals.includes('dinner2')) {
-						dayMeals.dinner2 = JSON.parse(JSON.stringify(templates.dinner2));
-					} else {
-						dayMeals.dinner2 = { items: [] };
-					}
+					dayMeals.breakfast = selectedMeals.includes('breakfast') ? JSON.parse(JSON.stringify(templates.breakfast)) : { items: [] };
+					dayMeals.breakfast2 = selectedMeals.includes('breakfast2') ? JSON.parse(JSON.stringify(templates.breakfast2)) : { items: [] };
+					dayMeals.lunch = selectedMeals.includes('lunch') ? JSON.parse(JSON.stringify(templates.lunch)) : { items: [] };
+					dayMeals.afternoonSnack = selectedMeals.includes('afternoonSnack') ? JSON.parse(JSON.stringify(templates.afternoonSnack)) : { items: [] };
+					dayMeals.dinner = selectedMeals.includes('dinner') ? JSON.parse(JSON.stringify(templates.dinner)) : { items: [] };
+					dayMeals.dinner2 = selectedMeals.includes('dinner2') ? JSON.parse(JSON.stringify(templates.dinner2)) : { items: [] };
 					
 					newTemplate.weeks[week][day] = dayMeals;
 				}
@@ -7544,128 +7800,37 @@
 			currentTemplateData = newTemplate;
 			originalTemplateData = JSON.parse(JSON.stringify(newTemplate));
 			
+			// Обновляем историю
 			historyStack = [JSON.parse(JSON.stringify(newTemplate))];
 			historyIndex = 0;
+			
+			// Перестраиваем плоский список и рендерим
 			flatItems = buildFlatFromTemplate(currentTemplateData);
 			renderEditor();
+			
+			// Обновляем UI
+			addAddMealButtonToUI();
+			addTotalPriceButton();
+			updateHeaderStats();
 			
 			// Формируем текст о включённых приёмах пищи
 			const mealNames = {
 				breakfast: 'Завтрак',
-				breakfast2: '2-й завтрак',
+				breakfast2: 'Второй завтрак',
 				lunch: 'Обед',
 				afternoonSnack: 'Полдник',
 				dinner: 'Ужин',
-				dinner2: '2-й ужин'
+				dinner2: 'Второй ужин'
 			};
 			const enabledMeals = selectedMeals.map(m => mealNames[m]).filter(Boolean);
 			const mealsText = enabledMeals.join(', ');
 			
 			const totalDays = weeksCount * daysPerWeek;
 			showStatus(`✨ Создано типовое меню: ${totalDays} дней (${weeksCount} нед. × ${daysPerWeek} дн.) | Приёмы: ${mealsText}`, 'success');
-		}		
-
-		function createMenuStructure(totalDays, includeDinner, selectedMeals) {
-			// Определяем структуру недель
-			let weeksCount = 0;
-			let daysPerWeek = 5;
-			
-			if (totalDays === 10) { weeksCount = 2; daysPerWeek = 5; }
-			else if (totalDays === 12) { weeksCount = 2; daysPerWeek = 6; }
-			else if (totalDays === 14) { weeksCount = 2; daysPerWeek = 7; }
-			else if (totalDays === 15) { weeksCount = 3; daysPerWeek = 5; }
-			else if (totalDays === 20) { weeksCount = 4; daysPerWeek = 5; }
-			else { weeksCount = Math.ceil(totalDays / 5); daysPerWeek = 5; }
-			
-			// Шаблоны для ВСЕХ приёмов пищи с ПУСТЫМИ названиями, но заполненными разделами и весами
-			const templates = {
-				breakfast: {
-					items: [
-						{ section: 'гор.блюдо', name: '', weight: 0, calories: 0, proteins: 0, fats: 0, carbs: 0, recipeId: '', price: 0 },
-						{ section: 'гор.напиток', name: '', weight: 0, calories: 0, proteins: 0, fats: 0, carbs: 0, recipeId: '', price: 0 },
-						{ section: 'хлеб', name: '', weight: 0, calories: 0, proteins: 0, fats: 0, carbs: 0, recipeId: '', price: 0 },
-						{ section: 'фрукты', name: '', weight: 0, calories: 0, proteins: 0, fats: 0, carbs: 0, recipeId: '', price: 0 }
-					]
-				},
-				breakfast2: {
-					items: [
-						{ section: 'фрукты', name: '', weight: 0, calories: 0, proteins: 0, fats: 0, carbs: 0, recipeId: '', price: 0 },
-						{ section: 'напиток', name: '', weight: 0, calories: 0, proteins: 0, fats: 0, carbs: 0, recipeId: '', price: 0 }
-					]
-				},
-				lunch: {
-					items: [
-						{ section: 'закуска', name: '', weight: 0, calories: 0, proteins: 0, fats: 0, carbs: 0, recipeId: '', price: 0 },
-						{ section: '1 блюдо', name: '', weight: 0, calories: 0, proteins: 0, fats: 0, carbs: 0, recipeId: '', price: 0 },
-						{ section: '2 блюдо', name: '', weight: 0, calories: 0, proteins: 0, fats: 0, carbs: 0, recipeId: '', price: 0 },
-						{ section: 'гарнир', name: '', weight: 0, calories: 0, proteins: 0, fats: 0, carbs: 0, recipeId: '', price: 0 },
-						{ section: 'напиток', name: '', weight: 0, calories: 0, proteins: 0, fats: 0, carbs: 0, recipeId: '', price: 0 },
-						{ section: 'хлеб бел.', name: '', weight: 0, calories: 0, proteins: 0, fats: 0, carbs: 0, recipeId: '', price: 0 },
-						{ section: 'хлеб черн.', name: '', weight: 0, calories: 0, proteins: 0, fats: 0, carbs: 0, recipeId: '', price: 0 }
-					]
-				},
-				afternoonSnack: {
-					items: [
-						{ section: 'булочное', name: '', weight: 0, calories: 0, proteins: 0, fats: 0, carbs: 0, recipeId: '', price: 0 },
-						{ section: 'напиток', name: '', weight: 0, calories: 0, proteins: 0, fats: 0, carbs: 0, recipeId: '', price: 0 }
-					]
-				},
-				dinner: {
-					items: [
-						{ section: 'гор.блюдо', name: '', weight: 0, calories: 0, proteins: 0, fats: 0, carbs: 0, recipeId: '', price: 0 },
-						{ section: 'гарнир', name: '', weight: 0, calories: 0, proteins: 0, fats: 0, carbs: 0, recipeId: '', price: 0 },
-						{ section: 'напиток', name: '', weight: 0, calories: 0, proteins: 0, fats: 0, carbs: 0, recipeId: '', price: 0 },
-						{ section: 'хлеб', name: '', weight: 0, calories: 0, proteins: 0, fats: 0, carbs: 0, recipeId: '', price: 0 }
-					]
-				},
-				dinner2: {
-					items: [
-						{ section: 'кисломол.', name: '', weight: 0, calories: 0, proteins: 0, fats: 0, carbs: 0, recipeId: '', price: 0 },
-						{ section: 'булочное', name: '', weight: 0, calories: 0, proteins: 0, fats: 0, carbs: 0, recipeId: '', price: 0 }
-					]
-				}
-			};
-			
-			// Создаём новую структуру
-			const newTemplate = { weeks: {} };
-			
-			for (let week = 1; week <= weeksCount; week++) {
-				newTemplate.weeks[week] = {};
-				
-				for (let day = 1; day <= daysPerWeek; day++) {
-					// Базовые приёмы пищи (всегда включены)
-					newTemplate.weeks[week][day] = {
-						breakfast: JSON.parse(JSON.stringify(templates.breakfast)),
-						breakfast2: selectedMeals.includes('breakfast2') ? JSON.parse(JSON.stringify(templates.breakfast2)) : { items: [] },
-						lunch: JSON.parse(JSON.stringify(templates.lunch)),
-						afternoonSnack: selectedMeals.includes('afternoonSnack') ? JSON.parse(JSON.stringify(templates.afternoonSnack)) : { items: [] },
-						dinner: selectedMeals.includes('dinner') ? JSON.parse(JSON.stringify(templates.dinner)) : { items: [] },
-						dinner2: selectedMeals.includes('dinner2') ? JSON.parse(JSON.stringify(templates.dinner2)) : { items: [] }
-					};
-				}
-			}
-			
-			// Применяем новую структуру
-			currentTemplateData = newTemplate;
-			originalTemplateData = JSON.parse(JSON.stringify(newTemplate));
-			
-			historyStack = [JSON.parse(JSON.stringify(newTemplate))];
-			historyIndex = 0;
-			flatItems = buildFlatFromTemplate(currentTemplateData);
-			renderEditor();
-			
-			// Формируем текст о включённых приёмах пищи
-			const mealNames = {
-				breakfast2: '2-й завтрак',
-				afternoonSnack: 'полдник',
-				dinner: 'ужин',
-				dinner2: '2-й ужин'
-			};
-			const enabledMeals = selectedMeals.filter(m => m !== 'breakfast' && m !== 'lunch').map(m => mealNames[m]);
-			const mealsText = enabledMeals.length > 0 ? ` + ${enabledMeals.join(', ')}` : '';
-			
-			showStatus(`✨ Создано типовое меню: ${totalDays} дней (${weeksCount} нед. × ${daysPerWeek} дн.)${mealsText}`, 'success');
 		}
+		
+
+
 
 		// ========== УПРАВЛЕНИЕ ИНФОРМАЦИЕЙ О ШКОЛЕ ==========
 
@@ -7749,6 +7914,210 @@
 				} catch(e) {}
 			}
 			updateSchoolInfoUI();
+		}
+
+		// ========== АНАЛИЗ СБАЛАНСИРОВАННОСТИ МЕНЮ ==========
+
+		function analyzeMealBalance() {
+			if (!currentTemplateData) return null;
+			
+			// Нормы КБЖУ для разных возрастных категорий (на один приём пищи)
+			const normsByAge = {
+				'7-11 лет': {
+					breakfast: { weight: 500, calories: 470, proteins: 16, fats: 16, carbs: 63 },
+					breakfast2: { weight: 200, calories: 200, proteins: 7, fats: 7, carbs: 25 },
+					lunch: { weight: 700, calories: 705, proteins: 24, fats: 24, carbs: 94 },
+					afternoonSnack: { weight: 300, calories: 250, proteins: 8, fats: 8, carbs: 33 },
+					dinner: { weight: 500, calories: 470, proteins: 16, fats: 16, carbs: 63 },
+					dinner2: { weight: 200, calories: 200, proteins: 7, fats: 7, carbs: 25 }
+				},
+				'11-14 лет': {
+					breakfast: { weight: 550, calories: 520, proteins: 18, fats: 18, carbs: 70 },
+					breakfast2: { weight: 220, calories: 220, proteins: 8, fats: 8, carbs: 28 },
+					lunch: { weight: 770, calories: 775, proteins: 27, fats: 27, carbs: 104 },
+					afternoonSnack: { weight: 330, calories: 280, proteins: 9, fats: 9, carbs: 37 },
+					dinner: { weight: 550, calories: 520, proteins: 18, fats: 18, carbs: 70 },
+					dinner2: { weight: 220, calories: 220, proteins: 8, fats: 8, carbs: 28 }
+				},
+				'14-18 лет': {
+					breakfast: { weight: 600, calories: 570, proteins: 20, fats: 20, carbs: 77 },
+					breakfast2: { weight: 240, calories: 240, proteins: 9, fats: 9, carbs: 31 },
+					lunch: { weight: 840, calories: 850, proteins: 30, fats: 30, carbs: 114 },
+					afternoonSnack: { weight: 360, calories: 310, proteins: 11, fats: 11, carbs: 41 },
+					dinner: { weight: 600, calories: 570, proteins: 20, fats: 20, carbs: 77 },
+					dinner2: { weight: 240, calories: 240, proteins: 9, fats: 9, carbs: 31 }
+				}
+			};
+			
+			// Определяем возрастную категорию (по умолчанию 7-11 лет)
+			let ageCategory = schoolInfo.ageCategory || '7-11 лет';
+			if (!normsByAge[ageCategory]) ageCategory = '7-11 лет';
+			const norms = normsByAge[ageCategory];
+			
+			// Собираем данные по всем приёмам пищи
+			const mealStats = {};
+			const mealNames = {
+				'breakfast': '🌅 Завтрак',
+				'breakfast2': '🍎 Второй завтрак',
+				'lunch': '🍲 Обед',
+				'afternoonSnack': '🍪 Полдник',
+				'dinner': '🌙 Ужин',
+				'dinner2': '🥛 Второй ужин'
+			};
+			
+			// Инициализируем статистику
+			for (let mt of MEAL_TYPES) {
+				mealStats[mt] = {
+					count: 0,           // количество дней с этим приёмом
+					totalWeight: 0,
+					totalCalories: 0,
+					totalProteins: 0,
+					totalFats: 0,
+					totalCarbs: 0,
+					daysData: []       // данные по дням для анализа отклонений
+				};
+			}
+			
+			// Собираем данные
+			for (let w in currentTemplateData.weeks) {
+				for (let d in currentTemplateData.weeks[w]) {
+					for (let mt of MEAL_TYPES) {
+						const meal = currentTemplateData.weeks[w][d][mt];
+						if (meal && meal.items && meal.items.length > 0) {
+							const dayData = {
+								week: w,
+								day: d,
+								weight: 0,
+								calories: 0,
+								proteins: 0,
+								fats: 0,
+								carbs: 0
+							};
+							
+							for (let item of meal.items) {
+								dayData.weight += item.weight || 0;
+								dayData.calories += item.calories || 0;
+								dayData.proteins += item.proteins || 0;
+								dayData.fats += item.fats || 0;
+								dayData.carbs += item.carbs || 0;
+							}
+							
+							mealStats[mt].count++;
+							mealStats[mt].totalWeight += dayData.weight;
+							mealStats[mt].totalCalories += dayData.calories;
+							mealStats[mt].totalProteins += dayData.proteins;
+							mealStats[mt].totalFats += dayData.fats;
+							mealStats[mt].totalCarbs += dayData.carbs;
+							mealStats[mt].daysData.push(dayData);
+						}
+					}
+				}
+			}
+			
+			// Вычисляем средние значения и процент соответствия нормам
+			const balanceReport = [];
+			let totalComplianceScore = 0;
+			let totalMealsCount = 0;
+			
+			for (let mt of MEAL_TYPES) {
+				const stats = mealStats[mt];
+				const norm = norms[mt];
+				
+				if (stats.count === 0 || !norm) {
+					balanceReport.push({
+						meal: mt,
+						name: mealNames[mt] || mt,
+						hasData: false,
+						count: stats.count
+					});
+					continue;
+				}
+				
+				const avgWeight = stats.totalWeight / stats.count;
+				const avgCalories = stats.totalCalories / stats.count;
+				const avgProteins = stats.totalProteins / stats.count;
+				const avgFats = stats.totalFats / stats.count;
+				const avgCarbs = stats.totalCarbs / stats.count;
+				
+				// Рассчитываем процент соответствия нормам
+				let complianceCount = 0;
+				let weightDeviations = [];
+				let calorieDeviations = [];
+				
+				for (let day of stats.daysData) {
+					let dayCompliant = true;
+					if (day.weight < norm.weight) { dayCompliant = false; weightDeviations.push(day.weight - norm.weight); }
+					if (day.calories < norm.calories) { dayCompliant = false; calorieDeviations.push(day.calories - norm.calories); }
+					if (dayCompliant) complianceCount++;
+				}
+				
+				const compliancePercent = Math.round((complianceCount / stats.count) * 100);
+				totalComplianceScore += compliancePercent;
+				totalMealsCount++;
+				
+				// Определяем статус
+				let status = 'good';
+				let statusText = '✅ Отлично';
+				let statusColor = '#10b981';
+				
+				if (compliancePercent < 50) {
+					status = 'bad';
+					statusText = '❌ Критично';
+					statusColor = '#dc2626';
+				} else if (compliancePercent < 80) {
+					status = 'warning';
+					statusText = '⚠️ Требует внимания';
+					statusColor = '#f59e0b';
+				}
+				
+				// Находим максимальное отклонение
+				const maxWeightDeviation = weightDeviations.length > 0 ? Math.min(...weightDeviations) : 0;
+				const maxCalorieDeviation = calorieDeviations.length > 0 ? Math.min(...calorieDeviations) : 0;
+				
+				balanceReport.push({
+					meal: mt,
+					name: mealNames[mt] || mt,
+					hasData: true,
+					count: stats.count,
+					norm: norm,
+					avgWeight: Math.round(avgWeight),
+					avgCalories: Math.round(avgCalories),
+					avgProteins: Math.round(avgProteins * 10) / 10,
+					avgFats: Math.round(avgFats * 10) / 10,
+					avgCarbs: Math.round(avgCarbs * 10) / 10,
+					compliancePercent: compliancePercent,
+					status: status,
+					statusText: statusText,
+					statusColor: statusColor,
+					maxWeightDeviation: maxWeightDeviation,
+					maxCalorieDeviation: maxCalorieDeviation
+				});
+			}
+			
+			const overallBalance = totalMealsCount > 0 ? Math.round(totalComplianceScore / totalMealsCount) : 100;
+			let overallStatus = 'good';
+			let overallStatusText = '✅ Меню сбалансировано';
+			let overallStatusColor = '#10b981';
+			
+			if (overallBalance < 50) {
+				overallStatus = 'bad';
+				overallStatusText = '❌ Меню требует значительной доработки';
+				overallStatusColor = '#dc2626';
+			} else if (overallBalance < 80) {
+				overallStatus = 'warning';
+				overallStatusText = '⚠️ Меню частично сбалансировано, есть отклонения';
+				overallStatusColor = '#f59e0b';
+			}
+			
+			return {
+				ageCategory: ageCategory,
+				norms: norms,
+				meals: balanceReport,
+				overallBalance: overallBalance,
+				overallStatus: overallStatus,
+				overallStatusText: overallStatusText,
+				overallStatusColor: overallStatusColor
+			};
 		}
 
 
