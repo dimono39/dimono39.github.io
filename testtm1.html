@@ -5634,9 +5634,11 @@
 
 		function exportReportToHTML() {
 			const data = getReportDataForExport();
+			const balanceData = analyzeMealBalance();
 			const now = new Date();
 			const dateStr = now.toLocaleString('ru-RU');
 			
+			// Формируем HTML для нарушений
 			let violationsHtml = '';
 			for (let v of data.violations) {
 				const criticalClass = v.code === 15 ? 'critical' : (v.code === 17 ? 'duplicate' : 'warning');
@@ -5651,6 +5653,89 @@
 						<td>${escapeHtml(v.norm)}</td>
 					</tr>
 				`;
+			}
+			
+			// Формируем HTML для сбалансированности
+			let balanceHtml = '';
+			if (balanceData && balanceData.meals.some(m => m.hasData)) {
+				for (let meal of balanceData.meals) {
+					if (!meal.hasData) {
+						balanceHtml += `
+							<tr style="background: #f1f5f9;">
+								<td><strong>${meal.name}</strong></td>
+								<td colspan="8" style="color: #94a3b8; text-align: center;">✖️ Не представлен в меню</td>
+							</tr>
+						`;
+						continue;
+					}
+					
+					const weightStatus = meal.avgWeight >= meal.norm.weight ? 'good' : 'bad';
+					const caloriesStatus = meal.avgCalories >= meal.norm.calories ? 'good' : 'bad';
+					const weightColor = weightStatus === 'good' ? '#10b981' : '#dc2626';
+					const caloriesColor = caloriesStatus === 'good' ? '#10b981' : '#dc2626';
+					const complianceWidth = meal.compliancePercent;
+					const complianceColor = meal.status === 'good' ? '#10b981' : (meal.status === 'warning' ? '#f59e0b' : '#dc2626');
+					
+					balanceHtml += `
+						<tr style="border-bottom: 1px solid #e2e8f0;">
+							<td><strong>${meal.name}</strong><br><span style="font-size: 10px; color: #64748b;">${meal.count} дней</span></td>
+							<td style="color: ${weightColor}; font-weight: ${weightStatus === 'bad' ? 'bold' : 'normal'};">${meal.avgWeight}</td>
+							<td style="color: #64748b;">≥${meal.norm.weight}</td>
+							<td style="color: ${caloriesColor}; font-weight: ${caloriesStatus === 'bad' ? 'bold' : 'normal'};">${meal.avgCalories}</td>
+							<td style="color: #64748b;">≥${meal.norm.calories}</td>
+							<td>${meal.avgProteins}</td>
+							<td>${meal.avgFats}</td>
+							<td>${meal.avgCarbs}</td>
+							<td style="min-width: 100px;">
+								<div style="display: flex; align-items: center; gap: 8px;">
+									<div style="flex: 1; height: 8px; background: #e2e8f0; border-radius: 4px; overflow: hidden;">
+										<div style="width: ${complianceWidth}%; height: 100%; background: ${complianceColor}; border-radius: 4px;"></div>
+									</div>
+									<span style="font-size: 11px; font-weight: bold; color: ${complianceColor};">${meal.compliancePercent}%</span>
+								</div>
+								<div style="font-size: 10px; color: ${meal.statusColor}; margin-top: 4px;">${meal.statusText}</div>
+							</td>
+						</tr>
+					`;
+				}
+			}
+			
+			// Формируем HTML для соотношения БЖУ
+			let totalProteins = 0, totalFats = 0, totalCarbs = 0;
+			for (let item of flatItems) {
+				totalProteins += item.proteins || 0;
+				totalFats += item.fats || 0;
+				totalCarbs += item.carbs || 0;
+			}
+			
+			let ratioProteins = 1, ratioFats = 1, ratioCarbs = 4;
+			const totalBJU = totalProteins + totalFats + totalCarbs;
+			if (totalBJU > 0) {
+				const minValue = Math.min(totalProteins, totalFats, totalCarbs);
+				if (minValue > 0) {
+					ratioProteins = Math.round((totalProteins / minValue) * 10) / 10;
+					ratioFats = Math.round((totalFats / minValue) * 10) / 10;
+					ratioCarbs = Math.round((totalCarbs / minValue) * 10) / 10;
+				}
+			}
+			
+			const proteinPercent = totalBJU > 0 ? Math.round((totalProteins / totalBJU) * 100) : 0;
+			const fatPercent = totalBJU > 0 ? Math.round((totalFats / totalBJU) * 100) : 0;
+			const carbPercent = totalBJU > 0 ? Math.round((totalCarbs / totalBJU) * 100) : 0;
+			
+			let bjuStatusText = '✅ Соотношение близко к норме';
+			let bjuStatusColor = '#10b981';
+			const proteinDeviation = Math.abs(ratioProteins - 1) / 1;
+			const fatDeviation = Math.abs(ratioFats - 1) / 1;
+			const carbDeviation = Math.abs(ratioCarbs - 4) / 4;
+			const maxDeviation = Math.max(proteinDeviation, fatDeviation, carbDeviation);
+			
+			if (maxDeviation > 0.5) {
+				bjuStatusText = '❌ Соотношение далеко от нормы';
+				bjuStatusColor = '#dc2626';
+			} else if (maxDeviation > 0.3) {
+				bjuStatusText = '⚠️ Соотношение отличается от рекомендуемого';
+				bjuStatusColor = '#f59e0b';
 			}
 			
 			const html = `<!DOCTYPE html>
@@ -5669,6 +5754,8 @@
 				.stat-value { font-size: 24px; font-weight: bold; color: #0f172a; }
 				.stat-label { font-size: 12px; color: #64748b; margin-top: 5px; }
 				.summary { background: #fef3c7; padding: 15px; border-radius: 12px; margin-bottom: 25px; border-left: 4px solid #f59e0b; }
+				.section-title { font-size: 18px; font-weight: bold; margin: 25px 0 15px 0; padding-bottom: 8px; border-bottom: 2px solid #e2e8f0; }
+				.section-title i { margin-right: 8px; }
 				.violation-table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 13px; }
 				.violation-table th, .violation-table td { border: 1px solid #e2e8f0; padding: 10px; text-align: left; }
 				.violation-table th { background: #f1f5f9; font-weight: bold; position: sticky; top: 0; }
@@ -5678,11 +5765,22 @@
 				.badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: bold; }
 				.badge-error { background: #fee2e2; color: #dc2626; }
 				.badge-warning { background: #fef3c7; color: #d97706; }
-				.section-title { font-size: 18px; font-weight: bold; margin: 25px 0 15px 0; padding-bottom: 8px; border-bottom: 2px solid #e2e8f0; }
+				.badge-info { background: #e0f2fe; color: #0284c7; }
+				.badge-success { background: #dcfce7; color: #16a34a; }
 				.footer { margin-top: 30px; padding-top: 20px; text-align: center; color: #94a3b8; font-size: 12px; border-top: 1px solid #e2e8f0; }
+				.balance-table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 13px; }
+				.balance-table th, .balance-table td { border: 1px solid #e2e8f0; padding: 10px; text-align: left; }
+				.balance-table th { background: #f1f5f9; font-weight: bold; }
+				.bju-container { display: flex; gap: 20px; justify-content: center; margin-top: 15px; flex-wrap: wrap; }
+				.bju-item { text-align: center; padding: 15px; border-radius: 12px; background: #f8fafc; min-width: 120px; }
+				.bju-circle { width: 60px; height: 60px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 10px; font-weight: bold; font-size: 20px; color: white; }
+				.bju-label { font-weight: bold; margin-bottom: 5px; }
+				.bju-percent { font-size: 12px; color: #64748b; }
+				.recommendation-box { background: #fffbeb; padding: 16px; border-radius: 16px; margin-top: 20px; border-left: 4px solid #f59e0b; }
 				@media print {
 					body { padding: 0; background: white; }
 					.container { box-shadow: none; padding: 15px; }
+					.no-print { display: none; }
 				}
 			</style>
 		</head>
@@ -5693,6 +5791,7 @@
 					<strong>${escapeHtml(data.stats.schoolName)}</strong> | Дата утверждения: ${data.stats.approvalDate} | Сформирован: ${dateStr}
 				</div>
 				
+				<!-- Общая статистика -->
 				<div class="stats-grid">
 					<div class="stat-card"><div class="stat-value">${data.stats.totalDishes}</div><div class="stat-label">🍽️ Всего блюд</div></div>
 					<div class="stat-card"><div class="stat-value">${data.stats.totalWeeks}</div><div class="stat-label">📅 Недель</div></div>
@@ -5703,57 +5802,201 @@
 					<div class="stat-card"><div class="stat-value">${data.stats.totalCalories}</div><div class="stat-label">🔥 Общая калорийность</div></div>
 				</div>
 				
+				<!-- Статус проверки -->
 				<div class="summary">
 					<strong>📊 Статус проверки:</strong> 
 					${data.stats.totalViolations === 0 ? '✅ Все правила выполнены' : 
 					  `⚠️ Найдено нарушений: ${data.stats.totalViolations} (${data.stats.errorsCount} критических, ${data.stats.warningsCount} предупреждений, ${data.stats.duplicatesCount} дубликатов)`}
 				</div>
 				
-				${data.violations.length > 0 ? `
-					<div class="section-title">📋 Детальный список нарушений</div>
-					<table class="violation-table">
-						<thead>
-							<tr><th>День</th><th>Приём пищи</th><th>Раздел</th><th>Блюдо</th><th>Нарушение</th><th>Значение</th><th>Норма</th></tr>
-						</thead>
-						<tbody>${violationsHtml}</tbody>
-					</table>
-				` : '<div style="text-align: center; padding: 40px; background: #f0fdf4; border-radius: 12px;">🎉 Отлично! Все правила соблюдены. Меню соответствует требованиям.</div>'}
-				
-				${data.bjuViolations.length > 0 ? `
-					<div class="section-title" style="color: #dc2626;">❌ Критические ошибки (БЖУ > вес блюда)</div>
-					<table class="violation-table">
-						<thead><tr><th>День</th><th>Блюдо</th><th>Вес (г)</th><th>Белки</th><th>Жиры</th><th>Углеводы</th><th>Сумма БЖУ</th><th>Превышение</th></tr></thead>
-						<tbody>
-							${data.bjuViolations.map(b => `
-								<tr style="background: #fef2f2;">
-									<td>Неделя ${b.week}, День ${b.day}</td>
-									<td><strong>${escapeHtml(b.dishName)}</strong></td>
-									<td>${b.weight}</td>
-									<td>${b.proteins}</td>
-									<td>${b.fats}</td>
-									<td>${b.carbs}</td>
-									<td style="background: #fee2e2; font-weight: bold;">${b.bjuSum}</td>
-									<td style="color: #dc2626;">+${b.excess} г</td>
-								</tr>
-							`).join('')}
-						</tbody>
-					</table>
+				<!-- Сбалансированность меню -->
+				${balanceData && balanceData.meals.some(m => m.hasData) ? `
+				<div class="section-title">
+					<i class="fas fa-balance-scale"></i> Сбалансированность меню
+					<span style="font-size: 12px; margin-left: 12px; color: ${balanceData.overallStatusColor};">${balanceData.overallStatusText}</span>
+				</div>
+				<div style="margin-bottom: 16px; padding: 12px; background: #f8fafc; border-radius: 16px;">
+					<p><strong>📊 Возрастная категория:</strong> ${balanceData.ageCategory}</p>
+					<p><strong>📈 Общий уровень сбалансированности:</strong> 
+						<span style="font-weight: bold; color: ${balanceData.overallStatusColor};">${balanceData.overallBalance}%</span>
+					</p>
+				</div>
+				<table class="balance-table">
+					<thead>
+						<tr style="background: #f1f5f9;">
+							<th>Приём пищи</th>
+							<th colspan="2">Вес (г)</th>
+							<th colspan="2">Калории (ккал)</th>
+							<th>Белки (г)</th>
+							<th>Жиры (г)</th>
+							<th>Углеводы (г)</th>
+							<th>Соответствие</th>
+						</tr>
+						<tr style="background: #f8fafc; font-size: 11px;">
+							<th></th>
+							<th>Средний</th>
+							<th>Норма</th>
+							<th>Средняя</th>
+							<th>Норма</th>
+							<th>Средние</th>
+							<th>Средние</th>
+							<th>Средние</th>
+							<th></th>
+						</tr>
+					</thead>
+					<tbody>
+						${balanceHtml}
+					</tbody>
+				</table>
 				` : ''}
 				
+				<!-- Соотношение БЖУ -->
+				<div class="section-title">
+					<i class="fas fa-chart-pie"></i> Соотношение БЖУ
+				</div>
+				<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+					<div style="padding: 16px; background: #f0fdf4; border-radius: 16px; border-left: 4px solid #10b981;">
+						<strong>📋 Рекомендуемое соотношение:</strong>
+						<div class="bju-container">
+							<div class="bju-item">
+								<div class="bju-circle" style="background: #3b82f6;">1</div>
+								<div class="bju-label">Белки</div>
+								<div class="bju-percent">12-15%</div>
+							</div>
+							<div class="bju-item">
+								<div class="bju-circle" style="background: #ef4444;">1</div>
+								<div class="bju-label">Жиры</div>
+								<div class="bju-percent">25-30%</div>
+							</div>
+							<div class="bju-item">
+								<div class="bju-circle" style="background: #f59e0b;">4</div>
+								<div class="bju-label">Углеводы</div>
+								<div class="bju-percent">55-60%</div>
+							</div>
+						</div>
+						<div style="text-align: center; font-size: 12px; color: #475569; margin-top: 10px;">
+							Оптимальное соотношение Б:Ж:У = <strong>1 : 1 : 4</strong>
+						</div>
+					</div>
+					<div style="padding: 16px; background: #f8fafc; border-radius: 16px; border-left: 4px solid ${bjuStatusColor};">
+						<strong>📊 Фактическое соотношение:</strong>
+						<div class="bju-container">
+							<div class="bju-item">
+								<div class="bju-circle" style="background: #3b82f6; opacity: 0.8;">${ratioProteins}</div>
+								<div class="bju-label">Белки</div>
+								<div class="bju-percent">${proteinPercent}%</div>
+							</div>
+							<div class="bju-item">
+								<div class="bju-circle" style="background: #ef4444; opacity: 0.8;">${ratioFats}</div>
+								<div class="bju-label">Жиры</div>
+								<div class="bju-percent">${fatPercent}%</div>
+							</div>
+							<div class="bju-item">
+								<div class="bju-circle" style="background: #f59e0b; opacity: 0.8;">${ratioCarbs}</div>
+								<div class="bju-label">Углеводы</div>
+								<div class="bju-percent">${carbPercent}%</div>
+							</div>
+						</div>
+						<div style="text-align: center; margin-top: 10px;">
+							<span style="font-weight: bold; color: ${bjuStatusColor};">${bjuStatusText}</span>
+							<div style="font-size: 12px; color: #64748b; margin-top: 5px;">
+								Фактическое соотношение Б:Ж:У = <strong>${ratioProteins} : ${ratioFats} : ${ratioCarbs}</strong>
+							</div>
+						</div>
+					</div>
+				</div>
+				
+				<!-- Список нарушений -->
+				${data.violations.length > 0 ? `
+				<div class="section-title">
+					<i class="fas fa-exclamation-triangle"></i> Детальный список нарушений (${data.violations.length})
+				</div>
+				<table class="violation-table">
+					<thead>
+						<tr>
+							<th>День</th><th>Приём пищи</th><th>Раздел</th><th>Блюдо</th><th>Нарушение</th><th>Значение</th><th>Норма</th>
+						</tr>
+					</thead>
+					<tbody>${violationsHtml}</tbody>
+				</table>
+				` : '<div style="text-align: center; padding: 40px; background: #f0fdf4; border-radius: 12px;">🎉 Отлично! Все правила соблюдены. Меню соответствует требованиям.</div>'}
+				
+				<!-- Критические ошибки БЖУ -->
+				${data.bjuViolations.length > 0 ? `
+				<div class="section-title" style="color: #dc2626;">
+					<i class="fas fa-exclamation-circle"></i> Критические ошибки (БЖУ > вес блюда) — ${data.bjuViolations.length}
+				</div>
+				<table class="violation-table">
+					<thead>
+						<tr>
+							<th>День</th><th>Блюдо</th><th>Вес (г)</th><th>Белки</th><th>Жиры</th><th>Углеводы</th><th>Сумма БЖУ</th><th>Превышение</th>
+						</tr>
+					</thead>
+					<tbody>
+						${data.bjuViolations.map(b => `
+						<tr style="background: #fef2f2;">
+							<td>Неделя ${b.week}, День ${b.day}</td>
+							<td><strong>${escapeHtml(b.dishName)}</strong></td>
+							<td>${b.weight}</td>
+							<td>${b.proteins}</td>
+							<td>${b.fats}</td>
+							<td>${b.carbs}</td>
+							<td style="background: #fee2e2; font-weight: bold;">${b.bjuSum}</td>
+							<td style="color: #dc2626;">+${b.excess} г</td>
+						</tr>
+						`).join('')}
+					</tbody>
+				</table>
+				` : ''}
+				
+				<!-- Дубликаты блюд -->
 				${data.duplicates.length > 0 ? `
-					<div class="section-title" style="color: #ec4899;">🔄 Дубликаты блюд</div>
-					<table class="violation-table">
-						<thead><tr><th>День</th><th>Блюдо-дубликат</th><th>Рекомендация</th></tr></thead>
-						<tbody>
-							${data.duplicates.map(d => `
-								<tr style="background: #fdf2f8;">
-									<td>Неделя ${d.week}, День ${d.day}</td>
-									<td><strong>${escapeHtml(d.dishName)}</strong></td>
-									<td>Замените на другое блюдо</td>
-								</tr>
-							`).join('')}
-						</tbody>
-					</table>
+				<div class="section-title" style="color: #ec4899;">
+					<i class="fas fa-copy"></i> Дубликаты блюд (${data.duplicates.length})
+				</div>
+				<table class="violation-table">
+					<thead>
+						<tr>
+							<th>День</th><th>Блюдо-дубликат</th><th>Рекомендация</th>
+						</tr>
+					</thead>
+					<tbody>
+						${data.duplicates.map(d => `
+						<tr style="background: #fdf2f8;">
+							<td>Неделя ${d.week}, День ${d.day}</td>
+							<td><strong>${escapeHtml(d.dishName)}</strong></td>
+							<td>Замените на другое блюдо или измените название</td>
+						</tr>
+						`).join('')}
+					</tbody>
+				</table>
+				` : ''}
+				
+				<!-- Рекомендации -->
+				${data.stats.totalViolations > 0 ? `
+				<div class="recommendation-box">
+					<strong><i class="fas fa-clipboard-list"></i> Рекомендации по исправлению:</strong>
+					<ul style="margin-top: 12px; margin-left: 20px; line-height: 1.8;">
+						${data.stats.errorsCount > 0 ? '<li><span style="color: #dc2626;">❌</span> <strong>Критические ошибки (правило 15):</strong> Необходимо срочно исправить! Уменьшите значения БЖУ или увеличьте вес блюда.</li>' : ''}
+						${data.stats.warningsCount > 0 ? '<li><span style="color: #f59e0b;">⚠️</span> <strong>Предупреждения:</strong> Рекомендуется увеличить порции блюд или добавить дополнительные позиции для соответствия нормам.</li>' : ''}
+						${data.stats.duplicatesCount > 0 ? '<li><span style="color: #ec4899;">🔄</span> <strong>Дубликаты:</strong> Замените повторяющиеся блюда на другие в рамках одного дня.</li>' : ''}
+					</ul>
+				</div>
+				` : ''}
+				
+				<!-- Рекомендации по сбалансированности -->
+				${balanceData && balanceData.meals.some(m => m.hasData && m.compliancePercent < 80) ? `
+				<div class="recommendation-box" style="background: #e0f2fe; border-left-color: #0284c7;">
+					<strong><i class="fas fa-lightbulb"></i> Рекомендации по улучшению сбалансированности:</strong>
+					<ul style="margin-top: 12px; margin-left: 20px; line-height: 1.8;">
+						${balanceData.meals.filter(m => m.hasData && m.compliancePercent < 80).map(meal => {
+							const issues = [];
+							if (meal.avgWeight < meal.norm.weight) issues.push(`вес (${meal.avgWeight}г < ${meal.norm.weight}г)`);
+							if (meal.avgCalories < meal.norm.calories) issues.push(`калорийность (${meal.avgCalories}ккал < ${meal.norm.calories}ккал)`);
+							return `<li><strong>${meal.name}:</strong> недостаточная ${issues.join(' и ')}. Рекомендуется увеличить порции или добавить более питательные блюда.</li>`;
+						}).join('')}
+					</ul>
+				</div>
 				` : ''}
 				
 				<div class="footer">
@@ -5763,7 +6006,7 @@
 		</body>
 		</html>`;
 			
-			const blob = new Blob([html], { type: 'text/html' });
+			const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
 			saveAs(blob, `report_menu_${now.toISOString().slice(0, 19).replace(/:/g, '-')}.html`);
 			showStatus('📄 Отчёт сохранён в формате HTML', 'success');
 		}
