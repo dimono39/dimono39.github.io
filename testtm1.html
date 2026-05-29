@@ -2105,6 +2105,16 @@
 						<input type="date" id="approvalDateInput" class="search-input-premium" style="width: 100%;">
 					</div>
 				</div>
+				<div style="margin-top: 16px; padding-top: 12px; border-top: 1px solid #e2e8f0;">
+					<label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+						<input type="checkbox" id="summerCampCheckbox">
+						<span><i class="fas fa-sun" style="color: #f59e0b;"></i> <strong>Летний лагерь</strong></span>
+						<span style="font-size: 12px; color: #64748b;">(калорийность завтрака и обеда +10%)</span>
+					</label>
+					<p style="font-size: 11px; color: #64748b; margin-top: 5px; margin-left: 28px;">
+						⚡ В летний период нормы калорийности увеличиваются: завтрак ≥517 ккал, обед ≥776 ккал
+					</p>
+				</div>
 				<div style="margin-top: 12px; text-align: right;">
 					<button id="updateSchoolInfoBtn" class="btn btn-primary" style="padding: 6px 16px;">
 						<i class="fas fa-save"></i> Сохранить информацию
@@ -2383,6 +2393,7 @@
         let currentSearchTerm = '';
         let currentMealFilter = '';
         let currentStatusFilter = '';
+		let isSummerCamp = false; // Флаг летнего лагеря (увеличение калорийности на 10%)
 
         const VALID_SECTIONS = [
             'гор.блюдо', 'гор.напиток', 'хлеб', 'фрукты', 'закуска',
@@ -2640,6 +2651,14 @@
             return duplicates;
         }
 
+		// Функция для получения нормы калорий с учётом лагеря (+10% в летний период)
+		function getCalorieNormWithCamp(baseNorm) {
+			if (isSummerCamp) {
+				return Math.ceil(baseNorm * 1.1); // Увеличиваем на 10% и округляем вверх
+			}
+			return baseNorm;
+		}
+
 		function runAllRules(template) {
 			if (!template || !template.weeks) return [];
 			const violations = [];
@@ -2675,8 +2694,26 @@
 						if (mt === 'afternoonSnack' && totalWeight > 0 && totalWeight < 300) violations.push({ rule: 10, code: 10, week: w, day: d, meal: mt, itemIndex: 0, details: `Полдник: ${totalWeight}г < 300г` });
 						if (mt === 'dinner' && totalWeight > 0 && totalWeight < 500) violations.push({ rule: 11, code: 11, week: w, day: d, meal: mt, itemIndex: 0, details: `Ужин: ${totalWeight}г < 500г` });
 						if (mt === 'dinner2' && totalWeight > 0 && totalWeight < 200) violations.push({ rule: 12, code: 12, week: w, day: d, meal: mt, itemIndex: 0, details: `2 ужин: ${totalWeight}г < 200г` });
-						if (mt === 'breakfast' && totalCalories > 0 && totalCalories < 470) violations.push({ rule: 13, code: 13, week: w, day: d, meal: mt, itemIndex: 0, details: `Калории завтрака: ${totalCalories}ккал < 470ккал` });
-						if (mt === 'lunch' && totalCalories > 0 && totalCalories < 705) violations.push({ rule: 14, code: 14, week: w, day: d, meal: mt, itemIndex: 0, details: `Калории обеда: ${totalCalories}ккал < 705ккал` });
+						
+						//if (mt === 'breakfast' && totalCalories > 0 && totalCalories < 470) violations.push({ rule: 13, code: 13, week: w, day: d, meal: mt, itemIndex: 0, details: `Калории завтрака: ${totalCalories}ккал < 470ккал` });
+						//if (mt === 'lunch' && totalCalories > 0 && totalCalories < 705) violations.push({ rule: 14, code: 14, week: w, day: d, meal: mt, itemIndex: 0, details: `Калории обеда: ${totalCalories}ккал < 705ккал` });
+
+						// Нормы калорий с учётом лагеря
+						const breakfastNorm = getCalorieNormWithCamp(470);
+						const lunchNorm = getCalorieNormWithCamp(705);
+
+						if (mt === 'breakfast' && totalCalories > 0 && totalCalories < breakfastNorm) {
+							violations.push({ 
+								rule: 13, code: 13, week: w, day: d, meal: mt, itemIndex: 0, 
+								details: `Калории завтрака: ${totalCalories}ккал < ${breakfastNorm}ккал${isSummerCamp ? ' (летний период, норма увеличена на 10%)' : ''}` 
+							});
+						}
+						if (mt === 'lunch' && totalCalories > 0 && totalCalories < lunchNorm) {
+							violations.push({ 
+								rule: 14, code: 14, week: w, day: d, meal: mt, itemIndex: 0, 
+								details: `Калории обеда: ${totalCalories}ккал < ${lunchNorm}ккал${isSummerCamp ? ' (летний период, норма увеличена на 10%)' : ''}` 
+							});
+						}						
 
 						for (let idx = 0; idx < items.length; idx++) {
 							const item = items[idx];
@@ -8155,11 +8192,14 @@
 		function analyzeMealBalance() {
 			if (!currentTemplateData) return null;
 			
+			const breakfastNorm = isSummerCamp ? Math.ceil(norms[mt].calories * 1.1) : norms[mt].calories;
+			const lunchNorm = isSummerCamp ? Math.ceil(norms.lunch.calories * 1.1) : norms.lunch.calories;
+			
 			// Нормы КБЖУ для разных возрастных категорий (на один приём пищи)
 			const normsByAge = {
 				'7-11 лет': {
-					breakfast: { weight: 500, calories: 470, proteins: 16, fats: 16, carbs: 63 },
-					breakfast2: { weight: 200, calories: 200, proteins: 7, fats: 7, carbs: 25 },
+					breakfast: { weight: 500, calories: breakfastNorm, proteins: 16, fats: 16, carbs: 63 },
+					breakfast2: { weight: 200, calories: lunchNorm, proteins: 7, fats: 7, carbs: 25 },
 					lunch: { weight: 700, calories: 705, proteins: 24, fats: 24, carbs: 94 },
 					afternoonSnack: { weight: 300, calories: 250, proteins: 8, fats: 8, carbs: 33 },
 					dinner: { weight: 500, calories: 470, proteins: 16, fats: 16, carbs: 63 },
@@ -8362,6 +8402,27 @@
 
         // Инициализация событий
         document.getElementById('scrollTopBtn').addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
+
+		// Обработчик чекбокса летнего лагеря
+		const summerCampCheckbox = document.getElementById('summerCampCheckbox');
+		if (summerCampCheckbox) {
+			// Загружаем сохранённое состояние
+			const savedCampState = localStorage.getItem('summerCampState');
+			if (savedCampState !== null) {
+				isSummerCamp = savedCampState === 'true';
+				summerCampCheckbox.checked = isSummerCamp;
+			}
+			
+			summerCampCheckbox.addEventListener('change', (e) => {
+				isSummerCamp = e.target.checked;
+				localStorage.setItem('summerCampState', isSummerCamp);
+				// Перепроверяем все правила и обновляем отображение
+				allViolations = runAllRules(currentTemplateData);
+				renderEditor();
+				showStatus(isSummerCamp ? '🌞 Летний режим: нормы калорийности увеличены на 10%' : '🍂 Обычный режим: стандартные нормы калорийности', 'info');
+			});
+		}
+
 
         const dropZone = document.getElementById('dropZone');
         const fileInput = document.getElementById('fileInput');
