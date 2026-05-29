@@ -4324,10 +4324,14 @@
 			const balanceData = analyzeMealBalance();
 
 			if (balanceData && balanceData.meals.some(m => m.hasData)) {
+				// Добавляем информацию о режиме лагеря в заголовок
+				const campBadge = isSummerCamp ? '<span style="background: #f59e0b; color: white; padding: 2px 8px; border-radius: 20px; font-size: 11px; margin-left: 12px;">🌞 Летний лагерь (+10%)</span>' : '';
+				
 				html += `
 					<div class="report-section">
 						<div class="report-title" style="background: linear-gradient(135deg, #f0fdf4, #dcfce7);">
 							<i class="fas fa-balance-scale"></i> Сбалансированность меню
+							${campBadge}
 							<span style="font-size: 12px; margin-left: 12px; color: ${balanceData.overallStatusColor};">${balanceData.overallStatusText}</span>
 						</div>
 						<div style="margin-bottom: 16px; padding: 12px; background: #f8fafc; border-radius: 16px;">
@@ -4335,6 +4339,7 @@
 							<p><strong>📈 Общий уровень сбалансированности:</strong> 
 								<span style="font-weight: bold; color: ${balanceData.overallStatusColor};">${balanceData.overallBalance}%</span>
 							</p>
+							${isSummerCamp ? '<p><span style="background: #fef3c7; padding: 4px 12px; border-radius: 20px; font-size: 12px;">🌞 Режим летнего лагеря: нормы калорийности завтрака и обеда увеличены на 10%</span></p>' : ''}
 						</div>
 						
 						<div style="overflow-x: auto;">
@@ -4367,9 +4372,9 @@
 				for (let meal of balanceData.meals) {
 					if (!meal.hasData) {
 						html += `<tr style="background: #f1f5f9;">
-							<td><strong>${meal.name}</strong></td>
-							<td colspan="8" style="color: #94a3b8; text-align: center;">✖️ Не представлен в меню</td>
-						</tr>`;
+								<td><strong>${meal.name}</strong></td>
+								<td colspan="8" style="color: #94a3b8; text-align: center;">✖️ Не представлен в меню</td>
+							</tr>`;
 						continue;
 					}
 					
@@ -4378,26 +4383,25 @@
 					const weightColor = weightStatus === 'good' ? '#10b981' : '#dc2626';
 					const caloriesColor = caloriesStatus === 'good' ? '#10b981' : '#dc2626';
 					
-					// Прогресс-бар для соответствия
-					const complianceWidth = meal.compliancePercent;
-					const complianceColor = meal.status === 'good' ? '#10b981' : (meal.status === 'warning' ? '#f59e0b' : '#dc2626');
+					// Добавляем индикатор лагеря для калорий
+					const campIndicator = (isSummerCamp && (meal.meal === 'breakfast' || meal.meal === 'lunch')) ? ' (+10%)' : '';
 					
 					html += `
 						<tr style="border-bottom: 1px solid #e2e8f0;">
 							<td><strong>${meal.name}</strong><br><span style="font-size: 10px; color: #64748b;">${meal.count} дней</span></td>
 							<td style="color: ${weightColor}; font-weight: ${weightStatus === 'bad' ? 'bold' : 'normal'};">${meal.avgWeight}</td>
 							<td style="color: #64748b;">≥${meal.norm.weight}</td>
-							<td style="color: ${caloriesColor}; font-weight: ${caloriesStatus === 'bad' ? 'bold' : 'normal'};">${meal.avgCalories}</td>
-							<td style="color: #64748b;">≥${meal.norm.calories}</td>
+							<td style="color: ${caloriesColor}; font-weight: ${caloriesStatus === 'bad' ? 'bold' : 'normal'};">${meal.avgCalories}${campIndicator}</td>
+							<td style="color: #64748b;">≥${meal.norm.calories}${campIndicator}</td>
 							<td>${meal.avgProteins}</td>
 							<td>${meal.avgFats}</td>
 							<td>${meal.avgCarbs}</td>
 							<td style="min-width: 100px;">
 								<div style="display: flex; align-items: center; gap: 8px;">
 									<div style="flex: 1; height: 8px; background: #e2e8f0; border-radius: 4px; overflow: hidden;">
-										<div style="width: ${complianceWidth}%; height: 100%; background: ${complianceColor}; border-radius: 4px;"></div>
+										<div style="width: ${meal.compliancePercent}%; height: 100%; background: ${meal.statusColor}; border-radius: 4px;"></div>
 									</div>
-									<span style="font-size: 11px; font-weight: bold; color: ${complianceColor};">${meal.compliancePercent}%</span>
+									<span style="font-size: 11px; font-weight: bold; color: ${meal.statusColor};">${meal.compliancePercent}%</span>
 								</div>
 								<div style="font-size: 10px; color: ${meal.statusColor}; margin-top: 4px;">${meal.statusText}</div>
 							</td>
@@ -4411,7 +4415,7 @@
 						</div>
 				`;
 				
-				// Добавляем рекомендации по сбалансированности
+				// Рекомендации по сбалансированности с учётом лагеря
 				const unbalancedMeals = balanceData.meals.filter(m => m.hasData && m.compliancePercent < 80);
 				if (unbalancedMeals.length > 0) {
 					html += `
@@ -4423,7 +4427,10 @@
 					for (let meal of unbalancedMeals) {
 						const issues = [];
 						if (meal.avgWeight < meal.norm.weight) issues.push(`вес (${meal.avgWeight}г < ${meal.norm.weight}г)`);
-						if (meal.avgCalories < meal.norm.calories) issues.push(`калорийность (${meal.avgCalories}ккал < ${meal.norm.calories}ккал)`);
+						if (meal.avgCalories < meal.norm.calories) {
+							const needed = meal.norm.calories - meal.avgCalories;
+							issues.push(`калорийность (${meal.avgCalories}ккал < ${meal.norm.calories}ккал, не хватает ${needed} ккал)`);
+						}
 						
 						if (issues.length > 0) {
 							html += `<li><strong>${meal.name}:</strong> недостаточная ${issues.join(' и ')}. Рекомендуется увеличить порции или добавить более питательные блюда.</li>`;
@@ -4435,159 +4442,8 @@
 					html += `</ul></div>`;
 				}
 				
-				// Добавляем рекомендуемое соотношение БЖУ
-				// Рассчитываем фактическое соотношение БЖУ по всему меню
-				let totalProteins = 0;
-				let totalFats = 0;
-				let totalCarbs = 0;
-
-				for (let item of flatItems) {
-					totalProteins += item.proteins || 0;
-					totalFats += item.fats || 0;
-					totalCarbs += item.carbs || 0;
-				}
-
-				// Нормализуем соотношение
-				let ratioProteins = 1;
-				let ratioFats = 1;
-				let ratioCarbs = 4;
-
-				if (totalProteins > 0 || totalFats > 0 || totalCarbs > 0) {
-					// Находим минимальное значение для нормализации
-					const minValue = Math.min(totalProteins, totalFats, totalCarbs);
-					if (minValue > 0) {
-						ratioProteins = Math.round((totalProteins / minValue) * 10) / 10;
-						ratioFats = Math.round((totalFats / minValue) * 10) / 10;
-						ratioCarbs = Math.round((totalCarbs / minValue) * 10) / 10;
-					}
-				}
-
-				// Оценка соотношения
-				let bjuStatus = 'good';
-				let bjuStatusText = '✅ Соотношение близко к норме';
-				let bjuStatusColor = '#10b981';
-
-				const idealRatio = { proteins: 1, fats: 1, carbs: 4 };
-				const actualRatio = { proteins: ratioProteins, fats: ratioFats, carbs: ratioCarbs };
-
-				// Проверяем отклонения (допустимое отклонение 30%)
-				const proteinDeviation = Math.abs(actualRatio.proteins - idealRatio.proteins) / idealRatio.proteins;
-				const fatDeviation = Math.abs(actualRatio.fats - idealRatio.fats) / idealRatio.fats;
-				const carbDeviation = Math.abs(actualRatio.carbs - idealRatio.carbs) / idealRatio.carbs;
-
-				const maxDeviation = Math.max(proteinDeviation, fatDeviation, carbDeviation);
-
-				if (maxDeviation > 0.5) {
-					bjuStatus = 'bad';
-					bjuStatusText = '❌ Соотношение далеко от нормы';
-					bjuStatusColor = '#dc2626';
-				} else if (maxDeviation > 0.3) {
-					bjuStatus = 'warning';
-					bjuStatusText = '⚠️ Соотношение отличается от рекомендуемого';
-					bjuStatusColor = '#f59e0b';
-				}
-
-				html += `
-					<div style="margin-top: 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
-						<div style="padding: 16px; background: #f0fdf4; border-radius: 16px; border-left: 4px solid #10b981;">
-							<strong><i class="fas fa-chart-pie"></i> Рекомендуемое соотношение БЖУ:</strong>
-							<div style="display: flex; align-items: center; justify-content: center; gap: 20px; margin-top: 12px; flex-wrap: wrap;">
-								<div style="text-align: center;">
-									<div style="width: 60px; height: 60px; border-radius: 50%; background: #3b82f6; display: flex; align-items: center; justify-content: center; margin: 0 auto;">
-										<span style="color: white; font-weight: bold; font-size: 20px;">1</span>
-									</div>
-									<div style="margin-top: 8px; font-weight: bold;">Белки</div>
-									<div style="font-size: 11px; color: #64748b;">12-15%</div>
-								</div>
-								<div style="font-size: 24px; color: #94a3b8;">:</div>
-								<div style="text-align: center;">
-									<div style="width: 60px; height: 60px; border-radius: 50%; background: #ef4444; display: flex; align-items: center; justify-content: center; margin: 0 auto;">
-										<span style="color: white; font-weight: bold; font-size: 20px;">1</span>
-									</div>
-									<div style="margin-top: 8px; font-weight: bold;">Жиры</div>
-									<div style="font-size: 11px; color: #64748b;">25-30%</div>
-								</div>
-								<div style="font-size: 24px; color: #94a3b8;">:</div>
-								<div style="text-align: center;">
-									<div style="width: 60px; height: 60px; border-radius: 50%; background: #f59e0b; display: flex; align-items: center; justify-content: center; margin: 0 auto;">
-										<span style="color: white; font-weight: bold; font-size: 20px;">4</span>
-									</div>
-									<div style="margin-top: 8px; font-weight: bold;">Углеводы</div>
-									<div style="font-size: 11px; color: #64748b;">55-60%</div>
-								</div>
-							</div>
-							<div style="text-align: center; margin-top: 12px; font-size: 12px; color: #475569;">
-								<i class="fas fa-heart" style="color: #10b981;"></i> Оптимальное соотношение для детей школьного возраста
-							</div>
-						</div>
-						
-						<div style="padding: 16px; background: #f8fafc; border-radius: 16px; border-left: 4px solid ${bjuStatusColor};">
-							<strong><i class="fas fa-chart-line"></i> Фактическое соотношение БЖУ:</strong>
-							<div style="display: flex; align-items: center; justify-content: center; gap: 20px; margin-top: 12px; flex-wrap: wrap;">
-								<div style="text-align: center;">
-									<div style="width: 60px; height: 60px; border-radius: 50%; background: #3b82f6; display: flex; align-items: center; justify-content: center; margin: 0 auto; opacity: 0.8;">
-										<span style="color: white; font-weight: bold; font-size: 20px;">${ratioProteins}</span>
-									</div>
-									<div style="margin-top: 8px; font-weight: bold;">Белки</div>
-									<div style="font-size: 11px; color: #64748b;">${Math.round((totalProteins / (totalProteins + totalFats + totalCarbs)) * 100)}%</div>
-								</div>
-								<div style="font-size: 24px; color: #94a3b8;">:</div>
-								<div style="text-align: center;">
-									<div style="width: 60px; height: 60px; border-radius: 50%; background: #ef4444; display: flex; align-items: center; justify-content: center; margin: 0 auto; opacity: 0.8;">
-										<span style="color: white; font-weight: bold; font-size: 20px;">${ratioFats}</span>
-									</div>
-									<div style="margin-top: 8px; font-weight: bold;">Жиры</div>
-									<div style="font-size: 11px; color: #64748b;">${Math.round((totalFats / (totalProteins + totalFats + totalCarbs)) * 100)}%</div>
-								</div>
-								<div style="font-size: 24px; color: #94a3b8;">:</div>
-								<div style="text-align: center;">
-									<div style="width: 60px; height: 60px; border-radius: 50%; background: #f59e0b; display: flex; align-items: center; justify-content: center; margin: 0 auto; opacity: 0.8;">
-										<span style="color: white; font-weight: bold; font-size: 20px;">${ratioCarbs}</span>
-									</div>
-									<div style="margin-top: 8px; font-weight: bold;">Углеводы</div>
-									<div style="font-size: 11px; color: #64748b;">${Math.round((totalCarbs / (totalProteins + totalFats + totalCarbs)) * 100)}%</div>
-								</div>
-							</div>
-							<div style="text-align: center; margin-top: 12px;">
-								<span style="font-size: 13px; font-weight: bold; color: ${bjuStatusColor};">${bjuStatusText}</span>
-							</div>
-						</div>
-					</div>
-				`;
-
-				// Добавляем детальную расшифровку
-				html += `
-					<div style="margin-top: 16px; padding: 12px 16px; background: #f1f5f9; border-radius: 16px;">
-						<strong><i class="fas fa-info-circle"></i> Расшифровка соотношения БЖУ:</strong>
-						<div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 8px; text-align: center;">
-							<div>
-								<span style="color: #3b82f6;">🔵 Белки (1 часть)</span><br>
-								<span style="font-size: 11px;">Строительный материал для организма</span><br>
-								<span style="font-size: 10px; color: #64748b;">Рекомендуемые продукты: мясо, рыба, яйца, бобовые</span>
-							</div>
-							<div>
-								<span style="color: #ef4444;">🔴 Жиры (1 часть)</span><br>
-								<span style="font-size: 11px;">Источник энергии и витаминов</span><br>
-								<span style="font-size: 10px; color: #64748b;">Рекомендуемые продукты: масла, орехи, жирная рыба</span>
-							</div>
-							<div>
-								<span style="color: #f59e0b;">🟠 Углеводы (4 части)</span><br>
-								<span style="font-size: 11px;">Основной источник энергии</span><br>
-								<span style="font-size: 10px; color: #64748b;">Рекомендуемые продукты: крупы, хлеб, фрукты, овощи</span>
-							</div>
-						</div>
-						<div style="margin-top: 12px; font-size: 12px; padding: 8px; background: #e0f2fe; border-radius: 12px;">
-							<i class="fas fa-lightbulb" style="color: #f59e0b;"></i> 
-							<strong>Совет:</strong> Соотношение Б:Ж:У = ${ratioProteins}:${ratioFats}:${ratioCarbs}
-							${Math.abs(ratioProteins - 1) <= 0.5 && Math.abs(ratioFats - 1) <= 0.5 && Math.abs(ratioCarbs - 4) <= 1.5 ? 
-								'✅ Вы близки к идеальному балансу! Так держать.' : 
-								'Рекомендуется скорректировать меню: добавьте больше круп и овощей (углеводы) или уменьшите количество жиров.'}
-						</div>
-					</div>
-				`;
-				
 				html += `</div>`;
-			}			
+			}		
 			
 			document.getElementById('reportContent').innerHTML = html;
 			document.getElementById('reportModal').style.display = 'flex';
@@ -5657,7 +5513,10 @@
 					duplicatesCount: duplicatesCount,
 					totalViolations: allViolations.length,
 					schoolName: schoolInfo.name || '—',
-					approvalDate: schoolInfo.approval.date || '—'
+					approvalDate: schoolInfo.approval.date || '—',
+					isSummerCamp: isSummerCamp || false,
+					breakfastNorm: getCalorieNormWithCamp(470),
+					lunchNorm: getCalorieNormWithCamp(705)
 				},
 				violations: violationsList,
 				bjuViolations: allViolations.filter(v => v.code === 15).map(v => {
@@ -5688,6 +5547,14 @@
 			const now = new Date();
 			const dateStr = now.toLocaleString('ru-RU');
 			
+			// Определяем нормы с учётом лагеря для отображения в шапке
+			const breakfastNorm = isSummerCamp ? 517 : 470;
+			const lunchNorm = isSummerCamp ? 776 : 705;
+			
+			// Бейдж лагеря для шапки отчёта
+			const campBadge = isSummerCamp ? 
+				'<div style="background: #fef3c7; padding: 8px 16px; border-radius: 12px; margin-bottom: 20px; border-left: 4px solid #f59e0b;"><i class="fas fa-sun" style="color: #f59e0b;"></i> <strong>🌞 Летний лагерь</strong> — нормы калорийности увеличены на 10% (завтрак ≥' + breakfastNorm + ' ккал, обед ≥' + lunchNorm + ' ккал)</div>' : '';
+			
 			// Формируем HTML для нарушений
 			let violationsHtml = '';
 			for (let v of data.violations) {
@@ -5705,7 +5572,7 @@
 				`;
 			}
 			
-			// Формируем HTML для сбалансированности
+			// Формируем HTML для сбалансированности (с учётом лагеря)
 			let balanceHtml = '';
 			if (balanceData && balanceData.meals.some(m => m.hasData)) {
 				for (let meal of balanceData.meals) {
@@ -5726,13 +5593,16 @@
 					const complianceWidth = meal.compliancePercent;
 					const complianceColor = meal.status === 'good' ? '#10b981' : (meal.status === 'warning' ? '#f59e0b' : '#dc2626');
 					
+					// Индикатор лагеря для завтрака и обеда
+					const campIndicator = (isSummerCamp && (meal.meal === 'breakfast' || meal.meal === 'lunch')) ? ' (+10%)' : '';
+					
 					balanceHtml += `
 						<tr style="border-bottom: 1px solid #e2e8f0;">
 							<td><strong>${meal.name}</strong><br><span style="font-size: 10px; color: #64748b;">${meal.count} дней</span></td>
 							<td style="color: ${weightColor}; font-weight: ${weightStatus === 'bad' ? 'bold' : 'normal'};">${meal.avgWeight}</td>
 							<td style="color: #64748b;">≥${meal.norm.weight}</td>
-							<td style="color: ${caloriesColor}; font-weight: ${caloriesStatus === 'bad' ? 'bold' : 'normal'};">${meal.avgCalories}</td>
-							<td style="color: #64748b;">≥${meal.norm.calories}</td>
+							<td style="color: ${caloriesColor}; font-weight: ${caloriesStatus === 'bad' ? 'bold' : 'normal'};">${meal.avgCalories}${campIndicator}</td>
+							<td style="color: #64748b;">≥${meal.norm.calories}${campIndicator}</td>
 							<td>${meal.avgProteins}</td>
 							<td>${meal.avgFats}</td>
 							<td>${meal.avgCarbs}</td>
@@ -5841,6 +5711,8 @@
 					<strong>${escapeHtml(data.stats.schoolName)}</strong> | Дата утверждения: ${data.stats.approvalDate} | Сформирован: ${dateStr}
 				</div>
 				
+				${campBadge}
+				
 				<!-- Общая статистика -->
 				<div class="stats-grid">
 					<div class="stat-card"><div class="stat-value">${data.stats.totalDishes}</div><div class="stat-label">🍽️ Всего блюд</div></div>
@@ -5863,6 +5735,7 @@
 				${balanceData && balanceData.meals.some(m => m.hasData) ? `
 				<div class="section-title">
 					<i class="fas fa-balance-scale"></i> Сбалансированность меню
+					${isSummerCamp ? '<span style="background: #f59e0b; color: white; padding: 2px 8px; border-radius: 20px; font-size: 11px; margin-left: 12px;">🌞 Летний лагерь (+10%)</span>' : ''}
 					<span style="font-size: 12px; margin-left: 12px; color: ${balanceData.overallStatusColor};">${balanceData.overallStatusText}</span>
 				</div>
 				<div style="margin-bottom: 16px; padding: 12px; background: #f8fafc; border-radius: 16px;">
@@ -5870,6 +5743,7 @@
 					<p><strong>📈 Общий уровень сбалансированности:</strong> 
 						<span style="font-weight: bold; color: ${balanceData.overallStatusColor};">${balanceData.overallBalance}%</span>
 					</p>
+					${isSummerCamp ? '<p><span style="background: #fef3c7; padding: 4px 12px; border-radius: 20px; font-size: 12px;">🌞 Режим летнего лагеря: нормы калорийности завтрака и обеда увеличены на 10% (завтрак ≥' + breakfastNorm + ' ккал, обед ≥' + lunchNorm + ' ккал)</span></p>' : ''}
 				</div>
 				<table class="balance-table">
 					<thead>
@@ -6042,7 +5916,10 @@
 						${balanceData.meals.filter(m => m.hasData && m.compliancePercent < 80).map(meal => {
 							const issues = [];
 							if (meal.avgWeight < meal.norm.weight) issues.push(`вес (${meal.avgWeight}г < ${meal.norm.weight}г)`);
-							if (meal.avgCalories < meal.norm.calories) issues.push(`калорийность (${meal.avgCalories}ккал < ${meal.norm.calories}ккал)`);
+							if (meal.avgCalories < meal.norm.calories) {
+								const needed = meal.norm.calories - meal.avgCalories;
+								issues.push(`калорийность (${meal.avgCalories}ккал < ${meal.norm.calories}ккал, не хватает ${needed} ккал)`);
+							}
 							return `<li><strong>${meal.name}:</strong> недостаточная ${issues.join(' и ')}. Рекомендуется увеличить порции или добавить более питательные блюда.</li>`;
 						}).join('')}
 					</ul>
@@ -6072,20 +5949,17 @@
 			lines.push(`Сформирован: ${dateStr}`);
 			lines.push(`Организация: ${data.stats.schoolName}`);
 			lines.push(`Дата утверждения: ${data.stats.approvalDate}`);
+			
+			// Добавляем информацию о лагере
+			if (data.stats.isSummerCamp) {
+				lines.push(`Режим: 🌞 ЛЕТНИЙ ЛАГЕРЬ (калорийность завтрака и обеда +10%)`);
+				lines.push(`  - Норма завтрака: ${data.stats.breakfastNorm} ккал (было 470)`);
+				lines.push(`  - Норма обеда: ${data.stats.lunchNorm} ккал (было 705)`);
+			} else {
+				lines.push(`Режим: 🍂 Обычный (стандартные нормы калорийности)`);
+			}
+			
 			lines.push('=' .repeat(80));
-			lines.push('');
-			lines.push('📊 ОБЩАЯ СТАТИСТИКА');
-			lines.push('-'.repeat(80));
-			lines.push(`Всего блюд: ${data.stats.totalDishes}`);
-			lines.push(`Недель: ${data.stats.totalWeeks}`);
-			lines.push(`Дней: ${data.stats.totalDays}`);
-			lines.push(`Средний вес на день: ${data.stats.avgWeightPerDay} г`);
-			lines.push(`Средняя калорийность на день: ${data.stats.avgCaloriesPerDay} ккал`);
-			lines.push(`Общий вес: ${data.stats.totalWeight} г`);
-			lines.push(`Общая калорийность: ${data.stats.totalCalories} ккал`);
-			lines.push('');
-			lines.push('📊 СТАТУС ПРОВЕРКИ');
-			lines.push('-'.repeat(80));
 			
 			if (data.stats.totalViolations === 0) {
 				lines.push('✅ Все правила выполнены! Меню соответствует требованиям.');
@@ -6153,7 +6027,12 @@
 			const now = new Date();
 			
 			// CSV заголовки
+			// Добавляем строку с информацией о режиме лагеря
 			let csvRows = [
+				['РЕЖИМ РАБОТЫ', data.stats.isSummerCamp ? 'Летний лагерь (+10% к калорийности)' : 'Обычный режим'],
+				['Норма завтрака', data.stats.isSummerCamp ? `${data.stats.breakfastNorm} ккал` : '470 ккал'],
+				['Норма обеда', data.stats.isSummerCamp ? `${data.stats.lunchNorm} ккал` : '705 ккал'],
+				[],
 				['Тип', 'Неделя', 'День', 'Приём пищи', 'Раздел', 'Блюдо', 'Нарушение', 'Текущее значение', 'Норма', 'Критичность']
 			];
 			
@@ -8012,47 +7891,47 @@
 			const templates = {
 				breakfast: {
 					items: [
-						{ section: 'гор.блюдо', name: '', weight: 200, calories: 0, proteins: 0, fats: 0, carbs: 0, recipeId: '', price: 0 },
-						{ section: 'гор.напиток', name: '', weight: 200, calories: 0, proteins: 0, fats: 0, carbs: 0, recipeId: '', price: 0 },
-						{ section: 'хлеб', name: '', weight: 30, calories: 0, proteins: 0, fats: 0, carbs: 0, recipeId: '', price: 0 },
-						{ section: 'фрукты', name: '', weight: 100, calories: 0, proteins: 0, fats: 0, carbs: 0, recipeId: '', price: 0 }
+						{ section: 'гор.блюдо', name: '', weight: 0, calories: 0, proteins: 0, fats: 0, carbs: 0, recipeId: '', price: 0 },
+						{ section: 'гор.напиток', name: '', weight: 0, calories: 0, proteins: 0, fats: 0, carbs: 0, recipeId: '', price: 0 },
+						{ section: 'хлеб', name: '', weight: 0, calories: 0, proteins: 0, fats: 0, carbs: 0, recipeId: '', price: 0 },
+						{ section: 'фрукты', name: '', weight: 0, calories: 0, proteins: 0, fats: 0, carbs: 0, recipeId: '', price: 0 }
 					]
 				},
 				breakfast2: {
 					items: [
-						{ section: 'фрукты', name: '', weight: 100, calories: 0, proteins: 0, fats: 0, carbs: 0, recipeId: '', price: 0 },
-						{ section: 'напиток', name: '', weight: 200, calories: 0, proteins: 0, fats: 0, carbs: 0, recipeId: '', price: 0 }
+						{ section: 'фрукты', name: '', weight: 0, calories: 0, proteins: 0, fats: 0, carbs: 0, recipeId: '', price: 0 },
+						{ section: 'напиток', name: '', weight: 0, calories: 0, proteins: 0, fats: 0, carbs: 0, recipeId: '', price: 0 }
 					]
 				},
 				lunch: {
 					items: [
-						{ section: 'закуска', name: '', weight: 80, calories: 0, proteins: 0, fats: 0, carbs: 0, recipeId: '', price: 0 },
-						{ section: '1 блюдо', name: '', weight: 250, calories: 0, proteins: 0, fats: 0, carbs: 0, recipeId: '', price: 0 },
-						{ section: '2 блюдо', name: '', weight: 90, calories: 0, proteins: 0, fats: 0, carbs: 0, recipeId: '', price: 0 },
-						{ section: 'гарнир', name: '', weight: 150, calories: 0, proteins: 0, fats: 0, carbs: 0, recipeId: '', price: 0 },
-						{ section: 'напиток', name: '', weight: 200, calories: 0, proteins: 0, fats: 0, carbs: 0, recipeId: '', price: 0 },
-						{ section: 'хлеб бел.', name: '', weight: 30, calories: 0, proteins: 0, fats: 0, carbs: 0, recipeId: '', price: 0 },
-						{ section: 'хлеб черн.', name: '', weight: 30, calories: 0, proteins: 0, fats: 0, carbs: 0, recipeId: '', price: 0 }
+						{ section: 'закуска', name: '', weight: 0, calories: 0, proteins: 0, fats: 0, carbs: 0, recipeId: '', price: 0 },
+						{ section: '1 блюдо', name: '', weight: 0, calories: 0, proteins: 0, fats: 0, carbs: 0, recipeId: '', price: 0 },
+						{ section: '2 блюдо', name: '', weight: 0, calories: 0, proteins: 0, fats: 0, carbs: 0, recipeId: '', price: 0 },
+						{ section: 'гарнир', name: '', weight: 0, calories: 0, proteins: 0, fats: 0, carbs: 0, recipeId: '', price: 0 },
+						{ section: 'напиток', name: '', weight: 0, calories: 0, proteins: 0, fats: 0, carbs: 0, recipeId: '', price: 0 },
+						{ section: 'хлеб бел.', name: '', weight: 0, calories: 0, proteins: 0, fats: 0, carbs: 0, recipeId: '', price: 0 },
+						{ section: 'хлеб черн.', name: '', weight: 0, calories: 0, proteins: 0, fats: 0, carbs: 0, recipeId: '', price: 0 }
 					]
 				},
 				afternoonSnack: {
 					items: [
-						{ section: 'булочное', name: '', weight: 70, calories: 0, proteins: 0, fats: 0, carbs: 0, recipeId: '', price: 0 },
-						{ section: 'напиток', name: '', weight: 200, calories: 0, proteins: 0, fats: 0, carbs: 0, recipeId: '', price: 0 }
+						{ section: 'булочное', name: '', weight: 0, calories: 0, proteins: 0, fats: 0, carbs: 0, recipeId: '', price: 0 },
+						{ section: 'напиток', name: '', weight: 0, calories: 0, proteins: 0, fats: 0, carbs: 0, recipeId: '', price: 0 }
 					]
 				},
 				dinner: {
 					items: [
-						{ section: 'гор.блюдо', name: '', weight: 120, calories: 0, proteins: 0, fats: 0, carbs: 0, recipeId: '', price: 0 },
-						{ section: 'гарнир', name: '', weight: 150, calories: 0, proteins: 0, fats: 0, carbs: 0, recipeId: '', price: 0 },
-						{ section: 'напиток', name: '', weight: 200, calories: 0, proteins: 0, fats: 0, carbs: 0, recipeId: '', price: 0 },
-						{ section: 'хлеб', name: '', weight: 30, calories: 0, proteins: 0, fats: 0, carbs: 0, recipeId: '', price: 0 }
+						{ section: 'гор.блюдо', name: '', weight: 0, calories: 0, proteins: 0, fats: 0, carbs: 0, recipeId: '', price: 0 },
+						{ section: 'гарнир', name: '', weight: 0, calories: 0, proteins: 0, fats: 0, carbs: 0, recipeId: '', price: 0 },
+						{ section: 'напиток', name: '', weight: 0, calories: 0, proteins: 0, fats: 0, carbs: 0, recipeId: '', price: 0 },
+						{ section: 'хлеб', name: '', weight: 0, calories: 0, proteins: 0, fats: 0, carbs: 0, recipeId: '', price: 0 }
 					]
 				},
 				dinner2: {
 					items: [
-						{ section: 'кисломол.', name: '', weight: 200, calories: 0, proteins: 0, fats: 0, carbs: 0, recipeId: '', price: 0 },
-						{ section: 'булочное', name: '', weight: 30, calories: 0, proteins: 0, fats: 0, carbs: 0, recipeId: '', price: 0 }
+						{ section: 'кисломол.', name: '', weight: 0, calories: 0, proteins: 0, fats: 0, carbs: 0, recipeId: '', price: 0 },
+						{ section: 'булочное', name: '', weight: 0, calories: 0, proteins: 0, fats: 0, carbs: 0, recipeId: '', price: 0 }
 					]
 				}
 			};
