@@ -2653,7 +2653,7 @@
 
 		// Функция для получения нормы калорий с учётом лагеря (+10% в летний период)
 		function getCalorieNormWithCamp(baseNorm) {
-			if (isSummerCamp) {
+			if (typeof isSummerCamp !== 'undefined' && isSummerCamp) {
 				return Math.ceil(baseNorm * 1.1); // Увеличиваем на 10% и округляем вверх
 			}
 			return baseNorm;
@@ -3251,7 +3251,8 @@
 				const mealPrice = mealItemsForPrice.reduce((sum, i) => sum + (parseFloat(i.price) || 0), 0);
 				
 				const ruleMin = { breakfast: 500, lunch: 700, breakfast2: 200, afternoonSnack: 300, dinner: 500, dinner2: 200 } [mealType] || 0;
-				const kcalMin = { breakfast: 470, lunch: 705 } [mealType] || 0;
+				const kcalBaseNorm = { breakfast: 470, lunch: 705 } [mealType] || 0;
+				const kcalMin = kcalBaseNorm ? getCalorieNormWithCamp(kcalBaseNorm) : 0;
 				const mealOk = mealTotal >= ruleMin || mealTotal === 0;
 				const kcalOk = mealKcal >= kcalMin || mealKcal === 0;
 
@@ -3276,7 +3277,7 @@
 							${MEAL_STRUCTURE[mealType]?.name || mealType}
 							<div style="margin-top: 8px;">
 								<span class="meal-badge ${mealOk ? 'ok' : 'warning'}">⚖️ ${mealTotal}/${ruleMin}г</span>
-								${kcalMin > 0 ? `<span class="meal-badge ${kcalOk ? 'ok' : 'warning'}">🔥 ${mealKcal}/${kcalMin}ккал</span>` : ''}
+								${kcalMin > 0 ? `<span class="meal-badge ${kcalOk ? 'ok' : 'warning'}">🔥 ${mealKcal}/${kcalMin}ккал${isSummerCamp && (mealType === 'breakfast' || mealType === 'lunch') ? ' (+10%)' : ''}</span>` : ''}
 								<span class="meal-badge meal-price-badge">💰 ${mealPrice.toFixed(2)} ₽</span>
 							</div>
 						</td>`;
@@ -3349,19 +3350,31 @@
             `;
 
             const rulesMap = {
-                1: 'Завтрак ≥500г', 2: 'Обед ≥700г', 3: 'Гор.блюдо ≥150г', 4: 'Закуска ≥60г',
-                5: '1 блюдо ≥200г', 6: '2 блюдо ≥90г', 8: 'Гарнир ≥150г', 9: '2 завтрак ≥200г',
-                10: 'Полдник ≥300г', 11: 'Ужин ≥500г', 12: '2 ужин ≥200г', 13: 'Калории завтрака ≥470',
-                14: 'Калории обеда ≥705', 15: 'БЖУ ≤ вес', 16: 'Фрукты ≥100г', 17: 'Без дубликатов'
+                1: 'Завтрак ≥500г', 
+				2: 'Обед ≥700г', 
+				3: 'Гор.блюдо ≥150г', 
+				4: 'Закуска ≥60г',
+                5: '1 блюдо ≥200г', 
+				6: '2 блюдо ≥90г', 
+				8: 'Гарнир ≥150г', 
+				9: '2 завтрак ≥200г',
+                10: 'Полдник ≥300г', 
+				11: 'Ужин ≥500г', 
+				12: '2 ужин ≥200г',
+				13: `Калории завтрака ≥${getCalorieNormWithCamp(470)}ккал${isSummerCamp ? ' ⚡' : ''}`,
+				14: `Калории обеда ≥${getCalorieNormWithCamp(705)}ккал${isSummerCamp ? ' ⚡' : ''}`,
+				15: 'БЖУ ≤ вес', 
+				16: 'Фрукты ≥100г', 
+				17: 'Без дубликатов'
             };
 
-            const rulesHtml = Object.entries(rulesMap).map(([code, name]) => {
-                const count = violationsByRule[code] || 0;
-                const statusClass = count > 0 ? 'warning' : 'ok';
-                const violationsForRule = allViolations.filter(v => v.code === parseInt(code));
-                return `<div class="rule-badge ${statusClass}" data-rule-code="${code}" data-violations='${JSON.stringify(violationsForRule)}'>${code}. ${name} ${count > 0 ? `(${count})` : '✓'}</div>`;
-            }).join('');
-            document.getElementById('rulesPanel').innerHTML = `<i class="fas fa-list"></i> <strong>Правила контроля качества</strong> ${rulesHtml}`;
+			const rulesHtml = Object.entries(rulesMap).map(([code, name]) => {
+				const count = violationsByRule[code] || 0;
+				const statusClass = count > 0 ? 'warning' : 'ok';
+				const violationsForRule = allViolations.filter(v => v.code === parseInt(code));
+				return `<div class="rule-badge ${statusClass}" data-rule-code="${code}" data-violations='${JSON.stringify(violationsForRule)}'>${code}. ${name} ${count > 0 ? `(${count})` : '✓'}</div>`;
+			}).join('');
+			document.getElementById('rulesPanel').innerHTML = `<i class="fas fa-list"></i> <strong>Правила контроля качества</strong> ${rulesHtml}`;
 
             for (let badge of document.querySelectorAll('.rule-badge')) {
                 badge.addEventListener('click', () => {
@@ -8192,14 +8205,14 @@
 		function analyzeMealBalance() {
 			if (!currentTemplateData) return null;
 			
-			const breakfastNorm = isSummerCamp ? Math.ceil(norms[mt].calories * 1.1) : norms[mt].calories;
-			const lunchNorm = isSummerCamp ? Math.ceil(norms.lunch.calories * 1.1) : norms.lunch.calories;
+			// Определяем возрастную категорию (по умолчанию 7-11 лет)
+			let ageCategory = schoolInfo.ageCategory || '7-11 лет';
 			
 			// Нормы КБЖУ для разных возрастных категорий (на один приём пищи)
 			const normsByAge = {
 				'7-11 лет': {
-					breakfast: { weight: 500, calories: breakfastNorm, proteins: 16, fats: 16, carbs: 63 },
-					breakfast2: { weight: 200, calories: lunchNorm, proteins: 7, fats: 7, carbs: 25 },
+					breakfast: { weight: 500, calories: 470, proteins: 16, fats: 16, carbs: 63 },
+					breakfast2: { weight: 200, calories: 200, proteins: 7, fats: 7, carbs: 25 },
 					lunch: { weight: 700, calories: 705, proteins: 24, fats: 24, carbs: 94 },
 					afternoonSnack: { weight: 300, calories: 250, proteins: 8, fats: 8, carbs: 33 },
 					dinner: { weight: 500, calories: 470, proteins: 16, fats: 16, carbs: 63 },
@@ -8223,10 +8236,20 @@
 				}
 			};
 			
-			// Определяем возрастную категорию (по умолчанию 7-11 лет)
-			let ageCategory = schoolInfo.ageCategory || '7-11 лет';
-			if (!normsByAge[ageCategory]) ageCategory = '7-11 лет';
-			const norms = normsByAge[ageCategory];
+			// Получаем базовые нормы для возрастной категории
+			let baseNorms = normsByAge[ageCategory];
+			if (!baseNorms) baseNorms = normsByAge['7-11 лет'];
+			
+			// Применяем лагерный коэффициент к калориям завтрака и обеда
+			const norms = {};
+			for (let meal in baseNorms) {
+				norms[meal] = { ...baseNorms[meal] };
+				if (meal === 'breakfast' || meal === 'lunch') {
+					if (typeof isSummerCamp !== 'undefined' && isSummerCamp) {
+						norms[meal].calories = Math.ceil(baseNorms[meal].calories * 1.1);
+					}
+				}
+			}
 			
 			// Собираем данные по всем приёмам пищи
 			const mealStats = {};
@@ -8240,15 +8263,16 @@
 			};
 			
 			// Инициализируем статистику
+			const MEAL_TYPES = ['breakfast', 'breakfast2', 'lunch', 'afternoonSnack', 'dinner', 'dinner2'];
 			for (let mt of MEAL_TYPES) {
 				mealStats[mt] = {
-					count: 0,           // количество дней с этим приёмом
+					count: 0,
 					totalWeight: 0,
 					totalCalories: 0,
 					totalProteins: 0,
 					totalFats: 0,
 					totalCarbs: 0,
-					daysData: []       // данные по дням для анализа отклонений
+					daysData: []
 				};
 			}
 			
@@ -8320,8 +8344,14 @@
 				
 				for (let day of stats.daysData) {
 					let dayCompliant = true;
-					if (day.weight < norm.weight) { dayCompliant = false; weightDeviations.push(day.weight - norm.weight); }
-					if (day.calories < norm.calories) { dayCompliant = false; calorieDeviations.push(day.calories - norm.calories); }
+					if (day.weight < norm.weight) { 
+						dayCompliant = false; 
+						weightDeviations.push(day.weight - norm.weight); 
+					}
+					if (day.calories < norm.calories) { 
+						dayCompliant = false; 
+						calorieDeviations.push(day.calories - norm.calories); 
+					}
 					if (dayCompliant) complianceCount++;
 				}
 				
