@@ -3395,6 +3395,32 @@
             attachEditorEvents();
         }
 
+        // Глобальный обработчик для навигации по Enter
+        function handleEnterNavigation(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                // Находим все поля ввода в таблице
+                const allFields = Array.from(document.querySelectorAll('#editorWrapper input, #editorWrapper select'));
+                const currentIndex = allFields.indexOf(e.target);
+                
+                if (e.shiftKey) {
+                    // Shift+Enter - на предыдущее поле
+                    if (currentIndex > 0) {
+                        allFields[currentIndex - 1].focus();
+                        allFields[currentIndex - 1].select();
+                    }
+                } else {
+                    // Enter - на следующее поле
+                    if (currentIndex < allFields.length - 1) {
+                        allFields[currentIndex + 1].focus();
+                        allFields[currentIndex + 1].select();
+                    }
+                }
+            }
+        }
+
         function attachEditorEvents() {
             for (let el of document.querySelectorAll('#editorWrapper input, #editorWrapper select')) {
                 el.removeEventListener('change', handleInputChange);
@@ -3421,6 +3447,11 @@
                 selectAll.removeEventListener('change', handleSelectAll);
                 selectAll.addEventListener('change', handleSelectAll);
             }
+			// ========== ДОБАВЛЯЕМ НАВИГАЦИЮ ПО ENTER ==========
+			for (let el of document.querySelectorAll('#editorWrapper input, #editorWrapper select')) {
+				el.removeEventListener('keydown', handleEnterNavigation);
+				el.addEventListener('keydown', handleEnterNavigation);
+			}			
         }
 
         function updateSelectedCount() {
@@ -8309,6 +8340,7 @@
 
 
 
+
         // Инициализация событий
         document.getElementById('scrollTopBtn').addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
 
@@ -8534,5 +8566,6 @@
 		}		
 		
     </script>
+
 </body>
 </html>
