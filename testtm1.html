@@ -1808,14 +1808,64 @@
 				margin-left: 8px;
 			}		
 		
+		/* Кнопка прокрутки вверх (СПРАВА) */
+		.floating-btn#scrollTopBtn {
+			position: fixed;
+			bottom: 24px;
+			right: 24px;
+			width: 48px;
+			height: 48px;
+			border-radius: 50%;
+			background: linear-gradient(135deg, #10b981, #059669);
+			color: white;
+			border: none;
+			cursor: pointer;
+			box-shadow: 0 8px 20px rgba(5, 150, 105, 0.4);
+			z-index: 1000;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			font-size: 1.2rem;
+			transition: all 0.3s ease;
+		}
+
+		.floating-btn#scrollTopBtn:hover {
+			transform: scale(1.1) translateY(-4px);
+			box-shadow: 0 12px 28px rgba(5, 150, 105, 0.5);
+		}
+
+		/* Кнопка резервных копий (СЛЕВА) — отдельный стиль, не конфликтует */
+		#backupToggleBtn {
+			position: relative !important;
+			bottom: auto !important;
+			right: auto !important;
+		}		
     </style>
 </head>
 <body>
     <div class="floating-btn" id="scrollTopBtn"><i class="fas fa-arrow-up"></i></div>
-    <div class="auto-save-badge" id="autoSaveBadge">
-        <i class="fas fa-save"></i>
-        <span>Автосохранение включено</span>
-    </div>
+	<div class="auto-save-badge" id="autoSaveBadge" style="
+		position: fixed;
+		bottom: 24px;
+		left: 50%;
+		transform: translateX(-50%);
+		background: rgba(5, 150, 105, 0.95);
+		backdrop-filter: blur(10px);
+		color: white;
+		padding: 8px 18px;
+		border-radius: 40px;
+		font-size: 0.75rem;
+		z-index: 1000;
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+		pointer-events: none;
+		white-space: nowrap;
+	">
+		<i class="fas fa-save"></i>
+		<span>Автосохранение включено</span>
+	</div>
     <div id="statusArea" class="status-message"></div>
 
     <div class="container">
@@ -2285,6 +2335,14 @@
 					<i class="fas fa-save"></i>
 					<span>Сохранить</span>
 				</button>
+				<button id="exportBackupBtn" class="action-btn info" title="Экспортировать меню в файл">
+					<i class="fas fa-download"></i>
+					<span>Резервная копия</span>
+				</button>
+				<button id="importBackupBtn" class="action-btn warning" title="Восстановить из файла">
+					<i class="fas fa-upload"></i>
+					<span>Восстановить</span>
+				</button>				
 				<button id="exportExcelBtn" class="action-btn success">
 					<i class="fas fa-download"></i>
 					<span>Экспорт</span>
@@ -2373,6 +2431,129 @@
 			<div id="reportContent" style="overflow-x: auto;"></div>
 			<div class="modal-buttons" style="display: flex; gap: 12px; justify-content: flex-end; margin-top: 20px;">
 				<button id="reportCloseBtn" class="btn btn-primary">Закрыть</button>
+			</div>
+		</div>
+	</div>
+
+	<!-- Панель управления резервными копиями (СЛЕВА) -->
+	<div id="backupPanel" style="
+		position: fixed;
+		bottom: 24px;
+		left: 24px;
+		z-index: 999;
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
+		gap: 8px;
+	">
+		<button id="backupToggleBtn" class="floating-btn" style="
+			background: linear-gradient(135deg, #f59e0b, #d97706);
+			width: 48px;
+			height: 48px;
+			border-radius: 50%;
+			box-shadow: 0 8px 20px rgba(245, 158, 11, 0.4);
+			margin: 0;
+		">
+			<i class="fas fa-history"></i>
+		</button>
+		
+		<div id="backupMenu" style="
+			display: none;
+			background: white;
+			border-radius: 20px;
+			box-shadow: 0 20px 40px -12px rgba(0,0,0,0.25);
+			width: 340px;
+			max-height: 450px;
+			overflow: hidden;
+			margin-left: 0;
+		">
+			<div style="
+				padding: 14px 18px;
+				background: linear-gradient(135deg, #f59e0b, #d97706);
+				color: white;
+				font-weight: 600;
+				border-radius: 20px 20px 0 0;
+				display: flex;
+				align-items: center;
+				gap: 10px;
+			">
+				<i class="fas fa-database"></i>
+				<span>Резервные копии</span>
+				<span id="backupCount" style="
+					background: rgba(255,255,255,0.25);
+					padding: 2px 10px;
+					border-radius: 20px;
+					font-size: 12px;
+					margin-left: auto;
+					font-weight: 500;
+				">0</span>
+			</div>
+			<div id="backupListContainer" style="
+				max-height: 320px;
+				overflow-y: auto;
+				padding: 10px;
+			">
+				<div style="text-align: center; padding: 30px 20px; color: #94a3b8;">
+					<i class="fas fa-spinner fa-spin"></i> Загрузка...
+				</div>
+			</div>
+			<div style="
+				padding: 12px 15px;
+				border-top: 1px solid #e2e8f0;
+				display: flex;
+				gap: 10px;
+				background: #f8fafc;
+				border-radius: 0 0 20px 20px;
+			">
+				<button id="createBackupNowBtn" style="
+					flex: 1;
+					padding: 8px 12px;
+					background: #10b981;
+					color: white;
+					border: none;
+					border-radius: 40px;
+					font-size: 12px;
+					cursor: pointer;
+					display: flex;
+					align-items: center;
+					justify-content: center;
+					gap: 6px;
+					transition: all 0.2s;
+				" onmouseover="this.style.transform='translateY(-1px)'" onmouseout="this.style.transform='translateY(0)'">
+					<i class="fas fa-plus-circle"></i> Создать
+				</button>
+				<button id="exportAllBackupsBtn" style="
+					flex: 1;
+					padding: 8px 12px;
+					background: #3b82f6;
+					color: white;
+					border: none;
+					border-radius: 40px;
+					font-size: 12px;
+					cursor: pointer;
+					display: flex;
+					align-items: center;
+					justify-content: center;
+					gap: 6px;
+					transition: all 0.2s;
+				" onmouseover="this.style.transform='translateY(-1px)'" onmouseout="this.style.transform='translateY(0)'">
+					<i class="fas fa-download"></i> Экспорт
+				</button>
+			</div>
+			<div style="
+				padding: 8px 15px;
+				background: #fef3c7;
+				font-size: 10px;
+				color: #92400e;
+				text-align: center;
+				border-radius: 0 0 20px 20px;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				gap: 6px;
+			">
+				<i class="fas fa-info-circle"></i>
+				<span>Автосохранение каждые 30 сек | Хранится до 5 копий</span>
 			</div>
 		</div>
 	</div>
@@ -3543,6 +3724,9 @@
 				flatItems = buildFlatFromTemplate(currentTemplateData);
 				renderEditor();
 				showStatus(`✨ Добавлено блюдо в раздел "${defaultSection}"`, 'success');
+				
+				// ✅ ДОБАВЬТЕ ЭТУ СТРОКУ:
+				immediateSave();  // Мгновенное сохранение при любом изменении				
 			}
 		}
 
@@ -3565,6 +3749,9 @@
             }
             saveToHistory();
             renderEditor();
+			
+			// ✅ ДОБАВЬТЕ ЭТУ СТРОКУ:
+			immediateSave();  // Мгновенное сохранение при любом изменении
         }
 
         function handleDelete(e) {
@@ -3576,39 +3763,366 @@
                 flatItems = buildFlatFromTemplate(currentTemplateData);
                 renderEditor();
                 showStatus('🗑️ Блюдо удалено', 'info');
+				
+				// ✅ ДОБАВЬТЕ ЭТУ СТРОКУ:
+				immediateSave();  // Мгновенное сохранение при любом изменении				
             }
         }
 
-        function saveToStorage() {
-            if (currentTemplateData) {
-                try {
-                    localStorage.setItem('autoSavedMenu', JSON.stringify(currentTemplateData));
-                    const badge = document.getElementById('autoSaveBadge');
-                    badge.style.opacity = '1';
-                    badge.style.transform = 'scale(1.05)';
-                    setTimeout(() => {
-                        badge.style.opacity = '0.7';
-                        badge.style.transform = 'scale(1)';
-                    }, 1000);
-                } catch (e) {
-                    showStatus('⚠️ Хранилище заполнено, экспортируйте данные', 'error');
-                }
-            }
-        }
+		// ========== УЛУЧШЕННОЕ АВТОСОХРАНЕНИЕ ==========
 
-        function loadFromStorage() {
-            const saved = localStorage.getItem('autoSavedMenu');
-            if (saved) {
-                try {
-                    currentTemplateData = JSON.parse(saved);
-                    flatItems = buildFlatFromTemplate(currentTemplateData);
-                    renderEditor();
-                    showStatus('💾 Загружено автосохранение', 'info');
-                    return true;
-                } catch (e) {}
-            }
-            return false;
-        }
+		// Ключи для localStorage
+		const STORAGE_KEYS = {
+			AUTO_SAVE: 'autoSavedMenu',
+			BACKUP: 'menuBackup',
+			LAST_EDIT: 'lastEditTime',
+			SCHOOL_INFO: 'schoolInfo',
+			SUMMER_CAMP: 'summerCampState'
+		};
+
+		// Флаг для отслеживания несохранённых изменений
+		let hasUnsavedChanges = false;
+
+		// Сохранение с меткой времени и множественными бэкапами
+		function saveToStorage() {
+			if (!currentTemplateData) return;
+			
+			try {
+				const saveData = {
+					data: JSON.parse(JSON.stringify(currentTemplateData)),
+					timestamp: new Date().toISOString(),
+					version: '4.0',
+					schoolInfo: schoolInfo,
+					isSummerCamp: isSummerCamp
+				};
+				
+				// Основное автосохранение
+				localStorage.setItem(STORAGE_KEYS.AUTO_SAVE, JSON.stringify(saveData));
+				
+				// Создаём резервную копию (последние 3 копии)
+				const backupKey = STORAGE_KEYS.BACKUP;
+				let backups = [];
+				try {
+					const storedBackups = localStorage.getItem(backupKey);
+					if (storedBackups) backups = JSON.parse(storedBackups);
+				} catch(e) {}
+				
+				// Добавляем новую копию, ограничиваем 3
+				// Добавляем новую копию, ограничиваем 10 (увеличено с 3)
+				backups.unshift(saveData);
+				if (backups.length > 10) backups.pop(); // Теперь хранится 10 копий
+				localStorage.setItem(backupKey, JSON.stringify(backups));
+				
+				// Сохраняем время последнего изменения
+				localStorage.setItem(STORAGE_KEYS.LAST_EDIT, Date.now().toString());
+				
+				// Сбрасываем флаг
+				hasUnsavedChanges = false;
+				
+				// Обновляем индикатор
+				const saveStatus = document.getElementById('saveStatus');
+				if (saveStatus) {
+					saveStatus.innerHTML = '<i class="fas fa-check-circle"></i> Сохранено ' + new Date().toLocaleTimeString();
+					saveStatus.style.color = '#10b981';
+				}
+				
+				// Анимация бэйджа
+				const badge = document.getElementById('autoSaveBadge');
+				if (badge) {
+					badge.style.opacity = '1';
+					badge.style.transform = 'scale(1.05)';
+					setTimeout(() => {
+						badge.style.opacity = '0.7';
+						badge.style.transform = 'scale(1)';
+					}, 1000);
+				}
+				
+			} catch (e) {
+				console.error('Ошибка сохранения:', e);
+				showStatus('⚠️ Не удалось сохранить данные. Возможно, хранилище заполнено.', 'error');
+			}
+		}
+
+		// Мгновенное сохранение при любом изменении
+		function immediateSave() {
+			if (isUndoRedo) return;
+			hasUnsavedChanges = true;
+			
+			// Показываем индикатор "Сохранение..."
+			const saveStatus = document.getElementById('saveStatus');
+			if (saveStatus) {
+				saveStatus.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Сохранение...';
+				saveStatus.style.color = '#f59e0b';
+			}
+			
+			// Используем debounce для частых изменений
+			if (window._saveTimeout) clearTimeout(window._saveTimeout);
+			window._saveTimeout = setTimeout(() => {
+				saveToStorage();
+			}, 500);
+		}
+
+		// Функция создания демо-данных (определяем ДО loadFromStorage)
+		function createDemoData() {
+			console.log('Создаём демо-данные');
+			// Создаём демо-данные: 2 недели по 5 дней = 10 дней
+			currentTemplateData = { weeks: {} };
+			originalTemplateData = { weeks: {} };
+			
+			const demoBreakfast = {
+				items: [{ section: 'гор.блюдо', name: 'Каша рисовая', weight: 200, calories: 220,
+						proteins: 5, fats: 6, carbs: 35, recipeId: '001', price: 15 }]
+			};
+			const demoBreakfast2 = {
+				items: [{ section: 'фрукты', name: 'Яблоко', weight: 100, calories: 52, proteins: 0.3,
+						fats: 0.2, carbs: 14, recipeId: '003', price: 20 }]
+			};
+			const demoLaunch = {
+				items: [{ section: '1 блюдо', name: 'Суп куриный', weight: 250, calories: 120, proteins: 8,
+						fats: 5, carbs: 10, recipeId: '004', price: 25 }]
+			};
+			const demoDinner = {
+				items: [{ section: 'гор.блюдо', name: 'Котлета', weight: 100, calories: 250,
+						proteins: 15, fats: 18, carbs: 10, recipeId: '005', price: 30 }]
+			};
+			
+			for (let w = 1; w <= 2; w++) {
+				currentTemplateData.weeks[w] = {};
+				for (let d = 1; d <= 5; d++) {
+					currentTemplateData.weeks[w][d] = {
+						breakfast: JSON.parse(JSON.stringify(demoBreakfast)),
+						breakfast2: JSON.parse(JSON.stringify(demoBreakfast2)),
+						lunch: JSON.parse(JSON.stringify(demoLaunch)),
+						afternoonSnack: { items: [] },
+						dinner: JSON.parse(JSON.stringify(demoDinner)),
+						dinner2: { items: [] }
+					};
+				}
+			}
+			
+			flatItems = buildFlatFromTemplate(currentTemplateData);
+			originalTemplateData = JSON.parse(JSON.stringify(currentTemplateData));
+			historyStack = [JSON.parse(JSON.stringify(currentTemplateData))];
+			historyIndex = 0;
+			renderEditor();
+			addAddMealButtonToUI();
+			addTotalPriceButton();
+			showStatus('🎯 Загружены демо-данные (10 дней). Нажмите на поле для загрузки файла или используйте "Создать типовое меню".', 'info');
+		}
+
+
+		// Загрузка из хранилища
+		function loadFromStorage() {
+			console.log('loadFromStorage вызван');
+			
+			// Пытаемся загрузить основное сохранение
+			const saved = localStorage.getItem(STORAGE_KEYS.AUTO_SAVE);
+			
+			if (saved) {
+				try {
+					const saveData = JSON.parse(saved);
+					if (saveData.data && saveData.data.weeks && Object.keys(saveData.data.weeks).length > 0) {
+						console.log('Найдены сохранённые данные, загружаем...');
+						currentTemplateData = saveData.data;
+						originalTemplateData = JSON.parse(JSON.stringify(saveData.data));
+						schoolInfo = saveData.schoolInfo || schoolInfo;
+						if (typeof saveData.isSummerCamp !== 'undefined') {
+							isSummerCamp = saveData.isSummerCamp;
+							const campCheckbox = document.getElementById('summerCampCheckbox');
+							if (campCheckbox) campCheckbox.checked = isSummerCamp;
+						}
+						
+						updateSchoolInfoUI();
+						flatItems = buildFlatFromTemplate(currentTemplateData);
+						historyStack = [JSON.parse(JSON.stringify(currentTemplateData))];
+						historyIndex = 0;
+						renderEditor();
+						addAddMealButtonToUI();
+						addTotalPriceButton();
+						updateHeaderStats();
+						
+						const lastTime = saveData.timestamp ? new Date(saveData.timestamp).toLocaleString() : 'неизвестно';
+						showStatus(`💾 Загружено автосохранение от ${lastTime}`, 'success');
+						return true;
+					} else {
+						console.log('Сохранённые данные пусты, создаём демо');
+						createDemoData();
+						return false;
+					}
+				} catch(e) {
+					console.error('Ошибка загрузки автосохранения:', e);
+					createDemoData();
+					return false;
+				}
+			} else {
+				console.log('Нет сохранённых данных, создаём демо');
+				createDemoData();
+				return false;
+			}
+		}
+
+		// Восстановление из бэкапа (если основное сохранение повреждено)
+		function loadFromBackup() {
+			const backups = localStorage.getItem(STORAGE_KEYS.BACKUP);
+			if (backups) {
+				try {
+					const backupList = JSON.parse(backups);
+					if (backupList.length > 0) {
+						// Показываем диалог выбора бэкапа
+						const modal = document.createElement('div');
+						modal.style.cssText = `
+							position: fixed;
+							top: 0;
+							left: 0;
+							width: 100%;
+							height: 100%;
+							background: rgba(0,0,0,0.7);
+							backdrop-filter: blur(8px);
+							z-index: 20000;
+							display: flex;
+							justify-content: center;
+							align-items: center;
+						`;
+						
+						modal.innerHTML = `
+							<div style="background: white; border-radius: 32px; padding: 32px; max-width: 600px; width: 90%;">
+								<div style="display: flex; align-items: center; gap: 12px; margin-bottom: 24px;">
+									<i class="fas fa-history" style="font-size: 28px; color: #f59e0b;"></i>
+									<h2>Восстановление данных</h2>
+								</div>
+								<p>Найдены сохранённые копии меню. Выберите версию для восстановления:</p>
+								<div id="backupList" style="margin: 20px 0; max-height: 300px; overflow-y: auto;">
+									${backupList.map((backup, idx) => `
+										<div class="backup-item" data-idx="${idx}" style="
+											padding: 12px;
+											margin-bottom: 8px;
+											border: 1px solid #e2e8f0;
+											border-radius: 12px;
+											cursor: pointer;
+											transition: all 0.2s;
+										">
+											<strong>${new Date(backup.timestamp).toLocaleString()}</strong><br>
+											<span style="font-size: 12px; color: #64748b;">
+												${Object.keys(backup.data.weeks).length} недель, 
+												${backup.data.weeks ? Object.values(backup.data.weeks).reduce((sum, w) => sum + Object.keys(w).length, 0) : 0} дней
+											</span>
+										</div>
+									`).join('')}
+								</div>
+								<div style="display: flex; gap: 12px; justify-content: flex-end; margin-top: 20px;">
+									<button id="cancelBackupRestore" class="btn btn-secondary">Отмена</button>
+								</div>
+							</div>
+						`;
+						
+						document.body.appendChild(modal);
+						
+						// Стили для наведения
+						const style = document.createElement('style');
+						style.textContent = `.backup-item:hover { background: #f1f5f9; transform: translateX(4px); }`;
+						modal.appendChild(style);
+						
+						modal.querySelectorAll('.backup-item').forEach(item => {
+							item.addEventListener('click', () => {
+								const idx = parseInt(item.dataset.idx);
+								const backup = backupList[idx];
+								if (backup && backup.data) {
+									currentTemplateData = backup.data;
+									schoolInfo = backup.schoolInfo || schoolInfo;
+									if (typeof backup.isSummerCamp !== 'undefined') {
+										isSummerCamp = backup.isSummerCamp;
+										const campCheckbox = document.getElementById('summerCampCheckbox');
+										if (campCheckbox) campCheckbox.checked = isSummerCamp;
+									}
+									flatItems = buildFlatFromTemplate(currentTemplateData);
+									updateSchoolInfoUI();
+									renderEditor();
+									saveToStorage(); // Сохраняем восстановленное как основное
+									showStatus(`✅ Восстановлена копия от ${new Date(backup.timestamp).toLocaleString()}`, 'success');
+								}
+								modal.remove();
+							});
+						});
+						
+						modal.querySelector('#cancelBackupRestore').addEventListener('click', () => modal.remove());
+						modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
+						
+						return true;
+					}
+				} catch(e) {}
+			}
+			return false;
+		}
+
+		// Предупреждение при закрытии страницы
+		window.addEventListener('beforeunload', (e) => {
+			if (hasUnsavedChanges && currentTemplateData) {
+				e.preventDefault();
+				e.returnValue = 'У вас есть несохранённые изменения. Вы уверены, что хотите покинуть страницу?';
+				return e.returnValue;
+			}
+		});
+
+		// Экспорт меню в файл (ручное сохранение)
+		function exportMenuToFile() {
+			if (!currentTemplateData) {
+				showStatus('Нет данных для экспорта', 'error');
+				return;
+			}
+			
+			const exportData = {
+				menu: currentTemplateData,
+				schoolInfo: schoolInfo,
+				isSummerCamp: isSummerCamp,
+				exportDate: new Date().toISOString(),
+				version: '4.0'
+			};
+			
+			const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+			const url = URL.createObjectURL(blob);
+			const a = document.createElement('a');
+			a.href = url;
+			a.download = `menu_backup_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.json`;
+			document.body.appendChild(a);
+			a.click();
+			document.body.removeChild(a);
+			URL.revokeObjectURL(url);
+			
+			showStatus('💾 Меню сохранено в файл', 'success');
+		}
+
+		// Импорт меню из файла
+		function importMenuFromFile(file) {
+			const reader = new FileReader();
+			reader.onload = (e) => {
+				try {
+					const data = JSON.parse(e.target.result);
+					if (data.menu && data.menu.weeks) {
+						currentTemplateData = data.menu;
+						if (data.schoolInfo) schoolInfo = data.schoolInfo;
+						if (typeof data.isSummerCamp !== 'undefined') isSummerCamp = data.isSummerCamp;
+						
+						updateSchoolInfoUI();
+						const campCheckbox = document.getElementById('summerCampCheckbox');
+						if (campCheckbox) campCheckbox.checked = isSummerCamp;
+						
+						flatItems = buildFlatFromTemplate(currentTemplateData);
+						originalTemplateData = JSON.parse(JSON.stringify(currentTemplateData));
+						historyStack = [JSON.parse(JSON.stringify(currentTemplateData))];
+						historyIndex = 0;
+						renderEditor();
+						saveToStorage();
+						
+						showStatus(`✅ Меню восстановлено из файла ${file.name}`, 'success');
+					} else {
+						showStatus('❌ Неверный формат файла', 'error');
+					}
+				} catch(err) {
+					showStatus('❌ Ошибка чтения файла', 'error');
+				}
+			};
+			reader.readAsText(file);
+		}
 
         function resetToOriginal() {
             if (originalTemplateData) {
@@ -8334,7 +8848,297 @@
 			};
 		}
 
+		// ========== ПАНЕЛЬ РЕЗЕРВНЫХ КОПИЙ ==========
 
+		let backupsList = [];
+
+		// Загрузка списка резервных копий
+		function loadBackupsList() {
+			try {
+				const stored = localStorage.getItem(STORAGE_KEYS.BACKUP);
+				if (stored) {
+					backupsList = JSON.parse(stored);
+				} else {
+					backupsList = [];
+				}
+			} catch(e) {
+				backupsList = [];
+			}
+			
+			// Обновляем счётчик
+			const backupCountSpan = document.getElementById('backupCount');
+			if (backupCountSpan) backupCountSpan.textContent = backupsList.length;
+			
+			// Обновляем список в меню
+			renderBackupList();
+		}
+
+		// Отображение списка резервных копий
+		function renderBackupList() {
+			const container = document.getElementById('backupListContainer');
+			if (!container) return;
+			
+			if (backupsList.length === 0) {
+				container.innerHTML = `
+					<div style="text-align: center; padding: 30px 20px; color: #94a3b8;">
+						<i class="fas fa-folder-open" style="font-size: 32px; margin-bottom: 12px; display: block;"></i>
+						<p>Нет сохранённых копий</p>
+						<p style="font-size: 11px;">При редактировании меню<br>копии будут создаваться автоматически</p>
+					</div>
+				`;
+				return;
+			}
+			
+			container.innerHTML = backupsList.map((backup, idx) => {
+				const date = new Date(backup.timestamp);
+				const dateStr = date.toLocaleString('ru-RU');
+				const daysCount = backup.data && backup.data.weeks ? 
+					Object.values(backup.data.weeks).reduce((sum, w) => sum + Object.keys(w).length, 0) : 0;
+				const dishesCount = backup.data && backup.data.weeks ? 
+					Object.values(backup.data.weeks).reduce((sum, w) => 
+						sum + Object.values(w).reduce((s, d) => 
+							s + Object.values(d).reduce((ms, meal) => 
+								ms + (meal.items?.length || 0), 0), 0), 0) : 0;
+				
+				const isCurrent = currentTemplateData && backup.timestamp === localStorage.getItem(STORAGE_KEYS.LAST_EDIT + '_ts');
+				
+				return `
+					<div class="backup-list-item" data-idx="${idx}" style="
+						padding: 12px;
+						margin-bottom: 8px;
+						background: ${isCurrent ? '#f0fdf4' : 'white'};
+						border: 1px solid ${isCurrent ? '#10b981' : '#e2e8f0'};
+						border-radius: 12px;
+						cursor: pointer;
+						transition: all 0.2s;
+					">
+						<div style="display: flex; justify-content: space-between; align-items: start;">
+							<div>
+								<strong style="color: #0f172a;">${dateStr}</strong>
+								${isCurrent ? '<span style="background: #10b981; color: white; padding: 2px 6px; border-radius: 12px; font-size: 9px; margin-left: 8px;">ТЕКУЩАЯ</span>' : ''}
+							</div>
+							<button class="delete-backup-btn" data-idx="${idx}" style="
+								background: none;
+								border: none;
+								color: #94a3b8;
+								cursor: pointer;
+								font-size: 14px;
+								padding: 4px;
+							" title="Удалить копию">
+								<i class="fas fa-trash-alt"></i>
+							</button>
+						</div>
+						<div style="font-size: 11px; color: #64748b; margin-top: 6px;">
+							<span>📅 ${daysCount} дней</span>
+							<span style="margin-left: 12px;">🍽️ ${dishesCount} блюд</span>
+						</div>
+						<div style="font-size: 10px; color: #94a3b8; margin-top: 4px;">
+							<i class="fas fa-school"></i> ${backup.schoolInfo?.name || '—'}
+						</div>
+					</div>
+				`;
+			}).join('');
+			
+			// Добавляем обработчики для элементов списка
+			container.querySelectorAll('.backup-list-item').forEach(item => {
+				const idx = parseInt(item.dataset.idx);
+				item.addEventListener('click', (e) => {
+					if (e.target.closest('.delete-backup-btn')) return;
+					restoreFromBackup(idx);
+				});
+			});
+			
+			container.querySelectorAll('.delete-backup-btn').forEach(btn => {
+				btn.addEventListener('click', (e) => {
+					e.stopPropagation();
+					const idx = parseInt(btn.dataset.idx);
+					deleteBackup(idx);
+				});
+			});
+		}
+
+		// Восстановление из выбранной резервной копии
+		async function restoreFromBackup(idx) {
+			if (!backupsList[idx]) return;
+			
+			const backup = backupsList[idx];
+			const dateStr = new Date(backup.timestamp).toLocaleString();
+			
+			// Подтверждение восстановления
+			const confirmModal = document.createElement('div');
+			confirmModal.style.cssText = `
+				position: fixed;
+				top: 0;
+				left: 0;
+				width: 100%;
+				height: 100%;
+				background: rgba(0,0,0,0.7);
+				backdrop-filter: blur(8px);
+				z-index: 20000;
+				display: flex;
+				justify-content: center;
+				align-items: center;
+			`;
+			
+			confirmModal.innerHTML = `
+				<div style="background: white; border-radius: 32px; padding: 28px; max-width: 400px; width: 90%;">
+					<div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
+						<i class="fas fa-history" style="font-size: 28px; color: #f59e0b;"></i>
+						<h3>Восстановление из копии</h3>
+					</div>
+					<p>Вы уверены, что хотите восстановить меню из копии от <strong>${dateStr}</strong>?</p>
+					<p style="font-size: 13px; color: #ef4444; margin-top: 12px;">
+						<i class="fas fa-exclamation-triangle"></i> Текущие несохранённые изменения будут потеряны!
+					</p>
+					<div style="display: flex; gap: 12px; justify-content: flex-end; margin-top: 24px;">
+						<button id="cancelRestoreBtn" class="btn btn-secondary">Отмена</button>
+						<button id="confirmRestoreBtn" class="btn btn-primary">Восстановить</button>
+					</div>
+				</div>
+			`;
+			
+			document.body.appendChild(confirmModal);
+			
+			confirmModal.querySelector('#cancelRestoreBtn').addEventListener('click', () => confirmModal.remove());
+			confirmModal.querySelector('#confirmRestoreBtn').addEventListener('click', () => {
+				if (backup.data) {
+					currentTemplateData = JSON.parse(JSON.stringify(backup.data));
+					schoolInfo = backup.schoolInfo || schoolInfo;
+					if (typeof backup.isSummerCamp !== 'undefined') {
+						isSummerCamp = backup.isSummerCamp;
+						const campCheckbox = document.getElementById('summerCampCheckbox');
+						if (campCheckbox) campCheckbox.checked = isSummerCamp;
+					}
+					
+					flatItems = buildFlatFromTemplate(currentTemplateData);
+					updateSchoolInfoUI();
+					renderEditor();
+					saveToStorage();
+					
+					showStatus(`✅ Восстановлена копия от ${dateStr}`, 'success');
+				}
+				confirmModal.remove();
+			});
+			
+			confirmModal.addEventListener('click', (e) => { if (e.target === confirmModal) confirmModal.remove(); });
+		}
+
+		// Удаление резервной копии
+		function deleteBackup(idx) {
+			if (!backupsList[idx]) return;
+			
+			const dateStr = new Date(backupsList[idx].timestamp).toLocaleString();
+			
+			if (confirm(`Удалить копию от ${dateStr}?`)) {
+				backupsList.splice(idx, 1);
+				localStorage.setItem(STORAGE_KEYS.BACKUP, JSON.stringify(backupsList));
+				loadBackupsList();
+				showStatus(`🗑️ Копия от ${dateStr} удалена`, 'info');
+			}
+		}
+
+		// Создание ручной резервной копии
+		function createManualBackup() {
+			if (!currentTemplateData) {
+				showStatus('Нет данных для сохранения', 'error');
+				return;
+			}
+			
+			const backup = {
+				data: JSON.parse(JSON.stringify(currentTemplateData)),
+				timestamp: new Date().toISOString(),
+				version: '4.0',
+				schoolInfo: schoolInfo,
+				isSummerCamp: isSummerCamp
+			};
+			
+			let backups = [...backupsList];
+			backups.unshift(backup);
+			if (backups.length > 10) backups.pop(); // Храним до 10 копий
+			
+			localStorage.setItem(STORAGE_KEYS.BACKUP, JSON.stringify(backups));
+			loadBackupsList();
+			
+			showStatus('💾 Ручная резервная копия создана', 'success');
+		}
+
+		// Экспорт всех резервных копий
+		function exportAllBackups() {
+			if (backupsList.length === 0) {
+				showStatus('Нет резервных копий для экспорта', 'error');
+				return;
+			}
+			
+			const exportData = {
+				exportDate: new Date().toISOString(),
+				currentMenu: currentTemplateData ? {
+					data: currentTemplateData,
+					schoolInfo: schoolInfo,
+					isSummerCamp: isSummerCamp
+				} : null,
+				backups: backupsList
+			};
+			
+			const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+			const url = URL.createObjectURL(blob);
+			const a = document.createElement('a');
+			a.href = url;
+			a.download = `all_backups_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.json`;
+			document.body.appendChild(a);
+			a.click();
+			document.body.removeChild(a);
+			URL.revokeObjectURL(url);
+			
+			showStatus(`📦 Экспортировано ${backupsList.length} резервных копий`, 'success');
+		}
+
+		// Инициализация панели резервных копий
+		function initBackupPanel() {
+			const toggleBtn = document.getElementById('backupToggleBtn');
+			const backupMenu = document.getElementById('backupMenu');
+			const createBtn = document.getElementById('createBackupNowBtn');
+			const exportAllBtn = document.getElementById('exportAllBackupsBtn');
+			
+			if (toggleBtn && backupMenu) {
+				toggleBtn.addEventListener('click', (e) => {
+					e.stopPropagation();
+					const isVisible = backupMenu.style.display === 'block';
+					backupMenu.style.display = isVisible ? 'none' : 'block';
+					if (!isVisible) {
+						loadBackupsList(); // Обновляем список при открытии
+					}
+				});
+			}
+			
+			if (createBtn) {
+				createBtn.addEventListener('click', () => {
+					createManualBackup();
+					backupMenu.style.display = 'none';
+				});
+			}
+			
+			if (exportAllBtn) {
+				exportAllBtn.addEventListener('click', () => {
+					exportAllBackups();
+					backupMenu.style.display = 'none';
+				});
+			}
+			
+			// Закрытие при клике вне меню
+			document.addEventListener('click', (e) => {
+				if (backupMenu && backupMenu.style.display === 'block') {
+					if (!backupMenu.contains(e.target) && !toggleBtn.contains(e.target)) {
+						backupMenu.style.display = 'none';
+					}
+				}
+			});
+			
+			// Загружаем список при старте
+			loadBackupsList();
+		}
+
+		// Запускаем инициализацию
+		setTimeout(initBackupPanel, 500);
 
 
 
@@ -8343,6 +9147,23 @@
 
         // Инициализация событий
         document.getElementById('scrollTopBtn').addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
+
+		// Кнопка экспорта резервной копии
+		document.getElementById('exportBackupBtn')?.addEventListener('click', exportMenuToFile);
+
+		// Кнопка импорта
+		const importBackupBtn = document.getElementById('importBackupBtn');
+		const hiddenFileInput = document.createElement('input');
+		hiddenFileInput.type = 'file';
+		hiddenFileInput.accept = '.json';
+		hiddenFileInput.style.display = 'none';
+		document.body.appendChild(hiddenFileInput);
+
+		importBackupBtn?.addEventListener('click', () => hiddenFileInput.click());
+		hiddenFileInput.addEventListener('change', (e) => {
+			if (e.target.files[0]) importMenuFromFile(e.target.files[0]);
+			hiddenFileInput.value = '';
+		});
 
 		// Обработчик чекбокса летнего лагеря
 		const summerCampCheckbox = document.getElementById('summerCampCheckbox');
@@ -8362,6 +9183,51 @@
 				renderEditor();
 				showStatus(isSummerCamp ? '🌞 Летний режим: нормы калорийности увеличены на 10%' : '🍂 Обычный режим: стандартные нормы калорийности', 'info');
 			});
+		}
+
+		// Автоматический экспорт при выходе (опционально)
+		window.addEventListener('pagehide', () => {
+			if (currentTemplateData && hasUnsavedChanges) {
+				const backup = {
+					menu: currentTemplateData,
+					schoolInfo: schoolInfo,
+					isSummerCamp: isSummerCamp,
+					timestamp: new Date().toISOString()
+				};
+				sessionStorage.setItem('emergencyBackup', JSON.stringify(backup));
+			}
+		});
+
+		// Восстановление из аварийной копии при загрузке (ТОЛЬКО если нет основных данных)
+		if (!currentTemplateData) {
+			const emergencyBackup = sessionStorage.getItem('emergencyBackup');
+			if (emergencyBackup) {
+				try {
+					const backup = JSON.parse(emergencyBackup);
+					if (confirm('⚠️ Найдена аварийная копия от ' + new Date(backup.timestamp).toLocaleString() + '. Восстановить?')) {
+						currentTemplateData = backup.menu;
+						schoolInfo = backup.schoolInfo;
+						isSummerCamp = backup.isSummerCamp;
+						flatItems = buildFlatFromTemplate(currentTemplateData);
+						originalTemplateData = JSON.parse(JSON.stringify(currentTemplateData));
+						historyStack = [JSON.parse(JSON.stringify(currentTemplateData))];
+						historyIndex = 0;
+						renderEditor();
+						addAddMealButtonToUI();
+						addTotalPriceButton();
+						updateHeaderStats();
+						showStatus('✅ Восстановлена аварийная копия', 'success');
+						sessionStorage.removeItem('emergencyBackup');
+					}
+				} catch(e) {
+					console.error('Ошибка восстановления аварийной копии:', e);
+				}
+			}
+		}
+
+		// Финальная проверка: если всё ещё нет данных — создаём демо
+		if (!currentTemplateData) {
+			createDemoData();
 		}
 
 
@@ -8459,48 +9325,10 @@
             if (currentTemplateData) saveToStorage();
         }, 30000);
 
-		if (!loadFromStorage()) {
-			// Создаём демо-данные: 2 недели по 5 дней = 10 дней
-			currentTemplateData = { weeks: {} };
-			originalTemplateData = { weeks: {} };
-			
-			const demoBreakfast = {
-				items: [{ section: 'гор.блюдо', name: 'Каша рисовая', weight: 200, calories: 220,
-						proteins: 5, fats: 6, carbs: 35, recipeId: '001', price: 15 }]
-			};
-			const demoBreakfast2 = {
-				items: [{ section: 'фрукты', name: 'Яблоко', weight: 100, calories: 52, proteins: 0.3,
-						fats: 0.2, carbs: 14, recipeId: '003', price: 20 }]
-			};
-			const demoLaunch = {
-				items: [{ section: '1 блюдо', name: 'Суп куриный', weight: 250, calories: 120, proteins: 8,
-						fats: 5, carbs: 10, recipeId: '004', price: 25 }]
-			};
-			const demoDinner = {
-				items: [{ section: 'гор.блюдо', name: 'Котлета', weight: 100, calories: 250,
-						proteins: 15, fats: 18, carbs: 10, recipeId: '005', price: 30 }]
-			};
-			
-			for (let w = 1; w <= 2; w++) {
-				currentTemplateData.weeks[w] = {};
-				for (let d = 1; d <= 5; d++) {
-					currentTemplateData.weeks[w][d] = {
-						breakfast: JSON.parse(JSON.stringify(demoBreakfast)),
-						breakfast2: JSON.parse(JSON.stringify(demoBreakfast2)),
-						lunch: JSON.parse(JSON.stringify(demoLaunch)),
-						afternoonSnack: { items: [] },
-						dinner: JSON.parse(JSON.stringify(demoDinner)),
-						dinner2: { items: [] }
-					};
-				}
-			}
-			
-			flatItems = buildFlatFromTemplate(currentTemplateData);
-			originalTemplateData = JSON.parse(JSON.stringify(currentTemplateData));
-			historyStack = [JSON.parse(JSON.stringify(currentTemplateData))];
-			historyIndex = 0;
-			renderEditor();
-			showStatus('🎯 Загружены демо-данные (10 дней). Нажмите на поле для загрузки файла или используйте "Создать типовое меню".', 'info');
+		// Загружаем сохранённые данные (вызов уже есть в emergencyBackup блоке)
+		// Убедимся, что данные загружены
+		if (!currentTemplateData) {
+			loadFromStorage();
 		}
 
         window.onclick = function(event) {
