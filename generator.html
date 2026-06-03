@@ -1982,26 +1982,26 @@
         const quickGuide = document.getElementById('quickGuide');
         
         // Настройка начальных дат для 2026 года
-        function setDefaultDates() {
-            const year = currentYear;
-            const today = new Date();
-            const currentYearToday = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-            
-            startDateInput.min = `${year}-01-01`;
-            startDateInput.max = `${year}-12-31`;
-            endDateInput.min = `${year}-01-01`;
-            endDateInput.max = `${year}-12-31`;
-            
-            startDateInput.value = `${year}-01-01`;
-            
-            if (year === today.getFullYear()) {
-                endDateInput.value = formatDateForInput(currentYearToday);
-            } else {
-                endDateInput.value = `${year}-01-31`;
-            }
-            
-            calendarYear.textContent = year;
-        }
+		function setDefaultDates() {
+			const year = currentYear;
+			const today = new Date();
+			const currentYearToday = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+			
+			startDateInput.min = `${year}-01-01`;
+			startDateInput.max = `${year}-12-31`;
+			endDateInput.min = `${year}-01-01`;
+			endDateInput.max = `${year}-12-31`;
+			
+			// Устанавливаем начало месяца
+			const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+			startDateInput.value = formatDateForInput(firstDayOfMonth);
+			
+			// Устанавливаем конец месяца (последний день текущего месяца)
+			const lastDayOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+			endDateInput.value = formatDateForInput(lastDayOfMonth);
+			
+			calendarYear.textContent = year;
+		}
         
         function formatDateForInput(date) {
             const year = date.getFullYear();
