@@ -555,18 +555,44 @@ class ArduinoGenerator {
         // ==========================================
         // БЛОКИ ARDUINO (прямые поля)
         // ==========================================
+
+		// Ручной сбор всех блоков в цепочке
+		function getAllBlocksInStatement(block, inputName) {
+			let code = '';
+			let currentBlock = block.getInputTargetBlock(inputName);
+			
+			while (currentBlock) {
+				// Генерируем код для текущего блока
+				const blockCode = arduinoGenerator.generator.blockToCode(currentBlock);
+				if (blockCode) {
+					code += blockCode;
+				}
+				// Переходим к следующему блоку в цепочке
+				currentBlock = currentBlock.getNextBlock();
+			}
+			
+			return code;
+		}
         
         // Программа
 		Arduino.forBlock['arduino_setup_loop'] = function(block, generator) {
 			self.clear();
 			
-			// statementToCode собирает ВСЕ блоки внутри statement input
-			let setupStatements = generator.statementToCode(block, 'SETUP');
-			let loopStatements = generator.statementToCode(block, 'LOOP');
+			// statementToCode автоматически обходит всю цепочку блоков!
+			//let setupCode = generator.statementToCode(block, 'SETUP');
+			//let loopCode = generator.statementToCode(block, 'LOOP');
+			
+			const setupCode = getAllBlocksInStatement(block, 'SETUP');
+			const loopCode = getAllBlocksInStatement(block, 'LOOP');
+			
+			// Добавляем сгенерированный setup-код
+			const extraSetup = self.collectSetupCode();
+			if (extraSetup.trim()) {
+				setupCode = extraSetup.trim() + '\n' + setupCode;
+			}
 			
 			let fullCode = '';
-			fullCode += boardsManager.generateHeader();
-			fullCode += '\n';
+			fullCode += boardsManager.generateHeader() + '\n';
 			
 			const includes = self.collectIncludes();
 			if (includes) fullCode += includes + '\n\n';
@@ -575,24 +601,16 @@ class ArduinoGenerator {
 			if (globals) fullCode += globals + '\n\n';
 			
 			fullCode += 'void setup() {\n';
-			const setupAll = (self.collectSetupCode() + '\n' + setupStatements).trim();
-			if (setupAll) {
-				// Разбиваем на строки и форматируем с отступами
-				const setupLines = setupAll.split('\n').filter(l => l.trim());
-				setupLines.forEach(line => {
-					fullCode += '  ' + line.trim() + '\n';
-				});
+			if (setupCode.trim()) {
+				fullCode += setupCode;  // statementToCode уже содержит отступы
 			} else {
 				fullCode += '  // Инициализация\n';
 			}
 			fullCode += '}\n\n';
 			
 			fullCode += 'void loop() {\n';
-			if (loopStatements.trim()) {
-				const loopLines = loopStatements.split('\n').filter(l => l.trim());
-				loopLines.forEach(line => {
-					fullCode += '  ' + line.trim() + '\n';
-				});
+			if (loopCode.trim()) {
+				fullCode += loopCode;  // statementToCode уже содержит отступы
 			} else {
 				fullCode += '  // Основной цикл\n';
 			}
