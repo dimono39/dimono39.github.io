@@ -79,14 +79,14 @@ class BlocksManager {
                 name: 'Переменные',
                 icon: 'fa-box',
                 color: '#FF5722',
-                blocks: []  // Специальная категория
+                blocks: []
             },
             {
                 id: 'functions',
                 name: 'Функции',
                 icon: 'fa-function',
                 color: '#9E9E9E',
-                blocks: []  // Специальная категория
+                blocks: []
             }
         ];
     }
@@ -120,7 +120,6 @@ class BlocksManager {
         this.saveCustomBlocks();
         this.defineCustomBlock(newBlock);
         
-        // Добавляем в категорию если нужно
         const customCategory = this.blockCategories.find(c => c.id === 'custom');
         if (!customCategory) {
             this.blockCategories.push({
@@ -145,60 +144,74 @@ class BlocksManager {
         this.defineCustomBlocks();
     }
 
-    // Блок "Программа Arduino" - начало и конец
+    // ==================== БЛОК ПРОГРАММЫ ====================
     defineProgramBlocks() {
-        Blockly.Blocks['arduino_setup_loop'] = {
-            init: function() {
-                this.appendDummyInput('TITLE')
-                    .appendField('🚀 Программа Arduino')
-                    .appendField(new Blockly.FieldTextInput('Моя программа'), 'NAME');
-                this.appendStatementInput('SETUP')
-                    .setCheck(null)
-                    .appendField('📋 Setup (выполняется один раз)');
-                this.appendStatementInput('LOOP')
-                    .setCheck(null)
-                    .appendField('🔄 Loop (повторяется)');
-                this.setColour(76);
-                this.setTooltip('Основная структура программы Arduino.\nSetup - настройка (запускается один раз)\nLoop - основной цикл (повторяется бесконечно)');
-                this.setHelpUrl('');
-            }
-        };
+		Blockly.Blocks['arduino_setup_loop'] = {
+			init: function() {
+				this.appendDummyInput('TITLE')
+					.appendField('🚀 Программа Arduino')
+					.appendField(new Blockly.FieldTextInput('Моя программа'), 'NAME');
+				
+				// ВАЖНО: appendStatementInput позволяет добавлять несколько блоков!
+				this.appendStatementInput('SETUP')
+					.setCheck(null)  // null = любые блоки
+					.appendField('📋 Setup (выполняется один раз)');
+				
+				this.appendStatementInput('LOOP')
+					.setCheck(null)
+					.appendField('🔄 Loop (повторяется)');
+				
+				this.setColour(76);
+				this.setTooltip('Основная структура программы Arduino.\nSetup - настройка (запускается один раз)\nLoop - основной цикл (повторяется бесконечно)');
+				this.setHelpUrl('');
+			}
+		};
     }
 
-    // Блоки Arduino (пины, время, Serial)
+    // ==================== БЛОКИ ARDUINO (С РЕДАКТИРУЕМЫМИ ПОЛЯМИ!) ====================
     defineArduinoBlocks() {
-        // Блок: pinMode
+        
+        // Валидатор для пинов (разрешает цифры, A0-A15, LED_BUILTIN)
+        const pinValidator = function(newValue) {
+            if (!newValue || newValue === 'LED_BUILTIN') return newValue;
+            if (/^A?\d{1,2}$/.test(newValue)) return newValue;
+            if (/^[a-zA-Z_]\w*$/.test(newValue)) return newValue;
+            return null; // Отклоняем
+        };
+        
+        // Валидатор для чисел
+        const numberValidator = function(newValue) {
+            if (!newValue) return '0';
+            if (/^-?\d+\.?\d*$/.test(newValue)) return newValue;
+            return null;
+        };
+
+        // Блок: pinMode (С РЕДАКТИРУЕМЫМ ПОЛЕМ ПИНА!)
         Blockly.Blocks['arduino_pin_mode'] = {
             init: function() {
                 this.appendDummyInput()
-                    .appendField('🔌 Установить режим пина');
-                this.appendValueInput('PIN')
-                    .setCheck('Number')
-                    .appendField('пин');
-                this.appendDummyInput()
+                    .appendField('🔌 Режим пина')
+                    .appendField(new Blockly.FieldTextInput('13', pinValidator), 'PIN')
                     .appendField('как')
                     .appendField(new Blockly.FieldDropdown([
-                        ['ВХОД (INPUT)', 'INPUT'],
-                        ['ВЫХОД (OUTPUT)', 'OUTPUT'],
-                        ['ВХОД С ПОДТЯЖКОЙ (INPUT_PULLUP)', 'INPUT_PULLUP']
+                        ['INPUT', 'INPUT'],
+                        ['OUTPUT', 'OUTPUT'],
+                        ['INPUT_PULLUP', 'INPUT_PULLUP']
                     ]), 'MODE');
                 this.setInputsInline(true);
                 this.setPreviousStatement(true, null);
                 this.setNextStatement(true, null);
                 this.setColour(0);
-                this.setTooltip('Устанавливает режим работы пина:\nINPUT - вход\nOUTPUT - выход\nINPUT_PULLUP - вход с подтяжкой к питанию');
+                this.setTooltip('Устанавливает режим работы пина.\nКликните на число чтобы изменить номер пина.');
             }
         };
 
-        // Блок: digitalWrite
+        // Блок: digitalWrite (С РЕДАКТИРУЕМЫМ ПОЛЕМ ПИНА!)
         Blockly.Blocks['arduino_digital_write'] = {
             init: function() {
                 this.appendDummyInput()
-                    .appendField('💡 Установить пин');
-                this.appendValueInput('PIN')
-                    .setCheck('Number')
-                    .appendField('пин');
-                this.appendDummyInput()
+                    .appendField('💡 Установить пин')
+                    .appendField(new Blockly.FieldTextInput('13', pinValidator), 'PIN')
                     .appendField('в')
                     .appendField(new Blockly.FieldDropdown([
                         ['HIGH (вкл)', 'HIGH'],
@@ -208,74 +221,65 @@ class BlocksManager {
                 this.setPreviousStatement(true, null);
                 this.setNextStatement(true, null);
                 this.setColour(0);
-                this.setTooltip('Устанавливает цифровое значение на пине:\nHIGH - высокий уровень (5В/3.3В)\nLOW - низкий уровень (0В)');
+                this.setTooltip('Устанавливает цифровое значение на пине.\nКликните на число чтобы изменить номер пина.');
             }
         };
 
-        // Блок: digitalRead
+        // Блок: digitalRead (С РЕДАКТИРУЕМЫМ ПОЛЕМ ПИНА!)
         Blockly.Blocks['arduino_digital_read'] = {
             init: function() {
                 this.appendDummyInput()
-                    .appendField('📖 Прочитать цифровой пин');
-                this.appendValueInput('PIN')
-                    .setCheck('Number')
-                    .appendField('пин');
+                    .appendField('📖 Прочитать пин')
+                    .appendField(new Blockly.FieldTextInput('2', pinValidator), 'PIN');
                 this.setInputsInline(true);
                 this.setOutput(true, 'Boolean');
                 this.setColour(0);
-                this.setTooltip('Читает цифровое значение с пина\nВозвращает HIGH или LOW');
+                this.setTooltip('Читает цифровое значение с пина.\nВозвращает HIGH или LOW.');
             }
         };
 
-        // Блок: analogWrite (ШИМ)
+        // Блок: analogWrite ШИМ (С РЕДАКТИРУЕМЫМИ ПОЛЯМИ!)
         Blockly.Blocks['arduino_analog_write'] = {
             init: function() {
                 this.appendDummyInput()
-                    .appendField('📊 ШИМ сигнал');
-                this.appendValueInput('PIN')
-                    .setCheck('Number')
-                    .appendField('пин');
-                this.appendValueInput('VALUE')
-                    .setCheck('Number')
-                    .appendField('значение');
-                this.appendDummyInput()
+                    .appendField('📊 ШИМ сигнал на пин')
+                    .appendField(new Blockly.FieldTextInput('9', pinValidator), 'PIN')
+                    .appendField('значение')
+                    .appendField(new Blockly.FieldTextInput('128', numberValidator), 'VALUE')
                     .appendField('(0-255)');
                 this.setInputsInline(true);
                 this.setPreviousStatement(true, null);
                 this.setNextStatement(true, null);
                 this.setColour(0);
-                this.setTooltip('Устанавливает ШИМ (PWM) значение на пине\n0 - 0%, 255 - 100%');
+                this.setTooltip('ШИМ сигнал. 0 = 0%, 255 = 100%.\nТолько для PWM пинов (~ отмечены на плате).');
             }
         };
 
-        // Блок: analogRead
+        // Блок: analogRead (С РЕДАКТИРУЕМЫМ ПОЛЕМ!)
         Blockly.Blocks['arduino_analog_read'] = {
             init: function() {
                 this.appendDummyInput()
-                    .appendField('📈 Прочитать аналоговый пин');
-                this.appendValueInput('PIN')
-                    .setCheck('Number')
-                    .appendField('пин');
+                    .appendField('📈 Аналоговый вход')
+                    .appendField(new Blockly.FieldTextInput('A0', pinValidator), 'PIN');
                 this.setInputsInline(true);
                 this.setOutput(true, 'Number');
                 this.setColour(0);
-                this.setTooltip('Читает аналоговое значение с пина\nВозвращает значение от 0 до 1023');
+                this.setTooltip('Читает аналоговое значение (0-1023).\nИспользуйте пины A0-A5 на Uno.');
             }
         };
 
-        // Блок: delay
+        // Блок: delay (С РЕДАКТИРУЕМЫМ ПОЛЕМ!)
         Blockly.Blocks['arduino_delay'] = {
             init: function() {
                 this.appendDummyInput()
-                    .appendField('⏱️ Пауза');
-                this.appendValueInput('TIME')
-                    .setCheck('Number')
+                    .appendField('⏱️ Пауза')
+                    .appendField(new Blockly.FieldTextInput('1000', numberValidator), 'TIME')
                     .appendField('мс');
                 this.setInputsInline(true);
                 this.setPreviousStatement(true, null);
                 this.setNextStatement(true, null);
                 this.setColour(220);
-                this.setTooltip('Приостанавливает выполнение программы\nна указанное количество миллисекунд\n1000 мс = 1 секунда');
+                this.setTooltip('Пауза в миллисекундах.\n1000 мс = 1 секунда.');
             }
         };
 
@@ -283,15 +287,14 @@ class BlocksManager {
         Blockly.Blocks['arduino_delay_microseconds'] = {
             init: function() {
                 this.appendDummyInput()
-                    .appendField('⏱️ Микро-пауза');
-                this.appendValueInput('TIME')
-                    .setCheck('Number')
+                    .appendField('⏱️ Микро-пауза')
+                    .appendField(new Blockly.FieldTextInput('100', numberValidator), 'TIME')
                     .appendField('мкс');
                 this.setInputsInline(true);
                 this.setPreviousStatement(true, null);
                 this.setNextStatement(true, null);
                 this.setColour(220);
-                this.setTooltip('Пауза в микросекундах\n1000 мкс = 1 мс');
+                this.setTooltip('Пауза в микросекундах.\n1000 мкс = 1 мс.');
             }
         };
 
@@ -302,7 +305,7 @@ class BlocksManager {
                     .appendField('⏲️ Время работы (мс)');
                 this.setOutput(true, 'Number');
                 this.setColour(220);
-                this.setTooltip('Возвращает количество миллисекунд\nс момента запуска программы');
+                this.setTooltip('Возвращает миллисекунды с запуска программы.');
             }
         };
 
@@ -313,7 +316,7 @@ class BlocksManager {
                     .appendField('⏲️ Время работы (мкс)');
                 this.setOutput(true, 'Number');
                 this.setColour(220);
-                this.setTooltip('Возвращает количество микросекунд\nс момента запуска программы');
+                this.setTooltip('Возвращает микросекунды с запуска программы.');
             }
         };
 
@@ -321,41 +324,41 @@ class BlocksManager {
         Blockly.Blocks['arduino_serial_begin'] = {
             init: function() {
                 this.appendDummyInput()
-                    .appendField('📡 Инициализировать Serial');
-                this.appendValueInput('SPEED')
-                    .setCheck('Number')
-                    .appendField('скорость');
+                    .appendField('📡 Serial.begin')
+                    .appendField(new Blockly.FieldTextInput('9600', numberValidator), 'SPEED');
                 this.setInputsInline(true);
                 this.setPreviousStatement(true, null);
                 this.setNextStatement(true, null);
                 this.setColour(180);
-                this.setTooltip('Инициализация последовательного порта\nСтандартные скорости: 9600, 115200');
+                this.setTooltip('Инициализация Serial порта.\nСтандартные скорости: 9600, 115200.');
             }
         };
 
         // Блок: Serial.print
         Blockly.Blocks['arduino_serial_print'] = {
             init: function() {
-                this.appendValueInput('TEXT')
-                    .appendField('🖨️ Serial.print');
+                this.appendDummyInput()
+                    .appendField('🖨️ Serial.print')
+                    .appendField(new Blockly.FieldTextInput('"Hello"'), 'TEXT');
                 this.setInputsInline(true);
                 this.setPreviousStatement(true, null);
                 this.setNextStatement(true, null);
                 this.setColour(180);
-                this.setTooltip('Выводит данные в последовательный порт\nбез перевода строки');
+                this.setTooltip('Выводит текст в Serial без переноса строки.');
             }
         };
 
         // Блок: Serial.println
         Blockly.Blocks['arduino_serial_println'] = {
             init: function() {
-                this.appendValueInput('TEXT')
-                    .appendField('🖨️ Serial.println');
+                this.appendDummyInput()
+                    .appendField('🖨️ Serial.println')
+                    .appendField(new Blockly.FieldTextInput('"Hello"'), 'TEXT');
                 this.setInputsInline(true);
                 this.setPreviousStatement(true, null);
                 this.setNextStatement(true, null);
                 this.setColour(180);
-                this.setTooltip('Выводит данные в последовательный порт\nс переводом строки');
+                this.setTooltip('Выводит текст в Serial с переносом строки.');
             }
         };
 
@@ -363,10 +366,9 @@ class BlocksManager {
         Blockly.Blocks['arduino_serial_read'] = {
             init: function() {
                 this.appendDummyInput()
-                    .appendField('📥 Прочитать байт из Serial');
+                    .appendField('📥 Serial.read()');
                 this.setOutput(true, 'Number');
                 this.setColour(180);
-                this.setTooltip('Читает один байт из последовательного порта');
             }
         };
 
@@ -374,10 +376,9 @@ class BlocksManager {
         Blockly.Blocks['arduino_serial_available'] = {
             init: function() {
                 this.appendDummyInput()
-                    .appendField('📊 Байт доступно в Serial');
+                    .appendField('📊 Доступно байт');
                 this.setOutput(true, 'Number');
                 this.setColour(180);
-                this.setTooltip('Возвращает количество байт,\nдоступных для чтения из Serial');
             }
         };
 
@@ -385,21 +386,16 @@ class BlocksManager {
         Blockly.Blocks['arduino_tone'] = {
             init: function() {
                 this.appendDummyInput()
-                    .appendField('🔊 Издать тон');
-                this.appendValueInput('PIN')
-                    .setCheck('Number')
-                    .appendField('пин');
-                this.appendValueInput('FREQUENCY')
-                    .setCheck('Number')
-                    .appendField('частота (Гц)');
-                this.appendValueInput('DURATION')
-                    .setCheck('Number')
-                    .appendField('длительность (мс)');
+                    .appendField('🔊 Тон на пин')
+                    .appendField(new Blockly.FieldTextInput('8', pinValidator), 'PIN')
+                    .appendField('частота')
+                    .appendField(new Blockly.FieldTextInput('440', numberValidator), 'FREQUENCY')
+                    .appendField('Гц');
                 this.setInputsInline(true);
                 this.setPreviousStatement(true, null);
                 this.setNextStatement(true, null);
                 this.setColour(290);
-                this.setTooltip('Генерирует звуковой сигнал\n440 Гц = нота Ля');
+                this.setTooltip('Генерирует звук. 440 Гц = нота Ля.');
             }
         };
 
@@ -407,206 +403,194 @@ class BlocksManager {
         Blockly.Blocks['arduino_no_tone'] = {
             init: function() {
                 this.appendDummyInput()
-                    .appendField('🔇 Выключить тон');
-                this.appendValueInput('PIN')
-                    .setCheck('Number')
-                    .appendField('пин');
+                    .appendField('🔇 Выкл. тон на пине')
+                    .appendField(new Blockly.FieldTextInput('8', pinValidator), 'PIN');
                 this.setInputsInline(true);
                 this.setPreviousStatement(true, null);
                 this.setNextStatement(true, null);
                 this.setColour(290);
-                this.setTooltip('Выключает звук на указанном пине');
             }
         };
 
         // Блок: map
         Blockly.Blocks['arduino_map'] = {
             init: function() {
-                this.appendValueInput('VALUE')
-                    .setCheck('Number')
-                    .appendField('🗺️ Преобразовать');
-                this.appendValueInput('FROM_LOW')
-                    .setCheck('Number')
-                    .appendField('из [');
-                this.appendValueInput('FROM_HIGH')
-                    .setCheck('Number')
-                    .appendField('...');
-                this.appendValueInput('TO_LOW')
-                    .setCheck('Number')
-                    .appendField('] в [');
-                this.appendValueInput('TO_HIGH')
-                    .setCheck('Number')
-                    .appendField('...');
                 this.appendDummyInput()
-                    .appendField(']');
+                    .appendField('🗺️ map(')
+                    .appendField(new Blockly.FieldTextInput('0', numberValidator), 'VALUE')
+                    .appendField(',')
+                    .appendField(new Blockly.FieldTextInput('0', numberValidator), 'FROM_LOW')
+                    .appendField(',')
+                    .appendField(new Blockly.FieldTextInput('1023', numberValidator), 'FROM_HIGH')
+                    .appendField(',')
+                    .appendField(new Blockly.FieldTextInput('0', numberValidator), 'TO_LOW')
+                    .appendField(',')
+                    .appendField(new Blockly.FieldTextInput('255', numberValidator), 'TO_HIGH')
+                    .appendField(')');
                 this.setInputsInline(true);
                 this.setOutput(true, 'Number');
                 this.setColour(230);
-                this.setTooltip('Преобразует значение из одного диапазона в другой\nПример: map(x, 0, 1023, 0, 255)');
+                this.setTooltip('Преобразует значение из одного диапазона в другой.\nmap(значение, от_мин, от_макс, к_мин, к_макс)');
             }
         };
 
         // Блок: constrain
         Blockly.Blocks['arduino_constrain'] = {
             init: function() {
-                this.appendValueInput('VALUE')
-                    .setCheck('Number')
-                    .appendField('🔒 Ограничить');
-                this.appendValueInput('MIN')
-                    .setCheck('Number')
-                    .appendField('от');
-                this.appendValueInput('MAX')
-                    .setCheck('Number')
-                    .appendField('до');
+                this.appendDummyInput()
+                    .appendField('🔒 constrain(')
+                    .appendField(new Blockly.FieldTextInput('0', numberValidator), 'VALUE')
+                    .appendField(',')
+                    .appendField(new Blockly.FieldTextInput('0', numberValidator), 'MIN')
+                    .appendField(',')
+                    .appendField(new Blockly.FieldTextInput('255', numberValidator), 'MAX')
+                    .appendField(')');
                 this.setInputsInline(true);
                 this.setOutput(true, 'Number');
                 this.setColour(230);
-                this.setTooltip('Ограничивает значение заданным диапазоном');
+                this.setTooltip('Ограничивает значение: constrain(x, min, max)');
             }
         };
 
         // Блок: random
         Blockly.Blocks['arduino_random'] = {
             init: function() {
-                this.appendValueInput('MIN')
-                    .setCheck('Number')
-                    .appendField('🎲 Случайное число от');
-                this.appendValueInput('MAX')
-                    .setCheck('Number')
-                    .appendField('до');
+                this.appendDummyInput()
+                    .appendField('🎲 random(')
+                    .appendField(new Blockly.FieldTextInput('0', numberValidator), 'MIN')
+                    .appendField(',')
+                    .appendField(new Blockly.FieldTextInput('100', numberValidator), 'MAX')
+                    .appendField(')');
                 this.setInputsInline(true);
                 this.setOutput(true, 'Number');
                 this.setColour(230);
-                this.setTooltip('Генерирует случайное целое число\nв заданном диапазоне');
+                this.setTooltip('Случайное число от min до max-1');
             }
         };
     }
 
-    // Блоки сенсоров
+    // ==================== БЛОКИ СЕНСОРОВ ====================
     defineSensorBlocks() {
-        // Блок: DHT датчик температуры и влажности
+        const pinValidator = function(v) {
+            if (!v || v === 'LED_BUILTIN') return v;
+            if (/^A?\d{1,2}$/.test(v)) return v;
+            return null;
+        };
+
+        // DHT датчик
         Blockly.Blocks['sensor_dht_read'] = {
             init: function() {
                 this.appendDummyInput()
-                    .appendField('🌡️ Датчик DHT');
-                this.appendValueInput('PIN')
-                    .setCheck('Number')
-                    .appendField('пин');
-                this.appendDummyInput()
-                    .appendField('тип')
+                    .appendField('🌡️ DHT датчик')
+                    .appendField(new Blockly.FieldTextInput('2', pinValidator), 'PIN')
                     .appendField(new Blockly.FieldDropdown([
                         ['DHT11', 'DHT11'],
                         ['DHT22', 'DHT22']
-                    ]), 'TYPE');
-                this.appendDummyInput()
-                    .appendField('параметр')
+                    ]), 'TYPE')
                     .appendField(new Blockly.FieldDropdown([
-                        ['🌡️ температура °C', 'temperature'],
-                        ['💧 влажность %', 'humidity']
+                        ['🌡️ температура', 'temperature'],
+                        ['💧 влажность', 'humidity']
                     ]), 'PARAM');
                 this.setInputsInline(true);
                 this.setOutput(true, 'Number');
                 this.setColour(120);
-                this.setTooltip('Читает данные с датчика DHT11/DHT22\nТемпература в градусах Цельсия\nВлажность в процентах');
+                this.setTooltip('Читает данные с датчика DHT11/DHT22');
             }
         };
 
-        // Блок: Ультразвуковой датчик HC-SR04
+        // Ультразвуковой датчик
         Blockly.Blocks['sensor_ultrasonic'] = {
             init: function() {
                 this.appendDummyInput()
-                    .appendField('📏 Ультразвук HC-SR04');
-                this.appendValueInput('TRIG')
-                    .setCheck('Number')
-                    .appendField('Trig пин');
-                this.appendValueInput('ECHO')
-                    .setCheck('Number')
-                    .appendField('Echo пин');
+                    .appendField('📏 HC-SR04')
+                    .appendField('Trig:')
+                    .appendField(new Blockly.FieldTextInput('9', pinValidator), 'TRIG')
+                    .appendField('Echo:')
+                    .appendField(new Blockly.FieldTextInput('10', pinValidator), 'ECHO');
                 this.setInputsInline(true);
                 this.setOutput(true, 'Number');
                 this.setColour(120);
-                this.setTooltip('Измеряет расстояние в сантиметрах\nс помощью ультразвукового датчика');
+                this.setTooltip('Ультразвуковой датчик расстояния. Возвращает см.');
             }
         };
 
-        // Блок: PIR датчик движения
+        // PIR датчик
         Blockly.Blocks['sensor_pir'] = {
             init: function() {
                 this.appendDummyInput()
-                    .appendField('🚶 Датчик движения PIR');
-                this.appendValueInput('PIN')
-                    .setCheck('Number')
-                    .appendField('пин');
+                    .appendField('🚶 PIR движения')
+                    .appendField(new Blockly.FieldTextInput('7', pinValidator), 'PIN');
                 this.setInputsInline(true);
                 this.setOutput(true, 'Boolean');
                 this.setColour(120);
-                this.setTooltip('Датчик движения\nВозвращает HIGH при обнаружении движения');
+                this.setTooltip('Датчик движения. HIGH = есть движение.');
             }
         };
 
-        // Блок: Фоторезистор (LDR)
+        // Фоторезистор
         Blockly.Blocks['sensor_ldr'] = {
             init: function() {
                 this.appendDummyInput()
-                    .appendField('💡 Датчик освещенности');
-                this.appendValueInput('PIN')
-                    .setCheck('Number')
-                    .appendField('пин');
+                    .appendField('💡 Освещенность')
+                    .appendField(new Blockly.FieldTextInput('A0', pinValidator), 'PIN');
                 this.setInputsInline(true);
                 this.setOutput(true, 'Number');
                 this.setColour(120);
-                this.setTooltip('Читает уровень освещенности\nЗначения от 0 (темно) до 1023 (светло)');
+                this.setTooltip('Читает уровень освещенности (0-1023).');
             }
         };
     }
 
-    // Блоки устройств
+    // ==================== БЛОКИ УСТРОЙСТВ ====================
     defineActuatorBlocks() {
-        // Блок: Сервопривод
+        const pinValidator = function(v) {
+            if (!v || v === 'LED_BUILTIN') return v;
+            if (/^A?\d{1,2}$/.test(v)) return v;
+            return null;
+        };
+        
+        const numberValidator = function(v) {
+            if (!v) return '0';
+            if (/^-?\d+\.?\d*$/.test(v)) return v;
+            return null;
+        };
+
+        // Серво attach
         Blockly.Blocks['actuator_servo_attach'] = {
             init: function() {
                 this.appendDummyInput()
-                    .appendField('🔧 Подключить серво');
-                this.appendValueInput('PIN')
-                    .setCheck('Number')
-                    .appendField('пин');
+                    .appendField('🔧 Подключить серво к пину')
+                    .appendField(new Blockly.FieldTextInput('9', pinValidator), 'PIN');
                 this.setInputsInline(true);
                 this.setPreviousStatement(true, null);
                 this.setNextStatement(true, null);
                 this.setColour(300);
-                this.setTooltip('Подключает сервопривод к указанному пину\nНеобходимо вызвать перед использованием серво');
             }
         };
 
+        // Серво поворот
         Blockly.Blocks['actuator_servo'] = {
             init: function() {
                 this.appendDummyInput()
-                    .appendField('🔧 Повернуть серво');
-                this.appendValueInput('PIN')
-                    .setCheck('Number')
-                    .appendField('пин');
-                this.appendValueInput('ANGLE')
-                    .setCheck('Number')
-                    .appendField('угол');
-                this.appendDummyInput()
-                    .appendField('° (0-180)');
+                    .appendField('🔧 Серво пин')
+                    .appendField(new Blockly.FieldTextInput('9', pinValidator), 'PIN')
+                    .appendField('угол')
+                    .appendField(new Blockly.FieldTextInput('90', numberValidator), 'ANGLE')
+                    .appendField('°');
                 this.setInputsInline(true);
                 this.setPreviousStatement(true, null);
                 this.setNextStatement(true, null);
                 this.setColour(300);
-                this.setTooltip('Устанавливает угол поворота сервопривода\n0° - крайнее левое положение\n180° - крайнее правое положение');
+                this.setTooltip('Поворачивает серво на угол 0-180 градусов.');
             }
         };
 
-        // Блок: Светодиод
+        // Светодиод
         Blockly.Blocks['output_led'] = {
             init: function() {
                 this.appendDummyInput()
-                    .appendField('💡 Светодиод');
-                this.appendValueInput('PIN')
-                    .setCheck('Number')
-                    .appendField('пин');
-                this.appendDummyInput()
+                    .appendField('💡 Светодиод на пине')
+                    .appendField(new Blockly.FieldTextInput('13', pinValidator), 'PIN')
                     .appendField(new Blockly.FieldDropdown([
                         ['⭐ ВКЛЮЧИТЬ', 'HIGH'],
                         ['⚫ ВЫКЛЮЧИТЬ', 'LOW']
@@ -615,72 +599,57 @@ class BlocksManager {
                 this.setPreviousStatement(true, null);
                 this.setNextStatement(true, null);
                 this.setColour(330);
-                this.setTooltip('Управляет светодиодом\nВКЛ - подает HIGH на пин\nВЫКЛ - подает LOW на пин');
             }
         };
 
-        // Блок: RGB светодиод
+        // RGB светодиод
         Blockly.Blocks['output_rgb_led'] = {
             init: function() {
                 this.appendDummyInput()
-                    .appendField('🌈 RGB светодиод');
-                this.appendValueInput('RED')
-                    .setCheck('Number')
-                    .appendField('R пин');
-                this.appendValueInput('GREEN')
-                    .setCheck('Number')
-                    .appendField('G пин');
-                this.appendValueInput('BLUE')
-                    .setCheck('Number')
-                    .appendField('B пин');
-                this.appendValueInput('RED_VAL')
-                    .setCheck('Number')
-                    .appendField('R знач (0-255)');
-                this.appendValueInput('GREEN_VAL')
-                    .setCheck('Number')
-                    .appendField('G знач (0-255)');
-                this.appendValueInput('BLUE_VAL')
-                    .setCheck('Number')
-                    .appendField('B знач (0-255)');
+                    .appendField('🌈 RGB LED')
+                    .appendField('R:')
+                    .appendField(new Blockly.FieldTextInput('9', pinValidator), 'RED')
+                    .appendField('G:')
+                    .appendField(new Blockly.FieldTextInput('10', pinValidator), 'GREEN')
+                    .appendField('B:')
+                    .appendField(new Blockly.FieldTextInput('11', pinValidator), 'BLUE');
+                this.appendDummyInput()
+                    .appendField('   R값:')
+                    .appendField(new Blockly.FieldTextInput('255', numberValidator), 'RED_VAL')
+                    .appendField('G값:')
+                    .appendField(new Blockly.FieldTextInput('0', numberValidator), 'GREEN_VAL')
+                    .appendField('B값:')
+                    .appendField(new Blockly.FieldTextInput('0', numberValidator), 'BLUE_VAL');
                 this.setInputsInline(true);
                 this.setPreviousStatement(true, null);
                 this.setNextStatement(true, null);
                 this.setColour(330);
-                this.setTooltip('Управляет RGB светодиодом\nКаждый цвет задается значением 0-255');
             }
         };
 
-        // Блок: Зуммер (пищалка)
+        // Зуммер
         Blockly.Blocks['output_buzzer'] = {
             init: function() {
                 this.appendDummyInput()
-                    .appendField('🔔 Зуммер');
-                this.appendValueInput('PIN')
-                    .setCheck('Number')
-                    .appendField('пин');
-                this.appendValueInput('FREQUENCY')
-                    .setCheck('Number')
-                    .appendField('частота (Гц)');
-                this.appendValueInput('DURATION')
-                    .setCheck('Number')
-                    .appendField('длит. (мс)');
+                    .appendField('🔔 Зуммер пин')
+                    .appendField(new Blockly.FieldTextInput('8', pinValidator), 'PIN')
+                    .appendField('Гц:')
+                    .appendField(new Blockly.FieldTextInput('440', numberValidator), 'FREQUENCY')
+                    .appendField('мс:')
+                    .appendField(new Blockly.FieldTextInput('500', numberValidator), 'DURATION');
                 this.setInputsInline(true);
                 this.setPreviousStatement(true, null);
                 this.setNextStatement(true, null);
                 this.setColour(290);
-                this.setTooltip('Издает звук с помощью пьезоизлучателя\n440 Гц - нота Ля');
             }
         };
 
-        // Блок: Реле
+        // Реле
         Blockly.Blocks['output_relay'] = {
             init: function() {
                 this.appendDummyInput()
-                    .appendField('⚡ Реле');
-                this.appendValueInput('PIN')
-                    .setCheck('Number')
-                    .appendField('пин');
-                this.appendDummyInput()
+                    .appendField('⚡ Реле на пине')
+                    .appendField(new Blockly.FieldTextInput('4', pinValidator), 'PIN')
                     .appendField(new Blockly.FieldDropdown([
                         ['⚡ ВКЛЮЧИТЬ', 'HIGH'],
                         ['🔌 ВЫКЛЮЧИТЬ', 'LOW']
@@ -689,12 +658,11 @@ class BlocksManager {
                 this.setPreviousStatement(true, null);
                 this.setNextStatement(true, null);
                 this.setColour(0);
-                this.setTooltip('Управляет релейным модулем\nВКЛ - замыкает контакты\nВЫКЛ - размыкает контакты');
             }
         };
     }
 
-    // Определение пользовательских блоков
+    // ==================== ПОЛЬЗОВАТЕЛЬСКИЕ БЛОКИ ====================
     defineCustomBlocks() {
         this.customBlocks.forEach(blockData => {
             this.defineCustomBlock(blockData);
@@ -705,23 +673,15 @@ class BlocksManager {
         Blockly.Blocks[blockData.id] = {
             init: function() {
                 this.appendDummyInput()
-                    .appendField('🔧 ' + blockData.name);
+                    .appendField('🔧 ' + blockData.name)
+                    .appendField(new Blockly.FieldTextInput('0'), 'PIN')
+                    .appendField(new Blockly.FieldTextInput('0'), 'VALUE');
+                this.setInputsInline(true);
                 
                 if (blockData.type === 'statement') {
-                    this.appendValueInput('PIN')
-                        .setCheck('Number')
-                        .appendField('пин');
-                    this.appendValueInput('VALUE')
-                        .setCheck('Number')
-                        .appendField('значение');
-                    this.setInputsInline(true);
                     this.setPreviousStatement(true, null);
                     this.setNextStatement(true, null);
                 } else {
-                    this.appendValueInput('VALUE')
-                        .setCheck('Number')
-                        .appendField('значение');
-                    this.setInputsInline(true);
                     this.setOutput(true, 'Number');
                 }
                 
@@ -731,7 +691,7 @@ class BlocksManager {
         };
     }
 
-    // Получение конфигурации тулбокса для Blockly
+    // ==================== ТУЛБОКС ====================
     getToolboxConfig() {
         const contents = [];
         
@@ -751,22 +711,16 @@ class BlocksManager {
                     custom: 'PROCEDURE'
                 });
             } else if (category.blocks.length > 0) {
-                const categoryContents = [];
-                
+                const catBlocks = [];
                 category.blocks.forEach(blockType => {
-                    if (blockType === 'controls_if') {
-                        categoryContents.push({ kind: 'block', type: 'controls_if' });
-                        categoryContents.push({ kind: 'block', type: 'controls_ifelse' });
-                    } else {
-                        categoryContents.push({ kind: 'block', type: blockType });
-                    }
+                    catBlocks.push({ kind: 'block', type: blockType });
                 });
                 
                 contents.push({
                     kind: 'category',
                     name: category.name,
                     colour: category.color,
-                    contents: categoryContents
+                    contents: catBlocks
                 });
             }
         });
@@ -777,14 +731,12 @@ class BlocksManager {
         };
     }
 
-    // Поиск блоков по названию
     searchBlocks(query) {
         const results = [];
         const lowerQuery = query.toLowerCase();
         
         this.blockCategories.forEach(category => {
             const matchedBlocks = category.blocks.filter(blockType => {
-                // Проверяем название блока
                 const blockName = this.getBlockName(blockType);
                 return blockName && blockName.toLowerCase().includes(lowerQuery);
             });
@@ -802,32 +754,32 @@ class BlocksManager {
 
     getBlockName(blockType) {
         const names = {
-            'arduino_setup_loop': 'Программа Arduino (начало/конец)',
+            'arduino_setup_loop': 'Программа Arduino',
             'arduino_pin_mode': 'Режим пина (pinMode)',
             'arduino_digital_write': 'Цифровой выход (digitalWrite)',
             'arduino_digital_read': 'Цифровой вход (digitalRead)',
-            'arduino_analog_write': 'Аналоговый выход ШИМ (analogWrite)',
+            'arduino_analog_write': 'ШИМ выход (analogWrite)',
             'arduino_analog_read': 'Аналоговый вход (analogRead)',
             'arduino_delay': 'Пауза (delay)',
-            'arduino_delay_microseconds': 'Микро-пауза (delayMicroseconds)',
+            'arduino_delay_microseconds': 'Микро-пауза',
             'arduino_millis': 'Миллисекунды (millis)',
             'arduino_micros': 'Микросекунды (micros)',
             'arduino_serial_begin': 'Инициализация Serial',
-            'arduino_serial_print': 'Вывод в Serial',
-            'arduino_serial_println': 'Вывод в Serial с новой строки',
-            'arduino_serial_read': 'Чтение из Serial',
-            'arduino_serial_available': 'Проверка Serial',
-            'arduino_tone': 'Звуковой тон (tone)',
-            'arduino_no_tone': 'Выключить тон (noTone)',
-            'arduino_map': 'Преобразование диапазона (map)',
-            'arduino_constrain': 'Ограничение (constrain)',
-            'arduino_random': 'Случайное число (random)',
-            'sensor_dht_read': 'Датчик температуры DHT',
-            'sensor_ultrasonic': 'Ультразвуковой датчик HC-SR04',
+            'arduino_serial_print': 'Serial.print',
+            'arduino_serial_println': 'Serial.println',
+            'arduino_serial_read': 'Serial.read',
+            'arduino_serial_available': 'Serial.available',
+            'arduino_tone': 'Тон (tone)',
+            'arduino_no_tone': 'Выкл. тон (noTone)',
+            'arduino_map': 'map()',
+            'arduino_constrain': 'constrain()',
+            'arduino_random': 'random()',
+            'sensor_dht_read': 'Датчик DHT',
+            'sensor_ultrasonic': 'Ультразвук HC-SR04',
             'sensor_pir': 'Датчик движения PIR',
             'sensor_ldr': 'Датчик освещенности',
-            'actuator_servo_attach': 'Подключить сервопривод',
-            'actuator_servo': 'Повернуть сервопривод',
+            'actuator_servo_attach': 'Подключить серво',
+            'actuator_servo': 'Повернуть серво',
             'output_led': 'Светодиод',
             'output_rgb_led': 'RGB светодиод',
             'output_buzzer': 'Зуммер',

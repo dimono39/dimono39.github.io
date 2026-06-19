@@ -33,50 +33,55 @@ class ArduinoBlocksApp {
     }
 
     // Инициализация приложения
-    async init() {
-        console.log('🚀 Arduino Blocks Pro инициализируется...');
-        
-        // Показываем загрузочный экран
-        this.showLoading(true);
-        
-        try {
-            // Инициализируем блоки
-            blocksManager.initBlocks();
-            
-            // Загружаем платы
-            await boardsManager.loadBoards();
-            
-            // Создаем workspace
-            this.createWorkspace();
-            
-            // Заполняем UI
-            this.populateBoardSelector();
-            this.populateBlockCategories();
-            
-            // Привязываем события
-            this.bindEvents();
-            
-            // Восстанавливаем автосохранение
-            if (this.settings.autosave) {
-                this.restoreAutoSave();
-            }
-            
-            // Применяем настройки
-            this.applySettings();
-            
-            // Обновляем часы
-            this.updateClock();
-            setInterval(() => this.updateClock(), 1000);
-            
-            console.log('✅ Arduino Blocks Pro готов к работе');
-        } catch (error) {
-            console.error('❌ Ошибка инициализации:', error);
-            this.showToast('Ошибка загрузки приложения: ' + error.message, 'error');
-        }
-        
-        // Скрываем загрузочный экран
-        setTimeout(() => this.showLoading(false), 500);
-    }
+	async init() {
+		console.log('🚀 Arduino Blocks Pro инициализируется...');
+		
+		this.showLoading(true);
+		
+		try {
+			// Инициализируем блоки
+			blocksManager.initBlocks();
+			
+			// Загружаем платы
+			await boardsManager.loadBoards();
+			
+			// Создаем workspace
+			this.createWorkspace();
+			
+			// Заполняем UI
+			this.populateBoardSelector();
+			this.populateBlockCategories();
+			
+			// Привязываем события
+			this.bindEvents();
+			
+			// Восстанавливаем автосохранение
+			if (this.settings.autosave) {
+				this.restoreAutoSave();
+			}
+			
+			// Применяем настройки (с задержкой для уверенности)
+			setTimeout(() => {
+				try {
+					this.applySettings();
+				} catch (e) {
+					console.warn('Ошибка применения настроек:', e);
+				}
+			}, 500);
+			
+			// Обновляем часы
+			this.updateClock();
+			setInterval(() => this.updateClock(), 1000);
+			
+			console.log('✅ Arduino Blocks Pro готов к работе');
+		} catch (error) {
+			console.error('❌ Ошибка инициализации:', error);
+			this.showToast('Ошибка загрузки приложения: ' + error.message, 'error');
+		}
+		
+		// Скрываем загрузочный экран
+		setTimeout(() => this.showLoading(false), 800);
+	}
 
     // Показать/скрыть загрузочный экран
     showLoading(show) {
@@ -96,81 +101,81 @@ class ArduinoBlocksApp {
     }
 
     // Создание Blockly workspace
-    createWorkspace() {
-        const toolboxConfig = blocksManager.getToolboxConfig();
-        
-        this.workspace = Blockly.inject('blockly-workspace', {
-            toolbox: toolboxConfig,
-            scrollbars: true,
-            trashcan: true,
-            zoom: {
-                controls: false, // У нас свои кнопки зума
-                wheel: true,
-                startScale: 1.0,
-                maxScale: 2,
-                minScale: 0.3,
-                scaleSpeed: 1.2,
-                pinch: true
-            },
-            grid: {
-                spacing: 20,
-                length: 3,
-                colour: '#2a2a4a',
-                snap: this.settings.grid
-            },
-            move: {
-                scrollbars: true,
-                drag: true,
-                wheel: true
-            },
-            renderer: 'zelos'
-        });
+	createWorkspace() {
+		const toolboxConfig = blocksManager.getToolboxConfig();
+		
+		this.workspace = Blockly.inject('blockly-workspace', {
+			toolbox: toolboxConfig,
+			scrollbars: true,
+			trashcan: true,
+			zoom: {
+				controls: false,
+				wheel: true,
+				startScale: 1.0,
+				maxScale: 2,
+				minScale: 0.3,
+				scaleSpeed: 1.2,
+				pinch: true
+			},
+			grid: {
+				spacing: 20,
+				length: 3,
+				colour: '#2a2a4a',
+				snap: this.settings.grid
+			},
+			move: {
+				scrollbars: true,
+				drag: true,
+				wheel: true
+			},
+			renderer: 'zelos'
+		});
 
-        // Применяем тему
-        this.applyTheme();
-        
-        // Слушатель изменений
-        this.workspace.addChangeListener((event) => this.onWorkspaceChange(event));
-        
-        // Слушатель для скрытия подсказки
-        this.workspace.addChangeListener(() => {
-            const blockCount = this.workspace.getAllBlocks(false).length;
-            const hint = document.getElementById('workspace-hint');
-            if (blockCount > 0 && hint) {
-                hint.classList.add('hidden');
-            } else if (blockCount === 0 && hint) {
-                hint.classList.remove('hidden');
-            }
-        });
-        
-        // Установка размера
-        this.resizeWorkspace();
-        window.addEventListener('resize', () => this.resizeWorkspace());
-    }
-
+		// Применяем тему
+		this.applyTheme();
+		
+		// Слушатель изменений
+		this.workspace.addChangeListener((event) => this.onWorkspaceChange(event));
+		
+		// Установка размера
+		this.resizeWorkspace();
+		window.addEventListener('resize', () => this.resizeWorkspace());
+	}
     // Применение темы Blockly
-    applyTheme() {
-        if (!this.workspace) return;
-        
-        const isDark = this.settings.theme === 'dark';
-        
-        const theme = Blockly.Theme.defineTheme('custom-theme', {
-            'base': isDark ? Blockly.Themes.Classic : Blockly.Themes.Classic,
-            'componentStyles': {
-                'workspaceBackgroundColour': isDark ? '#0a0a1a' : '#f5f5f5',
-                'toolboxBackgroundColour': isDark ? '#12122a' : '#ffffff',
-                'toolboxForegroundColour': isDark ? '#e8e8f0' : '#333333',
-                'flyoutBackgroundColour': isDark ? '#1a1a3a' : '#ffffff',
-                'flyoutForegroundColour': isDark ? '#e8e8f0' : '#333333',
-                'flyoutOpacity': isDark ? 0.95 : 1,
-                'scrollbarColour': isDark ? '#3a3a5a' : '#cccccc',
-                'scrollbarOpacity': 0.5,
-                'insertionMarkerColour': '#6c5ce7',
-            }
-        });
-        
-        this.workspace.setTheme(theme);
-    }
+	applyTheme() {
+		if (!this.workspace) return;
+		
+		try {
+			const isDark = this.settings.theme === 'dark';
+			
+			// Упрощенная установка темы
+			const workspaceColor = isDark ? '#0a0a1a' : '#f5f5f5';
+			const toolboxColor = isDark ? '#12122a' : '#ffffff';
+			const toolboxText = isDark ? '#e8e8f0' : '#333333';
+			const flyoutColor = isDark ? '#1a1a3a' : '#ffffff';
+			const flyoutText = isDark ? '#e8e8f0' : '#333333';
+			
+			// Создаем тему
+			const theme = Blockly.Theme.defineTheme('custom-theme', {
+				'base': Blockly.Themes.Classic,
+				'componentStyles': {
+					'workspaceBackgroundColour': workspaceColor,
+					'toolboxBackgroundColour': toolboxColor,
+					'toolboxForegroundColour': toolboxText,
+					'flyoutBackgroundColour': flyoutColor,
+					'flyoutForegroundColour': flyoutText,
+					'flyoutOpacity': isDark ? 0.95 : 1,
+					'scrollbarColour': isDark ? '#3a3a5a' : '#cccccc',
+					'scrollbarOpacity': 0.5,
+					'insertionMarkerColour': '#6c5ce7',
+				}
+			});
+			
+			this.workspace.setTheme(theme);
+		} catch (error) {
+			console.warn('Ошибка применения темы:', error);
+		}
+	}
 
     // Изменение размера workspace
     resizeWorkspace() {
@@ -567,52 +572,77 @@ class ArduinoBlocksApp {
     }
 
     // Генерация кода
-    generateCode() {
-        if (!this.selectedBoard) {
-            this.showToast('⚠️ Сначала выберите плату!', 'warning');
-            return;
-        }
+	generateCode() {
+		if (!this.selectedBoard) {
+			this.showToast('⚠️ Сначала выберите плату!', 'warning');
+			return;
+		}
 
-        try {
-            this.generatedCode = arduinoGenerator.generate(this.workspace);
-            
-            const codeElement = document.getElementById('generated-code');
-            codeElement.style.display = 'block';
-            document.getElementById('code-preview').style.display = 'none';
-            
-            // Активируем вкладку "Код"
-            document.querySelectorAll('.code-tab').forEach(t => t.classList.remove('active'));
-            document.querySelector('.code-tab[data-tab="code"]').classList.add('active');
-            
-            // Вставляем код с подсветкой
-            codeElement.innerHTML = this.highlightCode(this.generatedCode);
-            
-            // Обновляем статистику
-            this.updateCodeStats(this.generatedCode);
-            
-            // Активируем кнопки
-            document.getElementById('btn-copy').disabled = false;
-            document.getElementById('btn-download').disabled = false;
-            document.getElementById('btn-validate').disabled = false;
-            
-            // Скрываем ошибки
-            document.getElementById('error-console').style.display = 'none';
-            
-            this.showToast('✅ Код успешно сгенерирован!', 'success');
-        } catch (error) {
-            console.error('❌ Ошибка генерации:', error);
-            
-            // Показываем ошибку в консоли
-            const errorConsole = document.getElementById('error-console');
-            errorConsole.style.display = 'block';
-            document.getElementById('error-list').innerHTML = 
-                `<div class="error-item">❌ ${error.message}</div>`;
-            
-            codeElement.textContent = `// Ошибка генерации кода:\n// ${error.message}\n// Проверьте правильность блоков`;
-            
-            this.showToast('❌ Ошибка генерации кода!', 'error');
-        }
-    }
+		try {
+			this.generatedCode = arduinoGenerator.generate(this.workspace);
+			
+			const codeElement = document.getElementById('generated-code');
+			const codePreview = document.getElementById('code-preview');
+			
+			if (codeElement) {
+				codeElement.style.display = 'block';
+			}
+			if (codePreview) {
+				codePreview.style.display = 'none';
+			}
+			
+			// Активируем вкладку "Код"
+			document.querySelectorAll('.code-tab').forEach(t => t.classList.remove('active'));
+			const codeTab = document.querySelector('.code-tab[data-tab="code"]');
+			if (codeTab) {
+				codeTab.classList.add('active');
+			}
+			
+			// Вставляем код с подсветкой
+			if (codeElement) {
+				codeElement.innerHTML = this.highlightCode(this.generatedCode);
+			}
+			
+			// Обновляем статистику
+			this.updateCodeStats(this.generatedCode);
+			
+			// Активируем кнопки
+			const btnCopy = document.getElementById('btn-copy');
+			const btnDownload = document.getElementById('btn-download');
+			const btnValidate = document.getElementById('btn-validate');
+			
+			if (btnCopy) btnCopy.disabled = false;
+			if (btnDownload) btnDownload.disabled = false;
+			if (btnValidate) btnValidate.disabled = false;
+			
+			// Скрываем ошибки
+			const errorConsole = document.getElementById('error-console');
+			if (errorConsole) {
+				errorConsole.style.display = 'none';
+			}
+			
+			this.showToast('✅ Код успешно сгенерирован!', 'success');
+		} catch (error) {
+			console.error('❌ Ошибка генерации:', error);
+			
+			// Показываем ошибку в консоли
+			const errorConsole = document.getElementById('error-console');
+			const errorList = document.getElementById('error-list');
+			const codeElement = document.getElementById('generated-code');
+			
+			if (errorConsole && errorList) {
+				errorConsole.style.display = 'block';
+				errorList.innerHTML = 
+					`<div class="error-item">❌ ${error.message}</div>`;
+			}
+			
+			if (codeElement) {
+				codeElement.textContent = `// Ошибка генерации кода:\n// ${error.message}\n// Проверьте правильность блоков`;
+			}
+			
+			this.showToast('❌ Ошибка генерации кода!', 'error');
+		}
+	}
 
     // Подсветка синтаксиса Arduino кода
     highlightCode(code) {
@@ -985,22 +1015,24 @@ class ArduinoBlocksApp {
         this.showToast('⚙️ Настройки сброшены!', 'info');
     }
 
-    applySettings() {
-        // Размер шрифта кода
-        const codeOutput = document.getElementById('generated-code');
-        if (codeOutput) {
-            codeOutput.style.fontSize = this.settings.fontSize + 'px';
-        }
-        
-        // Сетка
-        if (this.workspace) {
-            if (this.settings.grid) {
-                this.workspace.options.gridPattern = Blockly.Grid.createDom(
-                    20, 3, '#2a2a4a', this.workspace.getOptions().gridLength
-                );
-            }
-        }
-    }
+	applySettings() {
+		// Размер шрифта кода
+		const codeOutput = document.getElementById('generated-code');
+		if (codeOutput) {
+			codeOutput.style.fontSize = this.settings.fontSize + 'px';
+		}
+		
+		// Сетка - проверяем что workspace существует и имеет правильное API
+		if (this.workspace && this.workspace.options) {
+			if (this.settings.grid) {
+				this.workspace.options.gridPattern = Blockly.Grid?.createDom
+					? Blockly.Grid.createDom(20, 3, '#2a2a4a', this.workspace.options.gridLength || 3)
+					: null;
+			} else {
+				this.workspace.options.gridPattern = null;
+			}
+		}
+	}
 
     // Справка
     openHelp() {
