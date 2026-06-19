@@ -148,23 +148,16 @@ class ArduinoBlocksApp {
 		try {
 			const isDark = this.settings.theme === 'dark';
 			
-			// Упрощенная установка темы
-			const workspaceColor = isDark ? '#0a0a1a' : '#f5f5f5';
-			const toolboxColor = isDark ? '#12122a' : '#ffffff';
-			const toolboxText = isDark ? '#e8e8f0' : '#333333';
-			const flyoutColor = isDark ? '#1a1a3a' : '#ffffff';
-			const flyoutText = isDark ? '#e8e8f0' : '#333333';
-			
-			// Создаем тему
-			const theme = Blockly.Theme.defineTheme('custom-theme', {
-				'base': Blockly.Themes.Classic,
+			// Правильный способ создания темы в Blockly v10
+			const theme = Blockly.Theme.defineTheme('arduino-custom', {
+				'base': Blockly.Themes.Classic,  // Это работает в v10.4.3
 				'componentStyles': {
-					'workspaceBackgroundColour': workspaceColor,
-					'toolboxBackgroundColour': toolboxColor,
-					'toolboxForegroundColour': toolboxText,
-					'flyoutBackgroundColour': flyoutColor,
-					'flyoutForegroundColour': flyoutText,
-					'flyoutOpacity': isDark ? 0.95 : 1,
+					'workspaceBackgroundColour': isDark ? '#0a0a1a' : '#ffffff',
+					'toolboxBackgroundColour': isDark ? '#12122a' : '#f0f0f0',
+					'toolboxForegroundColour': isDark ? '#e8e8f0' : '#333333',
+					'flyoutBackgroundColour': isDark ? '#1a1a3a' : '#ffffff',
+					'flyoutForegroundColour': isDark ? '#e8e8f0' : '#333333',
+					'flyoutOpacity': isDark ? 0.95 : 1.0,
 					'scrollbarColour': isDark ? '#3a3a5a' : '#cccccc',
 					'scrollbarOpacity': 0.5,
 					'insertionMarkerColour': '#6c5ce7',
@@ -173,7 +166,12 @@ class ArduinoBlocksApp {
 			
 			this.workspace.setTheme(theme);
 		} catch (error) {
-			console.warn('Ошибка применения темы:', error);
+			console.warn('Ошибка применения темы (использую стандартную):', error);
+			try {
+				this.workspace.setTheme(Blockly.Themes.Classic);
+			} catch (e) {
+				// Игнорируем если и это не сработало
+			}
 		}
 	}
 
@@ -288,6 +286,21 @@ class ArduinoBlocksApp {
         document.getElementById('board-selector').addEventListener('change', (e) => {
             this.selectBoard(e.target.value);
         });
+
+		// Кнопка очистки workspace
+		document.getElementById('btn-clear-workspace').addEventListener('click', () => {
+			if (confirm('🗑️ Удалить все блоки с рабочей области?\nЭто действие нельзя отменить.')) {
+				this.workspace.clear();
+				this.generatedCode = '';
+				document.getElementById('generated-code').innerHTML = 
+					'// Рабочая область очищена\n// Добавьте новые блоки и нажмите "Скомпилировать"';
+				document.getElementById('btn-copy').disabled = true;
+				document.getElementById('btn-download').disabled = true;
+				document.getElementById('btn-validate').disabled = true;
+				document.getElementById('code-stats').style.display = 'none';
+				this.showToast('🗑️ Рабочая область очищена', 'info');
+			}
+		});
 
         // Генерация кода
         document.getElementById('btn-generate').addEventListener('click', () => {
@@ -1022,14 +1035,22 @@ class ArduinoBlocksApp {
 			codeOutput.style.fontSize = this.settings.fontSize + 'px';
 		}
 		
-		// Сетка - проверяем что workspace существует и имеет правильное API
+		// Сетка — безопасная установка
 		if (this.workspace && this.workspace.options) {
-			if (this.settings.grid) {
-				this.workspace.options.gridPattern = Blockly.Grid?.createDom
-					? Blockly.Grid.createDom(20, 3, '#2a2a4a', this.workspace.options.gridLength || 3)
-					: null;
-			} else {
-				this.workspace.options.gridPattern = null;
+			try {
+				if (this.settings.grid && Blockly.Grid && typeof Blockly.Grid.createDom === 'function') {
+					const gridPattern = Blockly.Grid.createDom(
+						this.workspace.options.gridSpacing || 20,
+						this.workspace.options.gridLength || 3,
+						this.workspace.options.gridColour || '#2a2a4a',
+						1
+					);
+					this.workspace.setGrid(gridPattern);
+				} else {
+					this.workspace.setGrid(null);
+				}
+			} catch (e) {
+				console.warn('Не удалось применить сетку:', e);
 			}
 		}
 	}

@@ -9,42 +9,84 @@ class ArduinoGenerator {
         this.initGenerator();
     }
 
-    initGenerator() {
-        this.generator = new Blockly.Generator('Arduino');
-        this.generator.INDENT = '  ';
-        
-        // ===== ВАЖНО: Инициализация базы имён для переменных =====
-        this.generator.init = function(workspace) {
-            // Создаём базу имён если её нет
-            if (!this.nameDB_) {
-                this.nameDB_ = new Blockly.Names(this.RESERVED_WORDS_ || '');
-            }
-        };
-        
-        // Резервные слова Arduino
-        this.generator.RESERVED_WORDS_ = 
-            'setup,loop,if,else,for,while,return,void,int,float,long,char,String,' +
-            'bool,boolean,byte,const,static,unsigned,volatile,HIGH,LOW,INPUT,OUTPUT,' +
-            'INPUT_PULLUP,true,false,NULL,serial,Serial,pinMode,digitalWrite,' +
-            'digitalRead,analogWrite,analogRead,delay,delayMicroseconds,millis,' +
-            'micros,begin,print,println,read,available,tone,noTone,map,constrain,' +
-            'random,abs,sin,cos,tan,sqrt,pow,round,ceil,floor';
-        
-        // Инициализируем nameDB_
-        this.generator.nameDB_ = new Blockly.Names(this.generator.RESERVED_WORDS_);
-        
-        // Метод для получения имени переменной
-        this.generator.getVariableName = function(name) {
-            return this.nameDB_.getName(name, Blockly.Names.NameType.VARIABLE);
-        };
-        
-        // Метод для получения имени процедуры
-        this.generator.getProcedureName = function(name) {
-            return this.nameDB_.getName(name, Blockly.Names.NameType.PROCEDURE);
-        };
-        
-        this.initForBlockGenerators();
-    }
+	initGenerator() {
+		this.generator = new Blockly.Generator('Arduino');
+		this.generator.INDENT = '  ';
+		
+		// ===== ВАЖНО: Определяем ВСЕ порядки операций =====
+		this.generator.ORDER_ATOMIC = 0;           // 0 "" ...
+		this.generator.ORDER_COLLECTION = 1;       // for array/object literals
+		this.generator.ORDER_FUNCTION_CALL = 2;    // foo()
+		this.generator.ORDER_MEMBER = 2.1;         // x.y
+		this.generator.ORDER_NEW = 2.2;            // new Foo()
+		this.generator.ORDER_UNARY_POSTFIX = 3;    // x++
+		this.generator.ORDER_UNARY_PREFIX = 4;     // ++x
+		this.generator.ORDER_UNARY_NEGATION = 4.1; // -x
+		this.generator.ORDER_UNARY_LOGICAL = 4.2;  // !x
+		this.generator.ORDER_MULTIPLICATIVE = 5;   // * / %
+		this.generator.ORDER_ADDITIVE = 6;         // + -
+		this.generator.ORDER_SHIFT = 7;            // << >>
+		this.generator.ORDER_RELATIONAL = 8;       // < <= > >=
+		this.generator.ORDER_EQUALITY = 9;         // == !=
+		this.generator.ORDER_BITWISE_AND = 10;     // &
+		this.generator.ORDER_BITWISE_XOR = 11;     // ^
+		this.generator.ORDER_BITWISE_OR = 12;      // |
+		this.generator.ORDER_LOGICAL_AND = 13;     // &&
+		this.generator.ORDER_LOGICAL_OR = 14;      // ||
+		this.generator.ORDER_CONDITIONAL = 15;     // ?:
+		this.generator.ORDER_ASSIGNMENT = 16;      // = += -= etc.
+		this.generator.ORDER_COMMA = 17;           // ,
+		this.generator.ORDER_NONE = 99;            // (...)
+		
+		// Резервные слова Arduino
+		this.generator.RESERVED_WORDS_ = 
+			'setup,loop,if,else,for,while,return,void,int,float,long,char,String,' +
+			'bool,boolean,byte,const,static,unsigned,volatile,HIGH,LOW,INPUT,OUTPUT,' +
+			'INPUT_PULLUP,true,false,NULL,serial,Serial,pinMode,digitalWrite,' +
+			'digitalRead,analogWrite,analogRead,delay,delayMicroseconds,millis,' +
+			'micros,begin,print,println,read,available,tone,noTone,map,constrain,' +
+			'random,abs,sin,cos,tan,sqrt,pow,round,ceil,floor';
+		
+		// Инициализируем nameDB_
+		this.generator.nameDB_ = new Blockly.Names(this.generator.RESERVED_WORDS_);
+		
+		// Метод для получения имени переменной
+		this.generator.getVariableName = function(name) {
+			return this.nameDB_.getName(name, Blockly.Names.NameType.VARIABLE);
+		};
+		
+		// Метод для получения имени процедуры
+		this.generator.getProcedureName = function(name) {
+			return this.nameDB_.getName(name, Blockly.Names.NameType.PROCEDURE);
+		};
+		
+		// ===== КРИТИЧЕСКИ ВАЖНО: Инициализация функций =====
+		this.generator.init = function(workspace) {
+			if (!this.nameDB_) {
+				this.nameDB_ = new Blockly.Names(this.RESERVED_WORDS_ || '');
+			}
+			if (!this.forBlock) {
+				this.forBlock = {};
+			}
+		};
+		
+		// ===== Функция очистки пробелов =====
+		this.generator.scrub_ = function(block, code, opt_thisOnly) {
+			const nextBlock = block.getNextBlock();
+			if (nextBlock && !opt_thisOnly) {
+				const nextCode = this.blockToCode(nextBlock);
+				return code + '\n' + nextCode;
+			}
+			return code;
+		};
+		
+		// ===== Функция для statement блоков =====
+		this.generator.scrubNakedValue = function(line) {
+			return line + ';\n';
+		};
+		
+		this.initForBlockGenerators();
+	}
 
     initForBlockGenerators() {
         const self = this;
@@ -589,39 +631,65 @@ class ArduinoGenerator {
     collectSetupCode() { return this.setupCode.join('\n'); }
 
     // ===== ГЛАВНАЯ ГЕНЕРАЦИЯ =====
-    generate(workspace) {
-        this.clear();
-        
-        // Сбрасываем базу имён
-        this.generator.nameDB_.reset();
-        
-        try {
-            let code = this.generator.workspaceToCode(workspace);
-            
-            if (code.includes('void setup()') && code.includes('void loop()')) {
-                return this.cleanCode(code);
-            }
-            
-            if (!code.trim()) {
-                code = '  // Нет блоков\n';
-            }
-            
-            let full = boardsManager.generateHeader() + '\n';
-            if (this.collectIncludes()) full += this.collectIncludes() + '\n\n';
-            if (this.collectGlobalDeclarations()) full += this.collectGlobalDeclarations() + '\n\n';
-            
-            full += 'void setup() {\n';
-            const s = this.collectSetupCode();
-            full += s.trim() ? s.split('\n').filter(l => l.trim()).map(l => '  ' + l.trim()).join('\n') + '\n' : '  // Инициализация\n';
-            full += '}\n\nvoid loop() {\n';
-            full += code.trim().split('\n').filter(l => l.trim()).map(l => '  ' + l.trim()).join('\n') + '\n}\n';
-            
-            return this.cleanCode(full);
-        } catch (e) {
-            console.error('Ошибка генерации:', e);
-            throw new Error('Ошибка: ' + e.message);
-        }
-    }
+	generate(workspace) {
+		this.clear();
+		
+		// Сбрасываем базу имён
+		if (this.generator.nameDB_ && typeof this.generator.nameDB_.reset === 'function') {
+			this.generator.nameDB_.reset();
+		}
+		
+		try {
+			// Проверяем что workspace существует
+			if (!workspace || !workspace.getAllBlocks) {
+				throw new Error('Рабочая область не инициализирована');
+			}
+			
+			// Проверяем наличие блоков
+			const allBlocks = workspace.getAllBlocks(false);
+			if (allBlocks.length === 0) {
+				return '// Нет блоков для генерации\n// Добавьте блоки на рабочую область\n';
+			}
+			
+			let code = this.generator.workspaceToCode(workspace);
+			
+			if (code.includes('void setup()') && code.includes('void loop()')) {
+				return this.cleanCode(code);
+			}
+			
+			if (!code.trim()) {
+				code = '  // Код не был сгенерирован\n';
+			}
+			
+			let full = boardsManager.generateHeader() + '\n';
+			if (this.collectIncludes()) full += this.collectIncludes() + '\n\n';
+			if (this.collectGlobalDeclarations()) full += this.collectGlobalDeclarations() + '\n\n';
+			
+			full += 'void setup() {\n';
+			const s = this.collectSetupCode();
+			full += s.trim() ? s.split('\n').filter(l => l.trim()).map(l => '  ' + l.trim()).join('\n') + '\n' : '  // Инициализация\n';
+			full += '}\n\nvoid loop() {\n';
+			full += code.trim().split('\n').filter(l => l.trim()).map(l => '  ' + l.trim()).join('\n') + '\n}\n';
+			
+			return this.cleanCode(full);
+		} catch (e) {
+			console.error('Ошибка генерации:', e);
+			
+			// Формируем понятное сообщение для пользователя
+			let userMessage = 'Ошибка при генерации кода:\n\n';
+			userMessage += '• ' + (e.message || 'Неизвестная ошибка') + '\n\n';
+			userMessage += 'Возможные причины:\n';
+			userMessage += '• Не все блоки заполнены значениями\n';
+			userMessage += '• Есть несоединённые блоки\n';
+			userMessage += '• Используются несовместимые типы блоков\n\n';
+			userMessage += 'Попробуйте:\n';
+			userMessage += '1. Проверить все блоки (кликните на пустые поля)\n';
+			userMessage += '2. Удалить и заново добавить проблемные блоки\n';
+			userMessage += '3. Очистить рабочую область и начать заново';
+			
+			throw new Error(userMessage);
+		}
+	}
 
     cleanCode(code) {
         code = code.replace(/\n{3,}/g, '\n\n');

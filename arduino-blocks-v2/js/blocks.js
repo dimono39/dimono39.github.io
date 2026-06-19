@@ -172,19 +172,48 @@ class BlocksManager {
     defineArduinoBlocks() {
         
         // Валидатор для пинов (разрешает цифры, A0-A15, LED_BUILTIN)
-        const pinValidator = function(newValue) {
-            if (!newValue || newValue === 'LED_BUILTIN') return newValue;
-            if (/^A?\d{1,2}$/.test(newValue)) return newValue;
-            if (/^[a-zA-Z_]\w*$/.test(newValue)) return newValue;
-            return null; // Отклоняем
-        };
+		const pinValidator = function(newValue) {
+			// Пустое значение
+			if (!newValue || newValue === '') return '13'; // Значение по умолчанию
+			
+			// Именованные пины
+			const namedPins = [
+				'LED_BUILTIN', 'A0', 'A1', 'A2', 'A3', 'A4', 'A5', 
+				'A6', 'A7', 'A8', 'A9', 'A10', 'A11', 'A12', 'A13', 'A14', 'A15',
+				'SCL', 'SDA', 'MISO', 'MOSI', 'SCK', 'SS',
+				'TX', 'RX', 'D0', 'D1', 'D2', 'D3', 'D4', 'D5', 'D6', 'D7', 'D8'
+			];
+			
+			if (namedPins.includes(newValue.toUpperCase())) {
+				return newValue;
+			}
+			
+			// Цифровые пины (0-53 для Mega)
+			if (/^\d{1,2}$/.test(newValue)) {
+				const num = parseInt(newValue);
+				if (num >= 0 && num <= 53) return newValue;
+			}
+			
+			// Аналоговые пины (A0-A15)
+			if (/^[Aa]\d{1,2}$/.test(newValue)) {
+				return newValue.toUpperCase();
+			}
+			
+			// Любые другие валидные идентификаторы
+			if (/^[a-zA-Z_]\w*$/.test(newValue)) {
+				return newValue;
+			}
+			
+			// Если не прошло валидацию — возвращаем старое значение
+			return null;
+		};
         
         // Валидатор для чисел
-        const numberValidator = function(newValue) {
-            if (!newValue) return '0';
-            if (/^-?\d+\.?\d*$/.test(newValue)) return newValue;
-            return null;
-        };
+		const numberValidator = function(newValue) {
+			if (!newValue || newValue === '') return '0';
+			if (/^-?\d+\.?\d*$/.test(newValue)) return newValue;
+			return null;
+		};
 
         // Блок: pinMode (С РЕДАКТИРУЕМЫМ ПОЛЕМ ПИНА!)
         Blockly.Blocks['arduino_pin_mode'] = {
@@ -669,27 +698,38 @@ class BlocksManager {
         });
     }
 
-    defineCustomBlock(blockData) {
-        Blockly.Blocks[blockData.id] = {
-            init: function() {
-                this.appendDummyInput()
-                    .appendField('🔧 ' + blockData.name)
-                    .appendField(new Blockly.FieldTextInput('0'), 'PIN')
-                    .appendField(new Blockly.FieldTextInput('0'), 'VALUE');
-                this.setInputsInline(true);
-                
-                if (blockData.type === 'statement') {
-                    this.setPreviousStatement(true, null);
-                    this.setNextStatement(true, null);
-                } else {
-                    this.setOutput(true, 'Number');
-                }
-                
-                this.setColour(blockData.color || '#6c5ce7');
-                this.setTooltip(blockData.name);
-            }
-        };
-    }
+	defineCustomBlock(blockData) {
+		// Удаляем старое определение если существует
+		if (Blockly.Blocks[blockData.id]) {
+			delete Blockly.Blocks[blockData.id];
+		}
+		
+		// Удаляем старый генератор
+		if (arduinoGenerator && arduinoGenerator.generator && 
+			arduinoGenerator.generator.forBlock[blockData.id]) {
+			delete arduinoGenerator.generator.forBlock[blockData.id];
+		}
+		
+		Blockly.Blocks[blockData.id] = {
+			init: function() {
+				this.appendDummyInput()
+					.appendField('🔧 ' + blockData.name)
+					.appendField(new Blockly.FieldTextInput('0', pinValidator), 'PIN')
+					.appendField(new Blockly.FieldTextInput('0', numberValidator), 'VALUE');
+				this.setInputsInline(true);
+				
+				if (blockData.type === 'statement') {
+					this.setPreviousStatement(true, null);
+					this.setNextStatement(true, null);
+				} else {
+					this.setOutput(true, 'Number');
+				}
+				
+				this.setColour(blockData.color || '#6c5ce7');
+				this.setTooltip(blockData.name);
+			}
+		};
+	}
 
     // ==================== ТУЛБОКС ====================
     getToolboxConfig() {
