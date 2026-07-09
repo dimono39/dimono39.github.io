@@ -907,16 +907,18 @@ const AnalyticsModule = (function() {
 	// ============================================================
 
 	function getDailyMenuOptions() {
-		// Получаем список сохранённых вариантов из модуля ежедневного меню
 		let options = '';
-		if (window.DailyMenuModule) {
-			const dailyState = window.DailyMenuModule.getState();
-			if (dailyState && dailyState.savedVariants && dailyState.savedVariants.length > 0) {
-				for (let i = 0; i < dailyState.savedVariants.length; i++) {
-					const v = dailyState.savedVariants[i];
-					const label = `${v.name || 'Вариант'} (Меню #${v.menuNumber || '?'})`;
-					options += `<option value="${i}">${label}</option>`;
-				}
+		// Ждём загрузки модуля
+		if (!window.DailyMenuModule) {
+			setTimeout(getDailyMenuOptions, 500);
+			return '<option value="">Загрузка...</option>';
+		}
+		const dailyState = window.DailyMenuModule.getState();
+		if (dailyState && dailyState.savedVariants && dailyState.savedVariants.length > 0) {
+			for (let i = 0; i < dailyState.savedVariants.length; i++) {
+				const v = dailyState.savedVariants[i];
+				const label = `${v.name || 'Вариант'} (Меню #${v.menuNumber || '?'})`;
+				options += `<option value="${i}">${label}</option>`;
 			}
 		}
 		if (!options) {
