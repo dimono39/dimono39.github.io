@@ -3648,6 +3648,7 @@
 
 						<!-- Шапка -->
 						<div class="daily-menu-header">
+					
 							<div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
 								<div style="display: flex; align-items: center; gap: 16px;">
 									<div style="width: 48px; height: 48px; background: linear-gradient(135deg, #8b5cf6, #7c3aed); border-radius: 16px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(139,92,246,0.3);">
@@ -3670,7 +3671,12 @@
 									</button>
 								</div>
 							</div>
-
+							<!-- Информация о школе в шапке ежедневного меню -->
+							<div style="display: flex; flex-wrap: wrap; gap: 12px 24px; margin-top: 8px; padding: 8px 16px; background: rgba(255,255,255,0.6); border-radius: 12px; font-size: 0.8rem;">
+								<span><i class="fas fa-school" style="color: #8b5cf6;"></i> <strong class="school-name">МОУ "Сказочная СОШ"</strong></span>
+								<span><i class="fas fa-user-tie" style="color: #8b5cf6;"></i> <span class="approval-info">Директор Иванова И.И.</span></span>
+								<span><i class="fas fa-calendar-check" style="color: #8b5cf6;"></i> <span id="dailyHeaderDate">—</span></span>
+							</div>	
 							<!-- Статусная строка -->
 							<div class="daily-status-bar" id="dailyStatusBar">
 								<span class="status-item">
@@ -3764,12 +3770,38 @@
 							<div id="validationResult" class="validation-summary"></div>
 
 							<!-- Название варианта и действия -->
-							<div class="variant-name-block">
-								<span class="variant-label">
-									<i class="fas fa-tag"></i> Название:
-								</span>
-								<input type="text" id="variantNameInput" placeholder="Например: Меню на 15.01.2026" value="Ежедневное меню">
-								<div class="actions-group">
+							<!-- Название варианта, утверждающие и действия -->
+							<div class="variant-name-block" style="flex-wrap: wrap; gap: 12px;">
+								<div style="display: flex; flex-wrap: wrap; gap: 12px; width: 100%;">
+									<!-- Название -->
+									<div style="display: flex; align-items: center; gap: 8px; flex: 2; min-width: 200px;">
+										<span class="variant-label">
+											<i class="fas fa-tag"></i> Название:
+										</span>
+										<input type="text" id="variantNameInput" placeholder="ГГГГ-ММ-ДД-sm.xlsx" value="" style="flex: 1; min-width: 150px;">
+									</div>
+									
+									<!-- Утверждающий -->
+									<div style="display: flex; align-items: center; gap: 8px; flex: 1; min-width: 180px;">
+										<span class="variant-label">
+											<i class="fas fa-user-tie"></i> Утвердил:
+										</span>
+										<input type="text" id="dailyApprovalPosition" placeholder="Должность" value="Директор" style="flex: 1; min-width: 80px;">
+										<input type="text" id="dailyApprovalName" placeholder="ФИО" value="Иванова И.И." style="flex: 1; min-width: 100px;">
+									</div>
+									
+									<!-- Согласовано -->
+									<div style="display: flex; align-items: center; gap: 8px; flex: 1; min-width: 180px;">
+										<span class="variant-label">
+											<i class="fas fa-handshake"></i> Согласовано:
+										</span>
+										<input type="text" id="dailyAgreedPosition" placeholder="Должность" value="Диетсестра" style="flex: 1; min-width: 80px;">
+										<input type="text" id="dailyAgreedName" placeholder="ФИО" value="____________________" style="flex: 1; min-width: 100px;">
+									</div>
+								</div>
+								
+								<!-- Кнопки действий -->
+								<div class="actions-group" style="width: 100%; display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-start;">
 									<button id="validateDailyBtn" class="btn btn-warning" style="padding: 6px 16px; font-size: 0.75rem;">
 										<i class="fas fa-check-double"></i> Проверить
 									</button>
@@ -3778,6 +3810,9 @@
 									</button>
 									<button id="createDailyBtn" class="btn btn-primary" style="padding: 6px 16px; font-size: 0.75rem; background: linear-gradient(135deg, #8b5cf6, #7c3aed);">
 										<i class="fas fa-file-excel"></i> Excel
+									</button>
+									<button id="printSettingsBtn" class="btn btn-info" style="padding: 6px 16px; font-size: 0.75rem; background: linear-gradient(135deg, #0891b2, #06b6d4);">
+										<i class="fas fa-cog"></i> Настройки печати
 									</button>
 								</div>
 							</div>
@@ -12201,101 +12236,168 @@
 
 
 
-<!-- ============================================================ -->
-<!-- МОДАЛЬНЫЕ ОКНА ДЛЯ МОДУЛЯ ЕЖЕДНЕВНОГО МЕНЮ -->
-<!-- ============================================================ -->
+	<!-- ============================================================ -->
+	<!-- МОДАЛЬНЫЕ ОКНА ДЛЯ МОДУЛЯ ЕЖЕДНЕВНОГО МЕНЮ -->
+	<!-- ============================================================ -->
 
-<!-- ============================================================ -->
-<!-- МОДАЛЬНОЕ ОКНО: ЗАМЕНА БЛЮДА (УЛУЧШЕННОЕ) -->
-<!-- ============================================================ -->
-<div id="replaceDishModal" class="modal replace-modal">
-    <div class="modal-content">
-        
-        <!-- Шапка -->
-        <div class="modal-header">
-            <div class="title">
-                <i class="fas fa-exchange-alt"></i>
-                <span>Замена блюда</span>
-                <span style="font-size: 0.7rem; font-weight: 400; color: #94a3b8; margin-left: 4px;">
-                    <i class="fas fa-utensils"></i> <span id="replaceModalTotalCount">0</span> доступно
-                </span>
-            </div>
-            <button id="closeReplaceModal" class="close-btn">
-                <i class="fas fa-times"></i>
-            </button>
-        </div>
+	<!-- ============================================================ -->
+	<!-- МОДАЛЬНОЕ ОКНО: ЗАМЕНА БЛЮДА (УЛУЧШЕННОЕ) -->
+	<!-- ============================================================ -->
+	<div id="replaceDishModal" class="modal replace-modal">
+		<div class="modal-content">
+			
+			<!-- Шапка -->
+			<div class="modal-header">
+				<div class="title">
+					<i class="fas fa-exchange-alt"></i>
+					<span>Замена блюда</span>
+					<span style="font-size: 0.7rem; font-weight: 400; color: #94a3b8; margin-left: 4px;">
+						<i class="fas fa-utensils"></i> <span id="replaceModalTotalCount">0</span> доступно
+					</span>
+				</div>
+				<button id="closeReplaceModal" class="close-btn">
+					<i class="fas fa-times"></i>
+				</button>
+			</div>
 
-        <!-- Текущее блюдо -->
-        <div class="current-dish-card">
-            <div>
-                <div class="dish-label"><i class="fas fa-arrow-right"></i> Текущее блюдо</div>
-                <div class="dish-name" id="currentDishName">—</div>
-            </div>
-            <div class="dish-details" id="currentDishDetails">
-                <span><i class="fas fa-tag"></i> <span id="currentDishSection">—</span></span>
-                <span><i class="fas fa-weight-hanging"></i> <span id="currentDishWeight">0</span> г</span>
-                <span><i class="fas fa-fire"></i> <span id="currentDishCalories">0</span> ккал</span>
-                <span><i class="fas fa-utensils"></i> <span id="currentDishRecipeId">—</span></span>
-            </div>
-        </div>
+			<!-- Текущее блюдо -->
+			<div class="current-dish-card">
+				<div>
+					<div class="dish-label"><i class="fas fa-arrow-right"></i> Текущее блюдо</div>
+					<div class="dish-name" id="currentDishName">—</div>
+				</div>
+				<div class="dish-details" id="currentDishDetails">
+					<span><i class="fas fa-tag"></i> <span id="currentDishSection">—</span></span>
+					<span><i class="fas fa-weight-hanging"></i> <span id="currentDishWeight">0</span> г</span>
+					<span><i class="fas fa-fire"></i> <span id="currentDishCalories">0</span> ккал</span>
+					<span><i class="fas fa-utensils"></i> <span id="currentDishRecipeId">—</span></span>
+				</div>
+			</div>
 
-        <!-- Поиск и фильтры -->
-        <div class="search-section">
-            <div class="search-wrapper">
-                <i class="fas fa-search"></i>
-                <input type="text" id="replaceSearchInput" placeholder="Поиск блюда по названию...">
-            </div>
-            <div class="filter-tabs" id="replaceFilterTabs">
-                <button class="filter-tab active" data-section="all">
-                    <i class="fas fa-th-list"></i> Все
-                    <span class="count-badge" id="filterCountAll">0</span>
-                </button>
-                <!-- Фильтры будут добавлены динамически -->
-            </div>
-        </div>
+			<!-- Поиск и фильтры -->
+			<div class="search-section">
+				<div class="search-wrapper">
+					<i class="fas fa-search"></i>
+					<input type="text" id="replaceSearchInput" placeholder="Поиск блюда по названию...">
+				</div>
+				<div class="filter-tabs" id="replaceFilterTabs">
+					<button class="filter-tab active" data-section="all">
+						<i class="fas fa-th-list"></i> Все
+						<span class="count-badge" id="filterCountAll">0</span>
+					</button>
+					<!-- Фильтры будут добавлены динамически -->
+				</div>
+			</div>
 
-        <!-- Список блюд -->
-        <div class="dishes-list" id="replaceOptions">
-            <div class="empty-state">
-                <i class="fas fa-search"></i>
-                <p>Нет доступных блюд для замены</p>
-                <div class="hint">Попробуйте изменить фильтр или поисковый запрос</div>
-            </div>
-        </div>
+			<!-- Список блюд -->
+			<div class="dishes-list" id="replaceOptions">
+				<div class="empty-state">
+					<i class="fas fa-search"></i>
+					<p>Нет доступных блюд для замены</p>
+					<div class="hint">Попробуйте изменить фильтр или поисковый запрос</div>
+				</div>
+			</div>
 
-        <!-- Подвал -->
-        <div class="modal-footer">
-            <button id="closeReplaceModalBtn" class="btn btn-secondary">
-                <i class="fas fa-times"></i> Отмена
-            </button>
-        </div>
+			<!-- Подвал -->
+			<div class="modal-footer">
+				<button id="closeReplaceModalBtn" class="btn btn-secondary">
+					<i class="fas fa-times"></i> Отмена
+				</button>
+			</div>
 
-    </div>
-</div>
+		</div>
+	</div>
 
-<!-- Модалка печати/PDF -->
-<div id="printPreviewModal" class="modal" style="z-index: 3000;">
-    <div class="modal-content" style="max-width: 1100px; max-height: 90vh; overflow-y: auto;">
-        <div class="card-title" style="margin-bottom: 20px; justify-content: space-between; display: flex; align-items: center;">
-            <div>
-                <i class="fas fa-print" style="color: #06b6d4;"></i>
-                <span>Предпросмотр печати</span>
-            </div>
-            <button id="closePrintModal" style="background: none; border: none; font-size: 24px; cursor: pointer; color: #64748b;">&times;</button>
-        </div>
-        <div id="printPreviewContent" style="background: #f1f5f9; padding: 20px; border-radius: 12px; overflow: auto; max-height: 65vh;">
-            <!-- Содержимое будет вставлено сюда -->
-        </div>
-        <div style="display: flex; gap: 12px; justify-content: flex-end; margin-top: 20px; flex-wrap: wrap;">
-            <button id="printFromModalBtn" class="btn btn-primary" style="background: linear-gradient(135deg, #0891b2, #06b6d4);">
-                <i class="fas fa-print"></i> Печать
-            </button>
-            <button id="pdfFromModalBtn" class="btn btn-primary" style="background: linear-gradient(135deg, #dc2626, #ef4444);">
-                <i class="fas fa-file-pdf"></i> Скачать PDF
-            </button>
-            <button id="closePrintModalBtn" class="btn btn-secondary">Закрыть</button>
-        </div>
-    </div>
-</div>
+	<!-- Модалка печати/PDF -->
+	<div id="printPreviewModal" class="modal" style="z-index: 3000;">
+		<div class="modal-content" style="max-width: 1100px; max-height: 90vh; overflow-y: auto;">
+			<div class="card-title" style="margin-bottom: 20px; justify-content: space-between; display: flex; align-items: center;">
+				<div>
+					<i class="fas fa-print" style="color: #06b6d4;"></i>
+					<span>Предпросмотр печати</span>
+				</div>
+				<button id="closePrintModal" style="background: none; border: none; font-size: 24px; cursor: pointer; color: #64748b;">&times;</button>
+			</div>
+			<div id="printPreviewContent" style="background: #f1f5f9; padding: 20px; border-radius: 12px; overflow: auto; max-height: 65vh;">
+				<!-- Содержимое будет вставлено сюда -->
+			</div>
+			<div style="display: flex; gap: 12px; justify-content: flex-end; margin-top: 20px; flex-wrap: wrap;">
+				<button id="printFromModalBtn" class="btn btn-primary" style="background: linear-gradient(135deg, #0891b2, #06b6d4);">
+					<i class="fas fa-print"></i> Печать
+				</button>
+				<button id="pdfFromModalBtn" class="btn btn-primary" style="background: linear-gradient(135deg, #dc2626, #ef4444);">
+					<i class="fas fa-file-pdf"></i> Скачать PDF
+				</button>
+				<button id="closePrintModalBtn" class="btn btn-secondary">Закрыть</button>
+			</div>
+		</div>
+	</div>
+
+	<!-- Модальное окно настроек печати для ежедневного меню -->
+	<div id="dailyPrintSettingsModal" class="modal">
+		<div class="modal-content" style="max-width: 500px;">
+			<div class="card-title" style="margin-bottom: 20px;">
+				<i class="fas fa-print" style="color: #06b6d4;"></i>
+				<span>Настройки печати ежедневного меню</span>
+			</div>
+			
+			<div style="margin-bottom: 16px;">
+				<label style="display: flex; align-items: center; gap: 12px; padding: 8px; cursor: pointer; border-radius: 8px; transition: background 0.2s;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='transparent'">
+					<input type="checkbox" id="printShowHeader" checked>
+					<span><i class="fas fa-school"></i> Шапка документа (школа, дата)</span>
+				</label>
+				<label style="display: flex; align-items: center; gap: 12px; padding: 8px; cursor: pointer; border-radius: 8px; transition: background 0.2s;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='transparent'">
+					<input type="checkbox" id="printShowSection" checked>
+					<span><i class="fas fa-tag"></i> Разделы блюд</span>
+				</label>
+				<label style="display: flex; align-items: center; gap: 12px; padding: 8px; cursor: pointer; border-radius: 8px; transition: background 0.2s;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='transparent'">
+					<input type="checkbox" id="printShowWeight" checked>
+					<span><i class="fas fa-weight-hanging"></i> Вес (г)</span>
+				</label>
+				<label style="display: flex; align-items: center; gap: 12px; padding: 8px; cursor: pointer; border-radius: 8px; transition: background 0.2s;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='transparent'">
+					<input type="checkbox" id="printShowCalories" checked>
+					<span><i class="fas fa-fire"></i> Калорийность (ккал)</span>
+				</label>
+				<label style="display: flex; align-items: center; gap: 12px; padding: 8px; cursor: pointer; border-radius: 8px; transition: background 0.2s;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='transparent'">
+					<input type="checkbox" id="printShowProteins">
+					<span><i class="fas fa-dna"></i> Белки (г)</span>
+				</label>
+				<label style="display: flex; align-items: center; gap: 12px; padding: 8px; cursor: pointer; border-radius: 8px; transition: background 0.2s;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='transparent'">
+					<input type="checkbox" id="printShowFats">
+					<span><i class="fas fa-oil-can"></i> Жиры (г)</span>
+				</label>
+				<label style="display: flex; align-items: center; gap: 12px; padding: 8px; cursor: pointer; border-radius: 8px; transition: background 0.2s;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='transparent'">
+					<input type="checkbox" id="printShowCarbs">
+					<span><i class="fas fa-bread-slice"></i> Углеводы (г)</span>
+				</label>
+				<label style="display: flex; align-items: center; gap: 12px; padding: 8px; cursor: pointer; border-radius: 8px; transition: background 0.2s;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='transparent'">
+					<input type="checkbox" id="printShowPrice">
+					<span><i class="fas fa-ruble-sign"></i> Цена (₽)</span>
+				</label>
+				<label style="display: flex; align-items: center; gap: 12px; padding: 8px; cursor: pointer; border-radius: 8px; transition: background 0.2s;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='transparent'">
+					<input type="checkbox" id="printShowTotals" checked>
+					<span><i class="fas fa-calculator"></i> Итоговые строки (всего за день)</span>
+				</label>
+				<label style="display: flex; align-items: center; gap: 12px; padding: 8px; cursor: pointer; border-radius: 8px; transition: background 0.2s;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='transparent'">
+					<input type="checkbox" id="printShowApproval" checked>
+					<span><i class="fas fa-file-signature"></i> Подписи (утвердил, согласовано)</span>
+				</label>
+			</div>
+			
+			<div style="background: #f8fafc; padding: 12px 16px; border-radius: 12px; margin-bottom: 20px;">
+				<p style="font-size: 12px; color: #64748b; margin: 0;">
+					<i class="fas fa-info-circle"></i> 
+					Выберите поля, которые должны отображаться при печати. 
+					Неотмеченные поля будут скрыты.
+				</p>
+			</div>
+			
+			<div class="modal-buttons" style="display: flex; gap: 12px; justify-content: flex-end; margin-top: 20px;">
+				<button id="dailyPrintSettingsCancel" class="btn btn-secondary">Отмена</button>
+				<button id="dailyPrintSettingsApply" class="btn btn-primary"><i class="fas fa-print"></i> Применить и печатать</button>
+			</div>
+		</div>
+	</div>
+
 </body>
 </html>

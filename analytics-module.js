@@ -12,6 +12,50 @@
  * ============================================================
  */
 
+// ============================================================
+// ДОПОЛНИТЕЛЬНЫЕ СТИЛИ ДЛЯ ДЕТАЛЬНОЙ СВОДКИ
+// ============================================================
+const DETAIL_STYLES = `
+<style>
+    .day-detail-enter {
+        animation: dayDetailSlideIn 0.3s ease-out;
+    }
+    
+    @keyframes dayDetailSlideIn {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    .day-detail-card {
+        transition: all 0.2s ease;
+    }
+    
+    .day-detail-card:hover {
+        transform: translateX(4px);
+        box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+</style>
+`;
+
+// Добавляем стили при инициализации
+function injectDetailStyles() {
+    if (!document.getElementById('dayDetailStyles')) {
+        const styleEl = document.createElement('style');
+        styleEl.id = 'dayDetailStyles';
+        styleEl.textContent = DETAIL_STYLES;
+        document.head.appendChild(styleEl);
+    }
+}
+
+// Вызываем в init()
+injectDetailStyles();
+
 const AnalyticsModule = (function() {
     'use strict';
 
@@ -549,99 +593,104 @@ const AnalyticsModule = (function() {
     // ОТОБРАЖЕНИЕ АНАЛИТИКИ
     // ============================================================
 
-    function renderAnalytics() {
-        const container = document.getElementById('analyticsContent');
-        if (!container) return;
+	function renderAnalytics() {
+		const container = document.getElementById('analyticsContent');
+		if (!container) return;
 
-        const data = state.templateMenuData;
-        if (!data || !data.weeks || Object.keys(data.weeks).length === 0) {
-            container.innerHTML = `
-                <div style="padding: 60px 40px; text-align: center; color: #94a3b8;">
-                    <i class="fas fa-chart-pie fa-4x" style="margin-bottom: 16px; color: #cbd5e1;"></i>
-                    <h3 style="color: #0f172a; margin-bottom: 8px;">Нет данных для анализа</h3>
-                    <p style="font-size: 0.9rem;">Загрузите типовое меню на вкладке «Редактор меню»</p>
-                </div>
-            `;
-            return;
-        }
+		const data = state.templateMenuData;
+		if (!data || !data.weeks || Object.keys(data.weeks).length === 0) {
+			container.innerHTML = `
+				<div style="padding: 60px 40px; text-align: center; color: #94a3b8;">
+					<i class="fas fa-chart-pie fa-4x" style="margin-bottom: 16px; color: #cbd5e1;"></i>
+					<h3 style="color: #0f172a; margin-bottom: 8px;">Нет данных для анализа</h3>
+					<p style="font-size: 0.9rem;">Загрузите типовое меню на вкладке «Редактор меню»</p>
+				</div>
+			`;
+			return;
+		}
 
-        const stats = getMenuStatistics();
-        if (!stats) {
-            container.innerHTML = '<p style="padding: 40px; text-align: center; color: #94a3b8;">Ошибка при анализе данных</p>';
-            return;
-        }
+		const stats = getMenuStatistics();
+		if (!stats) {
+			container.innerHTML = '<p style="padding: 40px; text-align: center; color: #94a3b8;">Ошибка при анализе данных</p>';
+			return;
+		}
 
-        // Обновляем глобальные переменные для отображения
-        state.flatItems = buildFlatFromTemplate(data);
-        state.allViolations = runAllRules(data);
+		// Обновляем глобальные переменные для отображения
+		state.flatItems = buildFlatFromTemplate(data);
+		state.allViolations = runAllRules(data);
 
-        let html = '';
+		let html = '';
 
-        // ===== ШАПКА =====
-        html += `
-            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 24px;">
-                <div style="display: flex; align-items: center; gap: 16px;">
-                    <div style="width: 48px; height: 48px; background: linear-gradient(135deg, #f59e0b, #d97706); border-radius: 16px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);">
-                        <i class="fas fa-chart-line" style="color: white; font-size: 20px;"></i>
-                    </div>
-                    <div>
-                        <h3 style="font-size: 1.2rem; font-weight: 700; color: #0f172a; margin: 0;">Аналитика меню</h3>
-                        <p style="font-size: 0.75rem; color: #64748b; margin: 0;">Детальный анализ типового меню</p>
-                    </div>
-                </div>
-                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-                    <button id="analyticsExportHTML" class="btn btn-primary" style="padding: 6px 16px; font-size: 0.75rem;">
-                        <i class="fas fa-file-code"></i> HTML
-                    </button>
-                    <button id="analyticsExportPDF" class="btn btn-danger" style="padding: 6px 16px; font-size: 0.75rem; background: linear-gradient(135deg, #dc2626, #ef4444);">
-                        <i class="fas fa-file-pdf"></i> PDF
-                    </button>
-                    <button id="analyticsRefresh" class="btn btn-secondary" style="padding: 6px 16px; font-size: 0.75rem;">
-                        <i class="fas fa-sync-alt"></i> Обновить
-                    </button>
-                </div>
-            </div>
-        `;
+		// ===== ШАПКА =====
+		html += `
+			<div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 24px;">
+				<div style="display: flex; align-items: center; gap: 16px;">
+					<div style="width: 48px; height: 48px; background: linear-gradient(135deg, #f59e0b, #d97706); border-radius: 16px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);">
+						<i class="fas fa-chart-line" style="color: white; font-size: 20px;"></i>
+					</div>
+					<div>
+						<h3 style="font-size: 1.2rem; font-weight: 700; color: #0f172a; margin: 0;">Аналитика меню</h3>
+						<p style="font-size: 0.75rem; color: #64748b; margin: 0;">Детальный анализ типового меню</p>
+					</div>
+				</div>
+				<div style="display: flex; gap: 8px; flex-wrap: wrap;">
+					<button id="analyticsExportHTML" class="btn btn-primary" style="padding: 6px 16px; font-size: 0.75rem;">
+						<i class="fas fa-file-code"></i> HTML
+					</button>
+					<button id="analyticsExportPDF" class="btn btn-danger" style="padding: 6px 16px; font-size: 0.75rem; background: linear-gradient(135deg, #dc2626, #ef4444);">
+						<i class="fas fa-file-pdf"></i> PDF
+					</button>
+					<button id="analyticsRefresh" class="btn btn-secondary" style="padding: 6px 16px; font-size: 0.75rem;">
+						<i class="fas fa-sync-alt"></i> Обновить
+					</button>
+				</div>
+			</div>
+		`;
 
-        // ===== ВКЛАДКИ =====
-        html += `
-            <div style="display: flex; gap: 4px; background: #f1f5f9; border-radius: 12px; padding: 4px; margin-bottom: 20px; flex-wrap: wrap;">
-                <button class="analytics-tab active" data-tab="overview" style="padding: 8px 16px; border: none; border-radius: 8px; background: white; font-weight: 600; font-size: 0.8rem; cursor: pointer; color: #059669; box-shadow: 0 2px 8px rgba(0,0,0,0.06);">
-                    <i class="fas fa-home"></i> Обзор
-                </button>
-                <button class="analytics-tab" data-tab="days" style="padding: 8px 16px; border: none; border-radius: 8px; background: transparent; font-weight: 600; font-size: 0.8rem; cursor: pointer; color: #64748b;">
-                    <i class="fas fa-calendar-day"></i> По дням
-                </button>
-                <button class="analytics-tab" data-tab="meals" style="padding: 8px 16px; border: none; border-radius: 8px; background: transparent; font-weight: 600; font-size: 0.8rem; cursor: pointer; color: #64748b;">
-                    <i class="fas fa-utensils"></i> Приёмы пищи
-                </button>
-                <button class="analytics-tab" data-tab="violations" style="padding: 8px 16px; border: none; border-radius: 8px; background: transparent; font-weight: 600; font-size: 0.8rem; cursor: pointer; color: #64748b;">
-                    <i class="fas fa-exclamation-triangle"></i> Нарушения
-                </button>
-                <button class="analytics-tab" data-tab="bju" style="padding: 8px 16px; border: none; border-radius: 8px; background: transparent; font-weight: 600; font-size: 0.8rem; cursor: pointer; color: #64748b;">
-                    <i class="fas fa-balance-scale"></i> БЖУ
-                </button>
-            </div>
-        `;
+		// ===== ВКЛАДКИ =====
+		html += `
+			<div style="display: flex; gap: 4px; background: #f1f5f9; border-radius: 12px; padding: 4px; margin-bottom: 20px; flex-wrap: wrap;">
+				<button class="analytics-tab active" data-tab="overview" style="padding: 8px 16px; border: none; border-radius: 8px; background: white; font-weight: 600; font-size: 0.8rem; cursor: pointer; color: #059669; box-shadow: 0 2px 8px rgba(0,0,0,0.06);">
+					<i class="fas fa-home"></i> Обзор
+				</button>
+				<button class="analytics-tab" data-tab="days" style="padding: 8px 16px; border: none; border-radius: 8px; background: transparent; font-weight: 600; font-size: 0.8rem; cursor: pointer; color: #64748b;">
+					<i class="fas fa-calendar-day"></i> По дням
+				</button>
+				<button class="analytics-tab" data-tab="meals" style="padding: 8px 16px; border: none; border-radius: 8px; background: transparent; font-weight: 600; font-size: 0.8rem; cursor: pointer; color: #64748b;">
+					<i class="fas fa-utensils"></i> Приёмы пищи
+				</button>
+				<button class="analytics-tab" data-tab="violations" style="padding: 8px 16px; border: none; border-radius: 8px; background: transparent; font-weight: 600; font-size: 0.8rem; cursor: pointer; color: #64748b;">
+					<i class="fas fa-exclamation-triangle"></i> Нарушения
+				</button>
+				<button class="analytics-tab" data-tab="bju" style="padding: 8px 16px; border: none; border-radius: 8px; background: transparent; font-weight: 600; font-size: 0.8rem; cursor: pointer; color: #64748b;">
+					<i class="fas fa-balance-scale"></i> БЖУ
+				</button>
+			</div>
+		`;
 
-        // ===== КОНТЕНТ ВКЛАДОК =====
-        html += `<div id="analyticsTabContent">`;
-        html += renderOverviewTab(stats);
-        html += renderDaysTab(stats);
-        html += renderMealsTab(stats);
-        html += renderViolationsTab(stats);
-        html += renderBJUTab(stats);
-        html += `</div>`;
+		// ===== КОНТЕНТ ВКЛАДОК =====
+		html += `<div id="analyticsTabContent">`;
+		html += renderOverviewTab(stats);
+		html += renderDaysTab(stats);
+		html += renderMealsTab(stats);
+		html += renderViolationsTab(stats);
+		html += renderBJUTab(stats);
+		html += `</div>`;
 
-        container.innerHTML = html;
+		container.innerHTML = html;
 
-        // ===== ПОДКЛЮЧАЕМ СОБЫТИЯ =====
-        attachAnalyticsEvents();
-
-        // Обновляем информацию о лагере
-        updateCampInfo();
-    }
-
+		// ===== ПОДКЛЮЧАЕМ СОБЫТИЯ =====
+		attachAnalyticsEvents();
+		
+		// ✅ ДОБАВЛЯЕМ ПРИВЯЗКУ ОБРАБОТЧИКОВ ДЛЯ КАРТОЧЕК ДНЕЙ
+		// Используем setTimeout, чтобы гарантировать, что DOM обновлён
+		setTimeout(function() {
+			attachDayCardEvents();
+		}, 100);
+		
+		// Обновляем информацию о лагере
+		updateCampInfo();
+	}
     // ============================================================
     // РЕНДЕРИНГ ВКЛАДОК
     // ============================================================
@@ -667,8 +716,29 @@ const AnalyticsModule = (function() {
 
 		const scoreColor = qualityScore >= 90 ? '#10b981' : qualityScore >= 70 ? '#f59e0b' : '#dc2626';
 
-		// Формируем HTML как строку, а не возвращаем сразу
+		// ✅ ФОРМИРУЕМ HTML С КОРРЕКТНЫМ СОСТОЯНИЕМ КНОПОК
+		const isDaily = state._sourceType === 'daily';
+		const dailyNum = state._dailyMenuNumber || '?';
+		
 		let html = `
+			<div style="display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; align-items: center; background: #f8fafc; padding: 12px 16px; border-radius: 12px;">
+				<span style="font-weight: 600; font-size: 0.85rem; color: #0f172a;">
+					<i class="fas fa-database"></i> Источник данных:
+				</span>
+				<button id="analyticsSourceTypical" class="btn ${!isDaily ? 'btn-primary' : 'btn-secondary'}" style="padding: 4px 16px; font-size: 0.75rem;">
+					<i class="fas fa-calendar-alt"></i> Типовое меню
+				</button>
+				<button id="analyticsSourceDaily" class="btn ${isDaily ? 'btn-primary' : 'btn-secondary'}" style="padding: 4px 16px; font-size: 0.75rem;">
+					<i class="fas fa-calendar-day"></i> Ежедневное меню #${dailyNum}
+				</button>
+				<select id="analyticsDailySelect" style="padding: 4px 12px; border-radius: 8px; border: 1px solid #e2e8f0; background: white; font-size: 0.75rem; ${!isDaily ? 'display:none;' : ''}">
+					${getDailyMenuOptions()}
+				</select>
+				<span style="font-size: 0.7rem; color: #94a3b8; margin-left: auto;">
+					${isDaily ? '📌 Анализ по выбранному дню' : '📊 Анализ по всему типовому меню'}
+				</span>
+			</div>
+			
 			<div class="analytics-panel" data-tab="overview">
 				<!-- Карточки с общей статистикой -->
 				<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 24px;">
@@ -833,6 +903,57 @@ const AnalyticsModule = (function() {
 	}
 
 	// ============================================================
+	// ВЫБОР ИСТОЧНИКА ДАННЫХ ДЛЯ АНАЛИТИКИ
+	// ============================================================
+
+	function getDailyMenuOptions() {
+		// Получаем список сохранённых вариантов из модуля ежедневного меню
+		let options = '';
+		if (window.DailyMenuModule) {
+			const dailyState = window.DailyMenuModule.getState();
+			if (dailyState && dailyState.savedVariants && dailyState.savedVariants.length > 0) {
+				for (let i = 0; i < dailyState.savedVariants.length; i++) {
+					const v = dailyState.savedVariants[i];
+					const label = `${v.name || 'Вариант'} (Меню #${v.menuNumber || '?'})`;
+					options += `<option value="${i}">${label}</option>`;
+				}
+			}
+		}
+		if (!options) {
+			options = '<option value="">Нет сохранённых вариантов</option>';
+		}
+		return options;
+	}
+
+	function loadDailyMenuForAnalytics(index) {
+		if (!window.DailyMenuModule) return null;
+		const dailyState = window.DailyMenuModule.getState();
+		if (!dailyState || !dailyState.savedVariants || index >= dailyState.savedVariants.length) return null;
+		
+		const variant = dailyState.savedVariants[index];
+		if (!variant || !variant.items) return null;
+		
+		// Преобразуем данные ежедневного меню в структуру, понятную аналитике
+		const data = { weeks: {} };
+		const week = variant.week || 1;
+		const day = variant.day || 1;
+		data.weeks[week] = {};
+		data.weeks[week][day] = {
+			breakfast: variant.items.breakfast || { items: [] },
+			breakfast2: variant.items.breakfast2 || { items: [] },
+			lunch: variant.items.lunch || { items: [] },
+			afternoonSnack: variant.items.afternoonSnack || { items: [] },
+			dinner: variant.items.dinner || { items: [] },
+			dinner2: variant.items.dinner2 || { items: [] }
+		};
+		
+		state._dailyMenuNumber = variant.menuNumber || '?';
+		state._dailyVariantName = variant.name || 'Ежедневное меню';
+		
+		return data;
+	}
+
+	// ============================================================
 	// ПОДРОБНЫЙ ОТЧЁТ ПО САНПИН
 	// ============================================================
 
@@ -973,52 +1094,501 @@ const AnalyticsModule = (function() {
 		});
 	}
 
-    function renderDaysTab(stats) {
-        const days = Object.values(stats.days).sort((a, b) => a.week - b.week || a.day - a.day);
-        
-        if (days.length === 0) {
-            return `<div class="analytics-panel" data-tab="days"><p style="padding: 20px; text-align: center; color: #94a3b8;">Нет данных по дням</p></div>`;
-        }
+	function renderDaysTab(stats) {
+		const days = Object.values(stats.days).sort((a, b) => a.week - b.week || a.day - a.day);
+		
+		if (days.length === 0) {
+			return `<div class="analytics-panel" data-tab="days" style="display: none;">
+				<p style="padding: 20px; text-align: center; color: #94a3b8;">Нет данных по дням</p>
+			</div>`;
+		}
 
-        // Находим min/max для цветовой шкалы
-        const weights = days.map(d => d.weight);
-        const maxWeight = Math.max(...weights, 1);
-        const minWeight = Math.min(...weights);
+		// Находим min/max для цветовой шкалы
+		const weights = days.map(d => d.weight);
+		const maxWeight = Math.max(...weights, 1);
+		const minWeight = Math.min(...weights);
 
-        let html = `<div class="analytics-panel" data-tab="days" style="display: none;">`;
-        html += `<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px;">`;
+		let html = `<div class="analytics-panel" data-tab="days" style="display: none;">`;
+		html += `<div style="margin-bottom: 12px; font-size: 0.85rem; color: #64748b;">
+			<i class="fas fa-info-circle"></i> 
+			Кликните по дню для просмотра подробной сводки и рекомендаций
+		</div>`;
+		html += `<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px;">`;
 
-        for (const day of days) {
-            const color = getColorByValue(day.weight, minWeight, maxWeight);
-            const violations = state.allViolations.filter(v => v.week === day.week && v.day === day.day);
-            const hasViolations = violations.length > 0;
-            const hasCritical = violations.some(v => v.code === 15);
+		for (const day of days) {
+			const color = getColorByValue(day.weight, minWeight, maxWeight);
+			const violations = state.allViolations.filter(v => v.week === day.week && v.day === day.day);
+			const hasViolations = violations.length > 0;
+			const hasCritical = violations.some(v => v.code === 15);
 
-            html += `
-                <div style="background: white; border-radius: 16px; padding: 16px; border: 2px solid ${hasCritical ? '#dc2626' : hasViolations ? '#f59e0b' : '#e2e8f0'}; transition: all 0.2s; box-shadow: 0 1px 3px rgba(0,0,0,0.02);">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                        <div style="font-weight: 700; color: #0f172a;">Неделя ${day.week}, День ${day.day}</div>
-                        ${hasCritical ? '<span style="font-size: 0.6rem; background: #fee2e2; color: #dc2626; padding: 2px 8px; border-radius: 10px;">❌ Критично</span>' : 
-                         hasViolations ? '<span style="font-size: 0.6rem; background: #fef3c7; color: #d97706; padding: 2px 8px; border-radius: 10px;">⚠️</span>' :
-                         '<span style="font-size: 0.6rem; background: #dcfce7; color: #16a34a; padding: 2px 8px; border-radius: 10px;">✅</span>'}
-                    </div>
-                    <div style="font-size: 0.85rem; color: #64748b;">
-                        <div style="display: flex; justify-content: space-between;"><span>🍽️ Блюд:</span><span style="font-weight: 600; color: #0f172a;">${day.dishes}</span></div>
-                        <div style="display: flex; justify-content: space-between;"><span>⚖️ Вес:</span><span style="font-weight: 600; color: #0f172a;">${day.weight.toFixed(0)} г</span></div>
-                        <div style="display: flex; justify-content: space-between;"><span>🔥 Ккал:</span><span style="font-weight: 600; color: #0f172a;">${day.calories.toFixed(0)}</span></div>
-                        <div style="display: flex; justify-content: space-between;"><span>💰 Цена:</span><span style="font-weight: 600; color: #f59e0b;">${day.price.toFixed(2)} ₽</span></div>
-                    </div>
-                    <div style="margin-top: 8px; height: 4px; background: #e2e8f0; border-radius: 2px; overflow: hidden;">
-                        <div style="height: 100%; width: ${(day.weight / maxWeight * 100).toFixed(0)}%; background: ${color}; border-radius: 2px;"></div>
-                    </div>
-                    <div style="font-size: 0.6rem; color: #94a3b8; margin-top: 4px;">${violations.length > 0 ? `Нарушений: ${violations.length}` : 'Без нарушений'}</div>
-                </div>
-            `;
-        }
+			html += `
+				<div class="day-card" data-week="${day.week}" data-day="${day.day}" 
+					 style="background: white; border-radius: 16px; padding: 16px; border: 2px solid ${hasCritical ? '#dc2626' : hasViolations ? '#f59e0b' : '#e2e8f0'}; transition: all 0.3s; box-shadow: 0 1px 3px rgba(0,0,0,0.02); cursor: pointer;">
+					<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+						<div style="font-weight: 700; color: #0f172a;">Неделя ${day.week}, День ${day.day}</div>
+						${hasCritical ? '<span style="font-size: 0.6rem; background: #fee2e2; color: #dc2626; padding: 2px 8px; border-radius: 10px;">❌ Критично</span>' : 
+						 hasViolations ? '<span style="font-size: 0.6rem; background: #fef3c7; color: #d97706; padding: 2px 8px; border-radius: 10px;">⚠️</span>' :
+						 '<span style="font-size: 0.6rem; background: #dcfce7; color: #16a34a; padding: 2px 8px; border-radius: 10px;">✅</span>'}
+					</div>
+					<div style="font-size: 0.85rem; color: #64748b;">
+						<div style="display: flex; justify-content: space-between;"><span>🍽️ Блюд:</span><span style="font-weight: 600; color: #0f172a;">${day.dishes}</span></div>
+						<div style="display: flex; justify-content: space-between;"><span>⚖️ Вес:</span><span style="font-weight: 600; color: #0f172a;">${day.weight.toFixed(0)} г</span></div>
+						<div style="display: flex; justify-content: space-between;"><span>🔥 Ккал:</span><span style="font-weight: 600; color: #0f172a;">${day.calories.toFixed(0)}</span></div>
+						<div style="display: flex; justify-content: space-between;"><span>💰 Цена:</span><span style="font-weight: 600; color: #f59e0b;">${day.price.toFixed(2)} ₽</span></div>
+					</div>
+					<div style="margin-top: 8px; height: 4px; background: #e2e8f0; border-radius: 2px; overflow: hidden;">
+						<div style="height: 100%; width: ${(day.weight / maxWeight * 100).toFixed(0)}%; background: ${color}; border-radius: 2px;"></div>
+					</div>
+					<div style="font-size: 0.6rem; color: #94a3b8; margin-top: 4px;">${violations.length > 0 ? `Нарушений: ${violations.length}` : 'Без нарушений'}</div>
+					${violations.length > 0 ? `<div style="margin-top: 6px; font-size: 0.65rem; color: #d97706;"><i class="fas fa-arrow-right"></i> Кликните для деталей</div>` : ''}
+				</div>
+			`;
+		}
 
-        html += `</div></div>`;
-        return html;
-    }
+		html += `</div>`;
+
+		// Контейнер для детальной информации о дне
+		html += `
+			<div id="dayDetailContainer" style="margin-top: 20px; display: none;">
+				<div style="background: #f8fafc; border-radius: 16px; padding: 20px; border: 2px solid #e2e8f0;">
+					<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+						<h4 id="dayDetailTitle" style="margin: 0; color: #0f172a;">📋 Детальная сводка</h4>
+						<button id="closeDayDetail" style="background: none; border: none; font-size: 20px; cursor: pointer; color: #94a3b8;">&times;</button>
+					</div>
+					<div id="dayDetailContent"></div>
+				</div>
+			</div>
+		`;
+
+		html += `</div>`;
+		
+		// ✅ ВОЗВРАЩАЕМ HTML, НО НЕ ДОБАВЛЯЕМ ОБРАБОТЧИКИ ЗДЕСЬ
+		// Они будут добавлены после вставки HTML в DOM
+		return html;
+	}
+	// ============================================================
+	// ДЕТАЛЬНАЯ СВОДКА ПО ДНЮ
+	// ============================================================
+
+	function getDayRecommendations(day, violations) {
+		const recommendations = [];
+		
+		// Проверяем общий вес
+		if (day.weight > 0 && day.weight < 500) {
+			recommendations.push({
+				type: 'weight',
+				severity: 'warning',
+				text: `Общий вес дня (${day.weight.toFixed(0)}г) ниже рекомендуемого минимума (500г). Рекомендуется увеличить порции или добавить блюда.`
+			});
+		}
+		
+		// Проверяем калорийность
+		if (day.calories > 0 && day.calories < 1175) { // 470+705 = 1175 (завтрак + обед)
+			recommendations.push({
+				type: 'calories',
+				severity: 'warning',
+				text: `Калорийность дня (${day.calories.toFixed(0)}ккал) ниже рекомендуемой. Добавьте более калорийные продукты или увеличьте порции.`
+			});
+		}
+		
+		// Проверяем БЖУ
+		const dayItems = state.flatItems.filter(i => i.week === day.week && i.day === day.day);
+		let totalProteins = 0, totalFats = 0, totalCarbs = 0;
+		for (const item of dayItems) {
+			totalProteins += item.proteins || 0;
+			totalFats += item.fats || 0;
+			totalCarbs += item.carbs || 0;
+		}
+		const totalBJU = totalProteins + totalFats + totalCarbs;
+		if (totalBJU > 0 && totalBJU > day.weight * 0.7) {
+			recommendations.push({
+				type: 'bju',
+				severity: 'error',
+				text: `Сумма БЖУ (${totalBJU.toFixed(1)}г) составляет ${(totalBJU / day.weight * 100).toFixed(0)}% от веса дня. Рекомендуется снизить БЖУ или увеличить вес блюд (правило 15).`
+			});
+		}
+		
+		// Добавляем нарушения из правил
+		for (const v of violations) {
+			if (v.code === 15) {
+				recommendations.push({
+					type: 'rule15',
+					severity: 'critical',
+					text: `Критическая ошибка: ${v.details}`
+				});
+			} else if (v.code === 17) {
+				recommendations.push({
+					type: 'duplicate',
+					severity: 'warning',
+					text: `Обнаружен дубликат блюда: ${v.details}`
+				});
+			} else if (v.code <= 14) {
+				const mealName = v.meal ? getMealName(v.meal) : '';
+				recommendations.push({
+					type: 'weight',
+					severity: 'warning',
+					text: `${mealName ? mealName + ': ' : ''}${v.details}`
+				});
+			}
+		}
+		
+		// Если нет рекомендаций, добавляем положительную
+		if (recommendations.length === 0) {
+			recommendations.push({
+				type: 'ok',
+				severity: 'ok',
+				text: '✅ Все показатели в норме. Меню сбалансировано и соответствует требованиям.'
+			});
+		}
+		
+		return recommendations;
+	}
+
+	function getDayDetailedInfo(week, day) {
+		// Находим данные по дню
+		const dayData = state.daysStats ? Object.values(state.daysStats).find(d => d.week === week && d.day === day) : null;
+		if (!dayData) return null;
+		
+		// Находим блюда этого дня
+		const dayItems = state.flatItems.filter(i => i.week === week && i.day === day);
+		const violations = state.allViolations.filter(v => v.week === week && v.day === day);
+		const recommendations = getDayRecommendations(dayData, violations);
+		
+		// Группируем блюда по приёмам пищи
+		const meals = {};
+		for (const item of dayItems) {
+			if (!meals[item.meal]) meals[item.meal] = [];
+			meals[item.meal].push(item);
+		}
+		
+		return {
+			dayData: dayData,
+			items: dayItems,
+			meals: meals,
+			violations: violations,
+			recommendations: recommendations
+		};
+	}
+
+	function renderDayDetail(week, day) {
+		console.log(`📊 Рендеринг деталей для Неделя ${week}, День ${day}`);
+		
+		// Проверяем, что daysStats существует
+		if (!state.daysStats || Object.keys(state.daysStats).length === 0) {
+			const stats = getMenuStatistics();
+			if (stats) {
+				state.daysStats = stats.days;
+			}
+		}
+		
+		const detail = getDayDetailedInfo(week, day);
+		if (!detail) {
+			document.getElementById('dayDetailContent').innerHTML = '<p style="color: #94a3b8;">Данные не найдены</p>';
+			return;
+		}
+		
+		const container = document.getElementById('dayDetailContainer');
+		const content = document.getElementById('dayDetailContent');
+		const title = document.getElementById('dayDetailTitle');
+		
+		if (!container || !content || !title) {
+			console.error('❌ Не найдены элементы для деталей дня');
+			return;
+		}
+		
+		// Определяем статус дня
+		const hasCritical = detail.violations.some(v => v.code === 15);
+		const hasWarnings = detail.violations.some(v => v.code !== 15 && v.code !== 17);
+		const hasDuplicates = detail.violations.some(v => v.code === 17);
+		
+		let statusColor = '#10b981';
+		let statusIcon = '✅';
+		let statusText = 'Все в норме';
+		
+		if (hasCritical) {
+			statusColor = '#dc2626';
+			statusIcon = '❌';
+			statusText = 'Критические ошибки';
+		} else if (hasWarnings || hasDuplicates) {
+			statusColor = '#f59e0b';
+			statusIcon = '⚠️';
+			statusText = 'Есть нарушения';
+		}
+		
+		title.textContent = `📋 Детальная сводка: Неделя ${week}, День ${day}`;
+		container.style.display = 'block';
+		
+		const mealNames = {
+			'breakfast': '🌅 Завтрак',
+			'breakfast2': '🍎 Второй завтрак',
+			'lunch': '🍲 Обед',
+			'afternoonSnack': '🍪 Полдник',
+			'dinner': '🌙 Ужин',
+			'dinner2': '🥛 Второй ужин'
+		};
+		
+		const mealColors = {
+			'breakfast': '#f59e0b',
+			'breakfast2': '#f97316',
+			'lunch': '#ef4444',
+			'afternoonSnack': '#10b981',
+			'dinner': '#8b5cf6',
+			'dinner2': '#ec4899'
+		};
+		
+		// --- ШАПКА СВОДКИ ---
+		let html = `
+			<div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 20px; padding: 16px 20px; background: linear-gradient(135deg, ${statusColor}10, ${statusColor}05); border-radius: 16px; border: 1px solid ${statusColor}30;">
+				<div>
+					<div style="font-size: 1.1rem; font-weight: 700; color: #0f172a;">
+						${statusIcon} Статус: <span style="color: ${statusColor};">${statusText}</span>
+					</div>
+					<div style="font-size: 0.85rem; color: #64748b; margin-top: 4px;">
+						${detail.dayData.dishes} блюд • ${detail.dayData.weight.toFixed(0)} г • ${detail.dayData.calories.toFixed(0)} ккал
+					</div>
+				</div>
+				<div style="display: flex; gap: 12px; flex-wrap: wrap;">
+					${hasCritical ? `<span style="padding: 4px 14px; background: #fef2f2; color: #dc2626; border-radius: 20px; font-size: 0.75rem; font-weight: 600;">🔴 Критических: ${detail.violations.filter(v => v.code === 15).length}</span>` : ''}
+					${hasWarnings ? `<span style="padding: 4px 14px; background: #fffbeb; color: #d97706; border-radius: 20px; font-size: 0.75rem; font-weight: 600;">🟡 Предупреждений: ${detail.violations.filter(v => v.code !== 15 && v.code !== 17).length}</span>` : ''}
+					${hasDuplicates ? `<span style="padding: 4px 14px; background: #fdf2f8; color: #ec4899; border-radius: 20px; font-size: 0.75rem; font-weight: 600;">🔄 Дубликатов: ${detail.violations.filter(v => v.code === 17).length}</span>` : ''}
+					${!hasCritical && !hasWarnings && !hasDuplicates ? `<span style="padding: 4px 14px; background: #dcfce7; color: #16a34a; border-radius: 20px; font-size: 0.75rem; font-weight: 600;">✅ Все правила выполнены</span>` : ''}
+				</div>
+			</div>
+		`;
+
+		// --- СТАТИСТИКА ДНЯ (КАРТОЧКИ) ---
+		html += `
+			<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 20px;">
+				<div style="background: linear-gradient(135deg, #f8fafc, #f1f5f9); padding: 14px; border-radius: 14px; text-align: center; border: 1px solid #e2e8f0;">
+					<div style="font-size: 1.6rem; font-weight: 800; color: #0f172a;">${detail.dayData.dishes}</div>
+					<div style="font-size: 0.7rem; color: #64748b;">🍽️ Блюд</div>
+				</div>
+				<div style="background: linear-gradient(135deg, #f8fafc, #f1f5f9); padding: 14px; border-radius: 14px; text-align: center; border: 1px solid #e2e8f0;">
+					<div style="font-size: 1.6rem; font-weight: 800; color: #0f172a;">${detail.dayData.weight.toFixed(0)}</div>
+					<div style="font-size: 0.7rem; color: #64748b;">⚖️ Вес (г)</div>
+				</div>
+				<div style="background: linear-gradient(135deg, #f8fafc, #f1f5f9); padding: 14px; border-radius: 14px; text-align: center; border: 1px solid #e2e8f0;">
+					<div style="font-size: 1.6rem; font-weight: 800; color: #0f172a;">${detail.dayData.calories.toFixed(0)}</div>
+					<div style="font-size: 0.7rem; color: #64748b;">🔥 Калории</div>
+				</div>
+				<div style="background: linear-gradient(135deg, #f8fafc, #f1f5f9); padding: 14px; border-radius: 14px; text-align: center; border: 1px solid #e2e8f0;">
+					<div style="font-size: 1.6rem; font-weight: 800; color: #f59e0b;">${detail.dayData.price.toFixed(2)} ₽</div>
+					<div style="font-size: 0.7rem; color: #64748b;">💰 Стоимость</div>
+				</div>
+			</div>
+		`;
+
+		// --- БЛЮДА ПО ПРИЁМАМ ПИЩИ ---
+		html += `
+			<div style="margin-bottom: 16px; display: flex; align-items: center; gap: 10px;">
+				<span style="font-weight: 700; font-size: 1rem; color: #0f172a;">📋 Состав дня</span>
+				<span style="font-size: 0.75rem; color: #94a3b8;">${Object.values(detail.meals).reduce((sum, items) => sum + items.length, 0)} блюд</span>
+			</div>
+			<div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px;">
+		`;
+		
+		// Сортируем приёмы пищи в правильном порядке
+		const mealOrder = ['breakfast', 'breakfast2', 'lunch', 'afternoonSnack', 'dinner', 'dinner2'];
+		const sortedMeals = {};
+		for (const mt of mealOrder) {
+			if (detail.meals[mt]) {
+				sortedMeals[mt] = detail.meals[mt];
+			}
+		}
+		
+		for (const [mealType, items] of Object.entries(sortedMeals)) {
+			const color = mealColors[mealType] || '#64748b';
+			const mealName = mealNames[mealType] || mealType;
+			
+			html += `
+				<div style="background: white; border-radius: 14px; border: 1px solid #e2e8f0; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.02);">
+					<div style="padding: 10px 16px; background: linear-gradient(135deg, ${color}15, ${color}05); border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center;">
+						<span style="font-weight: 600; color: #0f172a; font-size: 0.9rem;">
+							<span style="color: ${color};">${mealName}</span>
+							<span style="font-size: 0.7rem; color: #94a3b8; font-weight: 400;">(${items.length} блюд)</span>
+						</span>
+						<span style="font-size: 0.7rem; color: #64748b;">
+							${items.reduce((sum, i) => sum + (i.weight || 0), 0).toFixed(0)} г • 
+							${items.reduce((sum, i) => sum + (i.calories || 0), 0).toFixed(0)} ккал
+						</span>
+					</div>
+					<div style="display: grid; grid-template-columns: 1fr; gap: 4px; padding: 8px 12px;">
+			`;
+			
+			for (const item of items) {
+				// Проверяем, есть ли у блюда ошибка
+				const hasError = detail.violations.some(v => 
+					v.meal === mealType && v.itemIndex === detail.items.indexOf(item) && v.code === 15
+				);
+				const hasWarning = detail.violations.some(v => 
+					v.meal === mealType && v.itemIndex === detail.items.indexOf(item) && v.code !== 15 && v.code !== 17
+				);
+				
+				const borderColor = hasError ? '#dc2626' : hasWarning ? '#f59e0b' : '#e2e8f0';
+				const bgColor = hasError ? '#fef2f2' : hasWarning ? '#fffbeb' : 'white';
+				
+				html += `
+					<div style="display: flex; justify-content: space-between; align-items: center; padding: 6px 12px; background: ${bgColor}; border-radius: 8px; border-left: 3px solid ${borderColor}; transition: all 0.2s; font-size: 0.85rem;">
+						<div style="display: flex; align-items: center; gap: 10px; overflow: hidden; flex: 1;">
+							<span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: ${borderColor}; flex-shrink: 0;"></span>
+							<span style="font-weight: 500; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+								${escapeHtml(item.name || 'Без названия')}
+								${hasError ? '<span style="color: #dc2626; font-size: 0.65rem; margin-left: 6px;">⚠️ БЖУ > вес</span>' : ''}
+								${hasWarning ? '<span style="color: #f59e0b; font-size: 0.65rem; margin-left: 6px;">⚠️</span>' : ''}
+							</span>
+							<span style="font-size: 0.65rem; color: #94a3b8; white-space: nowrap;">${escapeHtml(item.section || '—')}</span>
+						</div>
+						<div style="display: flex; align-items: center; gap: 12px; font-size: 0.75rem; color: #64748b; flex-shrink: 0;">
+							${item.weight ? `<span>⚖️ ${item.weight}г</span>` : ''}
+							${item.calories ? `<span>🔥 ${item.calories}</span>` : ''}
+							${item.price ? `<span style="color: #f59e0b;">💰 ${item.price.toFixed(2)}</span>` : ''}
+						</div>
+					</div>
+				`;
+			}
+			
+			html += `
+					</div>
+				</div>
+			`;
+		}
+		
+		html += `</div>`;
+
+		// --- РЕКОМЕНДАЦИИ ---
+		const hasRecommendations = detail.recommendations.some(r => r.severity !== 'ok');
+		
+		if (hasRecommendations) {
+			html += `
+				<div style="margin-top: 16px;">
+					<div style="font-weight: 700; font-size: 1rem; color: #0f172a; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+						<i class="fas fa-lightbulb" style="color: #f59e0b;"></i>
+						Рекомендации по исправлению
+						<span style="font-size: 0.7rem; color: #94a3b8; font-weight: 400;">(${detail.recommendations.filter(r => r.severity !== 'ok').length})</span>
+					</div>
+					<div style="display: flex; flex-direction: column; gap: 8px;">
+			`;
+			
+			for (const rec of detail.recommendations) {
+				if (rec.severity === 'ok') continue;
+				
+				const severityConfig = {
+					critical: { bg: '#fef2f2', border: '#dc2626', icon: '🔴' },
+					error: { bg: '#fef2f2', border: '#dc2626', icon: '❌' },
+					warning: { bg: '#fffbeb', border: '#f59e0b', icon: '⚠️' }
+				};
+				
+				const config = severityConfig[rec.severity] || severityConfig.warning;
+				
+				html += `
+					<div style="padding: 12px 16px; background: ${config.bg}; border-left: 4px solid ${config.border}; border-radius: 10px; font-size: 0.85rem; display: flex; align-items: flex-start; gap: 10px;">
+						<span style="font-size: 1.1rem; flex-shrink: 0;">${config.icon}</span>
+						<span style="color: #1e293b; line-height: 1.5;">${rec.text}</span>
+					</div>
+				`;
+			}
+			
+			html += `
+					</div>
+				</div>
+			`;
+		} else {
+			html += `
+				<div style="margin-top: 16px; padding: 16px 20px; background: #f0fdf4; border-radius: 12px; border: 1px solid #bbf7d0; text-align: center;">
+					<span style="color: #16a34a; font-weight: 600;">✅ Все показатели в норме! Меню сбалансировано.</span>
+				</div>
+			`;
+		}
+
+		// --- ПОДВАЛ С КНОПКАМИ ---
+		html += `
+			<div style="margin-top: 20px; padding-top: 16px; border-top: 1px solid #e2e8f0; display: flex; justify-content: flex-end; gap: 10px; flex-wrap: wrap;">
+				<button onclick="document.getElementById('dayDetailContainer').style.display='none'" style="padding: 6px 18px; border: 1px solid #e2e8f0; border-radius: 20px; background: white; cursor: pointer; font-size: 0.8rem; color: #64748b; transition: all 0.2s;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='white'">
+					<i class="fas fa-times"></i> Закрыть
+				</button>
+				<button onclick="window.scrollToDayViolations(${week}, ${day})" style="padding: 6px 18px; border: none; border-radius: 20px; background: #3b82f6; cursor: pointer; font-size: 0.8rem; color: white; transition: all 0.2s;" onmouseover="this.style.background='#2563eb'" onmouseout="this.style.background='#3b82f6'">
+					<i class="fas fa-arrow-right"></i> Перейти к нарушениям
+				</button>
+			</div>
+		`;
+
+		content.innerHTML = html;
+		
+		// Прокручиваем к деталям
+		setTimeout(() => {
+			container.scrollIntoView({ behavior: 'smooth', block: 'start' });
+		}, 100);
+	}
+
+	function attachDayCardEvents() {
+		console.log('🔄 Привязка обработчиков для day-card...');
+		
+		const cards = document.querySelectorAll('.day-card');
+		console.log(`📋 Найдено карточек: ${cards.length}`);
+		
+		if (cards.length === 0) {
+			// Если карточек нет, пробуем ещё раз через 500ms
+			setTimeout(attachDayCardEvents, 500);
+			return;
+		}
+		
+		cards.forEach(card => {
+			// Удаляем старый обработчик, чтобы не было дублирования
+			card.removeEventListener('click', handleDayCardClick);
+			card.addEventListener('click', handleDayCardClick);
+		});
+		
+		// Закрытие деталей
+		const closeBtn = document.getElementById('closeDayDetail');
+		if (closeBtn) {
+			closeBtn.removeEventListener('click', closeDayDetailHandler);
+			closeBtn.addEventListener('click', closeDayDetailHandler);
+		}
+		
+		console.log('✅ Обработчики для day-card привязаны');
+	}
+
+	function handleDayCardClick(e) {
+		const card = e.currentTarget;
+		const week = parseInt(card.dataset.week);
+		const day = parseInt(card.dataset.day);
+		console.log(`🖱️ Клик по дню: Неделя ${week}, День ${day}`);
+		renderDayDetail(week, day);
+	}
+
+	function closeDayDetailHandler() {
+		document.getElementById('dayDetailContainer').style.display = 'none';
+	}
+
+	// ============================================================
+	// ОБНОВЛЕНИЕ ПРИ СМЕНЕ ИСТОЧНИКА
+	// ============================================================
+
+	function updateAnalyticsSource(sourceType, dailyIndex) {
+		state._sourceType = sourceType;
+		
+		if (sourceType === 'daily' && dailyIndex !== undefined) {
+			const dailyData = loadDailyMenuForAnalytics(dailyIndex);
+			if (dailyData) {
+				// Временно подменяем данные для аналитики
+				state._originalTemplateData = state.templateMenuData;
+				state.templateMenuData = dailyData;
+				state.flatItems = buildFlatFromTemplate(dailyData);
+				state.allViolations = runAllRules(dailyData);
+				state._dailyMenuNumber = dailyIndex;
+			}
+		} else {
+			// Восстанавливаем типовое меню
+			if (state._originalTemplateData) {
+				state.templateMenuData = state._originalTemplateData;
+				state.flatItems = buildFlatFromTemplate(state.templateMenuData);
+				state.allViolations = runAllRules(state.templateMenuData);
+			}
+		}
+		
+		// Перерисовываем аналитику
+		renderAnalytics();
+	}
 
 	function exportSanPinReport() {
 		const results = analyzeSanPinCompliance();
@@ -1604,59 +2174,144 @@ const AnalyticsModule = (function() {
     // СОБЫТИЯ
     // ============================================================
 
-    function attachAnalyticsEvents() {
-        // Переключение вкладок
-        document.querySelectorAll('.analytics-tab').forEach(tab => {
-            tab.addEventListener('click', function() {
-                const tabName = this.dataset.tab;
-                
-                // Обновляем активную вкладку
-                document.querySelectorAll('.analytics-tab').forEach(t => {
-                    t.classList.remove('active');
-                    t.style.background = 'transparent';
-                    t.style.color = '#64748b';
-                    t.style.boxShadow = 'none';
-                });
-                this.classList.add('active');
-                this.style.background = 'white';
-                this.style.color = '#059669';
-                this.style.boxShadow = '0 2px 8px rgba(0,0,0,0.06)';
+	function attachAnalyticsEvents() {
+		// Переключение вкладок
+		document.querySelectorAll('.analytics-tab').forEach(tab => {
+			tab.addEventListener('click', function() {
+				const tabName = this.dataset.tab;
+				
+				document.querySelectorAll('.analytics-tab').forEach(t => {
+					t.classList.remove('active');
+					t.style.background = 'transparent';
+					t.style.color = '#64748b';
+					t.style.boxShadow = 'none';
+				});
+				this.classList.add('active');
+				this.style.background = 'white';
+				this.style.color = '#059669';
+				this.style.boxShadow = '0 2px 8px rgba(0,0,0,0.06)';
 
-                // Показываем нужную панель
-                document.querySelectorAll('.analytics-panel').forEach(p => {
-                    p.style.display = 'none';
-                });
-                const target = document.querySelector(`.analytics-panel[data-tab="${tabName}"]`);
-                if (target) {
-                    target.style.display = 'block';
-                }
-            });
-        });
+				document.querySelectorAll('.analytics-panel').forEach(p => {
+					p.style.display = 'none';
+				});
+				const target = document.querySelector(`.analytics-panel[data-tab="${tabName}"]`);
+				if (target) {
+					target.style.display = 'block';
+				}
+			});
+		});
 
-        // Кнопка обновления
-        document.getElementById('analyticsRefresh')?.addEventListener('click', function() {
-            renderAnalytics();
-            showStatus('✅ Аналитика обновлена', 'success');
-        });
+		// Кнопка обновления
+		document.getElementById('analyticsRefresh')?.addEventListener('click', function() {
+			renderAnalytics();
+			showStatus('✅ Аналитика обновлена', 'success');
+		});
 
-        // Кнопка экспорта HTML
-        document.getElementById('analyticsExportHTML')?.addEventListener('click', function() {
-            exportAnalyticsHTML();
-        });
+		// Кнопка экспорта HTML
+		document.getElementById('analyticsExportHTML')?.addEventListener('click', function() {
+			exportAnalyticsHTML();
+		});
 
-        // Кнопка экспорта PDF
-        document.getElementById('analyticsExportPDF')?.addEventListener('click', function() {
-            exportAnalyticsPDF();
-        });
+		// Кнопка экспорта PDF
+		document.getElementById('analyticsExportPDF')?.addEventListener('click', function() {
+			exportAnalyticsPDF();
+		});
 
-        // Обновление при изменении чекбокса лагеря
-        document.getElementById('summerCampCheckbox')?.addEventListener('change', function() {
-            state.isSummerCamp = this.checked;
-            if (document.getElementById('tabAnalytics').style.display !== 'none') {
-                renderAnalytics();
-            }
-        });
-    }
+		// ✅ ДОБАВЛЯЕМ ОБРАБОТЧИКИ ДЛЯ ВЫБОРА ИСТОЧНИКА
+		const sourceTypicalBtn = document.getElementById('analyticsSourceTypical');
+		const sourceDailyBtn = document.getElementById('analyticsSourceDaily');
+		const dailySelect = document.getElementById('analyticsDailySelect');
+
+		if (sourceTypicalBtn) {
+			sourceTypicalBtn.addEventListener('click', function() {
+				// Обновляем состояние
+				state._sourceType = 'typical';
+				
+				// Обновляем внешний вид кнопок
+				this.classList.remove('btn-secondary');
+				this.classList.add('btn-primary');
+				if (sourceDailyBtn) {
+					sourceDailyBtn.classList.remove('btn-primary');
+					sourceDailyBtn.classList.add('btn-secondary');
+				}
+				if (dailySelect) {
+					dailySelect.style.display = 'none';
+				}
+				
+				// Восстанавливаем типовое меню
+				if (state._originalTemplateData) {
+					state.templateMenuData = state._originalTemplateData;
+					state.flatItems = buildFlatFromTemplate(state.templateMenuData);
+					state.allViolations = runAllRules(state.templateMenuData);
+					state._dailyMenuNumber = null;
+				}
+				
+				// Перерисовываем аналитику
+				renderAnalytics();
+				showStatus('📊 Переключено на анализ типового меню', 'success');
+			});
+		}
+
+		if (sourceDailyBtn && dailySelect) {
+			sourceDailyBtn.addEventListener('click', function() {
+				// Обновляем состояние
+				state._sourceType = 'daily';
+				
+				// Обновляем внешний вид кнопок
+				this.classList.remove('btn-secondary');
+				this.classList.add('btn-primary');
+				if (sourceTypicalBtn) {
+					sourceTypicalBtn.classList.remove('btn-primary');
+					sourceTypicalBtn.classList.add('btn-secondary');
+				}
+				dailySelect.style.display = 'inline-block';
+				
+				// Загружаем выбранный вариант
+				const selectedIndex = parseInt(dailySelect.value);
+				if (!isNaN(selectedIndex) && selectedIndex >= 0) {
+					loadDailyMenuForAnalytics(selectedIndex);
+					renderAnalytics();
+					showStatus(`📊 Переключено на ежедневное меню #${state._dailyMenuNumber || '?'}`, 'success');
+				} else {
+					showStatus('⚠️ Нет сохранённых вариантов ежедневного меню', 'warning');
+				}
+			});
+		}
+
+		if (dailySelect) {
+			dailySelect.addEventListener('change', function() {
+				if (state._sourceType === 'daily') {
+					const selectedIndex = parseInt(this.value);
+					if (!isNaN(selectedIndex) && selectedIndex >= 0) {
+						loadDailyMenuForAnalytics(selectedIndex);
+						renderAnalytics();
+						showStatus(`📊 Загружено ежедневное меню #${state._dailyMenuNumber || '?'}`, 'success');
+					}
+				}
+			});
+		}
+
+		// Обновление при изменении чекбокса лагеря
+		document.getElementById('summerCampCheckbox')?.addEventListener('change', function() {
+			state.isSummerCamp = this.checked;
+			if (document.getElementById('tabAnalytics').style.display !== 'none') {
+				renderAnalytics();
+			}
+		});
+		
+		document.querySelectorAll('.analytics-tab').forEach(tab => {
+			tab.addEventListener('click', function() {
+				const tabName = this.dataset.tab;
+				
+				// ... существующий код ...
+				
+				// ✅ Если переключились на вкладку "days", привязываем обработчики
+				if (tabName === 'days') {
+					setTimeout(attachDayCardEvents, 200);
+				}
+			});
+		});		
+	}
 
     // ============================================================
     // ЭКСПОРТ
