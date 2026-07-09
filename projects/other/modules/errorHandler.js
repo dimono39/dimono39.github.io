@@ -1,0 +1,527 @@
+/**
+ * 🛡️ Централизованная обработка ошибок
+ * Стандартизирует обработку ошибок во всем приложении
+ * Добавлена фильтрация шумных ошибок
+ */
+
+class ErrorHandler {
+  constructor() {
+    this.errorTypes = {
+      VALIDATION: 'VALIDATION_ERROR',
+      NETWORK: 'NETWORK_ERROR',
+
+      PARSING: 'PARSING_ERROR',
+      RUNTIME: 'RUNTIME_ERROR',
+      UNKNOWN: 'UNKNOWN_ERROR',
+      CORS: 'CORS_ERROR'
+    };
+    
+    // Шаблоны для фильтрации шумных ошибок
+    this.noisyErrorPatterns = [
+      // Ошибки расширений Chrome
+      /^Unchecked runtime\.lastError/,
+      /^The message port closed before/,
+      /^A listener indicated an asynchronous response/,
+      /^Extension context invalidated/,
+      
+      // Ошибки CORS при работе с file://
+      /^Access to fetch at 'file:\/\//,
+      /Cross origin requests are only supported/,
+      /from origin 'null' has been blocked by CORS policy/,
+      
+      // Блокировщики рекламы/трекеров
+      /gtmpx\.com/,
+      /googlesyndication/,
+      /doubleclick/,
+      /analytics/,
+      /tracking/,
+      
+      // Service Worker ошибки в file://
+      /ServiceWorker.*The URL protocol.*not supported/,
+      /Failed to register a ServiceWorker/
+    ];
+    
+    // Флаг для отладки
+    this.debugMode = false;
+    
+    this.init();
+  }
+
+  init() {
+    // Глобальный обработчик ошибок
+    window.addEventListener('error', (event) => {
+      // Пропускаем ошибки, связанные с расширениями
+      if (this.isNoisyError(event.error || event.message)) {
+        if (this.debugMode) {
+          console.log('[Filtered noisy error]:', event.error?.message || event.message);
+        }
+        return;
+      }
+      this.handleGlobalError(event.error || event.message);
+    });
+    
+    // Обработчик необработанных промисов
+    window.addEventListener('unhandledrejection', (event) => {
+      const reason = event.reason;
+      if (this.isNoisyError(reason?.message || reason)) {
+        if (this.debugMode) {
+          console.log('[Filtered noisy promise rejection]:', reason?.message || reason);
+        }
+        return;
+      }
+      this.handlePromiseRejection(reason);
+    });
+  }
+
+  /**
+   * Проверяет, является ли ошибка "шумной"
+   */
+  isNoisyError(error) {
+    const errorMessage = typeof error === 'string' 
+      ? error 
+      : error?.message || error?.toString() || '';
+    
+    // Проверяем по шаблонам
+    return this.noisyErrorPatterns.some(pattern => pattern.test(errorMessage));
+  }
+
+  /**
+   * Обрабатывает ошибку
+   */
+  handle(error, context = 'Unknown', metadata = {}) {
+    // Проверяем на шумные ошибки
+    if (this.isNoisyError(error)) {
+      if (this.debugMode) {
+        console.log('[Skipped noisy error in context]:', context, error?.message || error);
+      }
+      return null;
+    }
+    
+    const errorObj = this.normalizeError(error);
+    const errorId = this.generateErrorId();
+    
+    // Проверяем, стоит ли логировать эту ошибку
+    if (!this.shouldLogError(errorObj, context)) {
+      return null;
+    }
+    
+    // Логируем ошибку
+    this.logError(errorObj, context, metadata, errorId);
+    
+    // Показываем пользователю (если нужно)
+    if (this.shouldShowToUser(errorObj)) {
+      this.showUserNotification(errorObj, context, errorId);
+    }
+    
+    // Отправляем в аналитику (если настроена)
+    this.sendToAnalytics(errorObj, context, metadata, errorId);
+    
+    return errorId;
+  }
+
+  /**
+   * Определяет, стоит ли логировать ошибку
+   */
+  shouldLogError(error, context) {
+    // Не логируем ошибки валидации (они обрабатываются отдельно)
+    if (error.type === this.errorTypes.VALIDATION) {
+      return false;
+    }
+    
+    // Не логируем ошибки CORS при работе с локальными файлами
+    if (error.type === this.errorTypes.CORS && 
+        window.location.protocol === 'file:') {
+      return this.debugMode; // Только в режиме отладки
+    }
+    
+    return true;
+  }
+
+  /**
+   * Нормализует ошибку к стандартному формату
+   */
+  normalizeError(error) {
+    // Если это уже нормализованный объект
+    if (error && error.type && error.message) {
+      return error;
+    }
+    
+    const errorMessage = typeof error === 'string' ? error : error?.message || 'Неизвестная ошибка';
+    
+    // Определяем тип ошибки
+    let errorType = this.errorTypes.UNKNOWN;
+    
+    if (error instanceof Error) {
+      if (errorMessage.includes('CORS') || errorMessage.includes('Cross origin')) {
+        errorType = this.errorTypes.CORS;
+      } else if (error.name === 'ValidationError' || error.validationErrors) {
+        errorType = this.errorTypes.VALIDATION;
+      } else if (error.name === 'SyntaxError' || errorMessage.includes('parsing')) {
+        errorType = this.errorTypes.PARSING;
+      } else if (error.name === 'NetworkError' || errorMessage.includes('network') || 
+                 errorMessage.includes('fetch') || errorMessage.includes('HTTP')) {
+        errorType = this.errorTypes.NETWORK;
+      } else {
+        errorType = this.errorTypes.RUNTIME;
+      }
+    } else if (typeof error === 'string') {
+      // Анализируем строковые ошибки
+      if (error.includes('CORS') || error.includes('Cross origin')) {
+        errorType = this.errorTypes.CORS;
+      } else if (error.includes('network') || error.includes('fetch')) {
+        errorType = this.errorTypes.NETWORK;
+      }
+    }
+    
+    return {
+      type: errorType,
+      message: errorMessage,
+      stack: error?.stack || new Error(errorMessage).stack,
+      name: error?.name || 'Error',
+      originalError: error
+    };
+  }
+
+  /**
+   * Логирует ошибку (улучшенная версия)
+   */
+  logError(error, context, metadata, errorId) {
+    // Создаем компактную запись
+    const logEntry = {
+      timestamp: new Date().toISOString(),
+      errorId,
+      context,
+      errorType: error.type,
+      message: error.message.substring(0, 200), // Ограничиваем длину
+      url: window.location.href,
+      metadataKeys: Object.keys(metadata)
+    };
+    
+    // Группируем логи только для важных ошибок
+    if (this.isImportantError(error)) {
+      console.group(`❌ ВАЖНО: Ошибка [${errorId}] в ${context}`);
+      console.error('Тип:', error.type);
+      console.error('Сообщение:', error.message);
+      console.error('Контекст:', context);
+      
+      if (Object.keys(metadata).length > 0) {
+        console.error('Метаданные:', metadata);
+      }
+      
+      if (error.stack && error.type !== this.errorTypes.CORS) {
+        console.error('Стек вызовов:');
+        console.error(error.stack);
+      }
+      
+      console.groupEnd();
+    } else {
+      // Для менее важных ошибок - компактный вывод
+      console.warn(`⚠️ [${errorId}] ${context}: ${error.message.substring(0, 100)}`);
+    }
+    
+    // Сохраняем в localStorage только важные ошибки
+    if (this.isImportantError(error)) {
+      this.saveToErrorLog(logEntry);
+    }
+  }
+
+  /**
+   * Определяет важность ошибки
+   */
+  isImportantError(error) {
+    // Ошибки CORS при работе с локальными файлами не важны
+    if (error.type === this.errorTypes.CORS && window.location.protocol === 'file:') {
+      return false;
+    }
+    
+    // Ошибки валидации не важны для лога
+    if (error.type === this.errorTypes.VALIDATION) {
+      return false;
+    }
+    
+    // Все остальные ошибки важны
+    return true;
+  }
+
+  /**
+   * Показывает уведомление пользователю (улучшенное)
+   */
+  showUserNotification(error, context, errorId) {
+    // Не показываем уведомления для определенных типов ошибок
+    if (error.type === this.errorTypes.CORS && window.location.protocol === 'file:') {
+      return; // CORS ошибки при локальной работе - норма
+    }
+    
+    const message = this.getUserFriendlyMessage(error, context);
+    
+    // Создаем уведомление с возможностью скрыть
+    if (window.showNotification) {
+      window.showNotification({
+        title: 'Ошибка',
+        message: `${message} (Код: ${errorId})`,
+        type: 'error',
+        duration: 5000
+      });
+    } else {
+      // Fallback с проверкой, не было ли уже подобного уведомления
+      if (!this.wasNotificationShown(errorId)) {
+        this.markNotificationShown(errorId);
+        const userConfirmed = confirm(`Ошибка: ${message}\nКод ошибки: ${errorId}\n\nПоказать подробности?`);
+        if (userConfirmed) {
+          console.error('Подробности ошибки:', error);
+        }
+      }
+    }
+  }
+
+  /**
+   * Проверяет, было ли уже показано уведомление
+   */
+  wasNotificationShown(errorId) {
+    try {
+      const shownNotifications = JSON.parse(sessionStorage.getItem('shownErrorNotifications') || '[]');
+      return shownNotifications.includes(errorId);
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Помечает уведомление как показанное
+   */
+  markNotificationShown(errorId) {
+    try {
+      const shownNotifications = JSON.parse(sessionStorage.getItem('shownErrorNotifications') || '[]');
+      shownNotifications.push(errorId);
+      // Храним только последние 20 уведомлений
+      if (shownNotifications.length > 20) {
+        shownNotifications.shift();
+      }
+      sessionStorage.setItem('shownErrorNotifications', JSON.stringify(shownNotifications));
+    } catch {
+      // Игнорируем ошибки сохранения
+    }
+  }
+
+  /**
+   * Генерирует понятное сообщение для пользователя
+   */
+  getUserFriendlyMessage(error, context) {
+    const messages = {
+      [this.errorTypes.VALIDATION]: 'Ошибка проверки данных',
+      [this.errorTypes.NETWORK]: 'Проблемы с соединением. Проверьте интернет.',
+      [this.errorTypes.PARSING]: 'Ошибка чтения данных',
+      [this.errorTypes.CORS]: 'Ограничение безопасности браузера',
+      [this.errorTypes.RUNTIME]: 'Произошла ошибка в приложении',
+      [this.errorTypes.UNKNOWN]: 'Произошла неизвестная ошибка'
+    };
+    
+    let baseMessage = messages[error.type] || 'Произошла ошибка';
+    
+    // Добавляем контекст
+    const contextMessages = {
+      'saveData': 'при сохранении данных',
+      'loadData': 'при загрузке данных',
+      'renderChart': 'при построении графика',
+      'exportReport': 'при экспорте отчета',
+      'importTemplate': 'при импорте шаблона',
+      'Global': 'в приложении',
+      'UnhandledPromiseRejection': 'в асинхронной операции'
+    };
+    
+    const contextText = contextMessages[context] || (context !== 'Unknown' ? `в ${context}` : '');
+    
+    return `${baseMessage} ${contextText}`.trim();
+  }
+
+  /**
+   * Безопасное выполнение функции с обработкой ошибок
+   */
+  async safeExecute(fn, context, ...args) {
+    try {
+      return await fn(...args);
+    } catch (error) {
+      // Для ошибок CORS при локальной работе возвращаем fallback без логирования
+      const errorMessage = error?.message || error?.toString() || '';
+      if (errorMessage.includes('CORS') && window.location.protocol === 'file:') {
+        console.warn(`[Локальная работа] CORS ошибка в ${context}, возвращаем fallback`);
+        return this.getFallbackValue(context, error);
+      }
+      
+      const errorId = this.handle(error, context, { args });
+      
+      // Возвращаем fallback значение в зависимости от контекста
+      return this.getFallbackValue(context, error);
+    }
+  }
+
+  // Остальные методы остаются без изменений...
+  // (, , generateErrorId generateErrorId, , 
+  // , shouldShowToUser, , 
+  // , , , )
+  
+  
+  shouldShowToUser(error) {
+    // Не показываем пользователю ошибки валидации (они обрабатываются в форме)
+    if (error.type === this.errorTypes.VALIDATION) return false;
+    
+    // Показываем все остальные
+    return true;
+  }
+
+  sendToAnalytics(error, context, metadata, errorId) {
+    // Метод для отправки в аналитику (Google Analytics, Yandex.Metrica и т.д.)
+    if (typeof gtag !== 'undefined') {
+      gtag('event', 'exception', {
+        description: `${context}: ${error.message}`,
+        fatal: false
+      });
+    }
+  }
+
+  handleGlobalError(error) {
+    try {
+        // Проверяем, что есть event и его свойства
+        if (!event) {
+            console.warn('Empty error event');
+            return;
+        }
+        
+        const error = event.error || event.reason || new Error('Unknown error');
+        
+        // Проверяем, что error - это объект
+        if (typeof error !== 'object') {
+            error = new Error(String(error));
+        }
+		this.handle(error, 'Global');
+
+	} catch (handlerError) {
+        console.error('Error handler failed:', handlerError);
+    }		
+	
+    
+  }
+
+  handlePromiseRejection(reason) {
+    this.handle(reason, 'UnhandledPromiseRejection');
+  }
+
+  /**
+   * Получить историю ошибок для отладки
+   */
+  getErrorLog() {
+    try {
+      return JSON.parse(localStorage.getItem('errorLog') || '[]');
+    } catch {
+      return [];
+    }
+  }
+
+  /**
+   * Очистить историю ошибок
+   */
+  clearErrorLog() {
+    localStorage.removeItem('errorLog');
+  }
+
+	getFallbackValue(context, error) {
+    const fallbacks = {
+      'calculateGrade': 2,
+      'calculatePercentage': 0,
+      'loadData': null,
+      'renderChart': '<div class="error">Не удалось построить график</div>',
+      'exportReport': false
+    };
+    
+    return fallbacks[context] !== undefined ? fallbacks[context] : null;
+  }
+
+  /**
+   * Вспомогательные методы
+   */
+  generateErrorId() {
+    return `ERR_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  }
+
+  saveToErrorLog(entry) {
+    try {
+      const errorLog = JSON.parse(localStorage.getItem('errorLog') || '[]');
+      errorLog.push(entry);
+      
+      // Храним только последние 100 ошибок
+      if (errorLog.length > 100) {
+        errorLog.splice(0, errorLog.length - 100);
+      }
+      
+      localStorage.setItem('errorLog', JSON.stringify(errorLog));
+    } catch (e) {
+      console.error('Не удалось сохранить ошибку в лог:', e);
+    }
+  }
+
+  getAppStateSnapshot() {
+    try {
+      return {
+        dataSize: localStorage.getItem('testAnalyticsData')?.length || 0,
+        tasksCount: appData?.tasks?.length || 0,
+        studentsCount: appData?.students?.length || 0
+      };
+    } catch {
+      return {};
+    }
+  }
+  
+  /**
+   * Валидирует данные по схеме
+   */
+  validate(data, schema, context = 'validation') {
+    try {
+      const errors = [];
+      
+      // Простая валидация по типам
+      if (schema.required && Array.isArray(schema.required)) {
+        schema.required.forEach(field => {
+          if (data[field] === undefined || data[field] === null || data[field] === '') {
+            errors.push(`Поле "${field}" обязательно для заполнения`);
+          }
+        });
+      }
+      
+      // Валидация чисел
+      if (schema.numbers && Array.isArray(schema.numbers)) {
+        schema.numbers.forEach(field => {
+          if (data[field] !== undefined && isNaN(parseFloat(data[field]))) {
+            errors.push(`Поле "${field}" должно быть числом`);
+          }
+        });
+      }
+      
+      if (errors.length > 0) {
+        const error = new Error(errors.join(', '));
+        error.type = this.errorTypes.VALIDATION;
+        error.validationErrors = errors;
+        throw error;
+      }
+      
+      return true;
+    } catch (error) {
+      this.handle(error, context, { data, schema });
+      throw error;
+    }
+  } 
+  
+  
+  
+  
+  
+  /**
+   * Включает/выключает режим отладки
+   */
+  setDebugMode(enabled) {
+    this.debugMode = enabled;
+    console.log(`Режим отладки ошибок: ${enabled ? 'ВКЛ' : 'ВЫКЛ'}`);
+  }
+}
+
+// Экспорт синглтона
+window.ErrorHandler = new ErrorHandler();

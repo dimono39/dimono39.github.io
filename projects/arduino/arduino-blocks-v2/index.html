@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Arduino Blocks Pro - Визуальное программирование МК</title>
+    
+    <!-- Blockly Core (фиксированная версия) -->
+    <script src="https://cdn.jsdelivr.net/npm/blockly@10.4.3/blockly.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/blockly@10.4.3/blocks.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/blockly@10.4.3/javascript.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/blockly@10.4.3/msg/ru.min.js"></script>
+    
+    <!-- Font Awesome для иконок -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <!-- Стили -->
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <!-- Загрузочный экран -->
+    <div id="loading-screen" class="loading-screen">
+        <div class="loader">
+            <div class="loader-icon">
+                <i class="fas fa-microchip fa-spin"></i>
+            </div>
+            <h2>Arduino Blocks Pro</h2>
+            <p>Загрузка среды разработки...</p>
+            <div class="progress-bar">
+                <div class="progress-fill"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Основной интерфейс (скрыт до загрузки) -->
+    <div id="app-container" class="app-container" style="display: none;">
+        
+        <!-- Верхняя панель инструментов -->
+        <header class="toolbar">
+            <div class="toolbar-left">
+                <div class="logo">
+                    <i class="fas fa-microchip"></i>
+                    <span class="logo-text">Arduino Blocks</span>
+                    <span class="logo-version">Pro</span>
+                </div>
+                <div class="board-select-wrapper">
+                    <select id="board-selector" class="board-select">
+                        <option value="">🔌 Выберите плату...</option>
+                    </select>
+                    <div class="board-info-badge" id="board-badge" style="display: none;">
+                        <span id="board-badge-text"></span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="toolbar-center">
+                <button id="btn-generate" class="toolbar-btn primary" disabled title="Сгенерировать код (Ctrl+G)">
+                    <i class="fas fa-code"></i>
+                    <span>Скомпилировать</span>
+                </button>
+                <button id="btn-undo" class="toolbar-btn" title="Отменить (Ctrl+Z)">
+                    <i class="fas fa-undo"></i>
+                </button>
+                <button id="btn-redo" class="toolbar-btn" title="Повторить (Ctrl+Y)">
+                    <i class="fas fa-redo"></i>
+                </button>
+                <div class="toolbar-divider"></div>
+                <button id="btn-zoom-in" class="toolbar-btn" title="Приблизить">
+                    <i class="fas fa-search-plus"></i>
+                </button>
+                <button id="btn-zoom-out" class="toolbar-btn" title="Отдалить">
+                    <i class="fas fa-search-minus"></i>
+                </button>
+                <button id="btn-zoom-fit" class="toolbar-btn" title="Вписать все">
+                    <i class="fas fa-compress"></i>
+                </button>
+            </div>
+            
+            <div class="toolbar-right">
+				<button id="btn-clear-workspace" class="toolbar-btn" title="Очистить всё (Delete)">
+					<i class="fas fa-trash-alt"></i>
+					<span>Очистить</span>
+				</button>                
+				<button id="btn-save" class="toolbar-btn" title="Сохранить проект (Ctrl+S)">
+                    <i class="fas fa-save"></i>
+                    <span>Сохранить</span>
+                </button>
+                <button id="btn-load" class="toolbar-btn" title="Загрузить проект">
+                    <i class="fas fa-folder-open"></i>
+                </button>
+                <div class="toolbar-divider"></div>
+                <button id="btn-settings" class="toolbar-btn" title="Настройки">
+                    <i class="fas fa-cog"></i>
+                </button>
+                <button id="btn-help" class="toolbar-btn" title="Помощь">
+                    <i class="fas fa-question-circle"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- Основная рабочая область -->
+        <div class="main-area">
+            
+            <!-- Левая панель: Блоки -->
+            <aside class="sidebar sidebar-left" id="sidebar-left">
+                <div class="sidebar-header">
+                    <h3><i class="fas fa-cubes"></i> Блоки</h3>
+                    <button id="btn-toggle-sidebar" class="icon-btn" title="Свернуть панель">
+                        <i class="fas fa-chevron-left"></i>
+                    </button>
+                </div>
+                
+                <!-- Поиск блоков -->
+                <div class="block-search">
+                    <input type="text" id="block-search" placeholder="🔍 Поиск блоков..." />
+                </div>
+                
+                <!-- Категории блоков -->
+                <div class="blocks-categories" id="blocks-categories">
+                    <!-- Заполняется динамически -->
+                </div>
+                
+                <!-- Кнопка добавления своего блока -->
+                <div class="sidebar-footer">
+                    <button id="btn-add-custom-block" class="btn-custom-block">
+                        <i class="fas fa-plus-circle"></i> Создать свой блок
+                    </button>
+                </div>
+            </aside>
+
+            <!-- Центральная область: Blockly -->
+            <main class="workspace-container" id="workspace-container">
+                <div id="blockly-workspace" class="blockly-workspace"></div>
+                
+                <!-- Подсказка для новичков -->
+                <div id="workspace-hint" class="workspace-hint">
+                    <div class="hint-content">
+                        <i class="fas fa-hand-pointer"></i>
+                        <h3>Начните программировать!</h3>
+                        <p>1. Выберите плату вверху</p>
+                        <p>2. Перетащите блок "Программа" из левой панели</p>
+                        <p>3. Добавьте блоки в Setup и Loop</p>
+                    </div>
+                </div>
+            </main>
+
+            <!-- Правая панель: Сгенерированный код -->
+            <aside class="sidebar sidebar-right" id="sidebar-right">
+                <div class="sidebar-header">
+                    <h3><i class="fas fa-file-code"></i> Код Arduino</h3>
+                    <div class="code-actions-header">
+                        <button id="btn-copy" class="icon-btn" disabled title="Копировать код">
+                            <i class="fas fa-copy"></i>
+                        </button>
+                        <button id="btn-download" class="icon-btn" disabled title="Скачать .ino файл">
+                            <i class="fas fa-download"></i>
+                        </button>
+                        <button id="btn-validate" class="icon-btn" disabled title="Проверить код">
+                            <i class="fas fa-check-circle"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Выбор представления кода -->
+                <div class="code-tabs">
+                    <button class="code-tab active" data-tab="code">Код</button>
+                    <button class="code-tab" data-tab="preview">Предпросмотр</button>
+                </div>
+                
+                <!-- Область кода -->
+                <div class="code-content">
+                    <pre id="generated-code" class="code-output">// Arduino Blocks Pro
+// Выберите плату и соберите программу
+// Нажмите "Скомпилировать" для генерации кода
+
+</pre>
+                    <div id="code-preview" class="code-preview" style="display: none;">
+                        <!-- Здесь будет визуальное представление -->
+                    </div>
+                </div>
+                
+                <!-- Статистика кода -->
+                <div class="code-stats" id="code-stats" style="display: none;">
+                    <span class="stat-item">
+                        <i class="fas fa-text-height"></i> Строк: <strong id="stat-lines">0</strong>
+                    </span>
+                    <span class="stat-item">
+                        <i class="fas fa-memory"></i> Размер: <strong id="stat-size">0 B</strong>
+                    </span>
+                </div>
+                
+                <!-- Консоль ошибок -->
+                <div id="error-console" class="error-console" style="display: none;">
+                    <div class="error-header">
+                        <i class="fas fa-exclamation-triangle"></i> Ошибки компиляции
+                    </div>
+                    <div id="error-list" class="error-list"></div>
+                </div>
+            </aside>
+        </div>
+
+        <!-- Нижняя статусная строка -->
+        <footer class="status-bar">
+            <div class="status-left">
+                <span class="status-item">
+                    <i class="fas fa-cube"></i> Блоков: <strong id="status-blocks">0</strong>
+                </span>
+                <span class="status-divider">|</span>
+                <span class="status-item">
+                    <i class="fas fa-microchip"></i> Плата: <strong id="status-board">Не выбрана</strong>
+                </span>
+                <span class="status-divider">|</span>
+                <span class="status-item" id="status-autosave">
+                    <i class="fas fa-check"></i> Сохранено
+                </span>
+            </div>
+            <div class="status-right">
+                <span class="status-item">
+                    <i class="fas fa-clock"></i> <span id="status-time">--:--:--</span>
+                </span>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Модальные окна -->
+    
+    <!-- Окно создания пользовательского блока -->
+    <div id="modal-custom-block" class="modal">
+        <div class="modal-dialog">
+            <div class="modal-header">
+                <h2><i class="fas fa-magic"></i> Создание своего блока</h2>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Название блока *</label>
+                    <input type="text" id="custom-block-name" placeholder="Например: Мой датчик" required>
+                </div>
+                <div class="form-group">
+                    <label>Категория</label>
+                    <select id="custom-block-category">
+                        <option value="custom">Пользовательские</option>
+                        <option value="sensors">Сенсоры</option>
+                        <option value="actuators">Устройства</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Arduino C++ код (используйте {{pin}} для пина, {{value}} для значения)</label>
+                    <textarea id="custom-block-code" rows="6" placeholder="digitalWrite({{pin}}, {{value}});" required></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Тип блока</label>
+                    <select id="custom-block-type">
+                        <option value="statement">Команда (выполняет действие)</option>
+                        <option value="value">Значение (возвращает данные)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Цвет блока</label>
+                    <input type="color" id="custom-block-color" value="#6c5ce7">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="btn-cancel-custom" class="btn btn-secondary">Отмена</button>
+                <button id="btn-save-custom" class="btn btn-primary">
+                    <i class="fas fa-plus"></i> Добавить блок
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Окно настроек -->
+    <div id="modal-settings" class="modal">
+        <div class="modal-dialog">
+            <div class="modal-header">
+                <h2><i class="fas fa-cog"></i> Настройки</h2>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Тема оформления</label>
+                    <select id="setting-theme">
+                        <option value="dark">Темная (по умолчанию)</option>
+                        <option value="light">Светлая</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Размер шрифта кода</label>
+                    <select id="setting-font-size">
+                        <option value="12">12px</option>
+                        <option value="14" selected>14px</option>
+                        <option value="16">16px</option>
+                        <option value="18">18px</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="setting-autosave" checked>
+                        Автосохранение проекта
+                    </label>
+                </div>
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="setting-grid" checked>
+                        Сетка на рабочей области
+                    </label>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="btn-reset-settings" class="btn btn-secondary">Сбросить</button>
+                <button id="btn-save-settings" class="btn btn-primary">Сохранить</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Окно справки -->
+    <div id="modal-help" class="modal">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-header">
+                <h2><i class="fas fa-book"></i> Справка</h2>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="help-content">
+                    <h3>Горячие клавиши</h3>
+                    <table class="help-table">
+                        <tr><td><kbd>Ctrl+G</kbd></td><td>Сгенерировать код</td></tr>
+                        <tr><td><kbd>Ctrl+S</kbd></td><td>Сохранить проект</td></tr>
+                        <tr><td><kbd>Ctrl+Z</kbd></td><td>Отменить действие</td></tr>
+                        <tr><td><kbd>Ctrl+Y</kbd></td><td>Повторить действие</td></tr>
+                        <tr><td><kbd>Ctrl+Колесо</kbd></td><td>Масштабирование</td></tr>
+                        <tr><td><kbd>Delete</kbd></td><td>Удалить выделенный блок</td></tr>
+                    </table>
+                    
+                    <h3>Как начать?</h3>
+                    <ol>
+                        <li>Выберите плату Arduino в верхней панели</li>
+                        <li>Перетащите блок <strong>"Программа Arduino"</strong> на рабочую область</li>
+                        <li>Добавьте блоки в секции Setup (настройка) и Loop (основной цикл)</li>
+                        <li>Нажмите <strong>"Скомпилировать"</strong> для генерации кода</li>
+                        <li>Скопируйте код в Arduino IDE или скачайте .ino файл</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Скрытый input для загрузки файлов -->
+    <input type="file" id="file-input" accept=".ablocks,.json,.xml" style="display: none;">
+
+    <!-- Toast уведомления -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <!-- Скрипты -->
+    <script src="js/boards.js"></script>
+    <script src="js/blocks.js"></script>
+    <script src="js/generator.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>

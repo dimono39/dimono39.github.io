@@ -1,0 +1,830 @@
+================================================================================
+АНАЛИЗ ЗАВИСИМОСТЕЙ ФУНКЦИЙ
+================================================================================
+
+Всего функций: 738
+Функций с зависимостями: 568
+Независимых функций: 170
+
+ПРЕДЛАГАЕМЫЕ МОДУЛИ:
+----------------------------------------
+
+CORE (280 функций):
+  1. addQuickFillButtons → зависит от: toggleQuickFillPanel, initializeQuickFillStyles, fillPattern...
+  2. initializeQuickFillStyles → зависит от: child
+  3. getPatternName
+  4. setupCellSelection → зависит от: toggleCellSelection, selectSingleCell, selectCellRange...
+  5. selectSingleCell
+  6. selectCellRange → зависит от: selectSingleCell, clearCellSelection, getCellCoordinates
+  7. selectAllCells → зависит от: forEach
+  8. clearCellSelection → зависит от: forEach
+  9. getCellCoordinates
+  10. updateSelectionInfo → зависит от: forEach
+  11. fillSelectedRows → зависит от: clearCellSelection, getCellCoordinates, updateSelectionInfo...
+  12. fillEvenRows → зависит от: showNotification, renderResults, forEach
+  13. fillOddRows → зависит от: showNotification, renderResults, forEach
+  14. applyFormula → зависит от: getCellCoordinates, updateSelectionInfo, getFormulaName...
+  15. getFormulaName
+  16. moveToCell
+  17. validateStep → зависит от: showNotification, switch
+  18. updateNavigationButtons → зависит от: saveSetup
+  19. createSliderHandle → зависит от: updateCriteriaFromHandle, addEventListener
+  20. fillRowMax → зависит от: saveData, showNotification, renderResults...
+  21. enableAutoCalculation → зависит от: addEventListener, forEach
+  22. disableAutoCalculation → зависит от: forEach
+  23. updateSummaryRow → зависит от: recalculateTaskAverages, getPercentageColor, forEach
+  24. updateCellStyle
+  25. flashUpdateStatus
+  26. fillAllWithMax → зависит от: saveData, showNotification, renderResults
+  27. fillAllWithZero → зависит от: saveData, showNotification, renderResults...
+  28. autoFillRandom → зависит от: saveData, showNotification, renderResults
+  29. handleCellKeydown1 → зависит от: moveToCell, toggleScore, undoLastAction...
+  30. moveToCell1
+  31. saveUndoState
+  32. undoLastAction → зависит от: saveData, showNotification, renderResults
+  33. saveSetup → зависит от: saveAllData, showModal, hideModal...
+  34. updateFinalConfiguration → зависит от: getGradeColor, calculateMaxScore, forEach
+  35. testPreview → зависит от: updateFinalConfiguration, forEach
+  36. reloadInterface → зависит от: showStep, updateCriteriaVisualization, loadAppData...
+  37. addReloadButton
+  38. registerServiceWorker → зависит от: isPwaSupported, showUpdateNotification, addEventListener...
+  39. checkIfPwaInstalled
+  40. setupOfflineDetection → зависит от: updateOnlineStatus, showNotification, addEventListener
+  41. updateOnlineStatus → зависит от: showNotification
+  42. setupBackgroundSync → зависит от: isPwaSupported, catch
+  43. urlBase64ToUint8Array
+  44. setupMobileFeatures → зависит от: addEventListener, function
+  45. addMobileNavigation → зависит от: showTutorial, addEventListener, function
+  46. validateImportedData → зависит от: map
+  47. loadAppData
+  48. addDebugPanel → зависит от: runDebugTests, clearDebugInfo, setInterval
+  49. removeDebugPanel
+  50. updateDebugInfo
+  51. runDebugTests → зависит от: logDebug, forEach
+  52. logDebug
+  53. clearDebugInfo
+  54. loadCustomTemplate → зависит от: showReportTemplateManager, showNotification
+  55. createNewTemplate → зависит от: saveNewTemplate, showModal, hideModal...
+  56. saveNewTemplate → зависит от: showReportTemplateManager, showNotification, hideModal...
+  57. deleteCustomTemplate → зависит от: showReportTemplateManager, showNotification
+  58. applyCurrentTemplate → зависит от: applyTemplateToReport, showNotification, hideModal
+  59. setupHotkeys → зависит от: toggleDebugMode, showHotkeyFeedback, addHotkeyIndicator...
+  60. addHotkeyIndicator
+  61. getHotkeyDescription
+  62. setupProgressiveSaving → зависит от: hasUnsavedChanges, saveData, addSaveStatusIndicator...
+  63. debounceSave → зависит от: hasUnsavedChanges, saveData, updateSaveStatus
+  64. hasUnsavedChanges
+  65. saveData → зависит от: transformErrorsForStorage, saveDataSafely, generateDataHash...
+  66. saveDataSafely
+  67. createBackupIfNeeded → зависит от: createBackup
+  68. emergencySave
+  69. saveAllData → зависит от: saveData, emergencySave, updateSaveStatus...
+  70. restoreFromEmergencySave
+  71. checkDataIntegrity
+  72. updateSaveStatus → зависит от: switch
+  73. addSaveStatusIndicator → зависит от: hasUnsavedChanges, updateSaveStatus, showSaveManagement
+  74. forceSave → зависит от: saveAllData, updateSaveStatus, hideModal
+  75. hideTutorial → зависит от: removeHighlight
+  76. skipTutorial → зависит от: hideTutorial, showNotification
+  77. highlightElement → зависит от: removeHighlight, switch
+  78. removeHighlight
+  79. completeTutorial → зависит от: hideTutorial, showNotification
+  80. checkFirstVisit
+  81. initTemplateScanner
+  82. scanTemplateFolder → зависит от: showTemplateSelection, showNotification, function
+  83. clearTemplateCache → зависит от: showNotification, hideModal, catch...
+  84. setupInputListeners → зависит от: scheduleAutoSave, addEventListener, function
+  85. updateTemplateScannerStatus
+  86. renderTemplatesList → зависит от: selectTemplate, addEventListener, function...
+  87. selectTemplate → зависит от: showNotification, addNewTask, forEach
+  88. initServerTemplateScanner
+  89. scanLocalFolder → зависит от: showTemplateSelection, showNotification, hideModal...
+  90. scanServerFolder → зависит от: showTemplateSelection, initServerTemplateScanner, showServerFolderSetupGuide...
+  91. checkServerTemplatesAvailability → зависит от: initServerTemplateScanner, scanServerFolder, showServerFolderSetupGuide
+  92. filterTemplatesByType → зависит от: renderTemplatesList
+  93. loadTemplateData → зависит от: addTaskToForm, showNotification, forEach
+  94. robustSyncData → зависит от: map, forEach
+  95. escapeHtml → зависит от: fillPattern, copyRow, moveToCell...
+  96. previewTemplate → зависит от: escapeHtml, useThisTemplate, showModal...
+  97. addBootstrapStyles → зависит от: not
+  98. useTemplate → зависит от: saveData, robustSyncData, showNotification...
+  99. useThisTemplate → зависит от: useTemplate
+  100. makeSafe → зависит от: function, forEach
+  101. safeCalculateGrade → зависит от: calculateMaxScore
+  102. safeCalculatePercentage
+  103. safeArrayReduce
+  104. scheduleAutoSave → зависит от: saveData, createBackup, showNotification
+  105. createBackup → зависит от: cleanupOldBackups
+  106. cleanupOldBackups → зависит от: forEach
+  107. restoreBackupDialog → зависит от: restoreBackup, showModal, map...
+  108. restoreBackup → зависит от: saveData, showNotification, hideModal...
+  109. showNotification
+  110. hideModal
+  111. renderVisualizationSection → зависит от: updateVisualization, debugCharts
+  112. saveHistoricalData → зависит от: generateWorkSummary
+  113. selectByType → зависит от: updateSelectedCount, forEach
+  114. updateSelectedCount
+  115. handleCellKeydown → зависит от: moveToCell
+  116. getPercentageColor
+  117. fillAllWithMax1 → зависит от: showNotification, renderResults, forEach
+  118. fillAllWithZero1 → зависит от: showNotification, renderResults, forEach
+  119. fillRowMax1 → зависит от: showNotification, renderResults, forEach
+  120. fillRowZero1 → зависит от: showNotification, renderResults, forEach
+  121. autoFillRandom1 → зависит от: showNotification, renderResults, forEach
+  122. renderSummaryRow → зависит от: recalculateTaskAverages, getPercentageColor, forEach
+  123. safeGet
+  124. getActionDescription
+  125. initAdvancedSearch → зависит от: showModal, filterStudents, map
+  126. hasLastTemplate
+  127. getLastTemplateName
+  128. saveDatas
+  129. loadDatas
+  130. updatePsychologyScale → зависит от: switch, map
+  131. updatePsychologyAnalysis → зависит от: generatePsychologyLevelsDistribution, generatePsychologyRecommendations
+  132. updatePsychologyVisualization → зависит от: updateIndividualProfiles, initPsychologyCharts
+  133. updateIndividualProfiles → зависит от: map, forEach
+  134. loadSampleData → зависит от: loadPsychologySample, loadStandardSample, loadVPRSample...
+  135. loadPsychologySample → зависит от: saveData, showNotification, generatePsychologyFeatures...
+  136. loadStandardSample → зависит от: saveData, showNotification, generateSampleErrors...
+  137. loadVPRSample → зависит от: saveData, showNotification, generateSampleErrors...
+  138. loadLiteracySample → зависит от: saveData, showNotification, generateSampleErrors...
+  139. loadOGESample → зависит от: saveData, showNotification, generateSampleErrors...
+  140. loadEGESample → зависит от: saveData, showNotification, generateSampleErrors...
+  141. validateGradeCalculation → зависит от: getGradeDisplay, calculateGrade, forEach
+  142. saveTestSettings → зависит от: saveData, showNotification, renderAll...
+  143. renderAll → зависит от: renderTasks, renderResults, renderTestSettings...
+  144. renderTestSettings → зависит от: safeSetValue
+  145. safeSetValue
+  146. resetDragStyles → зависит от: forEach
+  147. ensureFunctionsExist → зависит от: showNotification, forEach
+  148. addBootstrapMinimalStyles → зависит от: not
+  149. addSelectedToTesting → зависит от: saveData, showNotification, renderResults...
+  150. debugSchoolData → зависит от: forEach
+  151. clearSelection → зависит от: toggleAllStudents
+  152. addInvertedSelection → зависит от: updateSelectedCount, not, forEach
+  153. loadSchoolData → зависит от: forEach
+  154. createSampleData → зависит от: saveSchoolData
+  155. loadSchoolData1 → зависит от: map, forEach
+  156. saveSchoolData
+  157. createDemoData → зависит от: showNotification, renderClassesGrid, saveSchoolData...
+  158. setupFilePreview → зависит от: showFilePreview, addEventListener, function
+  159. getFilePreview → зависит от: function
+  160. getCSVPreview → зависит от: function, map
+  161. parseSchoolData → зависит от: detectFileStructure, findClassName, normalizeClassName...
+  162. detectFileStructure → зависит от: map, forEach
+  163. handleDragStart
+  164. handleDragOver
+  165. handleDrop → зависит от: moveStudent, forEach
+  166. handleDragEnd → зависит от: forEach
+  167. randomizeOrder → зависит от: saveData, showNotification, renderResults...
+  168. validateStudentData → зависит от: saveData, showNotification
+  169. onDataLoad → зависит от: validateStudentData
+  170. updateAnalytics → зависит от: showSmartRecommendations, safeGet, updatePsychologyAnalysis...
+  171. initializeDefaultData → зависит от: saveData
+  172. initializeAppData
+  173. getDifficultyColor
+  174. updatePersonalAnalysis → зависит от: calculateGrade, map, forEach
+  175. updateVPRAnalysis → зависит от: generateVPRRecommendations, calculateTaskCompletion, map...
+  176. updateLiteracyAnalysis → зависит от: generateLiteracyRecommendations, initLiteracyRadarChart, map...
+  177. updateGIAnalysis → зависит от: calculateSuccessRate, calculateAverageScore, getKESName...
+  178. getKESName
+  179. addVisualizationButton → зависит от: showNotification, renderVisualizationSection, setupVisualizationTab
+  180. updateVisualizationDebounced → зависит от: updateVisualization
+  181. updateVisualization → зависит от: prepareChartData, renderChartsFromCache, renderCharts
+  182. addComplexityLegend
+  183. renderHeatmap → зависит от: getPercentageColor, addHeatmapStyles, toggleHeatmapColors...
+  184. addHeatmapStyles → зависит от: not
+  185. updateHeatmap → зависит от: renderHeatmap, map
+  186. highlightHeatmapRowCol → зависит от: clearHeatmapHighlights, forEach
+  187. clearHeatmapHighlights → зависит от: forEach
+  188. updateVisualizationz → зависит от: showNotification, initPsychologyCharts, updateHeatmap...
+  189. loadScript
+  190. getTimestamp
+  191. safeResizeCharts → зависит от: forEach
+  192. debounce → зависит от: executedFunction
+  193. executedFunction
+  194. resetAppData → зависит от: showNotification, forEach
+  195. updateLiteracyVisualization → зависит от: initLiteracyRadarChart
+  196. updateMilestoneAnalysis → зависит от: generateWorkSummary, calculateGrade, calculateSuccessRate...
+  197. updateCurrentAnalysis → зависит от: calculateSuccessRate, generateTopicMasteryAnalysis, generateCurrentErrorsAnalysis...
+  198. updateDiagnosticAnalysis → зависит от: calculateBaselineLevel, identifyGaps, calculateReadinessLevel...
+  199. checkPwaIcons → зависит от: showModal, hideModal, generatePwaIcons...
+  200. identifyGaps → зависит от: calculateTaskCompletion, forEach
+  201. updateKeyConclusions → зависит от: calculateGrade, calculateTaskCompletion, getTopErrorType...
+  202. updateCorrectionPlan → зависит от: calculateGrade, map, forEach
+  203. applyPreset → зависит от: showNotification, renderCriteriaSettings, switch
+  204. updateFinalAnalysis → зависит от: generateWorkSummary, calculateGrade, calculateSou...
+  205. findWeakestDimension → зависит от: map, forEach
+  206. alternativeValidate
+  207. smartMergeData → зависит от: saveData, robustSyncData, showNotification...
+  208. mergeData → зависит от: mergeResults, map, forEach
+  209. syncDataArrays → зависит от: forEach
+  210. createSampleFile → зависит от: showNotification
+  211. checkDataStructure → зависит от: showModal, hideModal
+  212. readFileAsText → зависит от: function
+  213. validateImportData
+  214. addFixedTransferButtons → зависит от: showResetDialog, createTestImportFile, simpleImport...
+  215. validateImportedDatas
+  216. addDebugButtons → зависит от: createTestImportFile, testDataStructure
+  217. testDataStructure → зависит от: validateImportedData, showModal, hideModal
+  218. getDisplayLevel → зависит от: switch
+  219. getLevelDescription
+  220. changeScaleType → зависит от: rebuildCriteriaForScale, updateAdvancedControls
+  221. getScaleTypeName
+  222. updateAdvancedControls → зависит от: getCustomNames, getCustomDescriptions, getCustomColors...
+  223. getCustomNames → зависит от: map
+  224. getCustomDescriptions → зависит от: map
+  225. getCustomColors → зависит от: getGradeColor, map
+  226. applyDistribution → зависит от: updateCriteriaVisualization, calculateMaxScore, showNotification...
+  227. getRandomColor
+  228. setupSliderHandlers → зависит от: calculateMaxScore, showScoreTooltip, addEventListener
+  229. quickStart → зависит от: showTemplateSelection, duplicateLastWork, startAIAssistant...
+  230. duplicateLastWork → зависит от: updateCriteriaVisualization, showNotification, map
+  231. startAIAssistant → зависит от: showModal, generateAIRecommendationsss
+  232. applySuggestions → зависит от: updateCriteriaVisualization, calculateMaxScore, showNotification...
+  233. getPsychologyDescription
+  234. initializeDefaultCriteria
+  235. getDefaultColor
+  236. updateCustomLevels → зависит от: saveData, renderCriteriaSettings, getDefaultColor...
+  237. setupAutoBackup → зависит от: createBackup, showNotification, addEventListener...
+  238. restoreLastBackup → зависит от: restoreBackup, showNotification
+  239. addTransferButtonsToUI → зависит от: showTab, exportToFile, importFromFile...
+  240. safeEncode
+  241. safeDecode
+  242. checkForUnsavedData → зависит от: showNotification
+  243. deleteBackup → зависит от: showNotification, showBackupManagement
+  244. deleteAllBackups → зависит от: showNotification, showBackupManagement, forEach
+  245. mouseMoveHandler → зависит от: updateCriteriaFromHandle
+  246. mouseUpHandler
+  247. scanDir
+  248. completionRate
+  249. solvability → зависит от: generateReportContent, calculateGradeDistribution, getDifficultyColor...
+  250. later
+  251. avgPercentage → зависит от: generateTopicRecommendation, generateCurrentErrorsAnalysis
+  252. constructor
+  253. media
+  254. not
+  255. child
+  256. and
+  257. if
+  258. addEventListener
+  259. switch
+  260. catch
+  261. for
+  262. function
+  263. saveTemplate
+  264. getAllTemplates
+  265. deleteTemplate
+  266. clearAll
+  267. readAndParseTemplate
+  268. loadCachedTemplates
+  269. saveConfig
+  270. startWatching
+  271. getCachedTemplatesArray
+  272. getTemplateList
+  273. parseDirectoryListing
+  274. getTemplates
+  275. checkForUpdates
+  276. while
+  277. map
+  278. forEach
+  279. toBlob
+  280. setInterval
+
+SETUP (63 функций):
+  1. showStep → зависит от: updateNavigationButtons, updateFinalConfiguration, forEach
+  2. nextStep → зависит от: showStep, validateStep
+  3. prevStep → зависит от: showStep
+  4. switchCriteriaMode → зависит от: updateCriteriaVisualization, showNotification, updateAdvancedControls...
+  5. updateCriteriaVisualization → зависит от: updateCriteriaSlider, calculateMaxScore, updateExampleScores...
+  6. updateCriteriaSlider → зависит от: createSliderHandle, getGradeColor, calculateMaxScore...
+  7. updateCriteriaFromHandle → зависит от: updateCriteriaVisualization, calculateMaxScore
+  8. importCriteriaFromTemplate → зависит от: applyTemplateCriteria, scanTemplateFolder, showNotification...
+  9. applyTemplateCriteria → зависит от: updateCriteriaVisualization, showNotification, hideModal
+  10. autoGenerateCriteria → зависит от: updateCriteriaVisualization, calculateMaxScore, showNotification...
+  11. syncCriteriaWithTasks → зависит от: calculateMaxScore, showNotification, showTab...
+  12. showTourStep → зависит от: nextTourStep, prevTourStep, showTab...
+  13. nextTourStep → зависит от: showTourStep, endTour
+  14. prevTourStep → зависит от: showTourStep
+  15. nextTutorialStep → зависит от: updateTutorialStep, completeTutorial
+  16. prevTutorialStep → зависит от: updateTutorialStep
+  17. updateTutorialStep → зависит от: highlightElement, showTab
+  18. getWorkTypeIcon
+  19. saveCriteriaSettings → зависит от: saveData, showNotification
+  20. loadDefaultCriteria → зависит от: showNotification, renderCriteriaSettings
+  21. generateAutoCriteria → зависит от: showNotification, renderCriteriaSettings
+  22. generateCriteriaSummary → зависит от: forEach
+  23. updateWorkType → зависит от: saveData, updateCriteriaForWorkType, renderAll
+  24. updateCriteriaForWorkType → зависит от: renderTestSettings, switch
+  25. renderPsychologyCriteria → зависит от: updatePsychologyScale
+  26. updateCriteriaDisplay → зависит от: updateCriteriaPreviewNew, updateUniversalCriteriaPreview
+  27. updateCriteriaPreviewNew → зависит от: getGradeColor, calculateMaxScore, getDefaultGradeName...
+  28. updateUniversalCriteriaPreview → зависит от: showStep, getGradeColor, calculateMaxScore...
+  29. testCriteriaScore → зависит от: getGradeColor, calculateMaxScore, getDefaultGradeName...
+  30. updateNextSteps
+  31. addCriteriaPresets → зависит от: applyPreset
+  32. analyzeVPRCriteria → зависит от: map
+  33. renderPointsCriteria → зависит от: getDisplayLevel, getLevelDescription
+  34. setupCriteriaListeners → зависит от: addEventListener, function, forEach
+  35. updateCriteriaSystem → зависит от: initializeDefaultCriteria, renderCriteriaSettings
+  36. rebuildCriteriaForScale → зависит от: updateCriteriaVisualization, calculateMaxScore, showNotification...
+  37. updateNumericCriteriaTable → зависит от: getGradeColor, calculateMaxScore, getDefaultGradeName...
+  38. updateCriteriaMin → зависит от: updateCriteriaVisualization, showNotification
+  39. updateCriteriaMax → зависит от: updateCriteriaVisualization, calculateMaxScore, showNotification
+  40. updateCriteriaName
+  41. updateCriteriaColor → зависит от: updateCriteriaVisualization
+  42. saveNumericCriteria → зависит от: saveData, showNotification, forEach
+  43. resetCriteria → зависит от: autoGenerateCriteria
+  44. updateWorkTypeName
+  45. selectWorkTypes → зависит от: autoGenerateCriteria, updateWorkTypeName
+  46. selectWorkType → зависит от: scheduleAutoSave, showWorktypeInfo, forEach
+  47. showWorktypeInfo → зависит от: switch
+  48. showWorkTypeInfos → зависит от: getWorkTypeDescription, getWorkTypeGoal, getWorkTypeTips
+  49. getWorkTypeDescription
+  50. getWorkTypeGoal
+  51. getWorkTypeTips
+  52. renderCriteriaSettings → зависит от: addCriteriaPresets, renderPointsCriteria, setupCriteriaListeners...
+  53. debugCriteria
+  54. renderPercentageCriteria → зависит от: getCriteriaDisplayName
+  55. getCriteriaDisplayName
+  56. renderSimplePercentageCriteria → зависит от: updateSimpleCriteria
+  57. renderSimplePointsCriteria → зависит от: updateSimpleCriteria
+  58. updateSimpleCriteria → зависит от: saveData
+  59. renderCustomScaleCriteria → зависит от: updateCriteriaName, updateCriteriaColor, getDefaultColor...
+  60. updatePercentageCriteria → зависит от: saveData
+  61. updatePointsCriteria → зависит от: saveData
+  62. updateCustomCriteria → зависит от: saveData, getDefaultColor
+  63. updateCriteriaLabel → зависит от: saveData, getDefaultColor
+
+TASKS (34 функций):
+  1. recalculateTaskAverages
+  2. renderTasks → зависит от: calculateMaxScore, addTask, updateTaskField...
+  3. addTask → зависит от: renderTasks, saveTasks, showNotification
+  4. updateTaskField → зависит от: saveTasks, updateTasksStatus
+  5. saveTasks → зависит от: updateTasksStatus, saveData, showNotification
+  6. updateTasksStatus → зависит от: calculateMaxScore
+  7. importTasksFromTemplate → зависит от: importTemplateTasks, executeTasksImport, scanTemplateFolder...
+  8. importTemplateTasks → зависит от: executeTasksImport, showNotification, showModal...
+  9. executeTasksImport → зависит от: renderTasks, saveTasks, showNotification...
+  10. exportTasks → зависит от: showNotification, map
+  11. addTaskToForm → зависит от: robustSyncData, map
+  12. calculateTaskAverage → зависит от: forEach
+  13. selectAllQuickTasks → зависит от: forEach
+  14. getRandomTasks
+  15. getDefaultTaskCount → зависит от: switch
+  16. renderTaskss → зависит от: updateTaskField, addNewTask, removeTask...
+  17. addNewTask → зависит от: renderTasks, saveData, showNotification...
+  18. removeTask → зависит от: saveData, showNotification, renderAll...
+  19. duplicateTask → зависит от: saveData, showNotification, renderAll...
+  20. moveTaskUp → зависит от: renderTasks, saveData, renderResults...
+  21. moveTaskDown → зависит от: renderTasks, saveData, renderResults...
+  22. dragTaskStart
+  23. dragTaskOver
+  24. dropTask → зависит от: renderTasks, saveData, showNotification...
+  25. initTaskDragAndDrop → зависит от: addEventListener, function, forEach
+  26. addMultipleTasks → зависит от: showModal, hideModal, parseMultipleTasks
+  27. parseMultipleTasks → зависит от: saveData, showNotification, hideModal...
+  28. showTasksMenu → зависит от: showModal, addNewTask, addMultipleTasks...
+  29. reorderTasksByLevel → зависит от: saveData, showNotification, renderAll...
+  30. clearAllTasks → зависит от: saveData, showNotification, renderAll...
+  31. updateTask → зависит от: saveData, scheduleAutoSave
+  32. removeLastTask → зависит от: removeTask
+  33. updateTaxonomyAnalysis → зависит от: map, forEach
+  34. calculateTaskCompletion → зависит от: map
+
+STUDENTS (57 функций):
+  1. debugStudents
+  2. selectByStudent → зависит от: selectAllErrors, deselectAllErrors, updateSelectedCount...
+  3. deleteAllStudentErrors → зависит от: saveData, showNotification, renderResults
+  4. updateStudentErrorsInfo → зависит от: map, forEach
+  5. addErrorToStudentPrompt → зависит от: showNotification, showModal, hideModal...
+  6. saveStudentError → зависит от: showNotification, hideModal, addErrorToStudent
+  7. updateStudentTotal → зависит от: getGradeColor, calculateGrade, forEach
+  8. calculateStudentTotals → зависит от: getGradeColor, calculateGrade, forEach
+  9. showStudentErrors1 → зависит от: showModal, toggleErrorStatus, deleteError...
+  10. addErrorToStudent → зависит от: saveData
+  11. showStudentErrors → зависит от: showNotification, showModal, hideModal...
+  12. selectAllQuickStudents → зависит от: forEach
+  13. filterStudents → зависит от: displayFilteredResults, calculateGrade, map
+  14. generateStudentComment → зависит от: calculateGrade
+  15. renderStudents → зависит от: filterStudents, addMultipleStudents, clearStudents...
+  16. selectClass → зависит от: showNotification, renderClassStudents
+  17. addWholeClassToTestingFromCard → зависит от: saveData, showNotification, renderStudents...
+  18. showQRForClass → зависит от: showNotification, downloadQRCode, shareClassData...
+  19. deleteClass → зависит от: showNotification, renderClassManager
+  20. addWholeClassToTesting → зависит от: showNotification, addWholeClassToTestingFromCard
+  21. toggleAllStudents → зависит от: not, forEach
+  22. addSingleStudent → зависит от: saveData, showNotification, renderResults...
+  23. shareClassData → зависит от: showNotification, and, catch...
+  24. debugClassActions → зависит от: forEach
+  25. renderClassManager → зависит от: addSelectedToTesting, addWholeClassToTesting, renderClassesGrid...
+  26. renderClassesGrid → зависит от: selectClass, addWholeClassToTestingFromCard, showQRForClass...
+  27. setupClassActionsDelegation → зависит от: addEventListener
+  28. handleClassAction → зависит от: selectClass, addWholeClassToTestingFromCard, showQRForClass...
+  29. renderClassStudents → зависит от: updateSelectedCount, addWholeClassToTesting, toggleAllStudents...
+  30. importSchoolFile → зависит от: showNotification, renderClassManager, saveSchoolData...
+  31. updateClassSelector → зависит от: map
+  32. findClassName
+  33. normalizeClassName
+  34. countTotalStudents
+  35. addMultipleStudents → зависит от: saveData, showNotification, renderResults...
+  36. clearStudents → зависит от: saveData, showNotification, renderResults...
+  37. duplicateStudent → зависит от: saveData, showNotification, renderResults...
+  38. moveStudentUp → зависит от: moveStudent
+  39. moveStudentDown → зависит от: moveStudent
+  40. moveStudent → зависит от: saveData, showNotification, renderResults...
+  41. sortStudentsAlphabetically → зависит от: saveData, showNotification, renderStudents...
+  42. exportStudentsList → зависит от: showNotification, map
+  43. editStudentInModal → зависит от: showNotification, updateStudent
+  44. updateStudent → зависит от: saveData, updateStudentProgressBar
+  45. updateStudentProgressBar
+  46. addStudent → зависит от: saveData, showNotification, renderResults...
+  47. removeStudent → зависит от: saveData, showNotification, renderResults...
+  48. updateAllStudentDependentElements → зависит от: renderResults, renderCharts
+  49. removeLastStudent → зависит от: saveData, showNotification, renderResults...
+  50. setStudentsCount → зависит от: saveData, showNotification, renderResults...
+  51. generateStudents → зависит от: saveData, showNotification, renderResults...
+  52. saveStudents → зависит от: saveData, showNotification
+  53. syncStudentsCount → зависит от: saveData, showNotification
+  54. editStudentScore → зависит от: showNotification
+  55. countStudentsByPerformanceLevel → зависит от: switch, map
+  56. countStudentsByLevel → зависит от: switch, map
+  57. countCommonStudents
+
+RESULTS (56 функций):
+  1. setupResultsNavigation → зависит от: addQuickFillButtons, addEventListener
+  2. fillPattern → зависит от: getPatternName, showNotification, renderResults...
+  3. copyRow → зависит от: showNotification, catch, forEach
+  4. handleResultsNavigation → зависит от: moveToCell, toggleScore, switch
+  5. toggleScore
+  6. getGradeColor
+  7. toggleAutoCalculate
+  8. handleAutoCalculate → зависит от: updateCellStyle, flashUpdateStatus, updateScore
+  9. recalculateAllTotals → зависит от: recalculateTaskAverages, updateSummaryRow, updateStudentTotal
+  10. initAutoCalculate → зависит от: toggleAutoCalculate
+  11. copyRowAbove1 → зависит от: saveData, showNotification, renderResults
+  12. fillPattern1 → зависит от: saveData, showNotification, renderResults
+  13. toggleScore1
+  14. calculateMaxScore
+  15. updateExampleScores → зависит от: getGradeColor, calculateMaxScore, safeCalculateGrade...
+  16. updateScorePreview → зависит от: getGradeColor, calculateMaxScore, getGradeDescription...
+  17. getGradeDescription
+  18. editGradeCard → зависит от: getGradeColor, calculateMaxScore, saveGradeEdit...
+  19. saveGradeEdit → зависит от: updateCriteriaVisualization, showNotification, hideModal
+  20. getDefaultGradeName
+  21. showBulkEditScores → зависит от: showModal, applyBulkEdit, map
+  22. applyBulkEdit → зависит от: saveData, showNotification, hideModal...
+  23. getGradeDisplay
+  24. renderResults → зависит от: fillPattern, copyRow, getGradeColor...
+  25. copyRowAbove → зависит от: showNotification, renderResults, forEach
+  26. updateScore → зависит от: saveUndoState, saveData, updateStudentTotal...
+  27. displayFilteredResults → зависит от: map, forEach
+  28. calculatePsychologyGrade → зависит от: calculateGrade, switch
+  29. updateResult → зависит от: saveData, showNotification, renderResults
+  30. saveResults → зависит от: saveData, showNotification
+  31. calculateGrade
+  32. calculateGradeDistribution → зависит от: forEach
+  33. calculateMedian
+  34. getGradeLabel
+  35. calculateSuccessRate
+  36. generateGradeDistributionHTML → зависит от: getGradeLabel, map
+  37. calculateAverageScore → зависит от: map
+  38. calculateQualityRate → зависит от: calculateGrade, map
+  39. calculateSou → зависит от: calculateGrade, map
+  40. renderGradesChart → зависит от: destroyChartIfExists, function
+  41. updateGradesChart → зависит от: getGradeColor, calculateGrade, function...
+  42. calculateBaselineLevel → зависит от: map
+  43. calculateReadinessLevel → зависит от: map
+  44. drawSimpleGradesChart
+  45. updateGradeCount → зависит от: updateAdvancedControls
+  46. redistributeGrades → зависит от: applyDistribution
+  47. updateGradeKey → зависит от: updateCriteriaVisualization, showNotification, updateNumericCriteriaTable...
+  48. addNewGrade → зависит от: updateCriteriaVisualization, calculateMaxScore, showNotification...
+  49. showScoreTooltip → зависит от: getGradeColor, safeCalculateGrade
+  50. calculatePercentageRange
+  51. calculateGradeByPercentage
+  52. calculateGradeByPoints
+  53. calculateGradeByCustomScale
+  54. mergeResults → зависит от: forEach
+  55. adjustResultsArray → зависит от: forEach
+  56. fixGrades
+
+ANALYTICS (108 функций):
+  1. analyzeCode → зависит от: forEach
+  2. showReportTemplateManager → зависит от: loadReportTemplate, loadCustomTemplate, createNewTemplate...
+  3. loadReportTemplate → зависит от: showReportTemplateManager, showNotification
+  4. applyTemplateToReport
+  5. generateDataHash → зависит от: forEach
+  6. generateWorkSummary → зависит от: calculateGrade, map
+  7. initTrendChart → зависит от: function, map
+  8. generatePDFContent → зависит от: calculateGrade, generateKeyConclusionsText, map...
+  9. showSmartRecommendations → зависит от: generateSmartRecommendations, getActionDescription, forEach
+  10. generateSmartRecommendations → зависит от: analyzePerformancePatterns, map
+  11. analyzePerformancePatterns → зависит от: calculateTaskCompletion, map, forEach
+  12. generatePsychologyLevelsDistribution → зависит от: map, forEach
+  13. initPsychologyCharts → зависит от: addEventListener, function, map...
+  14. generatePsychologyRecommendations
+  15. generatePsychologyReport
+  16. generatePsychologyFeatures → зависит от: getRandomTasks, getFeatureRecommendation, forEach
+  17. getFeatureRecommendation
+  18. generateSampleErrors → зависит от: forEach
+  19. analyzeFileStructure → зависит от: showNotification, getFilePreview, getCSVPreview...
+  20. generateDefaultNames → зависит от: saveData, showNotification, renderResults...
+  21. updateKPIDashboard → зависит от: calculateGrade, calculateMedian, map...
+  22. exportChartsAsHTML → зависит от: showNotification, exportReport, addExportButtons...
+  23. exportReport → зависит от: showNotification, printReport, exportToHTML...
+  24. printReport → зависит от: showNotification, fixGrades, not...
+  25. exportChartsForPrint → зависит от: forEach
+  26. loadReportLibraries → зависит от: loadScript
+  27. generateReportContent → зависит от: showNotification, getChartImages, calculateGradeDistribution...
+  28. getChartImages
+  29. generateDifficultyAnalysis → зависит от: map, forEach
+  30. generateConclusion
+  31. closeReportModal
+  32. generateReportHTML → зависит от: calculateMedian, calculateSuccessRate, generateConclusion...
+  33. generateChartHTML
+  34. generateSimpleReport → зависит от: tryGenerateFullReport, map
+  35. tryGenerateFullReport → зависит от: generateReportContent
+  36. generateDifficultyAnalysisHTML → зависит от: generateDifficultyAnalysis, getDifficultyColor, map
+  37. saveReportAsPDF → зависит от: showNotification, loadScript, getTimestamp
+  38. generateVPRRecommendations → зависит от: map
+  39. generateLiteracyRecommendations → зависит от: switch, map, forEach
+  40. initLiteracyChart → зависит от: function, map, forEach
+  41. generateOGERecommendations → зависит от: calculateTaskCompletion, map
+  42. destroyChartIfExists
+  43. prepareChartData → зависит от: map, forEach
+  44. renderChartsFromCache → зависит от: renderGradesChart, renderSolvabilityChart, renderComplexityChart
+  45. renderCharts → зависит от: renderGradesChart, renderSolvabilityChart, renderComplexityChart...
+  46. renderSolvabilityChart → зависит от: destroyChartIfExists, map
+  47. renderComplexityChart → зависит от: destroyChartIfExists, addComplexityLegend, function...
+  48. updateCharts → зависит от: updateGradesChart, updateSolvabilityChart, updateComplexityChart...
+  49. updateSolvabilityChart → зависит от: function, map
+  50. createAllCharts → зависит от: createChartContainer, forEach
+  51. createChartContainer → зависит от: getChartTitle
+  52. getChartTitle
+  53. findChartsContainer → зависит от: forEach
+  54. exportAllCharts → зависит от: showNotification, showExportMenu
+  55. exportChartsAsPNG → зависит от: showNotification, closeExportMenu, exportSingleChart...
+  56. exportSingleChart → зависит от: getTimestamp, toBlob
+  57. exportChartsAsPDF → зависит от: showNotification, closeExportMenu, loadScript...
+  58. exportChartsAsSingleImage → зависит от: showNotification, closeExportMenu, loadScript...
+  59. copyChartsToClipboard → зависит от: showNotification, closeExportMenu, catch...
+  60. generateStatsSummary → зависит от: map
+  61. updateComplexityChart → зависит от: function, map
+  62. showChartError → зависит от: forEach
+  63. destroyAllCharts → зависит от: forEach
+  64. generateLearningElementsAnalysis → зависит от: calculateTaskCompletion, forEach
+  65. generateProgressForecast → зависит от: generateForecastRecommendation, map
+  66. generateForecastRecommendation
+  67. generateMilestoneRecommendations
+  68. generateTopicMasteryAnalysis → зависит от: generateTopicRecommendation, map
+  69. generateTopicRecommendation
+  70. generateCurrentErrorsAnalysis → зависит от: switch, forEach
+  71. generatePwaIcons → зависит от: showNotification, forEach
+  72. generateLessonRecommendations → зависит от: countStudentsByPerformanceLevel
+  73. generateGapsAnalysis → зависит от: identifyGaps, forEach
+  74. generateDiagnosticGroups → зависит от: map
+  75. generateDiagnosticRecommendations → зависит от: identifyGaps, calculateReadinessLevel
+  76. generateMilestoneSpecializedReport → зависит от: updateMilestoneAnalysis
+  77. generateCurrentSpecializedReport → зависит от: updateCurrentAnalysis
+  78. generateDiagnosticSpecializedReport → зависит от: updateDiagnosticAnalysis
+  79. exportSpecializedReport → зависит от: showNotification, updateVPRAnalysis, updateLiteracyAnalysis...
+  80. initLiteracyRadarChart → зависит от: function, map, forEach
+  81. updateRecommendations → зависит от: updatePrintHeaders, updateKeyConclusions, updateCorrectionPlan...
+  82. generateFullReportForPrint → зависит от: generateCriteriaSummary, calculateGrade, calculateTaskCompletion...
+  83. generatePsychologyPrintReport → зависит от: generatePsychologyRecommendationsText, map, forEach
+  84. generatePsychologyRecommendationsText → зависит от: map, forEach
+  85. printFullReport → зависит от: generateFullReportForPrint
+  86. generateFullReport → зависит от: calculateGrade, map, forEach
+  87. printOptimizedReport → зависит от: generatePrintableReport
+  88. generatePrintableReport → зависит от: calculateGrade, calculateTaskCompletion, generateKeyConclusionsText...
+  89. generateKeyTopicsAnalysis → зависит от: calculateTaskCompletion, forEach
+  90. generatePedagogicalConclusions → зависит от: map
+  91. debugCharts → зависит от: map, forEach
+  92. testChart
+  93. generateFinalSpecializedReport → зависит от: calculateSuccessRate, calculateAverageScore, calculateQualityRate...
+  94. generateKeyConclusionsText → зависит от: calculateGrade, calculateTaskCompletion, getTopErrorType...
+  95. updateReportPreview → зависит от: calculateGrade, map
+  96. generateVPRSpecializedReport → зависит от: calculateGrade, calculateAverageScore, updateVPRAnalysis...
+  97. generateLiteracySpecializedReport → зависит от: updateLiteracyAnalysis, analyzeOverallLiteracyLevel, map
+  98. generateExportFilename
+  99. printPsychologyReport → зависит от: showNotification, generatePsychologyPrintReport
+  100. generateAIRecommendationsss → зависит от: getGradeColor, calculateMaxScore, showModal...
+  101. applyAIRecommendations → зависит от: updateCriteriaVisualization, showNotification, hideModal
+  102. showImportStatistics
+  103. analyzeOverallLiteracyLevel
+  104. generateOGESpecializedReport → зависит от: calculateSuccessRate, calculateAverageScore, calculateQualityRate...
+  105. generateEGESpecializedReport
+  106. generateStandardSpecializedReport
+  107. generateSpecializedReportHTML
+  108. generateTeacherReport → зависит от: calculateGrade, calculateTaskCompletion, map
+
+EXPORT (69 функций):
+  1. exportSetupAsTemplate → зависит от: showNotification
+  2. exportJSON → зависит от: showNotification, map, forEach
+  3. handleFileImport → зависит от: validateImportedData, loadImportedData, showNotification...
+  4. loadImportedData → зависит от: saveData, showNotification, renderAll...
+  5. saveAsCustomTemplate → зависит от: showReportTemplateManager, showNotification
+  6. enhanceExportSection
+  7. printHotkeyCheatsheet → зависит от: getHotkeyDescription, map
+  8. enhanceTemplateImportBlock → зависит от: showTemplateSelection, showFolderManagement, updateTemplateScannerStatus...
+  9. updateTemplateImportBlock → зависит от: scanLocalFolder, scanServerFolder, checkServerTemplatesAvailability...
+  10. cleanJSON
+  11. importLastTemplate → зависит от: showNotification
+  12. exportErrorsToCSV
+  13. exportToExcel → зависит от: showNotification, calculateGrade, calculateSuccessRate...
+  14. exportToPDFCanvas → зависит от: showNotification, generatePDFContent
+  15. exportToPDFWithPDFMake → зависит от: showNotification, calculateGrade, calculateTaskCompletion...
+  16. exportToPDF → зависит от: showNotification, calculateGrade, calculateTaskCompletion...
+  17. exportForEJournal → зависит от: showNotification, generateStudentComment, calculateGrade...
+  18. downloadQRCode → зависит от: showNotification
+  19. importFromExcel → зависит от: function
+  20. importFromCSV → зависит от: function, map
+  21. showMassImportDialog → зависит от: showNotification, generateStudents, map
+  22. exportAppData → зависит от: showNotification, calculateAverageScore
+  23. importAppData → зависит от: saveData, createBackup, showNotification...
+  24. handleFileImports → зависит от: importAppData, function
+  25. exportToHTML → зависит от: showNotification, fixGrades, forEach
+  26. exportToDOCX → зависит от: showNotification, exportToHTML, createHTMLForDOCX
+  27. createHTMLForDOCX → зависит от: fixGrades, forEach
+  28. addExportButtons → зависит от: exportReport, createFloatingExportButton
+  29. createFloatingExportButton → зависит от: exportReport, addEventListener, forEach
+  30. initExportButtons → зависит от: addEventListener
+  31. optimizeForPrint → зависит от: forEach
+  32. addPrintStyles
+  33. showExportMenu → зависит от: exportChartsAsHTML, closeExportMenu, exportChartsAsPNG...
+  34. closeExportMenu
+  35. downloadAsZip → зависит от: showNotification, loadScript, getTimestamp...
+  36. updatePrintHeaders
+  37. exportHTML → зависит от: showNotification, generateFullReport
+  38. exportToFile → зависит от: showNotification, generateExportFilename, saveExportHistory
+  39. createTestImportFile → зависит от: showNotification
+  40. importFromFile → зависит от: validateImportedData, showNotification, showModal...
+  41. tryForceImport → зависит от: showNotification, hideModal, showImportConfirmationDialog
+  42. simpleImport → зависит от: cleanJSON, showNotification, showImportConfirmationSimple...
+  43. debugJSONFile → зависит от: cleanJSON, function
+  44. simpleExport → зависит от: showNotification
+  45. showImportConfirmationSimple
+  46. performImport → зависит от: saveData, robustSyncData, showNotification...
+  47. showImportExportMenu → зависит от: scanTemplateFolder, showTemplateSelection, importLastTemplate...
+  48. addImportExportButtons → зависит от: simpleImport, simpleExport, showImportExportMenu...
+  49. showImportConfirmationDialog → зависит от: showModal, hideModal, showDataPreview...
+  50. confirmImport → зависит от: showNotification, hideModal, applyImportedData...
+  51. applyImportedData → зависит от: saveData, renderAll, showImportStatistics...
+  52. saveAsDraft → зависит от: saveData, showNotification
+  53. saveExportHistory → зависит от: generateExportFilename
+  54. saveImportHistory
+  55. showExportOptions → зависит от: showModal
+  56. showImportOptions → зависит от: showModal, importAsTemplate, importAsData
+  57. importAsTemplate → зависит от: selectTemplate
+  58. importAsData → зависит от: showImportConfirmationSimple
+  59. previewImportFile → зависит от: validateImportedData, showNotification, showImportPreview...
+  60. showImportPreview → зависит от: showModal, hideModal, countCommonStudents...
+  61. confirmImportPreview → зависит от: hideModal, confirmImport
+  62. workingExport → зависит от: showNotification
+  63. emergencyExport → зависит от: showNotification, calculateGrade, forEach
+  64. emergencyImport → зависит от: loadStandardSample
+  65. workingImport → зависит от: saveData, showNotification, renderAll...
+  66. exportBackup
+  67. exportAllBackups → зависит от: showNotification, forEach
+  68. exportForTeacher → зависит от: showNotification, generateTeacherReport
+  69. exportJSONz → зависит от: showNotification
+
+UI (55 функций):
+  1. toggleQuickFillPanel
+  2. toggleCellSelection
+  3. isPwaSupported
+  4. showUpdateNotification
+  5. showPwaInstallPrompt → зависит от: checkIfPwaInstalled
+  6. hidePwaPrompt
+  7. installPwa → зависит от: hidePwaPrompt, showNotification
+  8. requestNotificationPermission → зависит от: subscribeToPushNotifications
+  9. subscribeToPushNotifications → зависит от: isPwaSupported, urlBase64ToUint8Array, catch
+  10. toggleDebugMode → зависит от: addDebugPanel, removeDebugPanel, showNotification
+  11. startTour → зависит от: showTourStep
+  12. endTour → зависит от: showNotification, forEach
+  13. showHotkeyFeedback
+  14. showHotkeyHelp → зависит от: printHotkeyCheatsheet, showModal
+  15. showSaveManagement → зависит от: hasUnsavedChanges, toggleAutoSave, forceSave...
+  16. toggleAutoSave → зависит от: showNotification
+  17. showBackupManager → зависит от: restoreBackup, showModal, deleteBackup...
+  18. showTutorial → зависит от: updateTutorialStep
+  19. showContextHelp → зависит от: showTutorial, showModal
+  20. showTemplateSelection → зависит от: showTemplateSelectionModal, showTemplateSelectionEmpty
+  21. showTemplateSelectionModal → зависит от: renderTemplatesList, filterTemplatesByType, cleanJSON...
+  22. showTemplateSelectionWithCache → зависит от: showFolderManagement, renderTemplatesList, filterTemplatesByType...
+  23. showTemplateSelectionEmpty → зависит от: scanLocalFolder, scanServerFolder, showModal
+  24. showFolderManagement → зависит от: clearTemplateCache, showModal, hideModal
+  25. showScanSourceSelection → зависит от: scanLocalFolder, scanServerFolder, showModal
+  26. showServerFolderSetupGuide → зависит от: scanServerFolder, showModal, hideModal
+  27. showTemplateConfirmation → зависит от: previewTemplate, useTemplate, showModal...
+  28. showModal → зависит от: hideModal
+  29. toggleErrorStatus → зависит от: saveData, showStudentErrors
+  30. showBulkDeleteErrors → зависит от: showNotification, showModal, hideModal...
+  31. toggleAllErrors → зависит от: updateSelectedCount, forEach
+  32. showErrorsManagement → зависит от: showModal, hideModal, showBulkDeleteErrors...
+  33. showTab → зависит от: renderResults, forEach
+  34. showQuickErrorAdd → зависит от: showModal, hideModal, selectAllQuickStudents...
+  35. showComparativeAnalysis → зависит от: showModal, generateWorkSummary, initTrendChart
+  36. toggleViewMode → зависит от: renderStudents, renderClassManager, loadSchoolData
+  37. showFilePreview → зависит от: escapeHtml, importSchoolFile, getFilePreview...
+  38. showQuickSetDialog → зависит от: showNotification, setStudentsCount
+  39. showEmergencyInterface
+  40. toggleHeatmapColors → зависит от: updateHeatmap, map
+  41. toggleHeatmapLabels → зависит от: forEach
+  42. showHeatmapCellDetails → зависит от: showModal, hideModal, getPercentageColor...
+  43. setupTabsNavigation → зависит от: updateVisualization, setupVisualizationTab, addEventListener...
+  44. setupVisualizationTab → зависит от: updateVisualization, exportAllCharts, toggleDarkMode...
+  45. toggleDarkMode → зависит от: showNotification, updateVisualization
+  46. showNoDataMessage → зависит от: forEach
+  47. showResetDialog → зависит от: showModal, exportAppData, resetAppData
+  48. addPwaDebugButton → зависит от: registerServiceWorker, checkIfPwaInstalled, installPwa...
+  49. uninstallPwa → зависит от: installPwa, showNotification, forEach
+  50. showRawFileContent → зависит от: showNotification, showModal, hideModal
+  51. showDataPreview → зависит от: showNotification, showModal, hideModal...
+  52. showTransferHistory → зависит от: showModal, map
+  53. showQuickTransferMenu → зависит от: showModal, exportToFile, importFromFile...
+  54. showBackupManagement → зависит от: createBackup, restoreBackup, showModal...
+  55. stopWatching
+
+ERRORS (16 функций):
+  1. transformErrorsForStorage → зависит от: map, forEach
+  2. deleteError1 → зависит от: saveData, showNotification, renderResults
+  3. deleteError → зависит от: saveData, showStudentErrors
+  4. editError → зависит от: showModal, hideModal, deleteError...
+  5. saveEditedError → зависит от: saveData, showNotification, hideModal...
+  6. selectAllErrors → зависит от: updateSelectedCount, forEach
+  7. deselectAllErrors → зависит от: selectAllErrors, updateSelectedCount, forEach
+  8. deleteSelectedErrors → зависит от: saveData, showNotification, hideModal...
+  9. deleteAllErrorsByType → зависит от: saveData, showNotification, renderResults
+  10. updateTypeErrorsInfo → зависит от: map
+  11. deleteAllErrors → зависит от: saveData, showNotification, hideModal...
+  12. addQuickErrors → зависит от: saveData, showNotification, hideModal...
+  13. addError → зависит от: saveData, showNotification, renderResults
+  14. updateErrorsAnalysis → зависит от: switch, forEach
+  15. addErrorForCell → зависит от: showNotification
+  16. getTopErrorType → зависит от: forEach
+
+
+ПРОБЛЕМНЫЕ ФУНКЦИИ (первые 20):
+----------------------------------------
+• analyzeCode: Смешанная ответственность ()
+  Рекомендация: Разделить на логику и представление
+
+• setupResultsNavigation: Смешанная ответственность ()
+  Рекомендация: Разделить на логику и представление
+
+• addQuickFillButtons: Много зависимостей (12)
+  Рекомендация: Разделить на несколько функций
+
+• addQuickFillButtons: Смешанная ответственность ()
+  Рекомендация: Разделить на логику и представление
+
+• toggleQuickFillPanel: Смешанная ответственность ()
+  Рекомендация: Разделить на логику и представление
+
+• initializeQuickFillStyles: Смешанная ответственность ()
+  Рекомендация: Разделить на логику и представление
+
+• setupCellSelection: Смешанная ответственность ()
+  Рекомендация: Разделить на логику и представление
+
+• selectCellRange: Смешанная ответственность ()
+  Рекомендация: Разделить на логику и представление
+
+• selectAllCells: Смешанная ответственность ()
+  Рекомендация: Разделить на логику и представление
+
+• clearCellSelection: Смешанная ответственность ()
+  Рекомендация: Разделить на логику и представление
+
+• updateSelectionInfo: Смешанная ответственность ()
+  Рекомендация: Разделить на логику и представление
+
+• fillSelectedRows: Смешанная ответственность ()
+  Рекомендация: Разделить на логику и представление
+
+• applyFormula: Смешанная ответственность ()
+  Рекомендация: Разделить на логику и представление
+
+• handleResultsNavigation: Смешанная ответственность ()
+  Рекомендация: Разделить на логику и представление
+
+• moveToCell: Смешанная ответственность ()
+  Рекомендация: Разделить на логику и представление
+
+• showStep: Смешанная ответственность ()
+  Рекомендация: Разделить на логику и представление
+
+• validateStep: Смешанная ответственность ()
+  Рекомендация: Разделить на логику и представление
+
+• updateNavigationButtons: Смешанная ответственность ()
+  Рекомендация: Разделить на логику и представление
+
+• switchCriteriaMode: Смешанная ответственность ()
+  Рекомендация: Разделить на логику и представление
+
+• updateCriteriaVisualization: Критическая зависимость (16)
+  Рекомендация: Вынести в core модуль
+

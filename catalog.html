@@ -1,0 +1,975 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PRO Каталог проектов — подробное описание</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: #0d1117;
+            color: #c9d1d9;
+            padding: 30px 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        /* ===== ШАПКА ===== */
+        .header {
+            border-bottom: 1px solid #30363d;
+            padding-bottom: 24px;
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .header h1 {
+            font-size: 36px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #58a6ff, #3fb950);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .header h1 i {
+            -webkit-text-fill-color: initial;
+            color: #58a6ff;
+        }
+
+        .header-stats {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .stat-badge {
+            background: #21262d;
+            padding: 8px 18px;
+            border-radius: 30px;
+            font-size: 14px;
+            color: #8b949e;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .stat-badge strong {
+            color: #f0f6fc;
+        }
+
+        /* ===== ПОИСК И ФИЛЬТРЫ ===== */
+        .controls {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+            background: #161b22;
+            padding: 16px 20px;
+            border-radius: 16px;
+            border: 1px solid #30363d;
+        }
+
+        .search-input {
+            flex: 1;
+            min-width: 200px;
+            padding: 12px 18px;
+            border: 1px solid #30363d;
+            border-radius: 10px;
+            background: #0d1117;
+            color: #c9d1d9;
+            font-size: 15px;
+            transition: all 0.2s;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: #58a6ff;
+            box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.15);
+        }
+
+        .filter-group {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .filter-btn {
+            padding: 8px 16px;
+            border: 1px solid #30363d;
+            border-radius: 30px;
+            background: #0d1117;
+            color: #8b949e;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+
+        .filter-btn:hover {
+            background: #1c2333;
+            border-color: #58a6ff;
+            color: #f0f6fc;
+        }
+
+        .filter-btn.active {
+            background: #238636;
+            border-color: #238636;
+            color: white;
+        }
+
+        /* ===== ПРОЕКТЫ ===== */
+        .project-card {
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 16px;
+            transition: all 0.3s ease;
+            display: flex;
+            gap: 24px;
+            align-items: flex-start;
+        }
+
+        .project-card:hover {
+            background: #1c2333;
+            border-color: #58a6ff;
+            transform: translateX(6px);
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .project-icon {
+            font-size: 42px;
+            min-width: 56px;
+            text-align: center;
+            line-height: 1;
+            margin-top: 4px;
+        }
+
+        .project-content {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .project-header {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 8px;
+        }
+
+        .project-name {
+            font-size: 22px;
+            font-weight: 600;
+            color: #f0f6fc;
+        }
+
+        .project-name a {
+            color: #f0f6fc;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .project-name a:hover {
+            color: #58a6ff;
+        }
+
+        .project-name .no-link {
+            color: #8b949e;
+            cursor: default;
+        }
+
+        .project-tech-stack {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+
+        .tech-tag {
+            display: inline-block;
+            padding: 3px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            background: #21262d;
+            color: #58a6ff;
+        }
+
+        .tech-tag.python { color: #ffd43b; }
+        .tech-tag.javascript { color: #f1e05a; }
+        .tech-tag.html { color: #e34c26; }
+        .tech-tag.css { color: #563d7c; }
+        .tech-tag.node { color: #68a063; }
+        .tech-tag.arduino { color: #00979d; }
+        .tech-tag.blockly { color: #5cb85c; }
+
+        .new-badge {
+            background: #238636;
+            color: white;
+            font-size: 10px;
+            padding: 2px 12px;
+            border-radius: 20px;
+            text-transform: uppercase;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
+
+        .project-description {
+            font-size: 15px;
+            color: #c9d1d9;
+            line-height: 1.6;
+            margin: 8px 0 12px;
+            padding: 12px 16px;
+            background: #0d1117;
+            border-radius: 10px;
+            border-left: 3px solid #58a6ff;
+        }
+
+        .project-description .highlight {
+            color: #fbbf24;
+        }
+
+        .project-features {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-bottom: 10px;
+        }
+
+        .feature-tag {
+            display: inline-block;
+            padding: 3px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            background: #1f2937;
+            color: #8b949e;
+        }
+
+        .feature-tag i {
+            margin-right: 4px;
+            color: #58a6ff;
+        }
+
+        .project-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px 24px;
+            font-size: 13px;
+            color: #484f58;
+        }
+
+        .project-meta i {
+            margin-right: 4px;
+            color: #58a6ff;
+        }
+
+        .project-meta .link {
+            color: #58a6ff;
+            text-decoration: none;
+        }
+
+        .project-meta .link:hover {
+            text-decoration: underline;
+        }
+
+        .project-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 12px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 18px;
+            border-radius: 30px;
+            font-size: 13px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.2s;
+            border: none;
+            cursor: pointer;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #238636, #2ea043);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(35, 134, 54, 0.4);
+        }
+
+        .btn-secondary {
+            background: #21262d;
+            color: #c9d1d9;
+            border: 1px solid #30363d;
+        }
+
+        .btn-secondary:hover {
+            background: #30363d;
+        }
+
+        .btn-outline {
+            background: transparent;
+            color: #58a6ff;
+            border: 1px solid #58a6ff;
+        }
+
+        .btn-outline:hover {
+            background: rgba(88, 166, 255, 0.1);
+        }
+
+        /* ===== КАТЕГОРИИ ===== */
+        .category-section {
+            margin-bottom: 48px;
+        }
+
+        .category-title {
+            font-size: 28px;
+            font-weight: 700;
+            color: #f0f6fc;
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid #30363d;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .category-title .count {
+            font-size: 16px;
+            font-weight: 400;
+            color: #8b949e;
+        }
+
+        .category-title .collapse-btn {
+            margin-left: auto;
+            background: none;
+            border: none;
+            color: #8b949e;
+            cursor: pointer;
+            font-size: 18px;
+            padding: 4px 12px;
+            border-radius: 8px;
+            transition: all 0.2s;
+        }
+
+        .category-title .collapse-btn:hover {
+            background: #21262d;
+            color: #f0f6fc;
+        }
+
+        /* ===== ПУСТОЙ СОСТОЯНИЕ ===== */
+        .empty-state {
+            text-align: center;
+            padding: 80px 20px;
+            color: #484f58;
+        }
+
+        .empty-state i {
+            font-size: 64px;
+            margin-bottom: 20px;
+            color: #30363d;
+        }
+
+        .empty-state h3 {
+            color: #8b949e;
+            margin-bottom: 10px;
+        }
+
+        /* ===== ПОДВАЛ ===== */
+        .footer {
+            margin-top: 48px;
+            padding-top: 24px;
+            border-top: 1px solid #21262d;
+            text-align: center;
+            font-size: 14px;
+            color: #484f58;
+        }
+
+        .footer a {
+            color: #58a6ff;
+            text-decoration: none;
+        }
+
+        .footer a:hover {
+            text-decoration: underline;
+        }
+
+        /* ===== АДАПТИВНОСТЬ ===== */
+        @media (max-width: 768px) {
+            .project-card {
+                flex-direction: column;
+                gap: 12px;
+                padding: 18px;
+            }
+
+            .project-icon {
+                font-size: 32px;
+                text-align: left;
+            }
+
+            .header h1 {
+                font-size: 24px;
+            }
+
+            .controls {
+                flex-direction: column;
+            }
+
+            .filter-group {
+                justify-content: flex-start;
+            }
+        }
+
+        @media (max-width: 480px) {
+            body { padding: 16px 10px; }
+            .project-name { font-size: 18px; }
+            .project-description { font-size: 14px; padding: 10px 12px; }
+            .project-meta { font-size: 12px; gap: 10px; }
+        }
+
+        /* Анимация появления */
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .project-card {
+            animation: fadeInUp 0.4s ease forwards;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+
+    <!-- ===== ШАПКА ===== -->
+    <header class="header">
+        <h1><i class="fas fa-folder-open"></i> PRO Каталог проектов</h1>
+        <div class="header-stats">
+            <span class="stat-badge"><i class="fas fa-code"></i> <strong id="totalProjects">0</strong> проектов</span>
+            <span class="stat-badge"><i class="fas fa-tag"></i> <strong id="totalCategories">0</strong> категорий</span>
+            <span class="stat-badge"><i class="fas fa-robot"></i> AI-анализ</span>
+        </div>
+    </header>
+
+    <!-- ===== ПОИСК И ФИЛЬТРЫ ===== -->
+    <div class="controls">
+        <input type="text" id="searchInput" class="search-input" placeholder="🔍 Поиск по названию, описанию, технологиям...">
+        <div class="filter-group" id="filterGroup">
+            <button class="filter-btn active" data-filter="all">📋 Все</button>
+            <button class="filter-btn" data-filter="school-food">🍽️ Питание</button>
+            <button class="filter-btn" data-filter="arduino">🤖 Arduino</button>
+            <button class="filter-btn" data-filter="games">🎮 Игры</button>
+            <button class="filter-btn" data-filter="moto-calc">🏍️ Мото</button>
+            <button class="filter-btn" data-filter="tools">🔧 Инструменты</button>
+            <button class="filter-btn" data-filter="other">📁 Прочее</button>
+        </div>
+    </div>
+
+    <!-- ===== КОНТЕЙНЕР ПРОЕКТОВ ===== -->
+    <div id="projectsContainer"></div>
+
+    <!-- ===== ПОДВАЛ ===== -->
+    <footer class="footer">
+        <i class="fas fa-robot"></i> Сгенерировано автоматически •
+        <span id="generatedDate"></span> •
+        <a href="#" onclick="location.reload()">Обновить</a>
+    </footer>
+</div>
+
+<script>
+    // ============================================================
+    //  БАЗА ДАННЫХ ПРОЕКТОВ (из ваших файлов)
+    // ============================================================
+    const PROJECTS = [
+        // ===== ШКОЛЬНОЕ ПИТАНИЕ =====
+        {
+            name: "proftm",
+            category: "school-food",
+            icon: "🍽️",
+            hasIndex: true,
+            techStack: ["HTML", "JavaScript", "ExcelJS", "XLSX"],
+            features: ["Генератор меню", "Проверка ФЦМПО", "16 правил СанПиН", "Экспорт Excel"],
+            description: "PRO-версия генератора ежедневных меню с полной системой проверки по 16 правилам. Автоматическое создание меню из календаря питания и типового меню с валидацией весов, калорийности и БЖУ.",
+            lastModified: "2026-06-18",
+            filesCount: 1
+        },
+        {
+            name: "progen1",
+            category: "school-food",
+            icon: "🍽️",
+            hasIndex: true,
+            techStack: ["HTML", "JavaScript", "Chart.js", "XLSX"],
+            features: ["Генератор меню", "Аналитика", "Дашборд", "Поиск блюд"],
+            description: "Генератор ежедневных меню с дашбордом и аналитикой. Включает календарь питания, типовое меню, проверку СанПиН и визуализацию данных.",
+            lastModified: "2026-06-18",
+            filesCount: 1
+        },
+        {
+            name: "sverka_lol",
+            category: "school-food",
+            icon: "✅",
+            hasIndex: true,
+            techStack: ["HTML", "JavaScript", "XLSX"],
+            features: ["Сравнение меню", "Проверка соответствия", "17 правил", "Отчёт"],
+            description: "Система сравнения фактического меню с эталонным типовым меню. Проверка по 17 правилам, включая дубликаты блюд, вес порций и соответствие разделам.",
+            lastModified: "2026-06-18",
+            filesCount: 1
+        },
+        {
+            name: "sverka",
+            category: "school-food",
+            icon: "🔍",
+            hasIndex: true,
+            techStack: ["HTML", "JavaScript", "XLSX"],
+            features: ["Анализ соответствия", "СанПиН", "БЖУ баланс"],
+            description: "Анализ соответствия меню требованиям ФЦМПО с проверкой весов, калорийности и сбалансированности БЖУ.",
+            lastModified: "2026-06-18",
+            filesCount: 1
+        },
+        {
+            name: "baz",
+            category: "school-food",
+            icon: "🔗",
+            hasIndex: true,
+            techStack: ["HTML", "JavaScript"],
+            features: ["Проверка файлов", "Кэширование", "Валидация Excel"],
+            description: "Инструмент для проверки наличия файлов меню на сайтах пищеблоков. Проверяет findex, tm2026-sm.xlsx, kp2026.xlsx и ежедневные меню.",
+            lastModified: "2026-06-18",
+            filesCount: 1
+        },
+        {
+            name: "client",
+            category: "school-food",
+            icon: "📊",
+            hasIndex: true,
+            techStack: ["HTML", "JavaScript", "API"],
+            features: ["Мониторинг", "API клиент", "Статистика"],
+            description: "Клиентская часть для мониторинга питания. Подключается к серверу и отображает данные по коду пищеблока.",
+            lastModified: "2026-06-18",
+            filesCount: 1
+        },
+        {
+            name: "school-food-system",
+            category: "school-food",
+            icon: "🏫",
+            hasIndex: true,
+            techStack: ["HTML", "CSS", "JavaScript", "XLSX"],
+            features: ["Единая система", "Модульная архитектура", "Генерация и проверка"],
+            description: "Единая система управления школьным питанием, объединяющая генератор меню, редактор и аналитику в одном интерфейсе.",
+            lastModified: "2026-05-27",
+            filesCount: 1
+        },
+        {
+            name: "school-menu-system",
+            category: "school-food",
+            icon: "📋",
+            hasIndex: true,
+            techStack: ["HTML", "CSS", "JavaScript"],
+            features: ["Управление меню", "Табличный редактор", "Экспорт"],
+            description: "Система управления школьным меню с удобным табличным редактором и экспортом в Excel.",
+            lastModified: "2026-05-15",
+            filesCount: 1
+        },
+
+        // ===== ARDUINO =====
+        {
+            name: "arduino-blocks",
+            category: "arduino",
+            icon: "🤖",
+            hasIndex: true,
+            techStack: ["Blockly", "JavaScript", "HTML", "CSS"],
+            features: ["Визуальное программирование", "Генерация кода", "Сохранение проектов"],
+            description: "PRO-версия визуальной среды программирования для Arduino. Перетаскивание блоков, генерация C++ кода, поддержка множества плат.",
+            lastModified: "2026-06-18",
+            filesCount: 1
+        },
+        {
+            name: "arduino-blocks-v2",
+            category: "arduino",
+            icon: "🧩",
+            hasIndex: true,
+            techStack: ["Blockly", "JavaScript", "HTML", "CSS"],
+            features: ["Улучшенный интерфейс", "Пользовательские блоки", "Автосохранение"],
+            description: "Обновлённая версия визуального программирования для Arduino. Добавлены пользовательские блоки, автосохранение и улучшенная навигация.",
+            lastModified: "2026-06-19",
+            filesCount: 1
+        },
+
+        // ===== ИГРЫ =====
+        {
+            name: "game1",
+            category: "games",
+            icon: "🎮",
+            hasIndex: true,
+            techStack: ["HTML", "JavaScript", "Canvas"],
+            features: ["Платформер", "Физика", "Анимация", "Мобильное управление"],
+            description: "Супер платформер на чистом JavaScript с физикой, анимацией и поддержкой мобильных устройств. Собирайте монеты, побеждайте врагов и проходите уровни!",
+            lastModified: "2026-06-18",
+            filesCount: 1
+        },
+
+        // ===== МОТО-КАЛЬКУЛЯТОРЫ =====
+        {
+            name: "run",
+            category: "moto-calc",
+            icon: "🏍️",
+            hasIndex: true,
+            techStack: ["HTML", "JavaScript", "CSS"],
+            features: ["Калькулятор", "База двигателей", "Подбор звёзд", "Сравнение"],
+            description: "Профессиональный калькулятор для самодельной техники с базой двигателей 7-32 л.с. Автоматический подбор звёзд, расчёт скорости, тяги и ускорения.",
+            lastModified: "2026-06-18",
+            filesCount: 1
+        },
+        {
+            name: "run1",
+            category: "moto-calc",
+            icon: "⚡",
+            hasIndex: true,
+            techStack: ["HTML", "JavaScript"],
+            features: ["Калькулятор", "Автосохранение", "История расчётов"],
+            description: "Калькулятор для самодельной техники с автосохранением и историей расчётов. Быстрые пресеты для разных типов техники.",
+            lastModified: "2026-06-18",
+            filesCount: 1
+        },
+        {
+            name: "run2",
+            category: "moto-calc",
+            icon: "📊",
+            hasIndex: true,
+            techStack: ["HTML", "JavaScript"],
+            features: ["Библиотека двигателей", "Графики", "Рекомендации"],
+            description: "Расширенный калькулятор с библиотекой реальных двигателей от мотоблоков до эндуро. Визуализация данных и интеллектуальные рекомендации.",
+            lastModified: "2026-06-18",
+            filesCount: 1
+        },
+
+        // ===== ИНСТРУМЕНТЫ =====
+        {
+            name: "analysis-report",
+            category: "tools",
+            icon: "📊",
+            hasIndex: false,
+            techStack: ["HTML", "JavaScript"],
+            features: ["Анализ данных", "Отчёты"],
+            description: "Инструмент для анализа и визуализации данных. Генерация отчётов в удобном формате.",
+            lastModified: "2025-12-24",
+            filesCount: 1
+        },
+
+        // ===== ПРОЧЕЕ =====
+        {
+            name: "android",
+            category: "other",
+            icon: "📱",
+            hasIndex: false,
+            techStack: ["Проект"],
+            features: ["Мобильная разработка"],
+            description: "Android-проект (в разработке).",
+            lastModified: "2025-12-16",
+            filesCount: 0
+        },
+        {
+            name: "ios",
+            category: "other",
+            icon: "🍎",
+            hasIndex: false,
+            techStack: ["Проект"],
+            features: ["Мобильная разработка"],
+            description: "iOS-проект (в разработке).",
+            lastModified: "2025-12-16",
+            filesCount: 0
+        },
+        {
+            name: "windows11",
+            category: "other",
+            icon: "🪟",
+            hasIndex: false,
+            techStack: ["Проект"],
+            features: ["Desktop"],
+            description: "Windows 11 проект.",
+            lastModified: "2025-12-16",
+            filesCount: 0
+        },
+        {
+            name: "templates",
+            category: "other",
+            icon: "📄",
+            hasIndex: false,
+            techStack: ["Python", "HTML"],
+            features: ["Шаблоны"],
+            description: "Коллекция шаблонов для различных проектов.",
+            lastModified: "2026-01-21",
+            filesCount: 0
+        },
+        {
+            name: "было",
+            category: "other",
+            icon: "📁",
+            hasIndex: true,
+            techStack: ["Node.js"],
+            features: ["Веб-сервер"],
+            description: "Старый проект (архив).",
+            lastModified: "2025-12-08",
+            filesCount: 1
+        }
+    ];
+
+    // ============================================================
+    //  КАТЕГОРИИ
+    // ============================================================
+    const CATEGORIES = {
+        "school-food": { name: "🍽️ Школьное питание", icon: "🍽️" },
+        "arduino": { name: "🤖 Arduino", icon: "🤖" },
+        "games": { name: "🎮 Игры", icon: "🎮" },
+        "moto-calc": { name: "🏍️ Мото-калькуляторы", icon: "🏍️" },
+        "tools": { name: "🔧 Инструменты", icon: "🔧" },
+        "other": { name: "📁 Прочее", icon: "📁" }
+    };
+
+    // ============================================================
+    //  РЕНДЕРИНГ
+    // ============================================================
+    function getTechClass(tech) {
+        const map = {
+            'python': 'python',
+            'javascript': 'javascript',
+            'html': 'html',
+            'css': 'css',
+            'node.js': 'node',
+            'nodejs': 'node',
+            'arduino': 'arduino',
+            'blockly': 'blockly'
+        };
+        const key = tech.toLowerCase();
+        for (const [k, v] of Object.entries(map)) {
+            if (key.includes(k)) return v;
+        }
+        return '';
+    }
+
+    function renderProjects(projects) {
+        const container = document.getElementById('projectsContainer');
+        if (!projects.length) {
+            container.innerHTML = `
+                <div class="empty-state">
+                    <i class="fas fa-search"></i>
+                    <h3>Ничего не найдено</h3>
+                    <p>Попробуйте изменить параметры поиска или фильтрации</p>
+                </div>
+            `;
+            return;
+        }
+
+        // Группировка по категориям
+        const grouped = {};
+        projects.forEach(p => {
+            const cat = p.category || 'other';
+            if (!grouped[cat]) grouped[cat] = [];
+            grouped[cat].push(p);
+        });
+
+        let html = '';
+        let total = 0;
+
+        for (const [catKey, catProjects] of Object.entries(grouped)) {
+            const catInfo = CATEGORIES[catKey] || { name: catKey, icon: '📁' };
+            total += catProjects.length;
+
+            html += `
+                <div class="category-section" data-category="${catKey}">
+                    <div class="category-title">
+                        ${catInfo.icon} ${catInfo.name}
+                        <span class="count">(${catProjects.length})</span>
+                    </div>
+            `;
+
+            catProjects.forEach(p => {
+                const link = p.hasIndex ? `<a href="/${p.name}/">${p.name}</a>` : `<span class="no-link">${p.name}</span>`;
+                const techTags = p.techStack.map(t => 
+                    `<span class="tech-tag ${getTechClass(t)}">${t}</span>`
+                ).join('');
+
+                const featureTags = p.features.map(f =>
+                    `<span class="feature-tag"><i class="fas fa-check"></i> ${f}</span>`
+                ).join('');
+
+                const isNew = new Date(p.lastModified) > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+
+                html += `
+                    <div class="project-card" data-name="${p.name.toLowerCase()}" data-category="${p.category}">
+                        <div class="project-icon">${p.icon}</div>
+                        <div class="project-content">
+                            <div class="project-header">
+                                <div class="project-name">
+                                    ${link}
+                                    ${isNew ? '<span class="new-badge">новое</span>' : ''}
+                                </div>
+                                <div class="project-tech-stack">${techTags}</div>
+                            </div>
+                            
+                            <div class="project-description">
+                                ${p.description}
+                            </div>
+                            
+                            <div class="project-features">${featureTags}</div>
+                            
+                            <div class="project-meta">
+                                <span><i class="fas fa-calendar-alt"></i> ${p.lastModified}</span>
+                                <span><i class="fas fa-file"></i> ${p.filesCount} файлов</span>
+                                <span><i class="fas fa-link"></i> ${p.hasIndex ? '<a href="/' + p.name + '/" class="link">Открыть проект</a>' : 'нет index.html'}</span>
+                            </div>
+                            
+                            <div class="project-actions">
+                                ${p.hasIndex ? `<a href="/${p.name}/" class="btn btn-primary"><i class="fas fa-external-link-alt"></i> Открыть</a>` : ''}
+                                <button class="btn btn-secondary" onclick="copyProjectPath('${p.name}')"><i class="fas fa-copy"></i> Путь</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            html += `</div>`;
+        }
+
+        container.innerHTML = html;
+        document.getElementById('totalProjects').textContent = total;
+        document.getElementById('totalCategories').textContent = Object.keys(grouped).length;
+    }
+
+    // ============================================================
+    //  ПОИСК И ФИЛЬТРАЦИЯ
+    // ============================================================
+    function filterProjects() {
+        const query = document.getElementById('searchInput').value.toLowerCase();
+        const activeFilter = document.querySelector('.filter-btn.active');
+        const filter = activeFilter ? activeFilter.dataset.filter : 'all';
+
+        const cards = document.querySelectorAll('.project-card');
+        const sections = document.querySelectorAll('.category-section');
+
+        cards.forEach(card => {
+            const name = card.dataset.name || '';
+            const category = card.dataset.category || '';
+            const text = card.textContent.toLowerCase();
+
+            const matchSearch = name.includes(query) || text.includes(query);
+            const matchFilter = filter === 'all' || category === filter;
+
+            card.style.display = (matchSearch && matchFilter) ? 'flex' : 'none';
+        });
+
+        sections.forEach(section => {
+            const visible = section.querySelectorAll('.project-card[style*="flex"]').length;
+            const countEl = section.querySelector('.category-title .count');
+            if (countEl) countEl.textContent = `(${visible})`;
+            section.style.display = visible > 0 ? 'block' : 'none';
+        });
+    }
+
+    // ============================================================
+    //  КОПИРОВАНИЕ ПУТИ
+    // ============================================================
+    function copyProjectPath(name) {
+        const path = window.location.origin + '/' + name + '/';
+        navigator.clipboard.writeText(path).then(() => {
+            showToast(`📋 Путь скопирован: ${path}`);
+        }).catch(() => {
+            // Fallback
+            const input = document.createElement('input');
+            input.value = path;
+            document.body.appendChild(input);
+            input.select();
+            document.execCommand('copy');
+            document.body.removeChild(input);
+            showToast(`📋 Путь скопирован: ${path}`);
+        });
+    }
+
+    // ============================================================
+    //  TOAST-УВЕДОМЛЕНИЯ
+    // ============================================================
+    function showToast(message) {
+        const existing = document.querySelector('.toast');
+        if (existing) existing.remove();
+
+        const toast = document.createElement('div');
+        toast.className = 'toast';
+        toast.style.cssText = `
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: #1f2937;
+            color: #f0f6fc;
+            padding: 12px 24px;
+            border-radius: 12px;
+            border-left: 4px solid #58a6ff;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+            font-size: 14px;
+            z-index: 9999;
+            animation: fadeInUp 0.3s ease;
+            max-width: 400px;
+        `;
+        toast.textContent = message;
+        document.body.appendChild(toast);
+
+        setTimeout(() => {
+            toast.style.opacity = '0';
+            toast.style.transition = 'opacity 0.3s';
+            setTimeout(() => toast.remove(), 300);
+        }, 3000);
+    }
+
+    // ============================================================
+    //  ИНИЦИАЛИЗАЦИЯ
+    // ============================================================
+    document.addEventListener('DOMContentLoaded', function() {
+        // Дата генерации
+        document.getElementById('generatedDate').textContent = new Date().toLocaleDateString('ru-RU', {
+            day: '2-digit', month: '2-digit', year: 'numeric',
+            hour: '2-digit', minute: '2-digit'
+        });
+
+        // Рендерим проекты
+        renderProjects(PROJECTS);
+
+        // Поиск
+        document.getElementById('searchInput').addEventListener('input', filterProjects);
+
+        // Фильтры
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                filterProjects();
+            });
+        });
+
+        // Кнопка "Все" по умолчанию активна
+        document.querySelector('.filter-btn[data-filter="all"]')?.classList.add('active');
+
+        // Глобальная функция для копирования
+        window.copyProjectPath = copyProjectPath;
+    });
+</script>
+</body>
+</html>
