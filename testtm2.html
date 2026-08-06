@@ -12398,6 +12398,1360 @@
 			</div>
 		</div>
 	</div>
+<script>
+	// ============================================================
+	// ИСПРАВЛЕННЫЙ МОДУЛЬ ОРФОГРАФИИ С УЛУЧШЕННЫМ РАСПОЗНАВАНИЕМ
+	// ============================================================
+
+	const SpellCheckerModule = (function() {
+		'use strict';
+
+		let spellCheckResults = [];
+		let isLoaded = true;
+		const spellCache = new Map();
+
+		// ============================================================
+		// РАСШИРЕННЫЙ СЛОВАРЬ С ПАДЕЖАМИ
+		// ============================================================
+
+		const DICTIONARY = new Set([
+			// ===== ОСНОВНЫЕ БЛЮДА =====
+			'каша', 'суп', 'борщ', 'щи', 'солянка', 'рассольник', 'свекольник',
+			'бульон', 'окрошка', 'харчо', 'лапша', 'крупяной', 'картофельный',
+			'овощной', 'куриный', 'рыбный', 'мясной', 'гороховый', 'фасолевый',
+			'молочный', 'грибной', 'томатный', 'сметанный', 'домашний',
+			'котлета', 'бифштекс', 'шницель', 'эскалоп', 'антрекот', 'ромштекс',
+			'тефтели', 'фрикадельки', 'кнели', 'зразы', 'рулет', 'гуляш', 'рагу',
+			'азу', 'бефстроганов', 'плов', 'жаркое', 'биточки', 'филе', 'окорок',
+			'бедро', 'голень', 'крыло', 'грудка', 'наггетсы', 'стрипсы', 'митболы',
+			'колбаски', 'омлет', 'глазунья', 'яичница', 'запеканка', 'пудинг',
+			'булгур', 'кускус', 'полба', 'киноа',
+			
+			// ===== МЯСО И ПТИЦА =====
+			'говядина', 'свинина', 'телятина', 'баранина', 'конина', 'оленина',
+			'курица', 'цыпленок', 'бройлер', 'индейка', 'утка', 'гусь', 'кролик',
+			'субпродукты', 'печень', 'сердце', 'почки', 'язык', 'рубец', 'мозги',
+			
+			// ===== РЫБА =====
+			'минтай', 'треска', 'пикша', 'горбуша', 'кета', 'семга', 'форель',
+			'лосось', 'окунь', 'судак', 'щука', 'карась', 'лещ', 'карп', 'сазан',
+			'скумбрия', 'макрель', 'сельдь', 'килька', 'шпроты', 'анчоусы',
+			'тунец', 'палтус', 'камбала', 'мойва', 'корюшка', 'осетр', 'белуга',
+			'стерлядь', 'креветки', 'кальмары', 'мидии', 'осьминог', 'икра', 'крабы',
+			
+			// ===== КРУПЫ И ГАРНИРЫ =====
+			'картофель', 'пюре', 'рис', 'греча', 'гречка', 'пшено', 'перловка',
+			'овсянка', 'манка', 'кукурузная', 'ячка', 'полба', 'киноа', 'булгур',
+			'макароны', 'спагетти', 'вермишель', 'рожки', 'пенне', 'фузилли',
+			'лапша', 'ракушки', 'звездочки', 'колечки',
+			
+			// ===== ОВОЩИ =====
+			'капуста', 'свекла', 'морковь', 'лук', 'чеснок', 'кабачки', 'баклажаны',
+			'перец', 'томаты', 'огурцы', 'зелень', 'укроп', 'петрушка', 'кинза',
+			'сельдерей', 'редис', 'репа', 'тыква', 'патиссоны', 'цветная капуста',
+			'брокколи', 'шпинат', 'щавель', 'салат', 'руккола',
+			
+			// ===== ХЛЕБ И ХЛЕБОБУЛОЧНЫЕ =====
+			'хлеб', 'булка', 'батон', 'булочка', 'пшеничный', 'ржаной', 'бородинский',
+			'дарницкий', 'рижский', 'отрубной', 'багет', 'лаваш', 'печенье', 'пряник',
+			'кекс', 'маффин', 'коржик', 'сдоба', 'гренки', 'тосты', 'блинчики',
+			'оладьи', 'сырники', 'ватрушка', 'пирожок', 'пончик', 'круассан',
+			
+			// ===== НАПИТКИ =====
+			'чай', 'кофе', 'какао', 'компот', 'кисель', 'морс', 'сок', 'молоко',
+			'кефир', 'ряженка', 'простокваша', 'снежок', 'йогурт', 'биойогурт',
+			'шиповник', 'отвар', 'лимонный', 'ягодный', 'цикорий', 'травяной',
+			'каркаде', 'мате', 'какао', 'эспрессо', 'капучино', 'латте',
+			
+			// ===== СОУСЫ И ЗАПРАВКИ =====
+			'соус', 'подлива', 'бешамель', 'болоньезе', 'карбонара', 'песто',
+			'тартар', 'кетчуп', 'майонез', 'горчица', 'сметана', 'сливки',
+			'сливочный', 'томатный', 'сырный', 'чесночный', 'луковый', 'грибной',
+			'мясной', 'рыбный', 'овощной', 'ягодный', 'фруктовый', 'молочный',
+			
+			// ===== ФРУКТЫ И ЯГОДЫ =====
+			'яблоко', 'груша', 'слива', 'абрикос', 'персик', 'банан', 'апельсин',
+			'мандарин', 'лимон', 'виноград', 'киви', 'арбуз', 'дыня', 'клубника',
+			'малина', 'смородина', 'клюква', 'брусника', 'черника', 'вишня',
+			'черешня', 'инжир', 'хурма', 'гранат', 'сухофрукты', 'изюм', 'курага',
+			'чернослив', 'финики', 'инжир', 'ананас', 'манго', 'папайя', 'маракуйя',
+			
+			// ===== ПРИПРАВЫ И СПЕЦИИ =====
+			'соль', 'перец', 'паприка', 'лавровый', 'корица', 'ваниль', 'имбирь',
+			'базилик', 'орегано', 'розмарин', 'куркума', 'карри', 'шафран',
+			'мускатный', 'гвоздика', 'кардамон', 'анис', 'укроп', 'петрушка',
+			
+			// ===== ПРИЛАГАТЕЛЬНЫЕ (ИМЕНИТЕЛЬНЫЙ ПАДЕЖ) =====
+			'молочная', 'молочное', 'молочный', 'молочные', 'молочных',
+			'рисовая', 'рисовое', 'рисовый', 'рисовые', 'рисовых',
+			'пшенная', 'пшенное', 'пшенный', 'пшенные', 'пшенных',
+			'гречневая', 'гречневое', 'гречневый', 'гречневые', 'гречневых',
+			'овсяная', 'овсяное', 'овсяный', 'овсяные', 'овсяных',
+			'манная', 'манное', 'манный', 'манные', 'манных',
+			'кукурузная', 'кукурузное', 'кукурузный', 'кукурузные', 'кукурузных',
+			'гороховая', 'гороховое', 'гороховый', 'гороховые', 'гороховых',
+			'овощная', 'овощное', 'овощной', 'овощные', 'овощных',
+			'сметанный', 'сметанная', 'сметанное', 'сметанные', 'сметанных',
+			'сливочный', 'сливочная', 'сливочное', 'сливочные', 'сливочных',
+			'томатный', 'томатная', 'томатное', 'томатные', 'томатных',
+			'сырный', 'сырная', 'сырное', 'сырные', 'сырных',
+			'чесночный', 'чесночная', 'чесночное', 'чесночные', 'чесночных',
+			'луковый', 'луковая', 'луковое', 'луковые', 'луковых',
+			'лимонный', 'лимонная', 'лимонное', 'лимонные', 'лимонных',
+			'ягодный', 'ягодная', 'ягодное', 'ягодные', 'ягодных',
+			'фруктовый', 'фруктовая', 'фруктовое', 'фруктовые', 'фруктовых',
+			'овощной', 'овощная', 'овощное', 'овощные', 'овощных',
+			'картофельный', 'картофельная', 'картофельное', 'картофельные',
+			'рисовый', 'рисовая', 'рисовое', 'рисовые', 'рисовых',
+			'пшеничный', 'пшеничная', 'пшеничное', 'пшеничные', 'пшеничных',
+			'ржаной', 'ржаная', 'ржаное', 'ржаные', 'ржаных',
+			'отрубной', 'отрубная', 'отрубное', 'отрубные', 'отрубных',
+			'витаминизированный', 'витаминизированная', 'витаминизированное',
+			'витаминизированные', 'витаминизированных',
+			'свежий', 'свежая', 'свежее', 'свежие', 'свежих',
+			'варёный', 'варёная', 'варёное', 'варёные', 'варёных',
+			'жареный', 'жареная', 'жареное', 'жареные', 'жареных',
+			'запеченый', 'запеченная', 'запеченное', 'запеченные', 'запеченных',
+			'запечёный', 'запечёная', 'запечёное', 'запечёные', 'запечёных',
+			'тушеный', 'тушеная', 'тушеное', 'тушеные', 'тушеных',
+			'паровой', 'паровая', 'паровое', 'паровые', 'паровых',
+			'рассыпчатый', 'рассыпчатая', 'рассыпчатое', 'рассыпчатые', 'рассыпчатых',
+			'жидкий', 'жидкая', 'жидкое', 'жидкие', 'жидких',
+			'натуральный', 'натуральная', 'натуральное', 'натуральные', 'натуральных',
+			'панированный', 'панированная', 'панированное', 'панированные', 'панированных',
+			'отварной', 'отварная', 'отварное', 'отварные', 'отварных',
+			'маринованный', 'маринованная', 'маринованное', 'маринованные', 'маринованных',
+			'соленый', 'соленая', 'соленое', 'соленые', 'соленых',
+			'сушеный', 'сушеная', 'сушеное', 'сушеные', 'сушеных',
+			'вяленый', 'вяленая', 'вяленое', 'вяленые', 'вяленых',
+			'копченый', 'копченая', 'копченое', 'копченые', 'копченых',
+			
+			// ===== ПРЕДЛОГИ И СОЮЗЫ (ДЛЯ КОНТЕКСТА) =====
+			'с маслом', 'с сахаром', 'со сметаной', 'с молоком', 'с сыром',
+			'с яблоками', 'с овощами', 'с курицей', 'со свининой', 'с говядиной',
+			'с отрубями', 'в сухарях', 'в сметане', 'в масле', 'на молоке',
+			'на воде', 'на бульоне', 'из риса', 'из гречки', 'из пшена',
+			'из овсянки', 'из манки', 'из картофеля', 'из капусты', 'из свеклы',
+			'из моркови', 'из лука', 'из чеснока', 'из томатов', 'из огурцов',
+			
+			// ===== НАЗВАНИЯ БЛЮД (ПОПУЛЯРНЫЕ) =====
+			'борщ', 'щи', 'солянка', 'рассольник', 'свекольник', 'уха', 'похлебка',
+			'гаспачо', 'окрошка', 'харчо', 'лапшевник', 'крупеник', 'запеканка',
+			'пудинг', 'суфле', 'мусс', 'желе', 'компот', 'кисель', 'морс',
+			'бефстроганов', 'булгур', 'фрикаделька', 'тефтелька', 'котлетка',
+			
+			// ===== ДОПОЛНИТЕЛЬНЫЕ ТЕРМИНЫ =====
+			'блюдо', 'меню', 'завтрак', 'обед', 'ужин', 'полдник', 'десерт',
+			'изделия', 'изделие', 'шарики', 'крупа', 'крупой', 'домашней',
+			'картофельное', 'картофельная', 'овощное', 'овощная', 'свекольник',
+			'рассольник', 'бефстроганов', 'капусты', 'куриная', 'куриный',
+			'запеченая', 'запеченый', 'запечённый', 'запечённая',
+			'панированная', 'панированая', 'панировочные', 'сухари', 'сухарях',
+			'витаминизированный', 'витаминизированная', 'витаминизированное',
+			'витаминизированные', 'витаминизированных',
+			'свежий', 'свежая', 'свежее', 'свежие', 'свежих',
+			'тушенный', 'тушенная', 'тушенное', 'тушенные', 'тушенных',
+			'отварной', 'отварная', 'отварное', 'отварные', 'отварных',
+			'жареный', 'жареная', 'жареное', 'жареные', 'жареных',
+			'запечённый', 'запечённая', 'запечённое', 'запечённые',
+			'панированный', 'панированная', 'панированное', 'панированные',
+		]);
+
+		// ============================================================
+		// КОНФИГУРАЦИЯ
+		// ============================================================
+
+		const CONFIG = {
+			MIN_WORD_LENGTH: 3,           // Минимальная длина слова для проверки
+			MAX_FUZZY_DISTANCE: 1,        // Максимальное расстояние Левенштейна для замены
+			MAX_FUZZY_FALLBACK: 2,        // Запасное расстояние для длинных слов
+			LONG_WORD_THRESHOLD: 6,       // Порог "длинного" слова
+			MIN_CONFIDENCE: 0.6,          // Минимальная уверенность для отображения
+			CACHE_ENABLED: true,          // Использовать кеш
+		};
+
+		// ============================================================
+		// ПАДЕЖНЫЕ ОКОНЧАНИЯ
+		// ============================================================
+
+		const CASE_ENDINGS = {
+			// Существительные женского рода на -а
+			'а': ['у', 'ой', 'е', 'ы', 'ам', 'ами', 'ах'],
+			// Существительные женского рода на -я
+			'я': ['ю', 'ей', 'е', 'и', 'ям', 'ями', 'ях'],
+			// Существительные мужского рода на -ь
+			'ь': ['я', 'ю', 'е', 'ем', 'и', 'ей', 'ям', 'ями', 'ях'],
+			// Существительные мужского рода на -й
+			'й': ['я', 'ю', 'е', 'ем', 'и', 'ев', 'ям', 'ями', 'ях'],
+			// Существительные среднего рода на -е
+			'е': ['я', 'ю', 'е', 'ем', 'и', 'ей', 'ям', 'ями', 'ях'],
+			// Существительные среднего рода на -о
+			'о': ['а', 'у', 'е', 'ом', 'и', 'ам', 'ами', 'ах'],
+			// Множественное число на -ы
+			'ы': ['', 'у', 'е', 'ами', 'ах'],
+			// Множественное число на -и
+			'и': ['ей', 'ям', 'ями', 'ях'],
+			// Прилагательные мужского рода на -ый
+			'ый': ['ого', 'ому', 'ым', 'ом', 'ая', 'ое', 'ые', 'ых'],
+			// Прилагательные мужского рода на -ий
+			'ий': ['его', 'ему', 'им', 'ем', 'яя', 'ее', 'ие', 'их'],
+			// Прилагательные мужского рода на -ой
+			'ой': ['ого', 'ому', 'ым', 'ом', 'ая', 'ое', 'ые', 'ых'],
+			// Прилагательные женского рода на -ая
+			'ая': ['ую', 'ой', 'ие', 'ых'],
+			// Прилагательные среднего рода на -ое
+			'ое': ['ого', 'ому', 'ым', 'ом', 'ая', 'ые', 'ых'],
+			// Прилагательные множественного числа на -ые
+			'ые': ['ых', 'ым', 'ыми', 'ых'],
+			// Причастия на -нный
+			'нный': ['нная', 'нное', 'нные', 'нных', 'нную', 'нным', 'нными'],
+			// Причастия на -еный
+			'еный': ['еная', 'еное', 'еные', 'еных', 'еную', 'еным', 'еными'],
+			// Причастия на -ёный
+			'ёный': ['ёная', 'ёное', 'ёные', 'ёных', 'ёную', 'ёным', 'ёными'],
+		};
+
+		// ============================================================
+		// КЕШИРОВАНИЕ
+		// ============================================================
+
+		function getCached(word) {
+			if (!CONFIG.CACHE_ENABLED) return null;
+			if (spellCache.has(word)) return spellCache.get(word);
+			return null;
+		}
+
+		function setCache(word, result) {
+			if (!CONFIG.CACHE_ENABLED) return;
+			spellCache.set(word, result);
+		}
+
+		// ============================================================
+		// РАСПОЗНАВАНИЕ ПАДЕЖЕЙ
+		// ============================================================
+
+		function isCaseForm(word, base) {
+			const w = word.toLowerCase();
+			const b = base.toLowerCase();
+			
+			// Точное совпадение
+			if (w === b) return true;
+			
+			// Проверка окончаний
+			for (const [ending, forms] of Object.entries(CASE_ENDINGS)) {
+				if (b.endsWith(ending)) {
+					const baseWithoutEnding = b.slice(0, -ending.length);
+					for (const form of forms) {
+						if (w === baseWithoutEnding + form) return true;
+					}
+				}
+			}
+			
+			return false;
+		}
+
+		// ============================================================
+		// АЛГОРИТМ НЕЧЁТКОГО ПОИСКА (РАССТОЯНИЕ ЛЕВЕНШТЕЙНА)
+		// ============================================================
+
+		function levenshteinDistance(a, b) {
+			const matrix = [];
+			for (let i = 0; i <= b.length; i++) {
+				matrix[i] = [i];
+			}
+			for (let j = 0; j <= a.length; j++) {
+				matrix[0][j] = j;
+			}
+			for (let i = 1; i <= b.length; i++) {
+				for (let j = 1; j <= a.length; j++) {
+					const cost = b[i-1] === a[j-1] ? 0 : 1;
+					matrix[i][j] = Math.min(
+						matrix[i-1][j] + 1,
+						matrix[i][j-1] + 1,
+						matrix[i-1][j-1] + cost
+					);
+				}
+			}
+			return matrix[b.length][a.length];
+		}
+
+		// ============================================================
+		// ПОИСК БЛИЖАЙШЕГО СЛОВА В СЛОВАРЕ
+		// ============================================================
+
+		function findClosestWord(word, maxDistance = CONFIG.MAX_FUZZY_DISTANCE) {
+			if (!word || word.length < CONFIG.MIN_WORD_LENGTH) return null;
+			
+			const lowerWord = word.toLowerCase();
+			
+			// Точное совпадение
+			if (DICTIONARY.has(lowerWord)) {
+				return { word: lowerWord, distance: 0, exact: true };
+			}
+			
+			// Проверяем падежные формы (точное совпадение с учётом падежей)
+			for (const dictWord of DICTIONARY) {
+				if (isCaseForm(lowerWord, dictWord)) {
+					return { word: dictWord, distance: 0, exact: true };
+				}
+			}
+			
+			let bestMatch = null;
+			let bestDistance = Infinity;
+			const wordLen = lowerWord.length;
+			
+			// Ограничиваем поиск словами с близкой длиной
+			const candidates = Array.from(DICTIONARY).filter(w => 
+				Math.abs(w.length - wordLen) <= maxDistance + 2
+			);
+			
+			// Сначала ищем с максимальным расстоянием
+			for (const dictWord of candidates) {
+				const dist = levenshteinDistance(lowerWord, dictWord);
+				if (dist < bestDistance && dist <= maxDistance) {
+					bestDistance = dist;
+					bestMatch = dictWord;
+				}
+			}
+			
+			// Если не нашли и слово длинное — пробуем с увеличенным порогом
+			if (!bestMatch && word.length >= CONFIG.LONG_WORD_THRESHOLD) {
+				const fallbackDistance = CONFIG.MAX_FUZZY_FALLBACK;
+				for (const dictWord of candidates) {
+					const dist = levenshteinDistance(lowerWord, dictWord);
+					if (dist < bestDistance && dist <= fallbackDistance) {
+						bestDistance = dist;
+						bestMatch = dictWord;
+					}
+				}
+			}
+			
+			if (bestMatch) {
+				return { word: bestMatch, distance: bestDistance, exact: false };
+			}
+			
+			return null;
+		}
+
+		// ============================================================
+		// ИЗВЕСТНЫЕ НАЗВАНИЯ БЛЮД (С УЧЁТОМ ПАДЕЖЕЙ)
+		// ============================================================
+
+		const KNOWN_DISHES = [
+			'суп с макаронными изделиями', 'кура запеченая', 'греча отварная с маслом',
+			'хлеб пшеничный витаминизированный', 'чай с сахаром', 'суп борщ',
+			'котлета мясная', 'картофель отварной', 'рассольник с мясом со сметаной',
+			'тефтели мясные', 'макароны отварные', 'кисель витаминизированный витошка',
+			'щи из капусты', 'рыба запеченая', 'рис отварной', 'напиток шиповника',
+			'свекольник', 'гуляш из мяса', 'пюре картофельное', 'компот из свежих яблок',
+			'суп с домашней лапшой', 'суп рыбный', 'рагу овощное', 'компот из сухофруктов',
+			'суп с крупой', 'гречневая каша', 'кисель витаминный витошка',
+			'суп с мясными шариками', 'котлета куриная', 'капуста тушеная',
+			'бефстроганов', 'борщ', 'картофельное пюре',
+			'каша молочная рисовая', 'каша молочная пшенная', 'каша ячневая молочная',
+			'омлет натуральный', 'бутерброд с сыром', 'бутерброд с маслом',
+			'салат из свежих томатов', 'салат из свежих огурцов',
+			'салат из моркови', 'салат из капусты',
+			'борщ с капустой', 'щи из свежей капусты', 'суп-пюре из овощей',
+			'жаркое по-домашнему', 'плов со свининой', 'плов с курицей',
+			'котлета мясная панированная', 'котлета куриная панированная',
+			'филе минтая тушеное', 'рыба запеченая', 'напиток из вишни',
+			'напиток из плодов шиповника', 'чай с молоком', 'какао с молоком',
+			'соус из брусники', 'булгур с овощами', 'фрикаделька куриная',
+			'каша гречневая рассыпчатая', 'макаронные изделия отварные',
+			'хлеб витаминизированный', 'хлеб ржаной', 'хлеб пшеничный',
+			'фрукт свежий', 'банан', 'яблоко', 'груша', 'апельсин',
+			'кисель из клюквы', 'кисель из брусники', 'компот из сухофруктов',
+			'напиток ассорти из красных ягод', 'напиток из черноплодной рябины',
+			'каша жидкая молочная пшенная', 'каша жидкая пшеничная',
+			'каша молочная ассорти', 'каша молочная дружба',
+			'каша рисовая с маслом', 'каша пшенная с маслом',
+			'каша гречневая с маслом', 'каша овсяная с маслом',
+			'каша манная с маслом', 'каша ячневая с маслом',
+		];
+
+		// ============================================================
+		// ПРОВЕРКА, ЯВЛЯЕТСЯ ЛИ ТЕКСТ ИЗВЕСТНЫМ БЛЮДОМ
+		// ============================================================
+
+		function isKnownDishName(text) {
+			if (!text) return false;
+			
+			const trimmed = text.trim().toLowerCase();
+			
+			// Точное совпадение с известными блюдами
+			for (const dish of KNOWN_DISHES) {
+				const dishLower = dish.toLowerCase();
+				if (trimmed === dishLower) return true;
+				
+				// Проверка с учётом небольших отличий (опечатки в известных блюдах)
+				const dist = levenshteinDistance(trimmed, dishLower);
+				if (dist <= 1 && dish.length > 5) return true;
+			}
+			
+			// Разбиваем на слова и проверяем каждое
+			const words = trimmed.match(/[А-Яа-яЁё]+(?:-[А-Яа-яЁё]+)?/g) || [];
+			if (words.length >= 2) {
+				let validWords = 0;
+				for (const w of words) {
+					if (w.length < CONFIG.MIN_WORD_LENGTH) {
+						validWords++;
+						continue;
+					}
+					const lowerW = w.toLowerCase();
+					let found = false;
+					for (const dictWord of DICTIONARY) {
+						if (isCaseForm(lowerW, dictWord)) {
+							found = true;
+							break;
+						}
+					}
+					if (found) validWords++;
+				}
+				// Если ≥80% слов распознаны — считаем корректным
+				if (validWords >= words.length * 0.8) return true;
+			}
+			
+			return false;
+		}
+
+		// ============================================================
+		// ОСНОВНАЯ ФУНКЦИЯ ПРОВЕРКИ СЛОВА
+		// ============================================================
+
+		function checkWordAdvanced(word) {
+			if (!word || word.trim() === '') {
+				return { valid: true, suggestions: [], confidence: 1 };
+			}
+			
+			const cleanWord = word.trim();
+			if (cleanWord.length < CONFIG.MIN_WORD_LENGTH) {
+				return { valid: true, suggestions: [], confidence: 1 };
+			}
+			
+			const lowerWord = cleanWord.toLowerCase();
+			
+			// Проверка кеша
+			const cached = getCached(lowerWord);
+			if (cached) return cached;
+			
+			// 1. Проверка по словарю (с учётом падежей)
+			for (const dictWord of DICTIONARY) {
+				if (isCaseForm(lowerWord, dictWord)) {
+					const result = { valid: true, suggestions: [], confidence: 1 };
+					setCache(lowerWord, result);
+					return result;
+				}
+			}
+			
+			// 2. Проверка на составные слова (с дефисом)
+			if (cleanWord.includes('-')) {
+				const parts = cleanWord.split('-');
+				let allValid = true;
+				for (const p of parts) {
+					const pLower = p.toLowerCase();
+					let found = false;
+					for (const dictWord of DICTIONARY) {
+						if (isCaseForm(pLower, dictWord)) {
+							found = true;
+							break;
+						}
+					}
+					if (!found) {
+						allValid = false;
+						break;
+					}
+				}
+				if (allValid) {
+					const result = { valid: true, suggestions: [], confidence: 1 };
+					setCache(lowerWord, result);
+					return result;
+				}
+			}
+			
+			// 3. Проверка с нечётким поиском
+			const closest = findClosestWord(cleanWord);
+			if (closest && !closest.exact) {
+				// Вычисляем уверенность на основе расстояния
+				let confidence = 0;
+				if (closest.distance === 1) {
+					confidence = 0.85;
+				} else if (closest.distance === 2 && cleanWord.length >= CONFIG.LONG_WORD_THRESHOLD) {
+					confidence = 0.7;
+				} else if (closest.distance <= CONFIG.MAX_FUZZY_FALLBACK && cleanWord.length >= CONFIG.LONG_WORD_THRESHOLD) {
+					confidence = 0.6;
+				}
+				
+				if (confidence >= CONFIG.MIN_CONFIDENCE) {
+					const result = {
+						valid: false,
+						suggestions: [closest.word],
+						confidence: confidence,
+						source: 'fuzzy',
+						distance: closest.distance
+					};
+					setCache(lowerWord, result);
+					return result;
+				}
+			}
+			
+			// 4. Для слов короче 5 букв — считаем корректными (избегаем ложных срабатываний)
+			if (cleanWord.length <= 4) {
+				const result = { valid: true, suggestions: [], confidence: 1 };
+				setCache(lowerWord, result);
+				return result;
+			}
+			
+			const result = {
+				valid: false,
+				suggestions: [],
+				confidence: 0,
+				source: 'unknown'
+			};
+			setCache(lowerWord, result);
+			return result;
+		}
+
+		// ============================================================
+		// ПРОВЕРКА ТЕКСТА
+		// ============================================================
+
+		function checkText(text) {
+			if (!text || text.trim() === '') return [];
+			
+			const trimmed = text.trim();
+			
+			// Проверка, является ли текст известным блюдом
+			if (isKnownDishName(trimmed)) return [];
+			
+			const words = text.match(/[А-Яа-яЁё]+(?:-[А-Яа-яЁё]+)?/g) || [];
+			const results = [];
+			const processed = new Set();
+			
+			for (const word of words) {
+				const lowerWord = word.toLowerCase();
+				if (word.length >= CONFIG.MIN_WORD_LENGTH && !processed.has(lowerWord)) {
+					const result = checkWordAdvanced(word);
+					if (!result.valid && result.suggestions.length > 0 && result.confidence >= CONFIG.MIN_CONFIDENCE) {
+						results.push({
+							word: word,
+							suggestions: result.suggestions,
+							confidence: result.confidence,
+							source: result.source || 'unknown',
+							position: text.indexOf(word)
+						});
+					}
+					processed.add(lowerWord);
+				}
+			}
+			
+			return results;
+		}
+
+		// ============================================================
+		// ПРОВЕРКА ВСЕГО МЕНЮ
+		// ============================================================
+
+		function checkAllMenu() {
+			if (!currentTemplateData) {
+				console.log('📚 Орфография: нет данных для проверки');
+				return null;
+			}
+
+			console.log('🔍 Запуск ИИ-проверки орфографии...');
+			const results = [];
+			const mealTypes = ['breakfast', 'breakfast2', 'lunch', 'afternoonSnack', 'dinner', 'dinner2'];
+			
+			for (const w in currentTemplateData.weeks) {
+				for (const d in currentTemplateData.weeks[w]) {
+					for (const mt of mealTypes) {
+						const meal = currentTemplateData.weeks[w][d][mt];
+						if (meal && meal.items) {
+							for (let idx = 0; idx < meal.items.length; idx++) {
+								const item = meal.items[idx];
+								if (item.name && item.name.trim() !== '') {
+									// Пропускаем известные блюда
+									if (isKnownDishName(item.name)) continue;
+									
+									const errors = checkText(item.name);
+									if (errors.length > 0) {
+										results.push({
+											week: parseInt(w),
+											day: parseInt(d),
+											meal: mt,
+											itemIndex: idx,
+											dishName: item.name,
+											errors: errors
+										});
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+			
+			spellCheckResults = results;
+			const totalErrors = results.reduce((s, e) => s + e.errors.length, 0);
+			console.log(`✅ Найдено ошибок: ${totalErrors} в ${results.length} блюдах`);
+			
+			if (results.length > 0) {
+				showSpellCheckNotification(results, totalErrors);
+			} else {
+				showStatus('✅ Орфографическая проверка: все слова написаны верно!', 'success');
+			}
+			
+			highlightSpellErrors(results);
+			return results;
+		}
+
+		// ============================================================
+		// ВИЗУАЛИЗАЦИЯ ОШИБОК
+		// ============================================================
+
+		function highlightSpellErrors(errors) {
+			document.querySelectorAll('.cell-spell-error').forEach(el => {
+				el.classList.remove('cell-spell-error');
+				el.style.borderBottom = '';
+				el.style.backgroundColor = '';
+			});
+			document.querySelectorAll('.spell-error-indicator').forEach(el => el.remove());
+			
+			if (errors.length === 0) return;
+			
+			for (const err of errors) {
+				const row = document.querySelector(
+					`tr[data-week="${err.week}"][data-day="${err.day}"][data-meal="${err.meal}"]`
+				);
+				if (row) {
+					const nameCell = row.querySelectorAll('td')[5];
+					if (nameCell) {
+						nameCell.classList.add('cell-spell-error');
+						nameCell.style.borderBottom = '2px solid #ef4444';
+						nameCell.style.backgroundColor = '#fef2f2';
+						
+						const input = nameCell.querySelector('input[data-field="name"]');
+						if (input) {
+							input.style.borderBottom = '2px solid #ef4444';
+							input.style.backgroundColor = '#fef2f2';
+							input.dataset.spellErrors = JSON.stringify(err.errors);
+							
+							// Цвет индикатора зависит от уверенности
+							const hasHighConfidence = err.errors.some(e => e.confidence >= 0.8);
+							const color = hasHighConfidence ? '#ef4444' : '#f59e0b';
+							
+							const indicator = document.createElement('span');
+							indicator.className = 'spell-error-indicator';
+							indicator.style.cssText = `
+								display: inline-block;
+								margin-left: 6px;
+								color: ${color};
+								font-size: 12px;
+								cursor: pointer;
+							`;
+							indicator.innerHTML = hasHighConfidence ? '⚠️' : '🔍';
+							indicator.title = hasHighConfidence ? 
+								'Орфографическая ошибка (высокая уверенность)' : 
+								'Возможная орфографическая ошибка (требуется проверка)';
+							input.parentNode.appendChild(indicator);
+							
+							indicator.addEventListener('click', function(e) {
+								e.stopPropagation();
+								const errs = JSON.parse(input.dataset.spellErrors || '[]');
+								if (errs.length > 0) {
+									showInlineSpellFix(input, errs);
+								}
+							});
+						}
+					}
+				}
+			}
+		}
+
+		// ============================================================
+		// ИНЛАЙН-ИСПРАВЛЕНИЕ
+		// ============================================================
+
+		function showInlineSpellFix(input, errors) {
+			// Удаляем старые тултипы
+			document.querySelectorAll('.inline-spell-fix').forEach(el => el.remove());
+			
+			const tooltip = document.createElement('div');
+			tooltip.className = 'inline-spell-fix';
+			tooltip.style.cssText = `
+				position: fixed;
+				z-index: 20000;
+				background: white;
+				border: 2px solid #ef4444;
+				border-radius: 16px;
+				padding: 12px 16px;
+				box-shadow: 0 12px 32px rgba(0,0,0,0.15);
+				max-width: 450px;
+				animation: fadeIn 0.2s ease;
+				pointer-events: all;
+			`;
+			
+			const rect = input.getBoundingClientRect();
+			let top = rect.bottom + window.scrollY + 8;
+			let left = rect.left + window.scrollX;
+			
+			// Корректировка, чтобы не выходило за экран
+			if (top + 200 > window.innerHeight + window.scrollY) {
+				top = rect.top + window.scrollY - 200;
+			}
+			if (left + 450 > window.innerWidth + window.scrollX) {
+				left = window.innerWidth + window.scrollX - 460;
+			}
+			if (left < 10) left = 10;
+			
+			tooltip.style.top = top + 'px';
+			tooltip.style.left = left + 'px';
+			
+			let html = `
+				<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+					<span style="font-weight: 600; color: #0f172a; font-size: 13px;">
+						<i class="fas fa-spell-check" style="color: #ef4444;"></i> 
+						Исправление орфографии
+					</span>
+					<button class="close-spell-fix" style="background: none; border: none; font-size: 18px; cursor: pointer; color: #94a3b8;">&times;</button>
+				</div>
+			`;
+			
+			for (const err of errors) {
+				const hasFix = err.suggestions.length > 0;
+				const confidenceEmoji = err.confidence >= 0.85 ? '🟢' : err.confidence >= 0.7 ? '🟡' : '🔴';
+				
+				html += `
+					<div style="display: flex; align-items: center; gap: 8px; padding: 4px 0; border-bottom: 1px solid #f1f5f9;">
+						<span style="color: #dc2626; text-decoration: underline wavy #dc2626; font-weight: 500;">${escapeHtml(err.word)}</span>
+						<span style="color: #94a3b8;">→</span>
+						<div style="display: flex; gap: 4px; flex-wrap: wrap;">
+							${hasFix ? 
+								err.suggestions.map(s => 
+									`<button class="suggest-word-btn" data-word="${err.word}" data-suggestion="${s}" style="
+										padding: 2px 10px;
+										background: #f0fdf4;
+										border: 1px solid #bbf7d0;
+										border-radius: 12px;
+										cursor: pointer;
+										font-size: 12px;
+										color: #16a34a;
+										transition: all 0.2s;
+									">${s}</button>`
+								).join('') :
+								'<span style="color: #94a3b8; font-size: 12px;">(нет вариантов)</span>'
+							}
+						</div>
+						<span style="font-size: 11px; color: #94a3b8; margin-left: auto;" title="Уверенность: ${Math.round(err.confidence * 100)}%">
+							${confidenceEmoji}
+						</span>
+					</div>
+				`;
+			}
+			
+			html += `
+				<div style="margin-top: 10px; display: flex; gap: 8px; justify-content: flex-end;">
+					<button class="fix-all-spell-btn" style="padding: 4px 16px; background: #10b981; color: white; border: none; border-radius: 20px; cursor: pointer; font-size: 12px; font-weight: 500;">
+						<i class="fas fa-magic"></i> Исправить все
+					</button>
+					<button class="dismiss-spell-fix" style="padding: 4px 16px; background: #e2e8f0; color: #64748b; border: none; border-radius: 20px; cursor: pointer; font-size: 12px;">
+						Закрыть
+					</button>
+				</div>
+			`;
+			
+			tooltip.innerHTML = html;
+			document.body.appendChild(tooltip);
+			
+			tooltip.querySelectorAll('.suggest-word-btn').forEach(el => {
+				el.addEventListener('click', function() {
+					const word = this.dataset.word;
+					const suggestion = this.dataset.suggestion;
+					const currentValue = input.value;
+					const newValue = currentValue.replace(word, suggestion);
+					input.value = newValue;
+					input.dispatchEvent(new Event('change', { bubbles: true }));
+					tooltip.remove();
+					showStatus(`✅ Исправлено: "${word}" → "${suggestion}"`, 'success');
+					setTimeout(() => checkAllMenu(), 300);
+				});
+			});
+			
+			tooltip.querySelector('.fix-all-spell-btn').addEventListener('click', function() {
+				let newValue = input.value;
+				let fixed = 0;
+				for (const err of errors) {
+					if (err.suggestions.length > 0) {
+						newValue = newValue.replace(err.word, err.suggestions[0]);
+						fixed++;
+					}
+				}
+				if (fixed > 0) {
+					input.value = newValue;
+					input.dispatchEvent(new Event('change', { bubbles: true }));
+					tooltip.remove();
+					showStatus(`✅ Исправлено ${fixed} ошибок`, 'success');
+					setTimeout(() => checkAllMenu(), 300);
+				}
+			});
+			
+			tooltip.querySelector('.close-spell-fix')?.addEventListener('click', () => tooltip.remove());
+			tooltip.querySelector('.dismiss-spell-fix')?.addEventListener('click', () => tooltip.remove());
+			
+			setTimeout(() => {
+				document.addEventListener('click', function closeTooltip(e) {
+					if (!tooltip.contains(e.target) && e.target !== input) {
+						tooltip.remove();
+						document.removeEventListener('click', closeTooltip);
+					}
+				});
+			}, 100);
+		}
+
+		// ============================================================
+		// УВЕДОМЛЕНИЕ
+		// ============================================================
+
+		function showSpellCheckNotification(errors, totalErrors) {
+			const rulesPanel = document.getElementById('rulesPanel');
+			if (rulesPanel) {
+				const oldBadge = rulesPanel.querySelector('.spell-rule-badge');
+				if (oldBadge) oldBadge.remove();
+				
+				const spellBadge = document.createElement('div');
+				spellBadge.className = 'rule-badge warning spell-rule-badge';
+				spellBadge.style.background = '#fef2f2';
+				spellBadge.style.borderColor = '#ef4444';
+				spellBadge.style.cursor = 'pointer';
+				spellBadge.innerHTML = `
+					<i class="fas fa-spell-check"></i> 
+					Орфография: ${totalErrors} ошибок в ${errors.length} блюдах
+					<span style="margin-left: 6px; font-size: 10px; background: #ef4444; color: white; padding: 1px 8px; border-radius: 10px;">${errors.length}</span>
+				`;
+				spellBadge.addEventListener('click', function() {
+					SpellCheckerModule.showSpellCheckDetails(errors);
+				});
+				rulesPanel.appendChild(spellBadge);
+			}
+			
+			showStatus(
+				`📝 Найдено ${totalErrors} орфографических ошибок в ${errors.length} блюдах. ` +
+				`Кликните на значок 📝 в панели правил для исправления.`,
+				'warning'
+			);
+		}
+
+		// ============================================================
+		// ДЕТАЛЬНОЕ ОКНО ОШИБОК
+		// ============================================================
+
+		function showSpellCheckDetails(errors) {
+			const modal = document.createElement('div');
+			modal.className = 'modal spell-check-modal';
+			modal.style.cssText = `
+				position: fixed;
+				top: 0;
+				left: 0;
+				width: 100%;
+				height: 100%;
+				background: rgba(0,0,0,0.7);
+				backdrop-filter: blur(8px);
+				z-index: 20000;
+				display: flex;
+				justify-content: center;
+				align-items: center;
+			`;
+			
+			const mealNames = {
+				'breakfast': '🌅 Завтрак',
+				'breakfast2': '🍎 Второй завтрак',
+				'lunch': '🍲 Обед',
+				'afternoonSnack': '🍪 Полдник',
+				'dinner': '🌙 Ужин',
+				'dinner2': '🥛 Второй ужин'
+			};
+			
+			let html = `
+				<div style="background: white; border-radius: 24px; padding: 28px; max-width: 850px; width: 95%; max-height: 85vh; overflow-y: auto;">
+					<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+						<div>
+							<h3 style="color: #0f172a; margin: 0;">
+								<i class="fas fa-robot" style="color: #7c3aed;"></i>
+								<i class="fas fa-spell-check" style="color: #ef4444; margin-left: 4px;"></i>
+								ИИ-проверка орфографии
+							</h3>
+							<p style="color: #64748b; font-size: 14px; margin: 4px 0 0;">
+								Найдено <strong>${errors.reduce((s, e) => s + e.errors.length, 0)}</strong> ошибок в <strong>${errors.length}</strong> блюдах
+								<span style="font-size: 11px; color: #94a3b8;">🟢 высокая уверенность 🟡 средняя 🔴 низкая</span>
+							</p>
+						</div>
+						<div style="display: flex; gap: 8px;">
+							<button id="fixAllSpellBtn" style="padding: 6px 20px; background: #10b981; color: white; border: none; border-radius: 20px; cursor: pointer; font-size: 13px; font-weight: 500;">
+								<i class="fas fa-magic"></i> Исправить все
+							</button>
+							<button class="close-modal-btn" style="background: none; border: none; font-size: 24px; cursor: pointer; color: #94a3b8;">&times;</button>
+						</div>
+					</div>
+			`;
+			
+			const groupedByDay = {};
+			for (const err of errors) {
+				const key = `Неделя ${err.week}, День ${err.day}`;
+				if (!groupedByDay[key]) groupedByDay[key] = [];
+				groupedByDay[key].push(err);
+			}
+			
+			for (const [day, dayErrors] of Object.entries(groupedByDay)) {
+				html += `
+					<div style="margin-bottom: 12px;">
+						<div style="font-weight: 600; color: #0f172a; font-size: 14px; margin-bottom: 6px;">
+							📅 ${day}
+						</div>
+				`;
+				
+				for (const err of dayErrors) {
+					const mealName = mealNames[err.meal] || err.meal;
+					const hasHighConfidence = err.errors.some(e => e.confidence >= 0.8);
+					const borderColor = hasHighConfidence ? '#ef4444' : '#f59e0b';
+					
+					html += `
+						<div style="padding: 10px 14px; margin-bottom: 6px; background: ${hasHighConfidence ? '#fef2f2' : '#fffbeb'}; border-radius: 10px; border-left: 3px solid ${borderColor};">
+							<div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+								<div>
+									<span style="font-weight: 500;">${escapeHtml(err.dishName)}</span>
+									<span style="font-size: 12px; color: #64748b; margin-left: 8px;">${mealName}</span>
+								</div>
+								<button class="fix-dish-spell" data-week="${err.week}" data-day="${err.day}" data-meal="${err.meal}" data-index="${err.itemIndex}" style="padding: 2px 14px; background: #3b82f6; color: white; border: none; border-radius: 12px; cursor: pointer; font-size: 11px;">
+									<i class="fas fa-wand-magic-sparkles"></i> Исправить блюдо
+								</button>
+							</div>
+							<div style="margin-top: 4px; font-size: 13px;">
+								${err.errors.map(e => {
+									const confidenceEmoji = e.confidence >= 0.85 ? '🟢' : e.confidence >= 0.7 ? '🟡' : '🔴';
+									return `
+										<span style="display: inline-block; background: white; padding: 2px 10px; border-radius: 12px; margin: 2px 4px 2px 0;">
+											<span style="color: #dc2626; text-decoration: underline wavy #dc2626;">${e.word}</span>
+											→ 
+											${e.suggestions.length > 0 ? 
+												e.suggestions.map(s => 
+													`<span style="color: #059669; cursor: pointer; font-weight: 500;" class="suggest-word" data-word="${e.word}" data-suggestion="${s}" data-week="${err.week}" data-day="${err.day}" data-meal="${err.meal}" data-index="${err.itemIndex}">${s}</span>`
+												).join(', ') :
+												'<span style="color: #94a3b8;">(нет вариантов)</span>'
+											}
+											<span style="font-size: 10px; color: #94a3b8; margin-left: 4px;">${confidenceEmoji}</span>
+										</span>
+									`;
+								}).join('')}
+							</div>
+						</div>
+					`;
+				}
+				
+				html += `</div>`;
+			}
+			
+			html += `
+					<div style="margin-top: 20px; display: flex; gap: 12px; justify-content: flex-end; border-top: 1px solid #e2e8f0; padding-top: 16px;">
+						<button class="close-modal-btn" style="padding: 8px 24px; background: #e2e8f0; border: none; border-radius: 40px; cursor: pointer; font-weight: 600;">Закрыть</button>
+					</div>
+				</div>
+			`;
+			
+			modal.innerHTML = html;
+			document.body.appendChild(modal);
+			
+			modal.querySelectorAll('.suggest-word').forEach(el => {
+				el.addEventListener('click', function() {
+					const week = parseInt(this.dataset.week);
+					const day = parseInt(this.dataset.day);
+					const meal = this.dataset.meal;
+					const index = parseInt(this.dataset.index);
+					const suggestion = this.dataset.suggestion;
+					const word = this.dataset.word;
+					
+					replaceSpellError(week, day, meal, index, word, suggestion);
+					modal.remove();
+					setTimeout(() => checkAllMenu(), 300);
+				});
+			});
+			
+			modal.querySelectorAll('.fix-dish-spell').forEach(el => {
+				el.addEventListener('click', function() {
+					const week = parseInt(this.dataset.week);
+					const day = parseInt(this.dataset.day);
+					const meal = this.dataset.meal;
+					const index = parseInt(this.dataset.index);
+					
+					autoFixDishSpelling(week, day, meal, index);
+					modal.remove();
+					setTimeout(() => checkAllMenu(), 300);
+				});
+			});
+			
+			modal.querySelector('#fixAllSpellBtn')?.addEventListener('click', function() {
+				if (confirm('Исправить все найденные орфографические ошибки?')) {
+					autoFixAllSpelling();
+					modal.remove();
+					setTimeout(() => checkAllMenu(), 300);
+				}
+			});
+			
+			modal.querySelectorAll('.close-modal-btn').forEach(el => {
+				el.addEventListener('click', () => modal.remove());
+			});
+			
+			modal.addEventListener('click', function(e) {
+				if (e.target === this) this.remove();
+			});
+		}
+
+		// ============================================================
+		// ИСПРАВЛЕНИЕ ОШИБОК
+		// ============================================================
+
+		function replaceSpellError(week, day, meal, index, wrongWord, correctWord) {
+			const mealData = currentTemplateData.weeks[week]?.[day]?.[meal];
+			if (!mealData || !mealData.items || index >= mealData.items.length) return;
+			
+			const item = mealData.items[index];
+			if (!item.name) return;
+			
+			const newName = item.name.replace(wrongWord, correctWord);
+			item.name = newName;
+			
+			flatItems = buildFlatFromTemplate(currentTemplateData);
+			renderEditor();
+			saveToStorage();
+			
+			if (window.DailyMenuModule) {
+				const state = window.DailyMenuModule.getState();
+				if (state && state.dailyMenuData) {
+					const dailyMeal = state.dailyMenuData[meal];
+					if (dailyMeal && dailyMeal.items && index < dailyMeal.items.length) {
+						dailyMeal.items[index].name = newName;
+						state.dailyMenuItems = window.DailyMenuModule.buildDailyFlatItems?.(state.dailyMenuData) || [];
+					}
+				}
+			}
+			
+			showStatus(`✅ Исправлено: "${wrongWord}" → "${correctWord}" в блюде "${item.name}"`, 'success');
+		}
+
+		function autoFixDishSpelling(week, day, meal, index) {
+			const mealData = currentTemplateData.weeks[week]?.[day]?.[meal];
+			if (!mealData || !mealData.items || index >= mealData.items.length) return;
+			
+			const item = mealData.items[index];
+			if (!item.name) return;
+			
+			const errors = checkText(item.name);
+			let newName = item.name;
+			let fixed = 0;
+			
+			for (const err of errors) {
+				if (err.suggestions.length > 0) {
+					const suggestion = err.suggestions[0];
+					newName = newName.replace(err.word, suggestion);
+					fixed++;
+				}
+			}
+			
+			if (fixed > 0) {
+				item.name = newName;
+				flatItems = buildFlatFromTemplate(currentTemplateData);
+				renderEditor();
+				saveToStorage();
+				
+				if (window.DailyMenuModule) {
+					const state = window.DailyMenuModule.getState();
+					if (state && state.dailyMenuData) {
+						const dailyMeal = state.dailyMenuData[meal];
+						if (dailyMeal && dailyMeal.items && index < dailyMeal.items.length) {
+							dailyMeal.items[index].name = newName;
+							state.dailyMenuItems = window.DailyMenuModule.buildDailyFlatItems?.(state.dailyMenuData) || [];
+						}
+					}
+				}
+				
+				showStatus(`✅ Исправлено ${fixed} ошибок в блюде "${item.name}"`, 'success');
+			}
+		}
+
+		function autoFixAllSpelling() {
+			const errors = spellCheckResults;
+			let totalFixed = 0;
+			
+			for (const err of errors) {
+				const mealData = currentTemplateData.weeks[err.week]?.[err.day]?.[err.meal];
+				if (!mealData || !mealData.items || err.itemIndex >= mealData.items.length) continue;
+				
+				const item = mealData.items[err.itemIndex];
+				if (!item.name) continue;
+				
+				let newName = item.name;
+				let fixed = 0;
+				
+				for (const e of err.errors) {
+					if (e.suggestions.length > 0 && e.confidence >= CONFIG.MIN_CONFIDENCE) {
+						const suggestion = e.suggestions[0];
+						newName = newName.replace(e.word, suggestion);
+						fixed++;
+					}
+				}
+				
+				if (fixed > 0) {
+					item.name = newName;
+					totalFixed += fixed;
+				}
+			}
+			
+			if (totalFixed > 0) {
+				flatItems = buildFlatFromTemplate(currentTemplateData);
+				renderEditor();
+				saveToStorage();
+				
+				if (window.DailyMenuModule) {
+					const state = window.DailyMenuModule.getState();
+					if (state && state.dailyMenuData) {
+						state.dailyMenuItems = window.DailyMenuModule.buildDailyFlatItems?.(state.dailyMenuData) || [];
+					}
+				}
+				
+				showStatus(`✅ Исправлено ${totalFixed} орфографических ошибок во всём меню`, 'success');
+			}
+		}
+
+		// ============================================================
+		// ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
+		// ============================================================
+
+		function escapeHtml(str) {
+			if (!str) return '';
+			return str.replace(/[&<>"]/g, function(m) {
+				if (m === '&') return '&amp;';
+				if (m === '<') return '&lt;';
+				if (m === '>') return '&gt;';
+				if (m === '"') return '&quot;';
+				return m;
+			});
+		}
+
+		function showStatus(msg, type) {
+			const el = document.getElementById('statusArea');
+			if (!el) return;
+			el.innerHTML =
+				`<i class="fas ${type === 'success' ? 'fa-check-circle' : type === 'error' ? 'fa-exclamation-circle' : 'fa-info-circle'}"></i> ${msg}`;
+			el.className = `status-message status-${type}`;
+			el.style.display = 'flex';
+			clearTimeout(el._timeout);
+			el._timeout = setTimeout(() => {
+				el.style.display = 'none';
+			}, 5000);
+		}
+
+		// ============================================================
+		// ИНИЦИАЛИЗАЦИЯ
+		// ============================================================
+
+		function addSpellCheckButton() {
+			const actionsGrid = document.querySelector('.actions-grid-premium');
+			if (!actionsGrid) {
+				setTimeout(addSpellCheckButton, 500);
+				return;
+			}
+			
+			if (actionsGrid.querySelector('#spellCheckBtn')) return;
+			
+			const spellBtn = document.createElement('button');
+			spellBtn.id = 'spellCheckBtn';
+			spellBtn.className = 'action-btn';
+			spellBtn.style.cssText = `
+				background: linear-gradient(135deg, #7c3aed, #8b5cf6);
+				color: white;
+				font-weight: 600;
+				box-shadow: 0 2px 8px rgba(124, 58, 237, 0.3);
+			`;
+			spellBtn.innerHTML = '<i class="fas fa-robot"></i> <span>ИИ-орфография</span>';
+			spellBtn.title = 'Проверить орфографию с использованием ИИ-алгоритмов (нечёткий поиск)';
+			spellBtn.addEventListener('click', function() {
+				if (!currentTemplateData) {
+					showStatus('Сначала загрузите меню', 'error');
+					return;
+				}
+				checkAllMenu();
+			});
+			
+			const compareBtn = document.getElementById('compareBtn');
+			if (compareBtn) {
+				actionsGrid.insertBefore(spellBtn, compareBtn);
+			} else {
+				actionsGrid.appendChild(spellBtn);
+			}
+			console.log('✅ Кнопка ИИ-орфографии добавлена');
+		}
+
+		function integrateWithDailyModule() {
+			if (!window.DailyMenuModule) {
+				setTimeout(integrateWithDailyModule, 500);
+				return;
+			}
+			
+			const originalLoad = window.DailyMenuModule.loadDailyMenu;
+			if (originalLoad) {
+				window.DailyMenuModule.loadDailyMenu = function(menuNumber) {
+					originalLoad(menuNumber);
+					setTimeout(() => {
+						const state = this.getState();
+						if (state && state.dailyMenuItems) {
+							const results = [];
+							for (const item of state.dailyMenuItems) {
+								if (item.name && !isKnownDishName(item.name)) {
+									const errors = checkText(item.name);
+									if (errors.length > 0) {
+										results.push({
+											week: item.week,
+											day: item.day,
+											meal: item.meal,
+											itemIndex: item.idx || 0,
+											dishName: item.name,
+											errors: errors
+										});
+									}
+								}
+							}
+							if (results.length > 0) {
+								showSpellCheckNotification(results, results.reduce((s, e) => s + e.errors.length, 0));
+							}
+						}
+					}, 500);
+				};
+			}
+			console.log('✅ Интеграция с DailyMenuModule выполнена');
+		}
+
+		function init() {
+			console.log('🤖 ИИ-модуль орфографии инициализирован!');
+			console.log(`📚 Словарь содержит ${DICTIONARY.size} слов`);
+			console.log(`🔍 Конфигурация: MIN_WORD_LENGTH=${CONFIG.MIN_WORD_LENGTH}, MAX_FUZZY_DISTANCE=${CONFIG.MAX_FUZZY_DISTANCE}`);
+			
+			addSpellCheckButton();
+			
+			if (currentTemplateData) {
+				setTimeout(() => checkAllMenu(), 800);
+			}
+			
+			// Перехватываем загрузку файла
+			const originalLoad = window.loadTemplateFromFile;
+			if (originalLoad) {
+				window.loadTemplateFromFile = function(file) {
+					originalLoad(file);
+					setTimeout(() => {
+						if (currentTemplateData) {
+							checkAllMenu();
+						}
+					}, 800);
+				};
+			}
+			
+			integrateWithDailyModule();
+		}
+
+		// ============================================================
+		// ПУБЛИЧНОЕ API
+		// ============================================================
+
+		return {
+			init: init,
+			checkAllMenu: checkAllMenu,
+			getResults: function() { return spellCheckResults; },
+			getConfig: function() { return CONFIG; },
+			autoFixAllSpelling: autoFixAllSpelling,
+			showSpellCheckDetails: showSpellCheckDetails,
+			isKnownDishName: isKnownDishName,
+			checkText: checkText,
+			findClosestWord: findClosestWord,
+			clearCache: function() { spellCache.clear(); },
+			getDictionary: function() { return Array.from(DICTIONARY); },
+			addToDictionary: function(word) {
+				if (word && word.trim()) {
+					DICTIONARY.add(word.trim().toLowerCase());
+					spellCache.clear();
+					console.log(`📚 Добавлено слово в словарь: "${word}"`);
+				}
+			}
+		};
+
+	})();
+
+	// ============================================================
+	// АВТОЗАПУСК
+	// ============================================================
+
+	document.addEventListener('DOMContentLoaded', function() {
+		setTimeout(function() {
+			//SpellCheckerModule.init();
+		}, 500);
+	});
+
+	// ============================================================
+	// ГЛОБАЛЬНЫЕ ФУНКЦИИ ДЛЯ ОТЛАДКИ
+	// ============================================================
+
+	window.SpellChecker = SpellCheckerModule;
+
+	window.checkSpelling = function() {
+		SpellCheckerModule.checkAllMenu();
+	};
+
+	window.fixAllSpelling = function() {
+		SpellCheckerModule.autoFixAllSpelling();
+	};
+
+	window.addSpellWord = function(word) {
+		SpellCheckerModule.addToDictionary(word);
+	};
+
+	console.log('🤖 ИИ-модуль орфографии загружен!');
+	console.log('📌 Использование: window.SpellChecker.checkAllMenu()');
+	console.log('📌 Добавить слово: window.addSpellWord("слово")');
+	</script>
+
+
+	<!-- Стили для орфографических подсказок -->
+	<style>
+		.cell-spell-error input[data-field="name"] {
+			border-bottom: 2px solid #ef4444 !important;
+			background-color: #fef2f2 !important;
+		}
+		
+		.cell-spell-error input[data-field="name"]:focus {
+			border-bottom-color: #dc2626 !important;
+		}
+		
+		.inline-spell-tip {
+			animation: fadeIn 0.2s ease;
+			pointer-events: all;
+		}
+		
+		.inline-spell-fix {
+			animation: fadeIn 0.2s ease;
+			pointer-events: all;
+		}
+		
+		.suggest-word-btn:hover {
+			background: #dcfce7 !important;
+			transform: scale(1.05);
+		}
+		
+		.spell-error-indicator {
+			animation: pulse 2s ease-in-out infinite;
+		}
+		
+		@keyframes pulse {
+			0%, 100% { opacity: 1; }
+			50% { opacity: 0.5; }
+		}
+	</style>
 
 </body>
 </html>
