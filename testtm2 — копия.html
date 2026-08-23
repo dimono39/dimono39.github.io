@@ -4081,6 +4081,184 @@
         const MEAL_TYPES = ['breakfast', 'breakfast2', 'lunch', 'afternoonSnack', 'dinner', 'dinner2'];
 
 
+
+		// Добавьте эту функцию в начало скрипта, после объявления переменных
+		function getFriendlyErrorMessage(violation) {
+			const mealNames = {
+				'breakfast': 'завтраке',
+				'breakfast2': 'втором завтраке',
+				'lunch': 'обеде',
+				'afternoonSnack': 'полднике',
+				'dinner': 'ужине',
+				'dinner2': 'втором ужине'
+			};
+			
+			const mealName = violation.meal ? mealNames[violation.meal] : 'дне';
+			const weekDay = `Неделя ${violation.week}, День ${violation.day}`;
+			
+			// Извлекаем числовые значения из деталей
+			const weightMatch = violation.details.match(/(\d+)г/);
+			const currentValue = weightMatch ? weightMatch[1] : '?';
+			
+			// Формируем дружелюбное сообщение
+			let message = {
+				title: '',
+				description: '',
+				recommendation: '',
+				emoji: '⚠️'
+			};
+			
+			switch(violation.code) {
+				case 1:
+					message.title = `🍽️ Завтрак слишком лёгкий!`;
+					message.description = `В ${weekDay} на ${mealName} общий вес блюд составляет ${currentValue} г, что меньше нормы в 500 г.`;
+					message.recommendation = `💡 Добавьте второе горячее блюдо (например, омлет или запеканку) или увеличьте порцию каши на 50-100 г.`;
+					message.emoji = '⚠️';
+					break;
+					
+				case 2:
+					message.title = `🍲 Обед недостаточно сытный!`;
+					message.description = `В ${weekDay} на ${mealName} общий вес блюд составляет ${currentValue} г, что меньше нормы в 700 г.`;
+					message.recommendation = `💡 Добавьте гарнир (рис, гречку, картофель) или увеличьте порцию второго блюда. Не забудьте про хлеб!`;
+					message.emoji = '⚠️';
+					break;
+					
+				case 3:
+					message.title = `🔥 Горячее блюдо на завтрак слишком маленькое!`;
+					message.description = `В ${weekDay} на ${mealName} вес горячего блюда составляет ${currentValue} г, а должно быть не менее 150 г.`;
+					message.recommendation = `💡 Увеличьте порцию каши, омлета или другого горячего блюда. Горячее блюдо — основа завтрака!`;
+					message.emoji = '⚠️';
+					break;
+					
+				case 4:
+					message.title = `🥗 Закуска на обед слишком маленькая!`;
+					message.description = `В ${weekDay} на ${mealName} вес закуски составляет ${currentValue} г, а норма — не менее 60 г.`;
+					message.recommendation = `💡 Добавьте больше овощей в салат или увеличьте порцию. Закуска стимулирует аппетит!`;
+					message.emoji = '⚠️';
+					break;
+					
+				case 5:
+					message.title = `🥣 Первое блюдо на обед слишком жидкое!`;
+					message.description = `В ${weekDay} на ${mealName} объём первого блюда составляет ${currentValue} г, а должен быть не менее 200 г.`;
+					message.recommendation = `💡 Увеличьте порцию супа или бульона. Первое блюдо должно быть сытным!`;
+					message.emoji = '⚠️';
+					break;
+					
+				case 6:
+					message.title = `🍖 Второе блюдо на обед слишком маленькое!`;
+					message.description = `В ${weekDay} на ${mealName} вес второго блюда составляет ${currentValue} г, а норма — не менее 90 г.`;
+					message.recommendation = `💡 Увеличьте порцию мяса, рыбы или птицы. Белок важен для роста и развития!`;
+					message.emoji = '⚠️';
+					break;
+					
+				case 8:
+					message.title = `🍚 Гарнир на обед слишком маленький!`;
+					message.description = `В ${weekDay} на ${mealName} вес гарнира составляет ${currentValue} г, а должен быть не менее 150 г.`;
+					message.recommendation = `💡 Увеличьте порцию риса, гречки, картофеля или макарон. Гарнир даёт энергию!`;
+					message.emoji = '⚠️';
+					break;
+					
+				case 9:
+					message.title = `🍎 Второй завтрак слишком лёгкий!`;
+					message.description = `В ${weekDay} на ${mealName} общий вес блюд составляет ${currentValue} г, что меньше нормы в 200 г.`;
+					message.recommendation = `💡 Добавьте фрукты (яблоко, банан) или йогурт. Второй завтрак — перекус для энергии!`;
+					message.emoji = '⚠️';
+					break;
+					
+				case 10:
+					message.title = `🍪 Полдник слишком лёгкий!`;
+					message.description = `В ${weekDay} на ${mealName} общий вес блюд составляет ${currentValue} г, что меньше нормы в 300 г.`;
+					message.recommendation = `💡 Добавьте булочку, печенье и обязательно напиток (кефир, молоко, сок). Полдник должен быть сытным!`;
+					message.emoji = '⚠️';
+					break;
+					
+				case 11:
+					message.title = `🌙 Ужин слишком лёгкий!`;
+					message.description = `В ${weekDay} на ${mealName} общий вес блюд составляет ${currentValue} г, что меньше нормы в 500 г.`;
+					message.recommendation = `💡 Добавьте гарнир к горячему блюду или увеличьте порцию. Ужин должен быть питательным, но не тяжёлым.`;
+					message.emoji = '⚠️';
+					break;
+					
+				case 12:
+					message.title = `🥛 Второй ужин слишком лёгкий!`;
+					message.description = `В ${weekDay} на ${mealName} общий вес блюд составляет ${currentValue} г, что меньше нормы в 200 г.`;
+					message.recommendation = `💡 Добавьте кисломолочный продукт (кефир, йогурт) или булочку. Это поможет лучше заснуть!`;
+					message.emoji = '⚠️';
+					break;
+					
+				case 13: {
+					const norm = isSummerCamp ? 517 : 470;
+					const campText = isSummerCamp ? ' (летний период, норма увеличена на 10%)' : '';
+					message.title = `🔥 Завтрак недостаточно калорийный!`;
+					message.description = `В ${weekDay} на ${mealName} калорийность составляет ${currentValue} ккал, а должна быть не менее ${norm} ккал${campText}.`;
+					message.recommendation = `💡 Добавьте сливочное масло в кашу, сахар в напиток или более калорийные продукты. Энергия нужна для учёбы!`;
+					message.emoji = '🔥';
+					break;
+				}
+				
+				case 14: {
+					const norm = isSummerCamp ? 776 : 705;
+					const campText = isSummerCamp ? ' (летний период, норма увеличена на 10%)' : '';
+					message.title = `🔥 Обед недостаточно калорийный!`;
+					message.description = `В ${weekDay} на ${mealName} калорийность составляет ${currentValue} ккал, а должна быть не менее ${norm} ккал${campText}.`;
+					message.recommendation = `💡 Увеличьте порцию второго блюда, добавьте гарнир или более калорийный суп. Обед — основной приём пищи!`;
+					message.emoji = '🔥';
+					break;
+				}
+					
+				case 15: {
+					// Для правила 15 (БЖУ > вес) - это критическая ошибка
+					const bjuMatch = violation.details.match(/(\d+(?:\.\d+)?)г > вес=(\d+(?:\.\d+)?)г/);
+					let bjuSum = '?';
+					let weight = '?';
+					if (bjuMatch) {
+						bjuSum = bjuMatch[1];
+						weight = bjuMatch[2];
+					}
+					
+					// Пытаемся найти название блюда
+					let dishName = 'блюда';
+					if (violation.meal) {
+						const mealData = currentTemplateData?.weeks[violation.week]?.[violation.day]?.[violation.meal];
+						if (mealData && mealData.items && mealData.items[violation.itemIndex]) {
+							dishName = `"${mealData.items[violation.itemIndex].name || 'блюда'}"`;
+						}
+					}
+					
+					message.title = `❌ КРИТИЧЕСКАЯ ОШИБКА! БЖУ превышает вес ${dishName}!`;
+					message.description = `В ${weekDay} у ${dishName} сумма белков, жиров и углеводов (${bjuSum} г) превышает вес блюда (${weight} г).`;
+					message.recommendation = `💡 Это не может быть правильным! Проверьте данные:\n• Уменьшите значения БЖУ или\n• Увеличьте вес блюда\n• Проверьте, не перепутаны ли граммы с миллиграммами`;
+					message.emoji = '❌';
+					break;
+				}
+					
+				case 16: {
+					message.title = `🍎 Недостаточно фруктов за день!`;
+					message.description = `В ${weekDay} суммарный вес фруктов составляет ${currentValue} г, а должен быть не менее 100 г.`;
+					message.recommendation = `💡 Добавьте фрукты в завтрак или полдник. Например, яблоко (100 г) или банан (120 г).`;
+					message.emoji = '🍎';
+					break;
+				}
+					
+				case 17: {
+					const dishName = violation.details.replace('Повтор блюда: "', '').replace('"', '');
+					message.title = `🔄 Найдено повторяющееся блюдо!`;
+					message.description = `В ${weekDay} блюдо "${dishName}" повторяется несколько раз.`;
+					message.recommendation = `💡 Замените одно из повторяющихся блюд на другое. Например, вместо "${dishName}" добавьте новое блюдо из этого же раздела.`;
+					message.emoji = '🔄';
+					break;
+				}
+					
+				default:
+					message.title = `⚠️ Обнаружено нарушение`;
+					message.description = violation.details;
+					message.recommendation = `💡 Проверьте данные и приведите их к норме.`;
+					message.emoji = '⚠️';
+			}
+			
+			return message;
+		}
+
 		// ========== УСТАНОВКА ГЛОБАЛЬНЫХ ПЕРЕМЕННЫХ ДЛЯ МОДУЛЯ ЕЖЕДНЕВНОГО МЕНЮ ==========
 		// Эти переменные использует daily-menu-module.js для доступа к данным
 
@@ -4639,6 +4817,7 @@
             return flat;
         }
 
+		// Замените существующую функцию scrollToViolation на эту
 		function scrollToViolation(violation) {
 			// Ищем ВСЕ строки с нужной неделей и днём
 			let allRows;
@@ -4671,6 +4850,12 @@
 			
 			// Скроллим к строке
 			targetRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+			
+			// Получаем дружелюбное сообщение
+			const friendlyMessage = getFriendlyErrorMessage(violation);
+			
+			// Показываем подробное сообщение в модальном окне
+			showDetailedViolationMessage(friendlyMessage, violation);
 			
 			// Задержка для завершения скролла, потом подсветка
 			setTimeout(() => {
@@ -4762,9 +4947,310 @@
 				}
 				
 			}, 400);
-			
-			showStatus(`⚠️ ${violation.details}`, 'info');
 		}
+
+
+		// Новая функция для отображения дружелюбного сообщения
+		function showDetailedViolationMessage(friendlyMessage, violation) {
+			// Создаём модальное окно с сообщением
+			const modal = document.createElement('div');
+			modal.style.cssText = `
+				position: fixed;
+				top: 0;
+				left: 0;
+				width: 100%;
+				height: 100%;
+				background: rgba(0, 0, 0, 0.6);
+				backdrop-filter: blur(8px);
+				z-index: 20000;
+				display: flex;
+				justify-content: center;
+				align-items: center;
+				animation: fadeIn 0.3s ease;
+			`;
+			
+			const isCritical = violation.code === 15;
+			const borderColor = isCritical ? '#dc2626' : '#f59e0b';
+			const bgColor = isCritical ? '#fef2f2' : '#fffbeb';
+			
+			modal.innerHTML = `
+				<div style="
+					background: white;
+					border-radius: 24px;
+					padding: 32px;
+					max-width: 550px;
+					width: 95%;
+					animation: slideUp 0.3s ease;
+					box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+					border-left: 5px solid ${borderColor};
+				">
+					<div style="display: flex; align-items: flex-start; gap: 16px; margin-bottom: 16px;">
+						<div style="
+							font-size: 40px;
+							line-height: 1;
+							min-width: 50px;
+							text-align: center;
+						">${friendlyMessage.emoji}</div>
+						<div>
+							<h3 style="
+								margin: 0 0 8px 0;
+								color: ${isCritical ? '#dc2626' : '#0f172a'};
+								font-size: 1.2rem;
+								font-weight: 700;
+							">${friendlyMessage.title}</h3>
+							<p style="
+								margin: 0 0 12px 0;
+								color: #475569;
+								font-size: 0.95rem;
+								line-height: 1.6;
+							">${friendlyMessage.description}</p>
+							<div style="
+								background: ${bgColor};
+								padding: 12px 16px;
+								border-radius: 12px;
+								margin-bottom: 16px;
+							">
+								<strong style="color: #0f172a; display: block; margin-bottom: 4px;">
+									💡 Рекомендация:
+								</strong>
+								<span style="color: #475569; font-size: 0.9rem; line-height: 1.6; white-space: pre-line;">
+									${friendlyMessage.recommendation}
+								</span>
+							</div>
+							<div style="
+								font-size: 0.8rem;
+								color: #94a3b8;
+								display: flex;
+								justify-content: space-between;
+								align-items: center;
+								padding-top: 12px;
+								border-top: 1px solid #e2e8f0;
+							">
+								<span>
+									<i class="fas fa-hashtag"></i> Правило ${violation.code}
+								</span>
+								<span>
+									${isCritical ? '❌ Критическая ошибка' : '⚠️ Нарушение'}
+								</span>
+							</div>
+						</div>
+					</div>
+					<div style="display: flex; gap: 12px; justify-content: flex-end; margin-top: 20px;">
+						<button class="close-violation-btn" style="
+							padding: 8px 24px;
+							background: #e2e8f0;
+							border: none;
+							border-radius: 40px;
+							cursor: pointer;
+							font-weight: 600;
+							color: #475569;
+							transition: all 0.2s;
+						" onmouseover="this.style.background='#cbd5e1'" onmouseout="this.style.background='#e2e8f0'">
+							Понятно
+						</button>
+						${isCritical ? `
+							<button class="fix-now-btn" style="
+								padding: 8px 24px;
+								background: #10b981;
+								border: none;
+								border-radius: 40px;
+								cursor: pointer;
+								font-weight: 600;
+								color: white;
+								transition: all 0.2s;
+							" onmouseover="this.style.background='#059669'" onmouseout="this.style.background='#10b981'">
+								<i class="fas fa-magic"></i> Исправить сейчас
+							</button>
+						` : ''}
+					</div>
+				</div>
+			`;
+			
+			document.body.appendChild(modal);
+			
+			// Закрытие
+			modal.querySelector('.close-violation-btn').addEventListener('click', () => modal.remove());
+			modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
+			
+			// Кнопка "Исправить сейчас" (для критических ошибок)
+			const fixBtn = modal.querySelector('.fix-now-btn');
+			if (fixBtn) {
+				fixBtn.addEventListener('click', () => {
+					modal.remove();
+					// Открываем модалку с подсказкой по исправлению БЖУ
+					showBJUFixGuide(violation);
+				});
+			}
+		}
+
+		// Функция для показа гида по исправлению БЖУ
+		function showBJUFixGuide(violation) {
+			const mealData = currentTemplateData?.weeks[violation.week]?.[violation.day]?.[violation.meal];
+			if (!mealData || !mealData.items || !mealData.items[violation.itemIndex]) return;
+			
+			const item = mealData.items[violation.itemIndex];
+			const bjuSum = (item.proteins || 0) + (item.fats || 0) + (item.carbs || 0);
+			const excess = (bjuSum - (item.weight || 0)).toFixed(1);
+			
+			const modal = document.createElement('div');
+			modal.style.cssText = `
+				position: fixed;
+				top: 0;
+				left: 0;
+				width: 100%;
+				height: 100%;
+				background: rgba(0, 0, 0, 0.6);
+				backdrop-filter: blur(8px);
+				z-index: 20001;
+				display: flex;
+				justify-content: center;
+				align-items: center;
+				animation: fadeIn 0.3s ease;
+			`;
+			
+			modal.innerHTML = `
+				<div style="
+					background: white;
+					border-radius: 24px;
+					padding: 32px;
+					max-width: 500px;
+					width: 95%;
+					animation: slideUp 0.3s ease;
+				">
+					<h3 style="margin: 0 0 16px 0; color: #0f172a;">
+						<i class="fas fa-wrench" style="color: #10b981;"></i>
+						Исправление ошибки БЖУ
+					</h3>
+					<div style="background: #f8fafc; padding: 16px; border-radius: 16px; margin-bottom: 16px;">
+						<p><strong>Блюдо:</strong> ${item.name || 'Без названия'}</p>
+						<p><strong>Текущий вес:</strong> ${item.weight || 0} г</p>
+						<p><strong>Сумма БЖУ:</strong> ${bjuSum.toFixed(1)} г</p>
+						<p style="color: #dc2626;"><strong>Превышение:</strong> +${excess} г</p>
+					</div>
+					<div style="margin-bottom: 16px;">
+						<p style="font-weight: 600; margin-bottom: 8px;">Выберите способ исправления:</p>
+						<button class="fix-bju-weight" style="
+							display: block;
+							width: 100%;
+							padding: 10px;
+							margin-bottom: 8px;
+							background: #f0fdf4;
+							border: 2px solid #86efac;
+							border-radius: 12px;
+							cursor: pointer;
+							text-align: left;
+							transition: all 0.2s;
+						" onmouseover="this.style.background='#dcfce7'" onmouseout="this.style.background='#f0fdf4'">
+							<strong>📈 Увеличить вес</strong>
+							<br><span style="font-size: 0.85rem; color: #64748b;">Установить вес ${(bjuSum).toFixed(0)} г (рекомендуется)</span>
+						</button>
+						<button class="fix-bju-reduce" style="
+							display: block;
+							width: 100%;
+							padding: 10px;
+							margin-bottom: 8px;
+							background: #fef2f2;
+							border: 2px solid #fca5a5;
+							border-radius: 12px;
+							cursor: pointer;
+							text-align: left;
+							transition: all 0.2s;
+						" onmouseover="this.style.background='#fee2e2'" onmouseout="this.style.background='#fef2f2'">
+							<strong>📉 Уменьшить БЖУ</strong>
+							<br><span style="font-size: 0.85rem; color: #64748b;">Пропорционально уменьшить белки, жиры, углеводы</span>
+						</button>
+						<button class="fix-bju-manual" style="
+							display: block;
+							width: 100%;
+							padding: 10px;
+							background: #f8fafc;
+							border: 2px solid #e2e8f0;
+							border-radius: 12px;
+							cursor: pointer;
+							text-align: left;
+							transition: all 0.2s;
+						" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='#f8fafc'">
+							<strong>✏️ Исправить вручную</strong>
+							<br><span style="font-size: 0.85rem; color: #64748b;">Открыть редактор и изменить значения самостоятельно</span>
+						</button>
+					</div>
+					<div style="display: flex; gap: 12px; justify-content: flex-end;">
+						<button class="close-guide-btn" style="
+							padding: 8px 24px;
+							background: #e2e8f0;
+							border: none;
+							border-radius: 40px;
+							cursor: pointer;
+							font-weight: 600;
+						">Закрыть</button>
+					</div>
+				</div>
+			`;
+			
+			document.body.appendChild(modal);
+			
+			// Обработчики
+			modal.querySelector('.close-guide-btn').addEventListener('click', () => modal.remove());
+			
+			// Увеличить вес
+			modal.querySelector('.fix-bju-weight').addEventListener('click', () => {
+				const newWeight = Math.round(bjuSum);
+				item.weight = newWeight;
+				// Пересчитываем калории пропорционально
+				if (item.calories > 0) {
+					const oldWeight = item.weight || 1;
+					item.calories = Math.round((item.calories / oldWeight) * newWeight);
+				}
+				saveToHistory();
+				flatItems = buildFlatFromTemplate(currentTemplateData);
+				renderEditor();
+				immediateSave();
+				modal.remove();
+				showStatus(`✅ Вес блюда увеличен до ${newWeight} г`, 'success');
+				setTimeout(() => {
+					if (window.SpellChecker && window.SpellChecker.checkAllMenu) {
+						window.SpellChecker.checkAllMenu();
+					}
+				}, 300);
+			});
+			
+			// Уменьшить БЖУ
+			modal.querySelector('.fix-bju-reduce').addEventListener('click', () => {
+				const targetWeight = item.weight || 1;
+				const ratio = targetWeight / bjuSum;
+				item.proteins = Math.round((item.proteins || 0) * ratio * 10) / 10;
+				item.fats = Math.round((item.fats || 0) * ratio * 10) / 10;
+				item.carbs = Math.round((item.carbs || 0) * ratio * 10) / 10;
+				saveToHistory();
+				flatItems = buildFlatFromTemplate(currentTemplateData);
+				renderEditor();
+				immediateSave();
+				modal.remove();
+				showStatus(`✅ БЖУ пропорционально уменьшены`, 'success');
+				setTimeout(() => {
+					if (window.SpellChecker && window.SpellChecker.checkAllMenu) {
+						window.SpellChecker.checkAllMenu();
+					}
+				}, 300);
+			});
+			
+			// Исправить вручную
+			modal.querySelector('.fix-bju-manual').addEventListener('click', () => {
+				modal.remove();
+				// Находим строку и подсвечиваем её
+				const rows = document.querySelectorAll(
+					`tr[data-week="${violation.week}"][data-day="${violation.day}"][data-meal="${violation.meal}"]`
+				);
+				if (rows[violation.itemIndex]) {
+					rows[violation.itemIndex].scrollIntoView({ behavior: 'smooth', block: 'center' });
+					flashCell(rows[violation.itemIndex]);
+				}
+				showStatus('✏️ Исправьте значения БЖУ вручную', 'info');
+			});
+			
+			modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
+		}
+
 
 		// Универсальная функция мерцания
 		function flashCell(cell) {
@@ -11574,7 +12060,11 @@
 			// Показываем модалку
 			document.getElementById('replaceDishModal').style.display = 'flex';
 		}
-
+		
+		function normalizeSectionName(section) {
+			return normalizeSection(section);
+		}
+		
 		// Получение доступных блюд с дополнительной информацией
 		function getAvailableDishesImproved(mealType, section) {
 			const state = window.DailyMenuModule?.getState?.();
@@ -12231,6 +12721,757 @@
 			console.log('✅ Кнопка "Обновить аналитику" добавлена');
 		})();
 		
+		// Функция для поиска похожих блюд (интеллектуальная замена)
+		function findSimilarDishes(mealType, section, currentName, maxResults = 10) {
+			if (!currentTemplateData) return [];
+			
+			const candidates = [];
+			const currentWords = currentName.toLowerCase().split(/\s+/);
+			
+			// Собираем все блюда из меню
+			for (const w in currentTemplateData.weeks) {
+				for (const d in currentTemplateData.weeks[w]) {
+					const mealData = currentTemplateData.weeks[w][d][mealType];
+					if (mealData && mealData.items) {
+						for (const item of mealData.items) {
+							if (!item.name || item.name.trim() === '') continue;
+							if (item.name === currentName) continue;
+							
+							// Проверяем раздел
+							const itemSection = normalizeSection(item.section);
+							const targetSection = normalizeSection(section);
+							if (targetSection && itemSection !== targetSection) continue;
+							
+							// Вычисляем схожесть
+							const itemWords = item.name.toLowerCase().split(/\s+/);
+							let matchScore = 0;
+							
+							// Проверяем общие слова
+							for (const word of currentWords) {
+								if (word.length < 3) continue;
+								for (const iWord of itemWords) {
+									if (iWord.length < 3) continue;
+									if (iWord.includes(word) || word.includes(iWord)) {
+										matchScore++;
+									}
+								}
+							}
+							
+							// Бонус за похожий раздел
+							if (itemSection === targetSection) matchScore += 3;
+							
+							// Бонус за похожую калорийность (если есть данные)
+							if (item.calories > 0 && currentTemplateData.weeks[w]?.[d]?.[mealType]?.items) {
+								// Сравниваем с текущим блюдом
+								const currentItem = currentTemplateData.weeks[w][d][mealType].items.find(
+									i => i.name === currentName
+								);
+								if (currentItem && currentItem.calories > 0) {
+									const diff = Math.abs(item.calories - currentItem.calories);
+									if (diff < 50) matchScore += 2;
+									else if (diff < 100) matchScore += 1;
+								}
+							}
+							
+							candidates.push({
+								...item,
+								matchScore: matchScore,
+								source: `Неделя ${w}, День ${d}`
+							});
+						}
+					}
+				}
+			}
+			
+			// Сортируем по релевантности и удаляем дубликаты
+			const unique = [];
+			const seen = new Set();
+			for (const c of candidates.sort((a, b) => b.matchScore - a.matchScore)) {
+				const key = `${c.name}|${c.section}`;
+				if (!seen.has(key)) {
+					seen.add(key);
+					unique.push(c);
+				}
+			}
+			
+			return unique.slice(0, maxResults);
+		}
+
+		// Улучшенная функция открытия модалки замены
+		function openEnhancedReplaceModal(mealType, idx) {
+			const state = window.DailyMenuModule?.getState?.();
+			if (!state || !state.dailyMenuData) {
+				showStatus('Нет данных для замены блюда', 'error');
+				return;
+			}			
+			if (!state || !state.dailyMenuData) return;
+			
+			const meal = state.dailyMenuData[mealType];
+			if (!meal || !meal.items || idx >= meal.items.length) return;
+			
+			const currentItem = meal.items[idx];
+			
+			// Находим похожие блюда
+			const similarDishes = findSimilarDishes(mealType, currentItem.section, currentItem.name);
+			
+			// Находим все доступные блюда
+			const allDishes = getAvailableDishesImproved(mealType, currentItem.section);
+			
+			// Создаём модальное окно
+			const modal = document.createElement('div');
+			modal.className = 'modal replace-modal enhanced';
+			modal.style.cssText = `
+				position: fixed;
+				top: 0;
+				left: 0;
+				width: 100%;
+				height: 100%;
+				background: rgba(0, 0, 0, 0.7);
+				backdrop-filter: blur(8px);
+				z-index: 20000;
+				display: flex;
+				justify-content: center;
+				align-items: center;
+				animation: fadeIn 0.3s ease;
+			`;
+			
+			const mealNames = {
+				'breakfast': '🌅 Завтрак',
+				'breakfast2': '🍎 Второй завтрак',
+				'lunch': '🍲 Обед',
+				'afternoonSnack': '🍪 Полдник',
+				'dinner': '🌙 Ужин',
+				'dinner2': '🥛 Второй ужин'
+			};
+			
+			modal.innerHTML = `
+				<div style="
+					background: white;
+					border-radius: 24px;
+					padding: 0;
+					max-width: 750px;
+					width: 95%;
+					max-height: 90vh;
+					overflow: hidden;
+					animation: slideUp 0.3s ease;
+				">
+					<!-- Шапка -->
+					<div style="
+						padding: 20px 24px;
+						background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+						border-bottom: 2px solid #e2e8f0;
+						display: flex;
+						justify-content: space-between;
+						align-items: center;
+					">
+						<div>
+							<h3 style="margin: 0; display: flex; align-items: center; gap: 12px;">
+								<i class="fas fa-exchange-alt" style="color: #3b82f6;"></i>
+								Замена блюда
+								<span style="font-size: 12px; font-weight: 400; color: #94a3b8;">
+									${mealNames[mealType] || mealType}
+								</span>
+							</h3>
+						</div>
+						<button class="close-modal-btn" style="
+							background: none;
+							border: none;
+							font-size: 24px;
+							cursor: pointer;
+							color: #94a3b8;
+						">&times;</button>
+					</div>
+					
+					<!-- Текущее блюдо -->
+					<div style="
+						margin: 16px 24px;
+						padding: 16px 20px;
+						background: linear-gradient(135deg, #fef3c7, #fde68a);
+						border-radius: 16px;
+						border-left: 5px solid #f59e0b;
+					">
+						<div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+							<div>
+								<div style="font-size: 12px; color: #92400e; font-weight: 500;">
+									<i class="fas fa-arrow-right"></i> Текущее блюдо
+								</div>
+								<div style="font-weight: 700; font-size: 1.1rem; color: #78350f;">
+									${escapeHtml(currentItem.name || 'Без названия')}
+								</div>
+							</div>
+							<div style="display: flex; gap: 16px; font-size: 14px; color: #92400e;">
+								<span><i class="fas fa-tag"></i> ${escapeHtml(currentItem.section || '—')}</span>
+								<span><i class="fas fa-weight-hanging"></i> ${currentItem.weight || 0} г</span>
+								<span><i class="fas fa-fire"></i> ${currentItem.calories || 0} ккал</span>
+							</div>
+						</div>
+					</div>
+					
+					<!-- Вкладки -->
+					<div style="
+						padding: 0 24px;
+						display: flex;
+						gap: 4px;
+						border-bottom: 1px solid #e2e8f0;
+					">
+						<button class="tab-option active" data-tab="similar" style="
+							padding: 10px 16px;
+							background: none;
+							border: none;
+							border-bottom: 3px solid #3b82f6;
+							cursor: pointer;
+							font-weight: 600;
+							color: #3b82f6;
+							transition: all 0.2s;
+						">
+							<i class="fas fa-robot"></i> Рекомендуемые (${similarDishes.length})
+						</button>
+						<button class="tab-option" data-tab="all" style="
+							padding: 10px 16px;
+							background: none;
+							border: none;
+							border-bottom: 3px solid transparent;
+							cursor: pointer;
+							font-weight: 600;
+							color: #64748b;
+							transition: all 0.2s;
+						">
+							<i class="fas fa-list"></i> Все блюда (${allDishes.length})
+						</button>
+					</div>
+					
+					<!-- Поиск -->
+					<div style="padding: 12px 24px;">
+						<div style="position: relative;">
+							<i class="fas fa-search" style="
+								position: absolute;
+								left: 14px;
+								top: 50%;
+								transform: translateY(-50%);
+								color: #94a3b8;
+							"></i>
+							<input type="text" id="enhancedSearchInput" placeholder="Поиск блюда..." style="
+								width: 100%;
+								padding: 10px 16px 10px 40px;
+								border: 2px solid #e2e8f0;
+								border-radius: 12px;
+								font-size: 14px;
+								transition: all 0.2s;
+							">
+						</div>
+					</div>
+					
+					<!-- Список блюд -->
+					<div id="enhancedDishesList" style="
+						padding: 8px 24px 20px;
+						max-height: 350px;
+						overflow-y: auto;
+					">
+						<!-- Сюда будет вставлен список -->
+					</div>
+					
+					<!-- Подвал -->
+					<div style="
+						padding: 16px 24px;
+						background: #f8fafc;
+						border-top: 1px solid #e2e8f0;
+						display: flex;
+						justify-content: flex-end;
+						gap: 12px;
+					">
+						<button class="close-modal-btn" style="
+							padding: 8px 24px;
+							background: #e2e8f0;
+							border: none;
+							border-radius: 40px;
+							cursor: pointer;
+							font-weight: 600;
+							color: #475569;
+						">Отмена</button>
+					</div>
+				</div>
+			`;
+			
+			document.body.appendChild(modal);
+			
+			let currentTab = 'similar';
+			let searchTerm = '';
+			
+			// Функция рендеринга списка
+			function renderList() {
+				const container = modal.querySelector('#enhancedDishesList');
+				let dishes = currentTab === 'similar' ? similarDishes : allDishes;
+				
+				// Фильтр по поиску
+				if (searchTerm) {
+					const term = searchTerm.toLowerCase();
+					dishes = dishes.filter(d => 
+						d.name.toLowerCase().includes(term) ||
+						(d.section && d.section.toLowerCase().includes(term))
+					);
+				}
+				
+				if (dishes.length === 0) {
+					container.innerHTML = `
+						<div style="
+							text-align: center;
+							padding: 40px 20px;
+							color: #94a3b8;
+						">
+							<i class="fas fa-search" style="font-size: 32px; display: block; margin-bottom: 12px; color: #cbd5e1;"></i>
+							<p>Нет доступных блюд для замены</p>
+							<p style="font-size: 13px;">Попробуйте изменить поисковый запрос</p>
+						</div>
+					`;
+					return;
+				}
+				
+				let html = '';
+				for (const dish of dishes) {
+					const isCurrent = dish.name === currentItem.name && 
+									 normalizeSection(dish.section) === normalizeSection(currentItem.section);
+					
+					// Определяем цвет раздела
+					let sectionColor = '#64748b';
+					const section = (dish.section || '').toLowerCase();
+					if (section.includes('гор.блюдо') || section.includes('горячее')) sectionColor = '#f59e0b';
+					else if (section.includes('1 блюдо')) sectionColor = '#3b82f6';
+					else if (section.includes('2 блюдо')) sectionColor = '#ef4444';
+					else if (section.includes('гарнир')) sectionColor = '#10b981';
+					else if (section.includes('закуска')) sectionColor = '#8b5cf6';
+					else if (section.includes('напиток')) sectionColor = '#06b6d4';
+					else if (section.includes('хлеб')) sectionColor = '#f59e0b';
+					else if (section.includes('фрукт')) sectionColor = '#22c55e';
+					
+					// Индикатор релевантности для рекомендуемых
+					let relevanceBadge = '';
+					if (currentTab === 'similar' && dish.matchScore > 0) {
+						const score = Math.min(100, dish.matchScore * 10);
+						const color = score >= 70 ? '#10b981' : score >= 40 ? '#f59e0b' : '#94a3b8';
+						relevanceBadge = `
+							<span style="
+								background: ${color}20;
+								color: ${color};
+								padding: 2px 8px;
+								border-radius: 12px;
+								font-size: 10px;
+								font-weight: 600;
+							">
+								${score}% совпадение
+							</span>
+						`;
+					}
+					
+					html += `
+						<div class="dish-option ${isCurrent ? 'current' : ''}" style="
+							display: flex;
+							justify-content: space-between;
+							align-items: center;
+							padding: 12px 16px;
+							margin-bottom: 8px;
+							background: ${isCurrent ? '#f0fdf4' : 'white'};
+							border: 2px solid ${isCurrent ? '#10b981' : '#e2e8f0'};
+							border-radius: 12px;
+							cursor: ${isCurrent ? 'default' : 'pointer'};
+							transition: all 0.2s;
+							opacity: ${isCurrent ? '0.7' : '1'};
+						">
+							<div style="flex: 1;">
+								<div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+									<span style="font-weight: 600; font-size: 15px; color: #0f172a;">
+										${escapeHtml(dish.name)}
+									</span>
+									${relevanceBadge}
+									${isCurrent ? '<span style="background: #10b981; color: white; padding: 2px 10px; border-radius: 12px; font-size: 10px;"><i class="fas fa-check"></i> Текущее</span>' : ''}
+								</div>
+								<div style="display: flex; gap: 16px; font-size: 13px; color: #64748b; margin-top: 4px; flex-wrap: wrap;">
+									<span style="color: ${sectionColor};">
+										<i class="fas fa-tag"></i> ${escapeHtml(dish.section || '—')}
+									</span>
+									<span><i class="fas fa-weight-hanging"></i> ${dish.weight || 0} г</span>
+									<span><i class="fas fa-fire"></i> ${dish.calories || 0} ккал</span>
+									${dish.recipeId ? `<span><i class="fas fa-hashtag"></i> ${escapeHtml(dish.recipeId)}</span>` : ''}
+									${dish.source ? `<span style="font-size: 11px; color: #94a3b8;">${escapeHtml(dish.source)}</span>` : ''}
+								</div>
+							</div>
+							${!isCurrent ? `
+								<button class="select-dish-btn" style="
+									padding: 6px 16px;
+									background: #3b82f6;
+									color: white;
+									border: none;
+									border-radius: 20px;
+									cursor: pointer;
+									font-weight: 600;
+									font-size: 13px;
+									transition: all 0.2s;
+								" onmouseover="this.style.background='#2563eb'" onmouseout="this.style.background='#3b82f6'">
+									<i class="fas fa-check"></i> Выбрать
+								</button>
+							` : ''}
+						</div>
+					`;
+				}
+				
+				container.innerHTML = html;
+				
+				// Обработчики выбора
+				container.querySelectorAll('.select-dish-btn').forEach(btn => {
+					btn.addEventListener('click', function() {
+						const option = this.closest('.dish-option');
+						const dishData = {
+							name: option.querySelector('span:first-child')?.textContent.trim() || '',
+							section: option.querySelector('.fa-tag')?.parentElement?.textContent.trim() || '',
+							weight: parseFloat(option.querySelector('.fa-weight-hanging')?.parentElement?.textContent?.trim() || '0'),
+							calories: parseFloat(option.querySelector('.fa-fire')?.parentElement?.textContent?.trim() || '0'),
+							proteins: currentItem.proteins || 0,
+							fats: currentItem.fats || 0,
+							carbs: currentItem.carbs || 0,
+							recipeId: currentItem.recipeId || '',
+							price: currentItem.price || 0
+						};
+						
+						// Заменяем блюдо
+						replaceDishImproved(mealType, idx, dishData);
+						modal.remove();
+						showStatus(`✅ Блюдо заменено на "${dishData.name}"`, 'success');
+					});
+				});
+			}
+			
+			// Обработчики вкладок
+			modal.querySelectorAll('.tab-option').forEach(tab => {
+				tab.addEventListener('click', function() {
+					modal.querySelectorAll('.tab-option').forEach(t => {
+						t.classList.remove('active');
+						t.style.color = '#64748b';
+						t.style.borderBottomColor = 'transparent';
+					});
+					this.classList.add('active');
+					this.style.color = '#3b82f6';
+					this.style.borderBottomColor = '#3b82f6';
+					
+					currentTab = this.dataset.tab;
+					renderList();
+				});
+			});
+			
+			// Обработчик поиска
+			const searchInput = modal.querySelector('#enhancedSearchInput');
+			searchInput.addEventListener('input', function() {
+				searchTerm = this.value;
+				renderList();
+			});
+			
+			// Закрытие
+			modal.querySelectorAll('.close-modal-btn').forEach(btn => {
+				btn.addEventListener('click', () => modal.remove());
+			});
+			modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
+			
+			// Начальный рендер
+			renderList();
+		}
+
+		// Переопределяем функцию открытия модалки замены
+		if (window.DailyMenuModule) {
+			window.DailyMenuModule.openReplaceModal = function(mealType, idx) {
+				openEnhancedReplaceModal(mealType, idx);
+			};
+		}		
+	
+		// Добавим функцию для редактирования блюда прямо в предпросмотре
+		function makeDailyPreviewEditable() {
+			const preview = document.getElementById('dailyPreview');
+			if (!preview) return;
+			
+			const state = window.DailyMenuModule?.getState?.();
+			if (!state || !state.dailyMenuData || !state.isEditMode) return;
+			
+			// Добавляем обработчики для двойного клика по блюду
+			preview.querySelectorAll('.meal-item').forEach(item => {
+				item.addEventListener('dblclick', function() {
+					const mealType = this.dataset.meal;
+					const idx = parseInt(this.dataset.idx);
+					if (!isNaN(idx)) {
+						// Открываем модалку редактирования
+						openDishEditModal(mealType, idx);
+					}
+				});
+				
+				// Добавляем иконку редактирования при наведении
+				const editIcon = document.createElement('span');
+				editIcon.className = 'edit-icon';
+				editIcon.innerHTML = '<i class="fas fa-pen" style="color: #3b82f6; font-size: 12px; margin-left: 8px; opacity: 0.6; cursor: pointer;"></i>';
+				editIcon.style.display = 'none';
+				item.appendChild(editIcon);
+				
+				item.addEventListener('mouseenter', () => {
+					editIcon.style.display = 'inline';
+				});
+				item.addEventListener('mouseleave', () => {
+					editIcon.style.display = 'none';
+				});
+				
+				editIcon.addEventListener('click', function(e) {
+					e.stopPropagation();
+					const mealType = item.dataset.meal;
+					const idx = parseInt(item.dataset.idx);
+					if (!isNaN(idx)) {
+						openDishEditModal(mealType, idx);
+					}
+				});
+			});
+		}
+
+		// Модальное окно для редактирования блюда
+		function openDishEditModal(mealType, idx) {
+			const state = window.DailyMenuModule?.getState?.();
+			if (!state || !state.dailyMenuData) return;
+			
+			const meal = state.dailyMenuData[mealType];
+			if (!meal || !meal.items || idx >= meal.items.length) return;
+			
+			const item = meal.items[idx];
+			
+			const modal = document.createElement('div');
+			modal.style.cssText = `
+				position: fixed;
+				top: 0;
+				left: 0;
+				width: 100%;
+				height: 100%;
+				background: rgba(0, 0, 0, 0.6);
+				backdrop-filter: blur(8px);
+				z-index: 20000;
+				display: flex;
+				justify-content: center;
+				align-items: center;
+				animation: fadeIn 0.3s ease;
+			`;
+			
+			modal.innerHTML = `
+				<div style="
+					background: white;
+					border-radius: 24px;
+					padding: 32px;
+					max-width: 500px;
+					width: 95%;
+					animation: slideUp 0.3s ease;
+				">
+					<h3 style="margin: 0 0 20px 0; display: flex; align-items: center; gap: 12px;">
+						<i class="fas fa-edit" style="color: #3b82f6;"></i>
+						Редактирование блюда
+					</h3>
+					
+					<div style="margin-bottom: 16px;">
+						<label style="display: block; font-weight: 600; margin-bottom: 4px; font-size: 14px;">
+							<i class="fas fa-utensils"></i> Название блюда
+						</label>
+						<input type="text" id="editDishName" value="${escapeHtml(item.name || '')}" style="
+							width: 100%;
+							padding: 8px 12px;
+							border: 2px solid #e2e8f0;
+							border-radius: 12px;
+							font-size: 14px;
+						">
+					</div>
+					
+					<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+						<div>
+							<label style="display: block; font-weight: 600; margin-bottom: 4px; font-size: 14px;">
+								<i class="fas fa-tag"></i> Раздел
+							</label>
+							<select id="editDishSection" style="
+								width: 100%;
+								padding: 8px 12px;
+								border: 2px solid #e2e8f0;
+								border-radius: 12px;
+								font-size: 14px;
+							">
+								${VALID_SECTIONS.map(s => `
+									<option value="${s}" ${item.section === s ? 'selected' : ''}>${s}</option>
+								`).join('')}
+							</select>
+						</div>
+						<div>
+							<label style="display: block; font-weight: 600; margin-bottom: 4px; font-size: 14px;">
+								<i class="fas fa-weight-hanging"></i> Вес (г)
+							</label>
+							<input type="number" id="editDishWeight" value="${item.weight || 0}" style="
+								width: 100%;
+								padding: 8px 12px;
+								border: 2px solid #e2e8f0;
+								border-radius: 12px;
+								font-size: 14px;
+							">
+						</div>
+					</div>
+					
+					<div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+						<div>
+							<label style="display: block; font-weight: 600; margin-bottom: 4px; font-size: 14px;">
+								<i class="fas fa-fire"></i> Ккал
+							</label>
+							<input type="number" id="editDishCalories" value="${item.calories || 0}" style="
+								width: 100%;
+								padding: 8px 12px;
+								border: 2px solid #e2e8f0;
+								border-radius: 12px;
+								font-size: 14px;
+							">
+						</div>
+						<div>
+							<label style="display: block; font-weight: 600; margin-bottom: 4px; font-size: 14px;">
+								<i class="fas fa-dna"></i> Белки
+							</label>
+							<input type="number" id="editDishProteins" value="${item.proteins || 0}" step="0.1" style="
+								width: 100%;
+								padding: 8px 12px;
+								border: 2px solid #e2e8f0;
+								border-radius: 12px;
+								font-size: 14px;
+							">
+						</div>
+						<div>
+							<label style="display: block; font-weight: 600; margin-bottom: 4px; font-size: 14px;">
+								<i class="fas fa-oil-can"></i> Жиры
+							</label>
+							<input type="number" id="editDishFats" value="${item.fats || 0}" step="0.1" style="
+								width: 100%;
+								padding: 8px 12px;
+								border: 2px solid #e2e8f0;
+								border-radius: 12px;
+								font-size: 14px;
+							">
+						</div>
+					</div>
+					
+					<div style="margin-bottom: 16px;">
+						<label style="display: block; font-weight: 600; margin-bottom: 4px; font-size: 14px;">
+							<i class="fas fa-bread-slice"></i> Углеводы
+						</label>
+						<input type="number" id="editDishCarbs" value="${item.carbs || 0}" step="0.1" style="
+							width: 100%;
+							padding: 8px 12px;
+							border: 2px solid #e2e8f0;
+							border-radius: 12px;
+							font-size: 14px;
+						">
+					</div>
+					
+					<div style="display: flex; gap: 12px; justify-content: flex-end; margin-top: 20px; border-top: 1px solid #e2e8f0; padding-top: 16px;">
+						<button class="close-edit-btn" style="
+							padding: 8px 24px;
+							background: #e2e8f0;
+							border: none;
+							border-radius: 40px;
+							cursor: pointer;
+							font-weight: 600;
+							color: #475569;
+						">Отмена</button>
+						<button class="save-edit-btn" style="
+							padding: 8px 24px;
+							background: #10b981;
+							border: none;
+							border-radius: 40px;
+							cursor: pointer;
+							font-weight: 600;
+							color: white;
+						">
+							<i class="fas fa-save"></i> Сохранить
+						</button>
+					</div>
+				</div>
+			`;
+			
+			document.body.appendChild(modal);
+			
+			// Сохранение изменений
+			modal.querySelector('.save-edit-btn').addEventListener('click', function() {
+				const newName = document.getElementById('editDishName').value.trim();
+				const newSection = document.getElementById('editDishSection').value;
+				const newWeight = parseFloat(document.getElementById('editDishWeight').value) || 0;
+				const newCalories = parseFloat(document.getElementById('editDishCalories').value) || 0;
+				const newProteins = parseFloat(document.getElementById('editDishProteins').value) || 0;
+				const newFats = parseFloat(document.getElementById('editDishFats').value) || 0;
+				const newCarbs = parseFloat(document.getElementById('editDishCarbs').value) || 0;
+				
+				if (!newName) {
+					showStatus('❌ Название блюда не может быть пустым', 'error');
+					return;
+				}
+				
+				// Обновляем в ежедневном меню
+				meal.items[idx] = {
+					...item,
+					name: newName,
+					section: newSection,
+					weight: newWeight,
+					calories: newCalories,
+					proteins: newProteins,
+					fats: newFats,
+					carbs: newCarbs
+				};
+				
+				// Обновляем состояние
+				state.dailyMenuItems = window.DailyMenuModule?.buildDailyFlatItems?.(state.dailyMenuData) || [];
+				state.dailyViolations = window.DailyMenuModule?.runDailyRules?.(state.dailyMenuData) || [];
+				
+				// Перерисовываем предпросмотр
+				if (typeof renderDailyPreviewWithFilter === 'function') {
+					renderDailyPreviewWithFilter(state.dailyMenuData, currentMealFilterDaily || 'all');
+				}
+				
+				modal.remove();
+				showStatus(`✅ Блюдо "${newName}" обновлено`, 'success');
+				
+				// Обновляем глобальные данные
+				if (currentTemplateData) {
+					// Находим и обновляем в основном меню
+					for (const w in currentTemplateData.weeks) {
+						for (const d in currentTemplateData.weeks[w]) {
+							const mealData = currentTemplateData.weeks[w][d][mealType];
+							if (mealData && mealData.items && mealData.items.length > idx) {
+								const globalItem = mealData.items[idx];
+								if (globalItem.name === item.name || !globalItem.name) {
+									globalItem.name = newName;
+									globalItem.section = newSection;
+									globalItem.weight = newWeight;
+									globalItem.calories = newCalories;
+									globalItem.proteins = newProteins;
+									globalItem.fats = newFats;
+									globalItem.carbs = newCarbs;
+									break;
+								}
+							}
+						}
+					}
+					
+					// Сохраняем изменения
+					saveToHistory();
+					flatItems = buildFlatFromTemplate(currentTemplateData);
+					immediateSave();
+				}
+			});
+			
+			// Закрытие
+			modal.querySelector('.close-edit-btn').addEventListener('click', () => modal.remove());
+			modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
+		}
+
+		// Переопределяем renderDailyPreview для добавления редактирования
+		const originalRenderDailyPreview = window.DailyMenuModule?.renderDailyPreview;
+		if (window.DailyMenuModule) {
+			window.DailyMenuModule.renderDailyPreview = function() {
+				if (originalRenderDailyPreview) {
+					originalRenderDailyPreview.call(this);
+				}
+				setTimeout(makeDailyPreviewEditable, 100);
+			};
+		}
+
+	
     </script>
 
 
@@ -13173,7 +14414,11 @@
 					input.dispatchEvent(new Event('change', { bubbles: true }));
 					tooltip.remove();
 					showStatus(`✅ Исправлено: "${word}" → "${suggestion}"`, 'success');
-					setTimeout(() => checkAllMenu(), 300);
+					setTimeout(() => {
+						if (window.SpellChecker && window.SpellChecker.checkAllMenu) {
+							window.SpellChecker.checkAllMenu();
+						}
+					}, 300);
 				});
 			});
 			
@@ -13191,7 +14436,11 @@
 					input.dispatchEvent(new Event('change', { bubbles: true }));
 					tooltip.remove();
 					showStatus(`✅ Исправлено ${fixed} ошибок`, 'success');
-					setTimeout(() => checkAllMenu(), 300);
+					setTimeout(() => {
+						if (window.SpellChecker && window.SpellChecker.checkAllMenu) {
+							window.SpellChecker.checkAllMenu();
+						}
+					}, 300);
 				}
 			});
 			
@@ -13371,7 +14620,11 @@
 					
 					replaceSpellError(week, day, meal, index, word, suggestion);
 					modal.remove();
-					setTimeout(() => checkAllMenu(), 300);
+					setTimeout(() => {
+						if (window.SpellChecker && window.SpellChecker.checkAllMenu) {
+							window.SpellChecker.checkAllMenu();
+						}
+					}, 300);
 				});
 			});
 			
@@ -13384,7 +14637,11 @@
 					
 					autoFixDishSpelling(week, day, meal, index);
 					modal.remove();
-					setTimeout(() => checkAllMenu(), 300);
+					setTimeout(() => {
+						if (window.SpellChecker && window.SpellChecker.checkAllMenu) {
+							window.SpellChecker.checkAllMenu();
+						}
+					}, 300);
 				});
 			});
 			
@@ -13392,7 +14649,11 @@
 				if (confirm('Исправить все найденные орфографические ошибки?')) {
 					autoFixAllSpelling();
 					modal.remove();
-					setTimeout(() => checkAllMenu(), 300);
+					setTimeout(() => {
+						if (window.SpellChecker && window.SpellChecker.checkAllMenu) {
+							window.SpellChecker.checkAllMenu();
+						}
+					}, 300);
 				}
 			});
 			
@@ -13714,6 +14975,9 @@
 	console.log('🤖 ИИ-модуль орфографии загружен!');
 	console.log('📌 Использование: window.SpellChecker.checkAllMenu()');
 	console.log('📌 Добавить слово: window.addSpellWord("слово")');
+	
+	
+
 	</script>
 
 
