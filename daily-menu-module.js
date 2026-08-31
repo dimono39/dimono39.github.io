@@ -1398,12 +1398,6 @@ const DailyMenuModule = (function() {
 							${menuColor.name}
 						</span>
 					</div>
-					${hasViolations ? `<div style="color: #dc2626; font-size: 10pt; margin-top: 8px;">
-						⚠️ Найдено ${state.dailyViolations.length} нарушений (${criticalErrors.length} критических)
-					</div>` : 
-					`<div style="color: #16a34a; font-size: 10pt; margin-top: 8px;">
-						✅ Все правила выполнены
-					</div>`}
 				</div>
 
 				<table class="print-table">
@@ -1667,12 +1661,6 @@ const DailyMenuModule = (function() {
 							${menuColor.name}
 						</span>
 					</div>
-					${hasViolations ? `<div style="color: #dc2626; font-size: 10pt; margin-top: 8px;">
-						⚠️ Найдено ${state.dailyViolations.length} нарушений (${criticalErrors.length} критических)
-					</div>` : 
-					`<div style="color: #16a34a; font-size: 10pt; margin-top: 8px;">
-						✅ Все правила выполнены
-					</div>`}
 				</div>
 			`;
 		}
