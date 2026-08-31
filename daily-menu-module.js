@@ -347,7 +347,7 @@ const DailyMenuModule = (function() {
         if (fruitTotal > 0 && fruitTotal < 100) {
             violations.push({ rule: 16, code: 16, details: `Фруктов за день: ${fruitTotal}г < 100г` });
         }
-
+		/*
         // Правило 17: дубликаты
         const dishNames = [];
         for (const mealType in meals) {
@@ -361,7 +361,7 @@ const DailyMenuModule = (function() {
                     dishNames.push(name);
                 }
             }
-        }
+        }*/
 
         return violations;
     }
