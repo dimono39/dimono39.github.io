@@ -39,6 +39,391 @@ const CalendarModule = (function() {
         isLoaded: false
     };
 
+// В начале CalendarModule, добавим состояние истории:
+let historyState = {
+    calendarHistory: [],
+    historyIndex: -1,
+    maxHistory: 30
+};
+
+// Функция сохранения состояния календаря в историю
+function saveCalendarHistory() {
+    if (!state.calendarData) return;
+    
+    const snapshot = {
+        calendarData: JSON.parse(JSON.stringify(state.calendarData)),
+        calendarMap: JSON.parse(JSON.stringify(state.calendarMap)),
+        timestamp: Date.now()
+    };
+    
+    // Обрезаем историю, если она слишком длинная
+    historyState.calendarHistory = historyState.calendarHistory.slice(0, historyState.historyIndex + 1);
+    historyState.calendarHistory.push(snapshot);
+    historyState.historyIndex = historyState.calendarHistory.length - 1;
+    
+    // Ограничиваем максимальное количество записей
+    if (historyState.calendarHistory.length > historyState.maxHistory) {
+        historyState.calendarHistory.shift();
+        historyState.historyIndex--;
+    }
+    
+    // Обновляем индикаторы
+    updateCalendarUndoButtons();
+}
+
+// Функция отмены (Undo)
+function calendarUndo() {
+    if (historyState.historyIndex > 0) {
+        historyState.historyIndex--;
+        restoreCalendarState(historyState.historyIndex);
+        showStatus('↩️ Отменено действие в календаре', 'info');
+    } else {
+        showStatus('⚠️ Нет действий для отмены', 'info');
+    }
+}
+
+// Функция повтора (Redo)
+function calendarRedo() {
+    if (historyState.historyIndex < historyState.calendarHistory.length - 1) {
+        historyState.historyIndex++;
+        restoreCalendarState(historyState.historyIndex);
+        showStatus('↪️ Повторено действие в календаре', 'info');
+    } else {
+        showStatus('⚠️ Нет действий для повтора', 'info');
+    }
+}
+
+// Восстановление состояния из истории
+function restoreCalendarState(index) {
+    const snapshot = historyState.calendarHistory[index];
+    if (!snapshot) return;
+    
+    state.calendarData = JSON.parse(JSON.stringify(snapshot.calendarData));
+    state.calendarMap = JSON.parse(JSON.stringify(snapshot.calendarMap));
+    state.isLoaded = true;
+    
+    saveToStorage();
+    renderCalendar();
+    updateCalendarUndoButtons();
+}
+
+// Обновление кнопок Undo/Redo
+function updateCalendarUndoButtons() {
+    const undoBtn = document.getElementById('calendarUndoBtn');
+    const redoBtn = document.getElementById('calendarRedoBtn');
+    
+    if (undoBtn) {
+        undoBtn.disabled = historyState.historyIndex <= 0;
+        undoBtn.style.opacity = historyState.historyIndex > 0 ? '1' : '0.5';
+        undoBtn.title = historyState.historyIndex > 0 ? 'Отменить (Ctrl+Z)' : 'Нет действий для отмены';
+    }
+    if (redoBtn) {
+        redoBtn.disabled = historyState.historyIndex >= historyState.calendarHistory.length - 1;
+        redoBtn.style.opacity = historyState.historyIndex < historyState.calendarHistory.length - 1 ? '1' : '0.5';
+        redoBtn.title = historyState.historyIndex < historyState.calendarHistory.length - 1 ? 'Повторить (Ctrl+Y)' : 'Нет действий для повтора';
+    }
+}
+
+// Добавляем кнопки Undo/Redo в интерфейс календаря
+function addCalendarUndoButtons() {
+    const container = document.querySelector('#calendarContainer .calendar-toolbar') || 
+                     document.querySelector('#calendarContainer');
+    if (!container) return;
+    
+    if (document.getElementById('calendarUndoBtn')) return;
+    
+    const toolbar = document.createElement('div');
+    toolbar.style.cssText = `
+        display: flex;
+        gap: 8px;
+        margin-bottom: 12px;
+        align-items: center;
+        flex-wrap: wrap;
+        padding: 8px 12px;
+        background: #f8fafc;
+        border-radius: 12px;
+        border: 1px solid #e2e8f0;
+    `;
+    
+    toolbar.innerHTML = `
+        <span style="font-size: 0.75rem; color: #64748b; font-weight: 600;">
+            <i class="fas fa-history"></i> История:
+        </span>
+        <button id="calendarUndoBtn" class="btn btn-secondary" style="padding: 4px 12px; font-size: 0.7rem;" disabled>
+            <i class="fas fa-undo-alt"></i> Отменить
+        </button>
+        <button id="calendarRedoBtn" class="btn btn-secondary" style="padding: 4px 12px; font-size: 0.7rem;" disabled>
+            <i class="fas fa-redo-alt"></i> Повторить
+        </button>
+        <span style="font-size: 0.6rem; color: #94a3b8; margin-left: auto;">
+            ${historyState.calendarHistory.length} записей в истории
+        </span>
+    `;
+    
+    // Вставляем в начало контейнера
+    container.insertBefore(toolbar, container.firstChild);
+    
+    // Обработчики
+    document.getElementById('calendarUndoBtn')?.addEventListener('click', calendarUndo);
+    document.getElementById('calendarRedoBtn')?.addEventListener('click', calendarRedo);
+    
+    // Глобальные хоткеи
+    document.addEventListener('keydown', function(e) {
+        if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+            if (document.getElementById('tabCalendar')?.style.display !== 'none') {
+                e.preventDefault();
+                calendarUndo();
+            }
+        }
+        if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) {
+            if (document.getElementById('tabCalendar')?.style.display !== 'none') {
+                e.preventDefault();
+                calendarRedo();
+            }
+        }
+    });
+}
+
+// Модифицируем функции, которые изменяют календарь, чтобы они сохраняли историю
+// В setDayValue, autoFillCalendar, generateCalendarFromMenu и других — добавляем:
+// saveCalendarHistory(); // Перед изменением
+// ... изменения ...
+// saveCalendarHistory(); // После изменения
+
+
+
+
+	// В CalendarModule, добавим функцию для получения проблемных дней:
+
+	function getProblemDays() {
+		const problems = [];
+		
+		if (!state.calendarData || !state.calendarMeta) return problems;
+		
+		// Получаем все нарушения из редактора
+		const violations = window.allViolations || [];
+		const violationDays = new Set();
+		
+		for (const v of violations) {
+			const key = `${v.week}_${v.day}`;
+			violationDays.add(key);
+		}
+		
+		// Проверяем дни календаря
+		for (const month of state.calendarMeta.months) {
+			const monthData = state.calendarData[month] || [];
+			for (const entry of monthData) {
+				if (entry.value) {
+					// Проверяем, есть ли нарушения для этого меню
+					const dayInfo = getDayInfo(month, entry.day);
+					if (dayInfo && dayInfo.menuData) {
+						// Проверяем количество блюд
+						const totalDishes = dayInfo.menuData.totalDishes || 0;
+						if (totalDishes < 5) {
+							problems.push({
+								month: month,
+								day: entry.day,
+								menuNumber: entry.value,
+								type: 'few_dishes',
+								severity: 'warning',
+								message: `Меню #${entry.value} содержит всего ${totalDishes} блюд`
+							});
+						}
+						
+						// Проверяем дубликаты в меню
+						const dishes = dayInfo.menuData.allItems || [];
+						const dishNames = dishes.map(d => d.name);
+						const duplicates = dishNames.filter((name, idx) => dishNames.indexOf(name) !== idx);
+						if (duplicates.length > 0) {
+							problems.push({
+								month: month,
+								day: entry.day,
+								menuNumber: entry.value,
+								type: 'duplicates',
+								severity: 'error',
+								message: `Меню #${entry.value} содержит дубликаты: ${duplicates.join(', ')}`
+							});
+						}
+					}
+				} else {
+					// Пустой день - тоже проблема
+					problems.push({
+						month: month,
+						day: entry.day,
+						menuNumber: null,
+						type: 'empty',
+						severity: 'error',
+						message: `День ${month} ${entry.day} не заполнен`
+					});
+				}
+			}
+		}
+		
+		return problems;
+	}
+
+	// Добавим кнопку "Показать проблемы" в календарь
+	function addProblemsButton() {
+		const container = document.querySelector('#calendarContainer');
+		if (!container) return;
+		
+		if (document.getElementById('calendarProblemsBtn')) return;
+		
+		const btn = document.createElement('button');
+		btn.id = 'calendarProblemsBtn';
+		btn.className = 'btn btn-danger';
+		btn.style.cssText = `
+			padding: 6px 16px;
+			font-size: 0.75rem;
+			background: linear-gradient(135deg, #dc2626, #ef4444);
+			color: white;
+			border: none;
+			border-radius: 40px;
+			cursor: pointer;
+			display: inline-flex;
+			align-items: center;
+			gap: 6px;
+		`;
+		btn.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Проблемы';
+		btn.addEventListener('click', showProblemsModal);
+		
+		// Добавляем рядом с другими кнопками
+		const toolbar = container.querySelector('.calendar-toolbar') || container;
+		toolbar.appendChild(btn);
+	}
+
+	// Модальное окно проблем
+	function showProblemsModal() {
+		const problems = getProblemDays();
+		
+		const modal = document.createElement('div');
+		modal.style.cssText = `
+			position: fixed;
+			top: 0;
+			left: 0;
+			width: 100%;
+			height: 100%;
+			background: rgba(0,0,0,0.7);
+			backdrop-filter: blur(8px);
+			z-index: 20000;
+			display: flex;
+			justify-content: center;
+			align-items: center;
+		`;
+		
+		const problemCount = problems.length;
+		const errorCount = problems.filter(p => p.severity === 'error').length;
+		const warningCount = problems.filter(p => p.severity === 'warning').length;
+		
+		modal.innerHTML = `
+			<div style="background: white; border-radius: 24px; padding: 28px; max-width: 700px; width: 95%; max-height: 80vh; overflow-y: auto;">
+				<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+					<div>
+						<h3 style="color: #0f172a; margin: 0;">
+							<i class="fas fa-exclamation-triangle" style="color: ${problemCount > 0 ? '#dc2626' : '#10b981'};"></i>
+							Проблемы в календаре
+						</h3>
+						<p style="color: #64748b; font-size: 14px; margin: 4px 0 0;">
+							${problemCount === 0 ? '✅ Все дни заполнены корректно!' : 
+							  `Найдено ${problemCount} проблем: ${errorCount} ошибок, ${warningCount} предупреждений`}
+						</p>
+					</div>
+					<button id="closeProblemsBtn" style="background: none; border: none; font-size: 24px; cursor: pointer; color: #94a3b8;">&times;</button>
+				</div>
+				
+				${problemCount === 0 ? `
+					<div style="text-align: center; padding: 40px 20px;">
+						<i class="fas fa-check-circle" style="font-size: 48px; color: #10b981;"></i>
+						<p style="margin-top: 16px; color: #16a34a; font-size: 1.1rem;">Все дни заполнены корректно!</p>
+					</div>
+				` : `
+					<div style="display: flex; flex-direction: column; gap: 8px;">
+						${problems.map(p => `
+							<div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; background: ${p.severity === 'error' ? '#fef2f2' : '#fffbeb'}; border-radius: 12px; border-left: 4px solid ${p.severity === 'error' ? '#dc2626' : '#f59e0b'};">
+								<div>
+									<div style="font-weight: 600; color: #0f172a;">
+										${p.month} ${p.day}
+										${p.menuNumber ? `<span style="font-weight: 400; color: #64748b;">— Меню #${p.menuNumber}</span>` : ''}
+									</div>
+									<div style="font-size: 0.85rem; color: ${p.severity === 'error' ? '#dc2626' : '#d97706'};">
+										${p.message}
+									</div>
+								</div>
+								<button class="go-to-problem-btn" data-month="${p.month}" data-day="${p.day}" style="padding: 4px 16px; background: #3b82f6; color: white; border: none; border-radius: 20px; cursor: pointer; font-size: 0.75rem; transition: all 0.2s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+									<i class="fas fa-arrow-right"></i> Перейти
+								</button>
+							</div>
+						`).join('')}
+					</div>
+				`}
+				
+				<div style="margin-top: 20px; padding-top: 16px; border-top: 1px solid #e2e8f0; display: flex; gap: 8px; justify-content: flex-end;">
+					${problemCount > 0 ? `
+						<button id="fixAllProblemsBtn" class="btn btn-primary" style="background: linear-gradient(135deg, #10b981, #059669);">
+							<i class="fas fa-magic"></i> Исправить всё
+						</button>
+					` : ''}
+					<button id="closeProblemsBtn2" class="btn btn-secondary">Закрыть</button>
+				</div>
+			</div>
+		`;
+		
+		document.body.appendChild(modal);
+		
+		// Обработчики
+		modal.querySelector('#closeProblemsBtn')?.addEventListener('click', () => modal.remove());
+		modal.querySelector('#closeProblemsBtn2')?.addEventListener('click', () => modal.remove());
+		
+		modal.querySelectorAll('.go-to-problem-btn').forEach(btn => {
+			btn.addEventListener('click', function() {
+				const month = this.dataset.month;
+				const day = parseInt(this.dataset.day);
+				modal.remove();
+				
+				// Переключаемся на календарь
+				const tab = document.querySelector('.tab-btn[data-tab="calendar"]');
+				if (tab) tab.click();
+				
+				setTimeout(() => {
+					// Ищем и подсвечиваем ячейку
+					const cells = document.querySelectorAll(`td[data-month="${month}"][data-day="${day}"]`);
+					for (const cell of cells) {
+						cell.scrollIntoView({ behavior: 'smooth', block: 'center' });
+						flashElement(cell, 4);
+						setTimeout(() => cell.click(), 500);
+						break;
+					}
+				}, 300);
+			});
+		});
+		
+		modal.querySelector('#fixAllProblemsBtn')?.addEventListener('click', function() {
+			if (confirm('Автоматически исправить все проблемы?')) {
+				const problems = getProblemDays();
+				let fixed = 0;
+				
+				// Заполняем пустые дни
+				const emptyDays = problems.filter(p => p.type === 'empty');
+				const menuOptions = getAvailableMenuOptions();
+				
+				for (const p of emptyDays) {
+					if (menuOptions.length > 0) {
+						const menu = menuOptions[fixed % menuOptions.length];
+						setDayValue(p.month, p.day, menu.menuNumber);
+						fixed++;
+					}
+				}
+				
+				// Для дубликатов и малого количества блюд — просто отмечаем
+				showStatus(`✅ Исправлено ${fixed} проблем. Остальные требуют ручной проверки.`, 'success');
+				modal.remove();
+				renderCalendar();
+			}
+		});
+		
+		modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
+	}
+
     const STORAGE_KEY = 'calendarData_v1';
 
     // Месяцы
@@ -882,28 +1267,30 @@ const CalendarModule = (function() {
                 if (day === d && hasValue) {
                     // Есть значение меню
                     const menuNum = entry.value;
-                    html += `
-                        <td style="padding: 4px; border: 1px solid #e2e8f0; text-align: center; cursor: pointer; background: #dcfce7; transition: all 0.2s;"
-                            data-month="${month}" data-day="${d}" data-value="${menuNum}"
-                            onmouseover="this.style.transform='scale(1.05)'; this.style.boxShadow='0 2px 8px rgba(16,185,129,0.3)';"
-                            onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='none';"
-                            onclick="CalendarModule.openDayModal('${month}', ${d})">
-                            <span style="font-weight: 600; color: #16a34a;">${menuNum}</span>
-                            <div style="font-size: 0.5rem; color: #16a34a; margin-top: 2px;">🍽️</div>
-                        </td>
-                    `;
+					html += `
+						<td style="padding: 4px; border: 1px solid #e2e8f0; text-align: center; cursor: pointer; background: #dcfce7; transition: all 0.2s;"
+							data-month="${month}" data-day="${d}" data-value="${menuNum}"
+							title="Меню #${menuNum} (клик — выбрать, правой клик — открыть в ежедневном меню)"
+							onmouseover="this.style.transform='scale(1.05)'; this.style.boxShadow='0 2px 8px rgba(16,185,129,0.3)';"
+							onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='none';"
+							onclick="CalendarModule.openDayModal('${month}', ${d})"
+							oncontextmenu="CalendarModule.openInDailyMenu('${month}', ${d}, ${menuNum})">
+							<span style="font-weight: 600; color: #16a34a;">${menuNum}</span>
+							<div style="font-size: 0.5rem; color: #16a34a; margin-top: 2px;">🍽️</div>
+						</td>
+					`;
                     dayIndex++;
                 } else if (day === d && !hasValue) {
                     // Выходной (пустая ячейка)
-                    html += `
-                        <td style="padding: 4px; border: 1px solid #e2e8f0; text-align: center; cursor: pointer; background: #fef3c7; transition: all 0.2s;"
-                            data-month="${month}" data-day="${d}" data-value=""
-                            onmouseover="this.style.transform='scale(1.05)';"
-                            onmouseout="this.style.transform='scale(1)';"
-                            onclick="CalendarModule.openDayModal('${month}', ${d})">
-                            <span style="color: #d97706; font-size: 0.7rem;">🏖️</span>
-                        </td>
-                    `;
+					html += `
+						<td style="padding: 4px; border: 1px solid #e2e8f0; text-align: center; cursor: pointer; background: #fef3c7; transition: all 0.2s;"
+							data-month="${month}" data-day="${d}" data-value=""
+							onmouseover="this.style.transform='scale(1.05)';"
+							onmouseout="this.style.transform='scale(1)';"
+							onclick="CalendarModule.openDayModal('${month}', ${d})">
+							<span style="color: #d97706; font-size: 0.7rem;">🏖️</span>
+						</td>
+					`;
                     dayIndex++;
                 } else {
                     // Нет данных для этого дня
@@ -980,6 +1367,7 @@ const CalendarModule = (function() {
         if (totalCellsEl) totalCellsEl.textContent = totalCells;
         if (filledEl) filledEl.textContent = filled;
     }
+
 
 	// ============================================================
 	// ПОЛУЧЕНИЕ ДОСТУПНЫХ МЕНЮ
@@ -1214,6 +1602,123 @@ const CalendarModule = (function() {
 			listContainer.innerHTML = html;
 		}
 
+		// ===== ДОБАВЛЯЕМ КНОПКУ "ОТКРЫТЬ В ЕЖЕДНЕВНОМ МЕНЮ" =====
+		// Создаём контейнер для кнопок, если его нет
+		let buttonContainer = document.querySelector('#calendarDayModal .modal-actions');
+		if (!buttonContainer) {
+			buttonContainer = document.createElement('div');
+			buttonContainer.className = 'modal-actions';
+			buttonContainer.style.cssText = `
+				display: flex;
+				gap: 12px;
+				justify-content: flex-end;
+				flex-wrap: wrap;
+				margin-top: 16px;
+				padding-top: 16px;
+				border-top: 1px solid #e2e8f0;
+			`;
+			
+			// Вставляем перед футером или в конец модалки
+			const modalContent = document.querySelector('#calendarDayModal .modal-content');
+			if (modalContent) {
+				modalContent.appendChild(buttonContainer);
+			}
+		}
+
+		// Кнопка "Открыть в ежедневном меню"
+		const openInDailyBtn = document.createElement('button');
+		openInDailyBtn.className = 'btn btn-purple';
+		openInDailyBtn.style.cssText = `
+			padding: 8px 20px;
+			font-size: 0.8rem;
+			background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+			color: white;
+			border: none;
+			border-radius: 40px;
+			cursor: pointer;
+			display: inline-flex;
+			align-items: center;
+			gap: 8px;
+			transition: all 0.2s;
+			box-shadow: 0 2px 8px rgba(139,92,246,0.3);
+		`;
+		openInDailyBtn.innerHTML = `
+			<i class="fas fa-calendar-day"></i> 
+			Открыть в ежедневном меню
+		`;
+		openInDailyBtn.onmouseover = function() {
+			this.style.transform = 'scale(1.03)';
+			this.style.boxShadow = '0 4px 16px rgba(139,92,246,0.4)';
+		};
+		openInDailyBtn.onmouseout = function() {
+			this.style.transform = 'scale(1)';
+			this.style.boxShadow = '0 2px 8px rgba(139,92,246,0.3)';
+		};
+		openInDailyBtn.onclick = function() {
+			const month = state.selectedCell?.month;
+			const day = state.selectedCell?.day;
+			if (month && day) {
+				// Находим номер меню для этого дня
+				const key = `${month}_${day}`;
+				const menuNumber = state.calendarMap?.[key];
+				if (menuNumber) {
+					// Закрываем модалку календаря
+					document.getElementById('calendarDayModal').style.display = 'none';
+					
+					// Переключаемся на вкладку ежедневного меню
+					const dailyTab = document.querySelector('.tab-btn[data-tab="daily"]');
+					if (dailyTab) {
+						dailyTab.click();
+					}
+					
+					// Загружаем меню
+					setTimeout(() => {
+						if (window.DailyMenuModule && window.DailyMenuModule.loadDailyMenu) {
+							window.DailyMenuModule.loadDailyMenu(menuNumber);
+							// Обновляем дату в ежедневном меню
+							const dateInput = document.getElementById('dailyMenuDate');
+							if (dateInput) {
+								// Устанавливаем дату на основе месяца и дня
+								const year = state.calendarMeta?.year || new Date().getFullYear();
+								const monthMap = {
+									'январь': 0, 'февраль': 1, 'март': 2, 'апрель': 3,
+									'май': 4, 'июнь': 5, 'июль': 6, 'август': 7,
+									'сентябрь': 8, 'октябрь': 9, 'ноябрь': 10, 'декабрь': 11
+								};
+								const monthIndex = monthMap[month];
+								if (monthIndex !== undefined) {
+									const date = new Date(parseInt(year), monthIndex, day);
+									const dateStr = date.toISOString().slice(0, 10);
+									dateInput.value = dateStr;
+									// Триггерим событие изменения
+									dateInput.dispatchEvent(new Event('change', { bubbles: true }));
+								}
+							}
+							// Обновляем имя файла
+							const variantNameInput = document.getElementById('variantNameInput');
+							if (variantNameInput) {
+								const date = new Date();
+								const dateStr = date.toISOString().slice(0, 10);
+								variantNameInput.value = `${dateStr}-sm.xlsx`;
+							}
+							showStatus(`📅 Открыто меню #${menuNumber} для ${month} ${day}`, 'success');
+						} else {
+							showStatus('⚠️ Модуль ежедневного меню не загружен', 'error');
+						}
+					}, 400);
+				} else {
+					showStatus('⚠️ Для этого дня не назначено меню', 'warning');
+				}
+			}
+		};
+
+		// Добавляем кнопку в контейнер
+		// Очищаем контейнер от старых кнопок (если они есть)
+		const existingBtn = buttonContainer.querySelector('.open-in-daily-btn');
+		if (existingBtn) existingBtn.remove();
+		openInDailyBtn.classList.add('open-in-daily-btn');
+		buttonContainer.appendChild(openInDailyBtn);
+
 		// Показываем модалку
 		modal.style.display = 'flex';
 		console.log('✅ Модалка открыта');
@@ -1405,7 +1910,9 @@ const CalendarModule = (function() {
 			showStatus(`Ошибка: день ${day} не найден в месяце ${month}`, 'error');
 			return;
 		}
-
+		
+		saveCalendarHistory();
+		
 		// Обновляем значение
 		entry.value = value;
 		entry.raw = value ? String(value) : '';
@@ -1417,6 +1924,8 @@ const CalendarModule = (function() {
 		} else {
 			delete state.calendarMap[key];
 		}
+
+		saveCalendarHistory();
 
 		// Сохраняем
 		saveToStorage();
@@ -2032,19 +2541,74 @@ const CalendarModule = (function() {
     // ПУБЛИЧНОЕ API
     // ============================================================
 
-    return {
-        init: init,
-        render: renderCalendar,
-        openDayModal: openDayModal,
-        setDayValue: setDayValue,
-        getState: function() { return state; },
-        exportCalendar: exportCalendarToExcel,
-        loadFromStorage: loadFromStorage,
-        saveToStorage: saveToStorage,
-        generateEmpty: generateEmptyCalendar,
-        parseExcel: parseCalendarFromExcel,
-		getAvailableMenuOptions: getAvailableMenuOptions  // <-- ЭТОЙ СТРОКИ НЕ ХВАТАЕТ
-    };
+	return {
+		init: init,
+		render: renderCalendar,
+		openDayModal: openDayModal,
+		setDayValue: setDayValue,
+		getState: function() { return state; },
+		exportCalendar: exportCalendarToExcel,
+		loadFromStorage: loadFromStorage,
+		saveToStorage: saveToStorage,
+		generateEmpty: generateEmptyCalendar,
+		parseExcel: parseCalendarFromExcel,
+		getAvailableMenuOptions: getAvailableMenuOptions,
+		
+		// ===== НОВАЯ ФУНКЦИЯ =====
+		openInDailyMenu: function(month, day, menuNumber) {
+			if (!menuNumber) {
+				showStatus('⚠️ Для этого дня не назначено меню', 'warning');
+				return;
+			}
+			
+			// Закрываем модалку календаря
+			const modal = document.getElementById('calendarDayModal');
+			if (modal) modal.style.display = 'none';
+			
+			// Переключаемся на вкладку ежедневного меню
+			const dailyTab = document.querySelector('.tab-btn[data-tab="daily"]');
+			if (dailyTab) {
+				dailyTab.click();
+			}
+			
+			// Загружаем меню
+			setTimeout(() => {
+				if (window.DailyMenuModule && window.DailyMenuModule.loadDailyMenu) {
+					window.DailyMenuModule.loadDailyMenu(menuNumber);
+					
+					// Обновляем дату в ежедневном меню
+					const dateInput = document.getElementById('dailyMenuDate');
+					if (dateInput && state.calendarMeta) {
+						const year = state.calendarMeta.year || new Date().getFullYear();
+						const monthMap = {
+							'январь': 0, 'февраль': 1, 'март': 2, 'апрель': 3,
+							'май': 4, 'июнь': 5, 'июль': 6, 'август': 7,
+							'сентябрь': 8, 'октябрь': 9, 'ноябрь': 10, 'декабрь': 11
+						};
+						const monthIndex = monthMap[month];
+						if (monthIndex !== undefined) {
+							const date = new Date(parseInt(year), monthIndex, day);
+							const dateStr = date.toISOString().slice(0, 10);
+							dateInput.value = dateStr;
+							dateInput.dispatchEvent(new Event('change', { bubbles: true }));
+						}
+					}
+					
+					// Обновляем имя файла
+					const variantNameInput = document.getElementById('variantNameInput');
+					if (variantNameInput) {
+						const date = new Date();
+						const dateStr = date.toISOString().slice(0, 10);
+						variantNameInput.value = `${dateStr}-sm.xlsx`;
+					}
+					
+					showStatus(`📅 Открыто меню #${menuNumber} для ${month} ${day}`, 'success');
+				} else {
+					showStatus('⚠️ Модуль ежедневного меню не загружен', 'error');
+				}
+			}, 400);
+		}
+	};
 
 })();
 

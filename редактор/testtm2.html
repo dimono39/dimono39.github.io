@@ -5986,6 +5986,16 @@
                 <div class="stat-card"><div class="stat-number">${totalDays}</div><div class="stat-label">📅 Дней</div></div>
                 <div class="stat-card"><div class="stat-number">${avgWeightPerDay}</div><div class="stat-label">⚖️ Ср. вес/день</div></div>
             `;
+			
+			// Автообновление аналитики
+			if (document.getElementById('tabAnalytics')?.style.display !== 'none') {
+				if (window.AnalyticsModule && window.AnalyticsModule.reload) {
+					setTimeout(() => {
+						window.AnalyticsModule.reload();
+					}, 100);
+				}
+			}			
+			
 
             const rulesMap = {
                 1: 'Завтрак ≥500г', 
@@ -12028,6 +12038,9 @@
 				if (currentTemplateData) {
 					saveToStorage();
 				}			
+				if (window.CalendarModule && window.CalendarModule.saveToStorage) {
+					window.CalendarModule.saveToStorage();
+				}				
 				
 				// Скрываем все tab-content
 				document.querySelectorAll('.tab-content').forEach(content => {
@@ -12063,21 +12076,39 @@
 				// ===== ОБРАБОТКА ВКЛАДОК =====
 				
 				// 1. Ежедневное меню
-				if (tabId === 'tabDaily' && window.DailyMenuModule) {
-					setTimeout(function() {
-						// ✅ Принудительно обновляем селектор меню
-						if (window.DailyMenuModule.updateMenuSelectorUI) {
-							window.DailyMenuModule.updateMenuSelectorUI();
+				if (tabId === 'tabDaily') {
+					console.log('📅 Переключение на ежедневное меню...');
+					
+					// Принудительно синхронизируем данные
+					window.templateMenuData = currentTemplateData;
+					window.schoolInfo = schoolInfo;
+					
+					if (window.DailyMenuModule) {
+						// Обновляем состояние
+						const state = window.DailyMenuModule.getState?.();
+						if (state) {
+							state.templateMenuData = currentTemplateData;
+							state.schoolInfo = schoolInfo;
 						}
 						
-						// ✅ Перезагружаем текущее меню
-						const state = window.DailyMenuModule.getState();
-						if (state && state.selectedMenuNumber) {
-							window.DailyMenuModule.loadDailyMenu(state.selectedMenuNumber);
-						} else {
-							window.DailyMenuModule.reload();
-						}
-					}, 300);
+						// Перезагружаем интерфейс
+						setTimeout(function() {
+							if (window.DailyMenuModule.reload) {
+								window.DailyMenuModule.reload();
+							}
+							// Обновляем селектор меню
+							if (window.DailyMenuModule.updateMenuSelectorUI) {
+								window.DailyMenuModule.updateMenuSelectorUI();
+							}
+							// Если есть выбранное меню, загружаем его
+							if (state && state.selectedMenuNumber) {
+								window.DailyMenuModule.loadDailyMenu(state.selectedMenuNumber);
+							} else if (currentTemplateData) {
+								// Загружаем первое меню
+								window.DailyMenuModule.loadDailyMenu(1);
+							}
+						}, 300);
+					}
 				}
 				
 				
@@ -12110,6 +12141,23 @@
 							}
 						} else {
 							console.error('❌ CalendarModule не загружен!');
+						}
+					}, 300);
+				}
+
+				if (tabId === 'tabAnalytics') {
+					setTimeout(() => {
+						if (window.AnalyticsModule && window.AnalyticsModule.reload) {
+							// Обновляем данные перед рендером
+							const state = window.AnalyticsModule.getState?.();
+							if (state) {
+								state.templateMenuData = currentTemplateData;
+								state.schoolInfo = schoolInfo;
+								state.isSummerCamp = isSummerCamp;
+								state.flatItems = buildFlatFromTemplate(currentTemplateData);
+								state.allViolations = runAllRules(currentTemplateData);
+							}
+							window.AnalyticsModule.reload();
 						}
 					}, 300);
 				}
@@ -15381,6 +15429,293 @@
 	console.log('🤖 ИИ-модуль орфографии загружен!');
 	console.log('📌 Использование: window.SpellChecker.checkAllMenu()');
 	console.log('📌 Добавить слово: window.addSpellWord("слово")');
+		
+	// В конце основного файла, после загрузки модулей:
+
+	// ============================================================
+	// СИНХРОНИЗАЦИЯ ДАННЫХ ДЛЯ ВСЕХ МОДУЛЕЙ
+	// ============================================================
+
+	function syncAllModules() {
+		console.log('🔄 Синхронизация данных для модулей...');
+		
+		// 1. Обновляем глобальные переменные
+		window.templateMenuData = currentTemplateData;
+		window.schoolInfo = schoolInfo;
+		window.isSummerCamp = isSummerCamp;
+		
+		// 2. Ежедневное меню
+		if (window.DailyMenuModule) {
+			const state = window.DailyMenuModule.getState?.();
+			if (state) {
+				state.templateMenuData = currentTemplateData;
+				state.schoolInfo = schoolInfo;
+			}
+			// Перезагружаем интерфейс, если данные есть
+			if (currentTemplateData && currentTemplateData.weeks) {
+				if (window.DailyMenuModule.reload) {
+					window.DailyMenuModule.reload();
+				}
+				if (window.DailyMenuModule.updateMenuSelectorUI) {
+					window.DailyMenuModule.updateMenuSelectorUI();
+				}
+			}
+		}
+		
+		// 3. Аналитика
+		if (window.AnalyticsModule) {
+			const state = window.AnalyticsModule.getState?.();
+			if (state) {
+				state.templateMenuData = currentTemplateData;
+				state.schoolInfo = schoolInfo;
+				state.isSummerCamp = isSummerCamp;
+				if (currentTemplateData) {
+					state.flatItems = buildFlatFromTemplate(currentTemplateData);
+					state.allViolations = runAllRules(currentTemplateData);
+				}
+			}
+			if (window.AnalyticsModule.reload) {
+				window.AnalyticsModule.reload();
+			}
+		}
+		
+		// 4. Календарь
+		if (window.CalendarModule) {
+			// Календарь хранит свои данные отдельно
+		}
+		
+		console.log('✅ Синхронизация завершена');
+	}
+
+	// Вызываем синхронизацию при загрузке данных
+	function onDataLoaded() {
+		syncAllModules();
+	}
+
+	// Перехватываем все места, где могут загружаться данные
+
+	// 1. Загрузка файла
+	const originalLoadTemplate = loadTemplateFromFile;
+	if (typeof loadTemplateFromFile === 'function') {
+		loadTemplateFromFile = function(file) {
+			originalLoadTemplate(file);
+			setTimeout(onDataLoaded, 300);
+		};
+	}
+
+	// 2. Создание демо-данных
+	const originalCreateDemo = createDemoData;
+	if (typeof createDemoData === 'function') {
+		createDemoData = function() {
+			originalCreateDemo();
+			setTimeout(onDataLoaded, 300);
+		};
+	}
+
+	// 3. Создание типового меню
+	const originalCreateMenu = createMenuStructure;
+	if (typeof createMenuStructure === 'function') {
+		createMenuStructure = function(weeksCount, daysPerWeek, selectedMeals) {
+			originalCreateMenu(weeksCount, daysPerWeek, selectedMeals);
+			setTimeout(onDataLoaded, 300);
+		};
+	}
+
+	// 4. Загрузка из localStorage
+	const originalLoadFromStorage = loadFromStorage;
+	if (typeof loadFromStorage === 'function') {
+		loadFromStorage = function() {
+			const result = originalLoadFromStorage();
+			setTimeout(onDataLoaded, 300);
+			return result;
+		};
+	}
+
+	// Запускаем синхронизацию при старте
+	setTimeout(onDataLoaded, 500);
+
+	// Также при переключении вкладок
+	document.addEventListener('DOMContentLoaded', function() {
+		const tabBtns = document.querySelectorAll('.tab-btn');
+		tabBtns.forEach(btn => {
+			btn.addEventListener('click', function() {
+				const tab = this.dataset.tab;
+				if (tab === 'daily') {
+					setTimeout(syncAllModules, 200);
+				}
+			});
+		});
+	});
+
+	console.log('✅ Синхронизация модулей настроена!');	
+		
+	// Создаём пользовательское событие
+	document.addEventListener('menuDataLoaded', function(e) {
+		console.log('📢 Событие menuDataLoaded получено');
+		syncAllModules();
+	});
+
+	// Вызываем событие после загрузки данных
+	function triggerDataLoaded() {
+		const event = new CustomEvent('menuDataLoaded', {
+			detail: { data: currentTemplateData }
+		});
+		document.dispatchEvent(event);
+	}	
+	
+	// ============================================================
+	// ФИНАЛЬНАЯ ИНИЦИАЛИЗАЦИЯ ВСЕХ МОДУЛЕЙ
+	// ============================================================
+
+	(function finalInit() {
+		console.log('🚀 Финальная инициализация...');
+		
+		// Проверяем, загружены ли данные
+		const hasData = currentTemplateData && 
+						currentTemplateData.weeks && 
+						Object.keys(currentTemplateData.weeks).length > 0;
+		
+		if (hasData) {
+			console.log('✅ Данные найдены, синхронизируем модули...');
+			syncAllModules();
+		} else {
+			console.log('⏳ Данные не найдены, ждём загрузки...');
+			// Подписываемся на событие загрузки
+			document.addEventListener('menuDataLoaded', function() {
+				console.log('📢 Получено событие загрузки данных');
+				syncAllModules();
+			});
+		}
+		
+		// Также проверяем через интервал (на случай, если событие не сработало)
+		let checkAttempts = 0;
+		const checkInterval = setInterval(function() {
+			checkAttempts++;
+			const hasDataNow = currentTemplateData && 
+							   currentTemplateData.weeks && 
+							   Object.keys(currentTemplateData.weeks).length > 0;
+			
+			if (hasDataNow) {
+				console.log(`✅ Данные обнаружены на попытке ${checkAttempts}`);
+				syncAllModules();
+				clearInterval(checkInterval);
+			} else if (checkAttempts > 20) {
+				console.log('⚠️ Данные не загружены после 20 попыток');
+				clearInterval(checkInterval);
+			}
+		}, 500);
+	})();	
+	
+	// ============================================================
+	// ПРИНУДИТЕЛЬНАЯ СИНХРОНИЗАЦИЯ ДАННЫХ (ДОБАВИТЬ В КОНЕЦ ФАЙЛА)
+	// ============================================================
+
+	(function forceSyncAllModules() {
+		console.log('🔄 ПРИНУДИТЕЛЬНАЯ СИНХРОНИЗАЦИЯ МОДУЛЕЙ...');
+		
+		// 1. СИНХРОНИЗИРУЕМ ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ
+		window.templateMenuData = currentTemplateData;
+		window.schoolInfo = schoolInfo;
+		window.isSummerCamp = isSummerCamp;
+		window.flatItems = flatItems;
+		window.allViolations = allViolations;
+		
+		// 2. ЕЖЕДНЕВНОЕ МЕНЮ — принудительно обновляем состояние
+		if (window.DailyMenuModule) {
+			const state = window.DailyMenuModule.getState();
+			if (state) {
+				// Ключевое: заменяем данные в модуле
+				state.templateMenuData = currentTemplateData;
+				state.schoolInfo = schoolInfo;
+				
+				// Принудительно перезагружаем интерфейс
+				if (window.DailyMenuModule.reload) {
+					window.DailyMenuModule.reload();
+				}
+				
+				// Обновляем селектор меню
+				if (window.DailyMenuModule.updateMenuSelectorUI) {
+					setTimeout(function() {
+						window.DailyMenuModule.updateMenuSelectorUI();
+					}, 200);
+				}
+				
+				// Если есть выбранное меню, перезагружаем его
+				if (state.selectedMenuNumber && currentTemplateData) {
+					setTimeout(function() {
+						window.DailyMenuModule.loadDailyMenu(state.selectedMenuNumber);
+					}, 300);
+				}
+			}
+			
+			console.log('✅ DailyMenuModule синхронизирован');
+		}
+		
+		// 3. АНАЛИТИКА
+		if (window.AnalyticsModule) {
+			const state = window.AnalyticsModule.getState();
+			if (state) {
+				state.templateMenuData = currentTemplateData;
+				state.schoolInfo = schoolInfo;
+				state.isSummerCamp = isSummerCamp;
+				if (currentTemplateData) {
+					state.flatItems = buildFlatFromTemplate(currentTemplateData);
+					state.allViolations = runAllRules(currentTemplateData);
+				}
+			}
+			if (window.AnalyticsModule.reload) {
+				window.AnalyticsModule.reload();
+			}
+			console.log('✅ AnalyticsModule синхронизирован');
+		}
+		
+		// 4. КАЛЕНДАРЬ
+		if (window.CalendarModule) {
+			// Календарь использует свои данные
+			console.log('✅ CalendarModule уже использует свои данные');
+		}
+		
+		console.log('✅ ПРИНУДИТЕЛЬНАЯ СИНХРОНИЗАЦИЯ ЗАВЕРШЕНА');
+		console.log('📊 Текущие данные:', {
+			weeks: currentTemplateData?.weeks ? Object.keys(currentTemplateData.weeks).length : 0,
+			dishes: flatItems?.length || 0,
+			dailyMenuLoaded: !!window.DailyMenuModule?.getState?.()?.dailyMenuData
+		});
+	})();
+
+	// Запускаем синхронизацию каждые 3 секунды (пока данные не загрузятся)
+	let syncAttempts = 0;
+	const syncInterval = setInterval(function() {
+		syncAttempts++;
+		
+		// Проверяем, есть ли данные
+		const hasData = currentTemplateData && 
+						currentTemplateData.weeks && 
+						Object.keys(currentTemplateData.weeks).length > 0;
+		
+		if (hasData) {
+			// Проверяем, синхронизирован ли модуль
+			const dailyState = window.DailyMenuModule?.getState?.();
+			const isSynced = dailyState?.templateMenuData === currentTemplateData;
+			
+			if (!isSynced) {
+				console.log(`🔄 Попытка синхронизации #${syncAttempts}...`);
+				window.forceSyncAllModules();
+			} else {
+				console.log(`✅ Модули синхронизированы (попытка ${syncAttempts})`);
+				clearInterval(syncInterval);
+			}
+		} else if (syncAttempts > 10) {
+			console.log('⚠️ Данные не загружены после 10 попыток');
+			clearInterval(syncInterval);
+		}
+	}, 1000);
+
+	// Добавляем глобальную функцию для ручной синхронизации
+	window.forceSyncAllModules = forceSyncAllModules;
+
+	console.log('✅ Система принудительной синхронизации запущена');	
+	
 	</script>
 
 

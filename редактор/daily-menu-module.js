@@ -53,6 +53,36 @@ const DailyMenuModule = (function() {
 		19: { primary: '#E74C3C', light: '#FADBD8', name: 'Алый' },
 		20: { primary: '#3498DB', light: '#D6EAF8', name: 'Васильковый' },
 	};
+	
+	let initAttempts = 0;
+	const MAX_INIT_ATTEMPTS = 20;
+
+	function waitForDataAndInit() {
+		initAttempts++;
+		
+		// Проверяем, загружены ли данные
+		const hasData = window.templateMenuData && 
+						window.templateMenuData.weeks && 
+						Object.keys(window.templateMenuData.weeks).length > 0;
+		
+		if (hasData) {
+			console.log('✅ DailyMenuModule: Данные найдены, инициализируем...');
+			state.templateMenuData = window.templateMenuData;
+			state.schoolInfo = window.schoolInfo || null;
+			initDailyMenuInterface();
+			return true;
+		}
+		
+		if (initAttempts < MAX_INIT_ATTEMPTS) {
+			console.log(`⏳ DailyMenuModule: Ждём данные... попытка ${initAttempts}`);
+			setTimeout(waitForDataAndInit, 300);
+			return false;
+		}
+		
+		console.log('⚠️ DailyMenuModule: Данные не найдены, создаём пустое состояние');
+		initDailyMenuInterface();
+		return false;
+	}	
 
 	// ============================================================
 	// ОПРЕДЕЛЕНИЕ КОЛИЧЕСТВА МЕНЮ
@@ -2194,18 +2224,51 @@ const DailyMenuModule = (function() {
     // ПУБЛИЧНОЕ API
     // ============================================================
     
-    return {
-        init: init,
-        loadDailyMenu: loadDailyMenu,
-        validateDailyMenu: validateDailyMenu,
-        createDailyMenuExcel: createDailyMenuExcel,
-        saveCurrentVariant: saveCurrentVariant,
-        printDailyMenu: printDailyMenu,
-        exportDailyPDF: exportDailyPDF,
-        getState: function() { return state; },
-        getMenuColor: getMenuColor,
-        reload: initDailyMenuInterface
-    };
+	return {
+		init: init,
+		loadDailyMenu: loadDailyMenu,
+		validateDailyMenu: validateDailyMenu,
+		createDailyMenuExcel: createDailyMenuExcel,
+		saveCurrentVariant: saveCurrentVariant,
+		printDailyMenu: printDailyMenu,
+		exportDailyPDF: exportDailyPDF,
+		getState: function() { return state; },
+		getMenuColor: getMenuColor,
+		reload: initDailyMenuInterface,
+		
+		// ===== НОВЫЙ МЕТОД: ПРИНУДИТЕЛЬНАЯ СИНХРОНИЗАЦИЯ =====
+		syncData: function(menuData, schoolData) {
+			console.log('🔄 DailyMenuModule.syncData() вызван');
+			
+			if (menuData) {
+				state.templateMenuData = menuData;
+				// Обновляем глобальную переменную
+				window.templateMenuData = menuData;
+			}
+			
+			if (schoolData) {
+				state.schoolInfo = schoolData;
+				window.schoolInfo = schoolData;
+			}
+			
+			// Перезагружаем интерфейс
+			this.reload();
+			
+			// Если есть выбранное меню, загружаем его
+			if (state.selectedMenuNumber && state.templateMenuData) {
+				const target = getDayFromMenuNumber(state.selectedMenuNumber);
+				if (target) {
+					this.loadDailyMenu(state.selectedMenuNumber);
+				} else {
+					// Если меню не найдено, загружаем первое
+					this.loadDailyMenu(1);
+				}
+			}
+			
+			console.log('✅ DailyMenuModule синхронизирован');
+			return true;
+		}
+	};
 
 })();
 
