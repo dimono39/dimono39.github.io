@@ -88,139 +88,562 @@ const CalendarModule = (function() {
     // ПАРСИНГ КАЛЕНДАРЯ ИЗ EXCEL
     // ============================================================
 
-    function parseCalendarFromExcel(workbook) {
-        const sheet = workbook.Sheets[workbook.SheetNames[0]];
-        if (!sheet) return null;
+	function parseCalendarFromExcel(workbook) {
+		const sheet = workbook.Sheets[workbook.SheetNames[0]];
+		if (!sheet) return null;
 
-        const data = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+		// ===== ЧИТАЕМ С raw: true, чтобы получить сырые данные (включая формулы) =====
+		const data = XLSX.utils.sheet_to_json(sheet, { 
+			header: 1, 
+			defval: '',
+			raw: true  // <-- ВАЖНО: читаем сырые данные
+		});
 
-        if (!data || data.length < 4) {
-            console.error('❌ Недостаточно данных в календаре');
-            return null;
-        }
+		if (!data || data.length < 4) {
+			console.error('❌ Недостаточно данных в календаре');
+			return null;
+		}
 
-        // Определяем структуру
-        // Строка 0: "Школа", "МОУ ...", ..., "Календарь питания", ..., "Год", "2026"
-        // Строка 1: пустая
-        // Строка 2: "Месяц", 1, 2, 3, ... (дни месяца)
-        // Строка 3+: месяц, данные
+		console.log('📊 Данные из Excel:', data.length, 'строк');
 
-        let schoolName = '';
-        let year = '2026';
+		// ===== 1. ЧИТАЕМ ШАПКУ =====
+		let schoolName = 'МОУ "Рудновская ООШ"';
+		let year = '2026';
+		
+		for (let i = 0; i < Math.min(data.length, 5); i++) {
+			const row = data[i];
+			if (!row) continue;
+			for (let j = 0; j < row.length; j++) {
+				const val = String(row[j] || '').trim();
+				if (val.includes('Школа') && row[j + 1]) {
+					schoolName = String(row[j + 1]).trim();
+				}
+				if (val === 'Год' && row[j + 1]) {
+					year = String(row[j + 1]).trim();
+				}
+			}
+		}
 
-        // Читаем название школы и год
-        if (data[0]) {
-            for (let i = 0; i < data[0].length; i++) {
-                const val = String(data[0][i] || '').trim();
-                if (val.includes('Школа') && data[0][i+1]) {
-                    schoolName = String(data[0][i+1]).trim();
-                }
-                if (val === 'Год' && data[0][i+1]) {
-                    year = String(data[0][i+1]).trim();
-                }
-            }
-        }
+		// ===== 2. НАХОДИМ СТРОКУ С МЕСЯЦАМИ =====
+		let monthRowIndex = -1;
+		let dayRowIndex = -1;
+		let dataStartIndex = -1;
 
-        // Находим строку с днями (обычно строка 2)
-        let dayRowIndex = -1;
-        let monthRowIndex = -1;
-        let dataStartIndex = -1;
+		for (let i = 0; i < Math.min(data.length, 20); i++) {
+			const row = data[i];
+			if (!row || !row[0]) continue;
+			const firstCell = String(row[0]).trim().toLowerCase();
+			
+			if (firstCell === 'месяц' || firstCell.includes('месяц')) {
+				monthRowIndex = i;
+				dayRowIndex = i + 1;
+				dataStartIndex = i + 2;
+				break;
+			}
+		}
 
-        for (let i = 0; i < Math.min(data.length, 20); i++) {
-            const row = data[i];
-            if (!row) continue;
-            const firstCell = String(row[0] || '').trim().toLowerCase();
-            if (firstCell === 'месяц') {
-                monthRowIndex = i;
-                // Следующая строка обычно содержит дни
-                if (i + 1 < data.length) {
-                    dayRowIndex = i + 1;
-                    dataStartIndex = i + 2;
-                }
-                break;
-            }
-        }
+		if (monthRowIndex === -1) {
+			const monthNames = ['январь', 'февраль', 'март', 'апрель', 'май', 'июнь', 
+								'июль', 'август', 'сентябрь', 'октябрь', 'ноябрь', 'декабрь'];
+			for (let i = 0; i < Math.min(data.length, 20); i++) {
+				const row = data[i];
+				if (!row || !row[0]) continue;
+				const firstCell = String(row[0]).trim().toLowerCase();
+				if (monthNames.includes(firstCell)) {
+					monthRowIndex = i - 1;
+					if (monthRowIndex >= 0) {
+						dayRowIndex = i;
+						dataStartIndex = i + 1;
+					}
+					break;
+				}
+			}
+		}
 
-        if (monthRowIndex === -1 || dayRowIndex === -1) {
-            console.error('❌ Не найдена структура календаря');
-            return null;
-        }
+		if (monthRowIndex === -1 || dayRowIndex === -1) {
+			console.error('❌ Не найдена структура календаря');
+			return null;
+		}
 
-        // Читаем дни (строка с числами)
-        const dayRow = data[dayRowIndex] || [];
-        const days = [];
-        for (let i = 1; i < dayRow.length; i++) {
-            const val = parseInt(dayRow[i]);
-            if (!isNaN(val) && val > 0 && val <= 31) {
-                days.push(val);
-            } else {
-                days.push(null);
-            }
-        }
+		// ===== 3. ЧИТАЕМ ДНИ (С ПОДДЕРЖКОЙ ФОРМУЛ) =====
+		const dayRow = data[dayRowIndex] || [];
+		const days = [];
+		
+		// Первое значение всегда 1 (или B3)
+		// Дальше идём по ячейкам и извлекаем числа из формул
+		for (let i = 1; i < dayRow.length; i++) {
+			const val = dayRow[i];
+			let numVal = null;
+			
+			if (typeof val === 'number') {
+				// Если это число —直接用
+				numVal = val;
+			} else if (typeof val === 'string') {
+				// Если это строка — пробуем извлечь число
+				const trimmed = val.trim();
+				
+				// Пробуем распарсить как число
+				const num = parseFloat(trimmed);
+				if (!isNaN(num)) {
+					numVal = num;
+				} else {
+					// Если не число, пробуем извлечь из формулы (например, "=B3+1")
+					const match = trimmed.match(/(\d+)/);
+					if (match) {
+						numVal = parseInt(match[1]);
+					}
+				}
+			} else if (val && typeof val === 'object' && val.t) {
+				// Если это объект ExcelJS (формула)
+				// Пробуем получить вычисленное значение
+				if (val.v !== undefined && typeof val.v === 'number') {
+					numVal = val.v;
+				} else if (val.f) {
+					// Пробуем извлечь число из формулы
+					const match = val.f.match(/(\d+)/);
+					if (match) {
+						numVal = parseInt(match[1]);
+					}
+				}
+			}
+			
+			// Если нашли число от 1 до 31 — добавляем
+			if (numVal !== null && numVal > 0 && numVal <= 31) {
+				days.push(numVal);
+			} else {
+				// Если не нашли число, но это день — пытаемся определить по порядку
+				// Проверяем, есть ли дальше числа
+				let hasMoreNumbers = false;
+				for (let j = i + 1; j < Math.min(i + 5, dayRow.length); j++) {
+					const nextVal = dayRow[j];
+					let nextNum = null;
+					if (typeof nextVal === 'number') nextNum = nextVal;
+					else if (typeof nextVal === 'string') {
+						const m = nextVal.match(/(\d+)/);
+						if (m) nextNum = parseInt(m[1]);
+					}
+					if (nextNum !== null && nextNum > 0 && nextNum <= 31) {
+						hasMoreNumbers = true;
+						break;
+					}
+				}
+				
+				if (hasMoreNumbers) {
+					// Если дальше есть числа — значит это пропущенный день
+					// Определяем по предыдущему значению
+					const lastDay = days[days.length - 1] || 0;
+					days.push(lastDay + 1);
+				} else {
+					// Если дальше нет чисел — это конец строки
+					break;
+				}
+			}
+		}
+		
+		// Проверяем, что все дни идут по порядку (1, 2, 3, ...)
+		// Если где-то пропуск — восстанавливаем
+		const finalDays = [];
+		let expectedDay = 1;
+		for (const d of days) {
+			if (d === expectedDay) {
+				finalDays.push(d);
+				expectedDay++;
+			} else if (d > expectedDay) {
+				// Пропущены дни — добавляем их
+				while (expectedDay < d) {
+					finalDays.push(expectedDay);
+					expectedDay++;
+				}
+				finalDays.push(d);
+				expectedDay++;
+			}
+		}
+		
+		// Если дней меньше 31 — добавляем недостающие
+		while (finalDays.length < 31) {
+			finalDays.push(finalDays.length + 1);
+		}
+		
+		// Если дней больше 31 — обрезаем
+		const maxDays = Math.min(finalDays.length, 31);
+		const resultDays = finalDays.slice(0, maxDays);
+		
+		console.log(`📅 Найдено дней: ${resultDays.length} (с 1 по ${resultDays[resultDays.length - 1] || '?'})`);
 
-        // Читаем данные по месяцам
-        const calendarData = {};
-        const monthNames = [];
+		// ===== 4. ЧИТАЕМ ДАННЫЕ ПО МЕСЯЦАМ =====
+		const calendarData = {};
+		const monthList = ['январь', 'февраль', 'март', 'апрель', 'май', 'июнь', 
+						   'июль', 'август', 'сентябрь', 'октябрь', 'ноябрь', 'декабрь'];
 
-        for (let i = dataStartIndex; i < data.length; i++) {
-            const row = data[i];
-            if (!row || !row[0]) continue;
+		for (let i = dataStartIndex; i < data.length; i++) {
+			const row = data[i];
+			if (!row || !row[0]) continue;
 
-            const monthName = String(row[0]).trim().toLowerCase();
-            if (!monthName) continue;
+			const monthName = String(row[0]).trim().toLowerCase();
+			if (!monthName || !monthList.includes(monthName)) continue;
 
-            // Проверяем, что это месяц
-            const monthIndex = MONTHS.findIndex(m => m === monthName);
-            if (monthIndex === -1) continue;
+			const monthData = [];
 
-            monthNames.push(monthName);
+			for (let j = 0; j < resultDays.length; j++) {
+				const day = resultDays[j];
+				const colIdx = j + 1;
+				
+				let val = '';
+				if (row.length > colIdx) {
+					const cell = row[colIdx];
+					if (typeof cell === 'number') {
+						val = String(cell);
+					} else if (typeof cell === 'string') {
+						val = cell.trim();
+					} else if (cell && typeof cell === 'object' && cell.v !== undefined) {
+						val = String(cell.v).trim();
+					} else {
+						val = String(cell || '').trim();
+					}
+				}
+				
+				const numVal = parseInt(val);
+				
+				if (day !== null && !isNaN(numVal) && numVal > 0 && numVal <= 20) {
+					monthData.push({
+						day: day,
+						value: numVal,
+						raw: val
+					});
+				} else if (day !== null) {
+					monthData.push({
+						day: day,
+						value: null,
+						raw: ''
+					});
+				}
+			}
 
-            const monthData = [];
-            for (let j = 1; j < row.length && j - 1 < days.length; j++) {
-                const val = String(row[j] || '').trim();
-                // Если значение - число, это номер меню
-                const numVal = parseInt(val);
-                monthData.push({
-                    raw: val,
-                    value: !isNaN(numVal) && numVal > 0 ? numVal : null,
-                    day: days[j - 1] || null
-                });
-            }
+			calendarData[monthName] = monthData;
+			console.log(`📊 ${monthName}: ${monthData.length} записей, из них с меню: ${monthData.filter(d => d.value !== null).length}`);
+		}
 
-            calendarData[monthName] = monthData;
-        }
+		// Добавляем пропущенные месяцы
+		for (const month of monthList) {
+			if (!calendarData[month]) {
+				const monthData = [];
+				for (let d = 1; d <= 31; d++) {
+					monthData.push({
+						day: d,
+						value: null,
+						raw: ''
+					});
+				}
+				calendarData[month] = monthData;
+				console.log(`⚠️ Добавлен пустой месяц: ${month}`);
+			}
+		}
 
-        // Строим карту для быстрого доступа
-        const calendarMap = {};
-        for (const month of monthNames) {
-            const monthData = calendarData[month] || [];
-            for (const entry of monthData) {
-                if (entry.day && entry.value) {
-                    const key = `${month}_${entry.day}`;
-                    calendarMap[key] = entry.value;
-                }
-            }
-        }
+		// ===== 5. ФОРМИРУЕМ РЕЗУЛЬТАТ =====
+		const meta = {
+			schoolName: schoolName || 'МОУ "Рудновская ООШ"',
+			year: year || '2026',
+			months: monthList,
+			days: 31,
+			totalDays: 31 * 12,
+			totalMonths: 12
+		};
 
-        const meta = {
-            schoolName: schoolName || 'МОУ "Рудновская ООШ"',
-            year: year || '2026',
-            months: monthNames,
-            days: days,
-            totalDays: days.filter(d => d !== null).length,
-            totalMonths: monthNames.length
-        };
+		state.calendarData = calendarData;
+		state.calendarMeta = meta;
+		state.calendarMap = {};
+		state.isLoaded = true;
 
-        state.calendarData = calendarData;
-        state.calendarMeta = meta;
-        state.calendarMap = calendarMap;
-        state.isLoaded = true;
+		saveToStorage();
 
-        saveToStorage();
+		console.log('✅ Календарь загружен:', {
+			school: meta.schoolName,
+			year: meta.year,
+			months: meta.months.length,
+			daysPerMonth: meta.days,
+			totalDays: meta.totalDays
+		});
 
-        console.log('✅ Календарь загружен:', meta);
-        return { calendarData, meta, calendarMap };
-    }
+		return { calendarData, meta, calendarMap: {} };
+	}
+	function parseCalendarFromExcel(workbook) {
+		const sheet = workbook.Sheets[workbook.SheetNames[0]];
+		if (!sheet) return null;
+
+		// ===== ЧИТАЕМ С raw: true, чтобы получить сырые данные (включая формулы) =====
+		const data = XLSX.utils.sheet_to_json(sheet, { 
+			header: 1, 
+			defval: '',
+			raw: true  // <-- ВАЖНО: читаем сырые данные
+		});
+
+		if (!data || data.length < 4) {
+			console.error('❌ Недостаточно данных в календаре');
+			return null;
+		}
+
+		console.log('📊 Данные из Excel:', data.length, 'строк');
+
+		// ===== 1. ЧИТАЕМ ШАПКУ =====
+		let schoolName = 'МОУ "Рудновская ООШ"';
+		let year = '2026';
+		
+		for (let i = 0; i < Math.min(data.length, 5); i++) {
+			const row = data[i];
+			if (!row) continue;
+			for (let j = 0; j < row.length; j++) {
+				const val = String(row[j] || '').trim();
+				if (val.includes('Школа') && row[j + 1]) {
+					schoolName = String(row[j + 1]).trim();
+				}
+				if (val === 'Год' && row[j + 1]) {
+					year = String(row[j + 1]).trim();
+				}
+			}
+		}
+
+		// ===== 2. НАХОДИМ СТРОКУ С МЕСЯЦАМИ =====
+		let monthRowIndex = -1;
+		let dayRowIndex = -1;
+		let dataStartIndex = -1;
+
+		for (let i = 0; i < Math.min(data.length, 20); i++) {
+			const row = data[i];
+			if (!row || !row[0]) continue;
+			const firstCell = String(row[0]).trim().toLowerCase();
+			
+			if (firstCell === 'месяц' || firstCell.includes('месяц')) {
+				monthRowIndex = i;
+				dayRowIndex = i + 1;
+				dataStartIndex = i + 2;
+				break;
+			}
+		}
+
+		if (monthRowIndex === -1) {
+			const monthNames = ['январь', 'февраль', 'март', 'апрель', 'май', 'июнь', 
+								'июль', 'август', 'сентябрь', 'октябрь', 'ноябрь', 'декабрь'];
+			for (let i = 0; i < Math.min(data.length, 20); i++) {
+				const row = data[i];
+				if (!row || !row[0]) continue;
+				const firstCell = String(row[0]).trim().toLowerCase();
+				if (monthNames.includes(firstCell)) {
+					monthRowIndex = i - 1;
+					if (monthRowIndex >= 0) {
+						dayRowIndex = i;
+						dataStartIndex = i + 1;
+					}
+					break;
+				}
+			}
+		}
+
+		if (monthRowIndex === -1 || dayRowIndex === -1) {
+			console.error('❌ Не найдена структура календаря');
+			return null;
+		}
+
+		// ===== 3. ЧИТАЕМ ДНИ (С ПОДДЕРЖКОЙ ФОРМУЛ) =====
+		const dayRow = data[dayRowIndex] || [];
+		const days = [];
+		
+		// Первое значение всегда 1 (или B3)
+		// Дальше идём по ячейкам и извлекаем числа из формул
+		for (let i = 1; i < dayRow.length; i++) {
+			const val = dayRow[i];
+			let numVal = null;
+			
+			if (typeof val === 'number') {
+				// Если это число —直接用
+				numVal = val;
+			} else if (typeof val === 'string') {
+				// Если это строка — пробуем извлечь число
+				const trimmed = val.trim();
+				
+				// Пробуем распарсить как число
+				const num = parseFloat(trimmed);
+				if (!isNaN(num)) {
+					numVal = num;
+				} else {
+					// Если не число, пробуем извлечь из формулы (например, "=B3+1")
+					const match = trimmed.match(/(\d+)/);
+					if (match) {
+						numVal = parseInt(match[1]);
+					}
+				}
+			} else if (val && typeof val === 'object' && val.t) {
+				// Если это объект ExcelJS (формула)
+				// Пробуем получить вычисленное значение
+				if (val.v !== undefined && typeof val.v === 'number') {
+					numVal = val.v;
+				} else if (val.f) {
+					// Пробуем извлечь число из формулы
+					const match = val.f.match(/(\d+)/);
+					if (match) {
+						numVal = parseInt(match[1]);
+					}
+				}
+			}
+			
+			// Если нашли число от 1 до 31 — добавляем
+			if (numVal !== null && numVal > 0 && numVal <= 31) {
+				days.push(numVal);
+			} else {
+				// Если не нашли число, но это день — пытаемся определить по порядку
+				// Проверяем, есть ли дальше числа
+				let hasMoreNumbers = false;
+				for (let j = i + 1; j < Math.min(i + 5, dayRow.length); j++) {
+					const nextVal = dayRow[j];
+					let nextNum = null;
+					if (typeof nextVal === 'number') nextNum = nextVal;
+					else if (typeof nextVal === 'string') {
+						const m = nextVal.match(/(\d+)/);
+						if (m) nextNum = parseInt(m[1]);
+					}
+					if (nextNum !== null && nextNum > 0 && nextNum <= 31) {
+						hasMoreNumbers = true;
+						break;
+					}
+				}
+				
+				if (hasMoreNumbers) {
+					// Если дальше есть числа — значит это пропущенный день
+					// Определяем по предыдущему значению
+					const lastDay = days[days.length - 1] || 0;
+					days.push(lastDay + 1);
+				} else {
+					// Если дальше нет чисел — это конец строки
+					break;
+				}
+			}
+		}
+		
+		// Проверяем, что все дни идут по порядку (1, 2, 3, ...)
+		// Если где-то пропуск — восстанавливаем
+		const finalDays = [];
+		let expectedDay = 1;
+		for (const d of days) {
+			if (d === expectedDay) {
+				finalDays.push(d);
+				expectedDay++;
+			} else if (d > expectedDay) {
+				// Пропущены дни — добавляем их
+				while (expectedDay < d) {
+					finalDays.push(expectedDay);
+					expectedDay++;
+				}
+				finalDays.push(d);
+				expectedDay++;
+			}
+		}
+		
+		// Если дней меньше 31 — добавляем недостающие
+		while (finalDays.length < 31) {
+			finalDays.push(finalDays.length + 1);
+		}
+		
+		// Если дней больше 31 — обрезаем
+		const maxDays = Math.min(finalDays.length, 31);
+		const resultDays = finalDays.slice(0, maxDays);
+		
+		console.log(`📅 Найдено дней: ${resultDays.length} (с 1 по ${resultDays[resultDays.length - 1] || '?'})`);
+
+		// ===== 4. ЧИТАЕМ ДАННЫЕ ПО МЕСЯЦАМ =====
+		const calendarData = {};
+		const monthList = ['январь', 'февраль', 'март', 'апрель', 'май', 'июнь', 
+						   'июль', 'август', 'сентябрь', 'октябрь', 'ноябрь', 'декабрь'];
+
+		for (let i = dataStartIndex; i < data.length; i++) {
+			const row = data[i];
+			if (!row || !row[0]) continue;
+
+			const monthName = String(row[0]).trim().toLowerCase();
+			if (!monthName || !monthList.includes(monthName)) continue;
+
+			const monthData = [];
+
+			for (let j = 0; j < resultDays.length; j++) {
+				const day = resultDays[j];
+				const colIdx = j + 1;
+				
+				let val = '';
+				if (row.length > colIdx) {
+					const cell = row[colIdx];
+					if (typeof cell === 'number') {
+						val = String(cell);
+					} else if (typeof cell === 'string') {
+						val = cell.trim();
+					} else if (cell && typeof cell === 'object' && cell.v !== undefined) {
+						val = String(cell.v).trim();
+					} else {
+						val = String(cell || '').trim();
+					}
+				}
+				
+				const numVal = parseInt(val);
+				
+				if (day !== null && !isNaN(numVal) && numVal > 0 && numVal <= 20) {
+					monthData.push({
+						day: day,
+						value: numVal,
+						raw: val
+					});
+				} else if (day !== null) {
+					monthData.push({
+						day: day,
+						value: null,
+						raw: ''
+					});
+				}
+			}
+
+			calendarData[monthName] = monthData;
+			console.log(`📊 ${monthName}: ${monthData.length} записей, из них с меню: ${monthData.filter(d => d.value !== null).length}`);
+		}
+
+		// Добавляем пропущенные месяцы
+		for (const month of monthList) {
+			if (!calendarData[month]) {
+				const monthData = [];
+				for (let d = 1; d <= 31; d++) {
+					monthData.push({
+						day: d,
+						value: null,
+						raw: ''
+					});
+				}
+				calendarData[month] = monthData;
+				console.log(`⚠️ Добавлен пустой месяц: ${month}`);
+			}
+		}
+
+		// ===== 5. ФОРМИРУЕМ РЕЗУЛЬТАТ =====
+		const meta = {
+			schoolName: schoolName || 'МОУ "Рудновская ООШ"',
+			year: year || '2026',
+			months: monthList,
+			days: 31,
+			totalDays: 31 * 12,
+			totalMonths: 12
+		};
+
+		state.calendarData = calendarData;
+		state.calendarMeta = meta;
+		state.calendarMap = {};
+		state.isLoaded = true;
+
+		saveToStorage();
+
+		console.log('✅ Календарь загружен:', {
+			school: meta.schoolName,
+			year: meta.year,
+			months: meta.months.length,
+			daysPerMonth: meta.days,
+			totalDays: meta.totalDays
+		});
+
+		return { calendarData, meta, calendarMap: {} };
+	}
 
     // ============================================================
     // СОЗДАНИЕ КАЛЕНДАРЯ (ПУСТОГО)
@@ -558,33 +981,243 @@ const CalendarModule = (function() {
         if (filledEl) filledEl.textContent = filled;
     }
 
+	// ============================================================
+	// ПОЛУЧЕНИЕ ДОСТУПНЫХ МЕНЮ
+	// ============================================================
+
+	function getAvailableMenuOptions() {
+		const data = window.currentTemplateData || window.templateMenuData;
+		if (!data || !data.weeks) {
+			console.warn('⚠️ Нет данных типового меню');
+			return [];
+		}
+
+		const result = [];
+		const allDays = [];
+
+		// Собираем все дни
+		for (const w in data.weeks) {
+			for (const d in data.weeks[w]) {
+				allDays.push({ week: parseInt(w), day: parseInt(d) });
+			}
+		}
+		allDays.sort((a, b) => a.week - b.week || a.day - a.day);
+
+		// Для каждого дня собираем информацию
+		for (let i = 0; i < allDays.length; i++) {
+			const { week, day } = allDays[i];
+			const menuNumber = i + 1;
+			const dayData = data.weeks[week]?.[day];
+			if (!dayData) continue;
+
+			const dishes = [];
+			const mealNames = [];
+			const mealTypes = ['breakfast', 'breakfast2', 'lunch', 'afternoonSnack', 'dinner', 'dinner2'];
+			const mealNameMap = {
+				'breakfast': '🌅 Завтрак',
+				'breakfast2': '🍎 2-й завтрак',
+				'lunch': '🍲 Обед',
+				'afternoonSnack': '🍪 Полдник',
+				'dinner': '🌙 Ужин',
+				'dinner2': '🥛 2-й ужин'
+			};
+
+			for (const mt of mealTypes) {
+				const meal = dayData[mt];
+				if (meal && meal.items) {
+					for (const item of meal.items) {
+						if (item.name && item.name.trim() !== '') {
+							dishes.push(item.name);
+							if (!mealNames.includes(mealNameMap[mt])) {
+								mealNames.push(mealNameMap[mt]);
+							}
+						}
+					}
+				}
+			}
+
+			if (dishes.length > 0) {
+				result.push({
+					menuNumber: menuNumber,
+					week: week,
+					day: day,
+					dishes: dishes.slice(0, 10),
+					dishCount: dishes.length,
+					mealNames: mealNames,
+					preview: dishes.slice(0, 5).join(', ') + (dishes.length > 5 ? ` ... (+${dishes.length - 5})` : '')
+				});
+			}
+		}
+
+		return result;
+	}
+
     // ============================================================
     // МОДАЛЬНОЕ ОКНО ВЫБОРА МЕНЮ
     // ============================================================
 
-    function openDayModal(month, day) {
-        const modal = document.getElementById('calendarDayModal');
-        const infoEl = document.getElementById('modalDayInfo');
-        const currentValueEl = document.getElementById('modalCurrentValue');
+	// ============================================================
+	// МОДАЛЬНОЕ ОКНО ВЫБОРА МЕНЮ (С ДНЁМ НЕДЕЛИ)
+	// ============================================================
 
-        // Сохраняем выбранную ячейку
-        state.selectedCell = { month, day };
+	function openDayModal(month, day) {
+		console.log('📅 Открытие модалки для:', month, day);
+		
+		const modal = document.getElementById('calendarDayModal');
+		const infoEl = document.getElementById('modalDayInfo');
+		const weekdayEl = document.getElementById('modalDayWeekday');
+		const currentValueEl = document.getElementById('modalCurrentValue');
+		const listContainer = document.getElementById('calendarDayList');
 
-        // Обновляем информацию
-        const dayInfo = getDayInfo(month, day);
-        const monthDisplay = month.charAt(0).toUpperCase() + month.slice(1);
-        infoEl.textContent = `${monthDisplay}, ${day} число`;
+		if (!modal) {
+			console.error('❌ Модалка не найдена');
+			return;
+		}
 
-        const currentValue = dayInfo?.menuNumber || null;
-        currentValueEl.textContent = currentValue ? `Меню #${currentValue}` : 'Не выбрано';
-        currentValueEl.style.background = currentValue ? '#dcfce7' : '#fef3c7';
-        currentValueEl.style.color = currentValue ? '#16a34a' : '#d97706';
+		// Сохраняем выбранную ячейку
+		state.selectedCell = { month, day };
 
-        // Загружаем список доступных меню
-        loadDayMenuList(month, day);
+		// Обновляем информацию
+		const monthData = state.calendarData[month] || [];
+		const entry = monthData.find(e => e.day === day);
+		const currentValue = entry?.value || null;
 
-        modal.style.display = 'flex';
-    }
+		const monthDisplay = month.charAt(0).toUpperCase() + month.slice(1);
+		
+		// ===== ОПРЕДЕЛЯЕМ ДЕНЬ НЕДЕЛИ (НАДЁЖНАЯ ВЕРСИЯ) =====
+		// Получаем год из meta, если нет — из текущей даты
+		let year = parseInt(state.calendarMeta?.year);
+		if (isNaN(year) || year < 2000 || year > 2100) {
+			year = new Date().getFullYear();
+			console.log('📅 Год не найден в meta, используем текущий:', year);
+		}
+
+		// Создаём карту месяцев для правильного определения
+		const monthMap = {
+			'январь': 0, 'февраль': 1, 'март': 2, 'апрель': 3,
+			'май': 4, 'июнь': 5, 'июль': 6, 'август': 7,
+			'сентябрь': 8, 'октябрь': 9, 'ноябрь': 10, 'декабрь': 11
+		};
+
+		const monthIndex = monthMap[month];
+		if (monthIndex === undefined) {
+			console.warn('⚠️ Неизвестный месяц:', month);
+			// Пробуем определить по первой букве
+			const found = Object.keys(monthMap).find(m => m.startsWith(month.substring(0, 3)));
+			if (found) {
+				const idx = monthMap[found];
+				const dateObj2 = new Date(year, idx, day);
+				const weekdays2 = ['Воскресенье', 'Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота'];
+				const weekdayName2 = weekdays2[dateObj2.getDay()];
+				weekdayEl.textContent = weekdayName2;
+				// ... остальной код
+			}
+			return;
+		}
+
+		const dateObj = new Date(year, monthIndex, day);
+		const weekdays = ['Воскресенье', 'Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота'];
+		const weekdayName = weekdays[dateObj.getDay()];
+
+		// Цвет для дня недели
+		const weekdayColors = {
+			'Понедельник': '#3b82f6',
+			'Вторник': '#3b82f6',
+			'Среда': '#3b82f6',
+			'Четверг': '#3b82f6',
+			'Пятница': '#3b82f6',
+			'Суббота': '#10b981',
+			'Воскресенье': '#ef4444'
+		};
+		const weekdayColor = weekdayColors[weekdayName] || '#64748b';
+
+		// Определяем, выходной ли это
+		const isWeekend = weekdayName === 'Суббота' || weekdayName === 'Воскресенье';
+		const weekendLabel = isWeekend ? ' 🏖️ Выходной' : '';
+
+		console.log(`📅 ${month} ${day}, ${year} → ${weekdayName}`);
+
+		// Обновляем элементы
+		infoEl.textContent = `${monthDisplay}, ${day} число${weekendLabel}`;
+		
+		if (weekdayEl) {
+			weekdayEl.textContent = weekdayName;
+			weekdayEl.style.background = isWeekend ? '#fef3c7' : '#f1f5f9';
+			weekdayEl.style.color = weekdayColor;
+			weekdayEl.style.border = isWeekend ? '1px solid #f59e0b' : '1px solid #e2e8f0';
+		}
+
+		currentValueEl.textContent = currentValue ? `Меню #${currentValue}` : 'Не выбрано';
+		currentValueEl.style.background = currentValue ? '#dcfce7' : '#fef3c7';
+		currentValueEl.style.color = currentValue ? '#16a34a' : '#d97706';
+
+		// Получаем список доступных меню
+		const menuOptions = getAvailableMenuOptions();
+		
+		// Рендерим список
+		if (menuOptions.length === 0) {
+			listContainer.innerHTML = `
+				<div style="text-align: center; padding: 40px 20px; color: #94a3b8; grid-column: 1 / -1;">
+					<i class="fas fa-utensils" style="font-size: 2rem; margin-bottom: 8px; display: block;"></i>
+					<p>Нет доступных меню</p>
+					<p style="font-size: 0.8rem; color: #cbd5e1;">Загрузите типовое меню на вкладке «Редактор меню»</p>
+				</div>
+			`;
+		} else {
+			let html = '';
+			
+			// Опция "Выходной" (очистить)
+			html += `
+				<div style="padding: 12px; border: 2px solid #f59e0b; border-radius: 12px; cursor: pointer; transition: all 0.2s; background: #fef3c7; text-align: center;"
+					 onclick="CalendarModule.setDayValue('${month}', ${day}, null)"
+					 onmouseover="this.style.transform='scale(1.02)'; this.style.boxShadow='0 4px 12px rgba(245,158,11,0.3)';"
+					 onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='none';">
+					<div style="font-size: 1.2rem;">🏖️</div>
+					<div style="font-weight: 600; color: #d97706;">Выходной</div>
+					<div style="font-size: 0.7rem; color: #92400e;">Очистить ячейку</div>
+				</div>
+			`;
+
+			// Варианты меню
+			for (const option of menuOptions) {
+				const isCurrent = currentValue === option.menuNumber;
+				const color = window.DailyMenuModule?.getMenuColor?.(option.menuNumber) || { primary: '#10b981', light: '#dcfce7' };
+				
+				html += `
+					<div style="padding: 12px; border: 2px solid ${isCurrent ? '#10b981' : '#e2e8f0'}; border-radius: 12px; cursor: pointer; transition: all 0.2s; background: ${isCurrent ? '#dcfce7' : 'white'};"
+						 onclick="CalendarModule.setDayValue('${month}', ${day}, ${option.menuNumber})"
+						 onmouseover="this.style.transform='scale(1.02)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.08)';"
+						 onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='none';">
+						<div style="display: flex; justify-content: space-between; align-items: center;">
+							<span style="font-weight: 700; color: ${isCurrent ? '#16a34a' : '#0f172a'};">
+								<span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: ${color.primary}; margin-right: 8px;"></span>
+								Меню #${option.menuNumber}
+								${isCurrent ? '<span style="font-size: 0.6rem; background: #10b981; color: white; padding: 1px 8px; border-radius: 10px; margin-left: 8px;">✓</span>' : ''}
+							</span>
+							<span style="font-size: 0.65rem; color: #64748b;">
+								${option.week ? `Неделя ${option.week}` : ''} ${option.day ? `День ${option.day}` : ''}
+							</span>
+						</div>
+						<div style="font-size: 0.7rem; color: #64748b; margin-top: 4px;">
+							${option.mealNames?.join(' · ') || ''} 
+							${option.dishCount ? `· ${option.dishCount} блюд` : ''}
+						</div>
+						${option.preview ? `
+							<div style="font-size: 0.6rem; color: #94a3b8; margin-top: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+								${option.preview}
+							</div>
+						` : ''}
+					</div>
+				`;
+			}
+
+			listContainer.innerHTML = html;
+		}
+
+		// Показываем модалку
+		modal.style.display = 'flex';
+		console.log('✅ Модалка открыта');
+	}
 
     function loadDayMenuList(month, day) {
         const container = document.getElementById('calendarDayList');
@@ -753,134 +1386,337 @@ const CalendarModule = (function() {
         container.innerHTML = html;
     }
 
-    // ============================================================
-    // УСТАНОВКА ЗНАЧЕНИЯ ДЛЯ ДНЯ
-    // ============================================================
+	// ============================================================
+	// УСТАНОВКА ЗНАЧЕНИЯ ДЛЯ ДНЯ (ИСПРАВЛЕННАЯ ВЕРСИЯ)
+	// ============================================================
 
-    function setDayValue(month, day, value) {
-        if (!state.calendarData || !state.calendarData[month]) {
-            showStatus('Ошибка: календарь не загружен', 'error');
-            return;
-        }
+	function setDayValue(month, day, value) {
+		console.log('📝 Установка значения:', month, day, value);
+		
+		if (!state.calendarData || !state.calendarData[month]) {
+			showStatus('Ошибка: календарь не загружен', 'error');
+			return;
+		}
 
-        const monthData = state.calendarData[month];
-        const entry = monthData.find(e => e.day === day);
+		const monthData = state.calendarData[month];
+		const entry = monthData.find(e => e.day === day);
 
-        if (!entry) {
-            showStatus(`Ошибка: день ${day} не найден в месяце ${month}`, 'error');
-            return;
-        }
+		if (!entry) {
+			showStatus(`Ошибка: день ${day} не найден в месяце ${month}`, 'error');
+			return;
+		}
 
-        // Обновляем значение
-        entry.value = value;
-        entry.raw = value ? String(value) : '';
+		// Обновляем значение
+		entry.value = value;
+		entry.raw = value ? String(value) : '';
 
-        // Обновляем карту
-        const key = `${month}_${day}`;
-        if (value) {
-            state.calendarMap[key] = value;
-        } else {
-            delete state.calendarMap[key];
-        }
+		// Обновляем карту
+		const key = `${month}_${day}`;
+		if (value) {
+			state.calendarMap[key] = value;
+		} else {
+			delete state.calendarMap[key];
+		}
 
-        // Сохраняем
-        saveToStorage();
+		// Сохраняем
+		saveToStorage();
 
-        // Перерисовываем календарь
-        renderCalendar();
+		// Перерисовываем календарь
+		renderCalendar();
 
-        // Закрываем модалку
-        document.getElementById('calendarDayModal').style.display = 'none';
+		// Закрываем модалку
+		const modal = document.getElementById('calendarDayModal');
+		if (modal) modal.style.display = 'none';
 
-        const message = value ? `✅ Установлено меню #${value} на ${month} ${day}` : `🗑️ Очищен день ${month} ${day}`;
-        showStatus(message, 'success');
-    }
+		const message = value ? `✅ Установлено меню #${value} на ${month} ${day}` : `🗑️ Очищен день ${month} ${day}`;
+		showStatus(message, 'success');
+	}
 
-    // ============================================================
-    // ЭКСПОРТ КАЛЕНДАРЯ В EXCEL
-    // ============================================================
+	// ============================================================
+	// ЭКСПОРТ КАЛЕНДАРЯ В EXCEL (С ПРАВИЛЬНОЙ ШАПКОЙ)
+	// ============================================================
 
-    async function exportCalendarToExcel() {
-        if (!state.isLoaded || !state.calendarData) {
-            showStatus('Сначала загрузите или создайте календарь', 'error');
-            return;
-        }
+	async function exportCalendarToExcel() {
+		if (!state.isLoaded || !state.calendarData) {
+			showStatus('Сначала загрузите или создайте календарь', 'error');
+			return;
+		}
 
-        try {
-            showStatus('📊 Создание Excel-файла календаря...', 'info');
+		try {
+			showStatus('📊 Создание Excel-файла календаря...', 'info');
 
-            const meta = state.calendarMeta;
-            const calendarData = state.calendarData;
+			const meta = state.calendarMeta;
+			const calendarData = state.calendarData;
+			const year = parseInt(meta.year) || 2026;
 
-            // Используем ExcelJS
-            const workbook = new ExcelJS.Workbook();
-            const worksheet = workbook.addWorksheet('Календарь питания');
+			const workbook = new ExcelJS.Workbook();
+			const worksheet = workbook.addWorksheet('Календарь питания');
 
-            // Шапка
-            worksheet.mergeCells('A1:B1');
-            worksheet.getCell('A1').value = 'Школа';
-            worksheet.getCell('C1').value = meta.schoolName || 'МОУ "Рудновская ООШ"';
-            worksheet.mergeCells('C1:E1');
+			// ===== ШАПКА (ПРАВИЛЬНАЯ СТРУКТУРА) =====
+			
+			// Строка 1: Школа | Название школы (объединено B1:J1) | Календарь питания (L1:P1) | Год (AD1) | значение (AE1)
+			worksheet.getCell('A1').value = 'Школа';
+			worksheet.getCell('A1').font = { bold: true };
+			
+			// Объединяем B1:J1 для названия школы
+			worksheet.mergeCells('B1:J1');
+			worksheet.getCell('B1').value = meta.schoolName || 'МОУ "Рудновская ООШ"';
+			worksheet.getCell('B1').alignment = { horizontal: 'left', vertical: 'middle' };
+			// Заливка #FFF2CC
+			worksheet.getCell('B1').fill = {
+				type: 'pattern',
+				pattern: 'solid',
+				fgColor: { argb: 'FFF2CC' }
+			};
+			
+			// Объединяем L1:P1 для "Календарь питания"
+			worksheet.mergeCells('L1:P1');
+			worksheet.getCell('L1').value = 'Календарь питания';
+			worksheet.getCell('L1').alignment = { horizontal: 'center', vertical: 'middle' };
+			worksheet.getCell('L1').font = { bold: true };
+			
+			// Год
+			worksheet.getCell('AD1').value = 'Год';
+			worksheet.getCell('AD1').font = { bold: true };
+			worksheet.getCell('AD1').alignment = { horizontal: 'right', vertical: 'middle' };
+			
+			worksheet.getCell('AE1').value = year;
+			worksheet.getCell('AE1').alignment = { horizontal: 'left', vertical: 'middle' };
+			worksheet.getCell('AE1').font = { bold: true };
 
-            worksheet.mergeCells('L1:M1');
-            worksheet.getCell('L1').value = 'Календарь питания';
-            worksheet.mergeCells('N1:P1');
+			// Строка 2: пустая (или можно использовать для дополнительной информации)
+			worksheet.addRow([]);
 
-            worksheet.mergeCells('AD1:AE1');
-            worksheet.getCell('AD1').value = 'Год';
-            worksheet.getCell('AF1').value = meta.year || '2026';
+			// ===== ЗАГОЛОВОК ТАБЛИЦЫ (строка 3) =====
+			// "Месяц" и дни (1, 2, 3, ...)
+			const maxDays = meta.days || 31;
+			const headerRow = ['Месяц'];
+			for (let d = 1; d <= maxDays; d++) {
+				headerRow.push(d);
+			}
+			const headerRowIndex = 3;
+			worksheet.addRow(headerRow);
+			
+			// Стилизация заголовка
+			const headerExcelRow = worksheet.getRow(headerRowIndex);
+			headerExcelRow.height = 20;
+			headerExcelRow.font = { bold: true };
+			headerExcelRow.alignment = { horizontal: 'center', vertical: 'middle' };
+			
+			// Заливка заголовка
+			for (let i = 1; i <= maxDays + 1; i++) {
+				const cell = worksheet.getCell(headerRowIndex, i);
+				cell.fill = {
+					type: 'pattern',
+					pattern: 'solid',
+					fgColor: { argb: 'D9E1F2' }
+				};
+				cell.border = {
+					top: { style: 'thin', color: { argb: 'FFD4D4D4' } },
+					left: { style: 'thin', color: { argb: 'FFD4D4D4' } },
+					bottom: { style: 'thin', color: { argb: 'FFD4D4D4' } },
+					right: { style: 'thin', color: { argb: 'FFD4D4D4' } }
+				};
+			}
 
-            // Пустая строка
-            worksheet.addRow([]);
+			// ===== ДАННЫЕ ПО МЕСЯЦАМ =====
+			const monthNames = meta.months || MONTHS;
+			
+			const monthMap = {
+				'январь': 0, 'февраль': 1, 'март': 2, 'апрель': 3,
+				'май': 4, 'июнь': 5, 'июль': 6, 'август': 7,
+				'сентябрь': 8, 'октябрь': 9, 'ноябрь': 10, 'декабрь': 11
+			};
 
-            // Заголовок "Месяц" и дни
-            const headerRow = ['Месяц'];
-            const maxDays = meta.days || 31;
-            for (let d = 1; d <= maxDays; d++) {
-                headerRow.push(d);
-            }
-            worksheet.addRow(headerRow);
+			// Определяем первый день с меню в январе
+			let firstDayWithMenu = null;
+			if (calendarData['январь']) {
+				for (const entry of calendarData['январь']) {
+					if (entry.value !== null && entry.value !== undefined) {
+						firstDayWithMenu = entry.day;
+						break;
+					}
+				}
+			}
+			if (!firstDayWithMenu) firstDayWithMenu = 15;
 
-            // Данные по месяцам
-            const monthNames = meta.months || MONTHS;
-            for (const month of monthNames) {
-                const monthData = calendarData[month] || [];
-                const row = [month];
-                for (let d = 1; d <= maxDays; d++) {
-                    const entry = monthData.find(e => e.day === d);
-                    row.push(entry?.value || '');
-                }
-                worksheet.addRow(row);
-            }
+			// Добавляем данные по месяцам
+			const dataStartRow = 4;
+			for (const month of monthNames) {
+				const monthData = calendarData[month] || [];
+				const row = [month];
+				const monthIndex = monthMap[month];
+				
+				for (let d = 1; d <= maxDays; d++) {
+					const entry = monthData.find(e => e.day === d);
+					const value = entry?.value || '';
+					row.push(value);
+				}
+				worksheet.addRow(row);
+			}
 
-            // Настройка столбцов
-            worksheet.getColumn('A').width = 15;
-            for (let i = 2; i <= maxDays + 1; i++) {
-                worksheet.getColumn(i).width = 6;
-            }
+			// ===== НАСТРОЙКА ШИРИНЫ СТОЛБЦОВ =====
+			worksheet.getColumn('A').width = 15;
+			for (let i = 2; i <= maxDays + 1; i++) {
+				worksheet.getColumn(i).width = 6;
+			}
 
-            // Стилизация
-            // Заголовок
-            worksheet.getRow(1).height = 25;
-            worksheet.getRow(3).height = 20;
-            worksheet.getRow(3).font = { bold: true };
+			// ===== ВЫСОТА СТРОК =====
+			worksheet.getRow(1).height = 25;
+			worksheet.getRow(2).height = 5; // пустая строка-разделитель
 
-            // Сохраняем
-            const buffer = await workbook.xlsx.writeBuffer();
-            const blob = new Blob([buffer], {
-                type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-            });
+			// ===== ПРИМЕНЯЕМ ЦВЕТА К ЯЧЕЙКАМ С ДАННЫМИ =====
+			const colors = {
+				NEW_YEAR: 'FF8080',
+				WEEKEND: 'F4B084',
+				WITH_MEAL: 'FFF2CC',
+				WEEKDAY_NO_MEAL: 'C6E0B4',
+				EMPTY: 'FFFFFF'
+			};
 
-            const fileName = `Календарь_питания_${meta.year || '2026'}.xlsx`;
-            saveAs(blob, fileName);
+			for (let rowIdx = 0; rowIdx < monthNames.length; rowIdx++) {
+				const month = monthNames[rowIdx];
+				const excelRow = dataStartRow + rowIdx;
+				const monthData = calendarData[month] || [];
+				const monthIndex = monthMap[month];
+				
+				// Заливка названия месяца
+				const monthCell = worksheet.getCell(excelRow, 1);
+				monthCell.fill = {
+					type: 'pattern',
+					pattern: 'solid',
+					fgColor: { argb: 'D9E1F2' }
+				};
+				monthCell.font = { bold: true };
+				monthCell.border = {
+					top: { style: 'thin', color: { argb: 'FFD4D4D4' } },
+					left: { style: 'thin', color: { argb: 'FFD4D4D4' } },
+					bottom: { style: 'thin', color: { argb: 'FFD4D4D4' } },
+					right: { style: 'thin', color: { argb: 'FFD4D4D4' } }
+				};
+				
+				for (let d = 1; d <= maxDays; d++) {
+					const colIdx = d + 1;
+					const cell = worksheet.getCell(excelRow, colIdx);
+					
+					const entry = monthData.find(e => e.day === d);
+					const hasValue = entry && entry.value !== null && entry.value !== undefined;
+					
+					let dayOfWeek = -1;
+					let isWeekend = false;
+					let isNewYearHoliday = false;
+					
+					if (monthIndex !== undefined) {
+						const dateObj = new Date(year, monthIndex, d);
+						dayOfWeek = dateObj.getDay();
+						isWeekend = (dayOfWeek === 0 || dayOfWeek === 6);
+						
+						if (month === 'январь' && d >= 1 && d < firstDayWithMenu) {
+							isNewYearHoliday = true;
+						}
+					}
+					
+					let fillColor = colors.EMPTY;
+					let borderColor = 'FFD4D4D4';
+					
+					if (isNewYearHoliday) {
+						fillColor = colors.NEW_YEAR;
+					} else if (isWeekend) {
+						fillColor = colors.WEEKEND;
+					} else if (hasValue) {
+						fillColor = colors.WITH_MEAL;
+					} else {
+						fillColor = colors.WEEKDAY_NO_MEAL;
+					}
+					
+					cell.fill = {
+						type: 'pattern',
+						pattern: 'solid',
+						fgColor: { argb: fillColor }
+					};
+					
+					cell.border = {
+						top: { style: 'thin', color: { argb: borderColor } },
+						left: { style: 'thin', color: { argb: borderColor } },
+						bottom: { style: 'thin', color: { argb: borderColor } },
+						right: { style: 'thin', color: { argb: borderColor } }
+					};
+					
+					cell.alignment = { horizontal: 'center', vertical: 'middle' };
+				}
+			}
 
-            showStatus(`📥 Календарь сохранён как "${fileName}"`, 'success');
+			const totalRows = monthNames.length + 3; // +3 за заголовок и пустую строку
+			const totalCols = maxDays + 1;
 
-        } catch (error) {
-            console.error('Ошибка экспорта календаря:', error);
-            showStatus(`Ошибка: ${error.message}`, 'error');
-        }
-    }
+			for (let row = 3; row <= totalRows; row++) {
+				for (let col = 1; col <= totalCols; col++) {
+					const cell = worksheet.getCell(row, col);
+					cell.border = {
+						top: { style: 'thin', color: { argb: 'FF000000' } },
+						left: { style: 'thin', color: { argb: 'FF000000' } },
+						bottom: { style: 'thin', color: { argb: 'FF000000' } },
+						right: { style: 'thin', color: { argb: 'FF000000' } }
+					};
+				}
+			}
+
+			// ===== ЛЕГЕНДА =====
+			const legendStartRow = dataStartRow + monthNames.length + 2;
+			
+			worksheet.mergeCells(`A${legendStartRow}:C${legendStartRow}`);
+			worksheet.getCell(`A${legendStartRow}`).value = '📌 Легенда:';
+			worksheet.getCell(`A${legendStartRow}`).font = { bold: true };
+			
+			const legendData = [
+				{ color: colors.NEW_YEAR, label: 'Новогодние каникулы' },
+				{ color: colors.WITH_MEAL, label: 'Будни с питанием' },
+				{ color: colors.WEEKDAY_NO_MEAL, label: 'Будни без питания' },
+				{ color: colors.WEEKEND, label: 'Выходные дни' },
+				{ color: colors.EMPTY, label: 'Нет данных' }
+			];
+			
+			for (let i = 0; i < legendData.length; i++) {
+				const row = legendStartRow + 1 + i;
+				const item = legendData[i];
+				
+				const colorCell = worksheet.getCell(row, 1);
+				colorCell.fill = {
+					type: 'pattern',
+					pattern: 'solid',
+					fgColor: { argb: item.color }
+				};
+				colorCell.border = {
+					top: { style: 'thin', color: { argb: 'FFD4D4D4' } },
+					left: { style: 'thin', color: { argb: 'FFD4D4D4' } },
+					bottom: { style: 'thin', color: { argb: 'FFD4D4D4' } },
+					right: { style: 'thin', color: { argb: 'FFD4D4D4' } }
+				};
+				colorCell.alignment = { horizontal: 'center', vertical: 'middle' };
+				
+				const labelCell = worksheet.getCell(row, 2);
+				labelCell.value = item.label;
+				labelCell.alignment = { horizontal: 'left', vertical: 'middle' };
+			}
+
+
+
+			// ===== СОХРАНЯЕМ =====
+			const buffer = await workbook.xlsx.writeBuffer();
+			const blob = new Blob([buffer], {
+				type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+			});
+
+			const fileName = `Календарь_питания_${year}.xlsx`;
+			saveAs(blob, fileName);
+
+			showStatus(`📥 Календарь сохранён как "${fileName}"`, 'success');
+
+		} catch (error) {
+			console.error('Ошибка экспорта календаря:', error);
+			showStatus(`Ошибка: ${error.message}`, 'error');
+		}
+	}
 
     // ============================================================
     // ИНИЦИАЛИЗАЦИЯ
@@ -904,30 +1740,41 @@ const CalendarModule = (function() {
     }
 
     function setupEvents() {
-        // Загрузка файла
-        document.getElementById('calendarFileInput')?.addEventListener('change', function(e) {
-            if (this.files[0]) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    try {
-                        const data = new Uint8Array(e.target.result);
-                        const wb = XLSX.read(data, { type: 'array' });
-                        const result = parseCalendarFromExcel(wb);
-                        if (result) {
-                            renderCalendar();
-                            showStatus(`✅ Календарь загружен из "${this.files[0].name}"`, 'success');
-                        } else {
-                            showStatus('❌ Не удалось прочитать календарь. Проверьте структуру файла.', 'error');
-                        }
-                    } catch(err) {
-                        console.error(err);
-                        showStatus('❌ Ошибка чтения файла', 'error');
-                    }
-                };
-                reader.readAsArrayBuffer(this.files[0]);
-                this.value = '';
-            }
-        });
+
+		// Загрузка файла (обновлённая версия)
+		document.getElementById('calendarFileInput')?.addEventListener('change', function(e) {
+			const file = this.files[0];
+			if (!file) return;
+			
+			const reader = new FileReader();
+			reader.onload = function(e) {
+				try {
+					const data = new Uint8Array(e.target.result);
+					const wb = XLSX.read(data, { type: 'array' });
+					const result = parseCalendarFromExcel(wb);
+					if (result) {
+						renderCalendar();
+						showStatus(`✅ Календарь загружен из "${file.name}"`, 'success');
+					} else {
+						showStatus('⚠️ Не удалось прочитать календарь', 'warning');
+						generateEmptyCalendar();
+						renderCalendar();
+					}
+				} catch(err) {
+					console.error('Ошибка чтения файла:', err);
+					showStatus('❌ Ошибка чтения файла', 'error');
+					generateEmptyCalendar();
+					renderCalendar();
+				}
+			};
+			reader.onerror = function() {
+				showStatus('❌ Ошибка при чтении файла', 'error');
+				generateEmptyCalendar();
+				renderCalendar();
+			};
+			reader.readAsArrayBuffer(file);
+			this.value = '';
+		});
 
         // Кнопки загрузки
         document.getElementById('calendarUploadBtn')?.addEventListener('click', () => {
@@ -962,35 +1809,196 @@ const CalendarModule = (function() {
         });
 
         // Модальное окно - поиск
-        document.getElementById('calendarDaySearch')?.addEventListener('input', function() {
-            const month = state.selectedCell?.month;
-            const day = state.selectedCell?.day;
-            if (month && day) {
-                loadDayMenuList(month, day);
-            }
-        });
+		document.getElementById('calendarDaySearch')?.addEventListener('input', function() {
+			const month = state.selectedCell?.month;
+			const day = state.selectedCell?.day;
+			if (!month || !day) return;
 
-        // Модальное окно - фильтры
-        document.querySelectorAll('.calendar-filter-btn').forEach(btn => {
-            btn.addEventListener('click', function() {
-                document.querySelectorAll('.calendar-filter-btn').forEach(b => {
-                    b.classList.remove('active');
-                    b.style.background = 'white';
-                    b.style.color = '#64748b';
-                    b.style.borderColor = '#e2e8f0';
-                });
-                this.classList.add('active');
-                this.style.background = '#ede9fe';
-                this.style.color = '#5b21b6';
-                this.style.borderColor = '#8b5cf6';
+			const searchTerm = this.value.toLowerCase().trim();
+			const allOptions = getAvailableMenuOptions();
+			
+			// Фильтруем по поисковому запросу
+			let filtered = allOptions;
+			if (searchTerm) {
+				filtered = allOptions.filter(opt => 
+					String(opt.menuNumber).includes(searchTerm) ||
+					opt.dishes?.some(d => d.toLowerCase().includes(searchTerm)) ||
+					opt.mealNames?.some(m => m.toLowerCase().includes(searchTerm)) ||
+					(opt.preview && opt.preview.toLowerCase().includes(searchTerm))
+				);
+			}
 
-                const month = state.selectedCell?.month;
-                const day = state.selectedCell?.day;
-                if (month && day) {
-                    loadDayMenuList(month, day);
-                }
-            });
-        });
+			// Получаем текущее значение
+			const monthData = state.calendarData[month] || [];
+			const entry = monthData.find(e => e.day === day);
+			const currentValue = entry?.value || null;
+
+			// Рендерим отфильтрованный список
+			const listContainer = document.getElementById('calendarDayList');
+			if (!listContainer) return;
+
+			if (filtered.length === 0) {
+				listContainer.innerHTML = `
+					<div style="text-align: center; padding: 40px 20px; color: #94a3b8; grid-column: 1 / -1;">
+						<i class="fas fa-search" style="font-size: 2rem; margin-bottom: 8px; display: block;"></i>
+						<p>Ничего не найдено</p>
+						<p style="font-size: 0.8rem; color: #cbd5e1;">Попробуйте изменить поисковый запрос</p>
+					</div>
+				`;
+				return;
+			}
+
+			let html = '';
+
+			// Опция "Выходной" (всегда показываем)
+			html += `
+				<div style="padding: 12px; border: 2px solid #f59e0b; border-radius: 12px; cursor: pointer; transition: all 0.2s; background: #fef3c7; text-align: center;"
+					 onclick="CalendarModule.setDayValue('${month}', ${day}, null)"
+					 onmouseover="this.style.transform='scale(1.02)'; this.style.boxShadow='0 4px 12px rgba(245,158,11,0.3)';"
+					 onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='none';">
+					<div style="font-size: 1.2rem;">🏖️</div>
+					<div style="font-weight: 600; color: #d97706;">Выходной</div>
+					<div style="font-size: 0.7rem; color: #92400e;">Очистить ячейку</div>
+				</div>
+			`;
+
+			// Варианты меню (отфильтрованные)
+			for (const option of filtered) {
+				const isCurrent = currentValue === option.menuNumber;
+				const color = window.DailyMenuModule?.getMenuColor?.(option.menuNumber) || { primary: '#10b981', light: '#dcfce7' };
+				
+				html += `
+					<div style="padding: 12px; border: 2px solid ${isCurrent ? '#10b981' : '#e2e8f0'}; border-radius: 12px; cursor: pointer; transition: all 0.2s; background: ${isCurrent ? '#dcfce7' : 'white'};"
+						 onclick="CalendarModule.setDayValue('${month}', ${day}, ${option.menuNumber})"
+						 onmouseover="this.style.transform='scale(1.02)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.08)';"
+						 onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='none';">
+						<div style="display: flex; justify-content: space-between; align-items: center;">
+							<span style="font-weight: 700; color: ${isCurrent ? '#16a34a' : '#0f172a'};">
+								<span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: ${color.primary}; margin-right: 8px;"></span>
+								Меню #${option.menuNumber}
+								${isCurrent ? '<span style="font-size: 0.6rem; background: #10b981; color: white; padding: 1px 8px; border-radius: 10px; margin-left: 8px;">✓</span>' : ''}
+							</span>
+							<span style="font-size: 0.65rem; color: #64748b;">
+								${option.week ? `Неделя ${option.week}` : ''} ${option.day ? `День ${option.day}` : ''}
+							</span>
+						</div>
+						<div style="font-size: 0.7rem; color: #64748b; margin-top: 4px;">
+							${option.mealNames?.join(' · ') || ''} 
+							${option.dishCount ? `· ${option.dishCount} блюд` : ''}
+						</div>
+						${option.preview ? `
+							<div style="font-size: 0.6rem; color: #94a3b8; margin-top: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+								${option.preview}
+							</div>
+						` : ''}
+					</div>
+				`;
+			}
+
+			listContainer.innerHTML = html;
+		});
+
+		// Модальное окно - фильтры (ОБНОВЛЁННЫЙ)
+		document.querySelectorAll('.calendar-filter-btn').forEach(btn => {
+			btn.addEventListener('click', function() {
+				// Обновляем активный класс
+				document.querySelectorAll('.calendar-filter-btn').forEach(b => {
+					b.classList.remove('active');
+					b.style.background = 'white';
+					b.style.color = '#64748b';
+					b.style.borderColor = '#e2e8f0';
+				});
+				this.classList.add('active');
+				this.style.background = '#ede9fe';
+				this.style.color = '#5b21b6';
+				this.style.borderColor = '#8b5cf6';
+
+				const month = state.selectedCell?.month;
+				const day = state.selectedCell?.day;
+				if (!month || !day) return;
+
+				const filter = this.dataset.filter;
+				const allOptions = getAvailableMenuOptions();
+				
+				// Фильтруем по типу приёма пищи
+				let filtered = allOptions;
+				if (filter === 'breakfast') {
+					filtered = allOptions.filter(opt => opt.mealNames?.some(m => m.includes('Завтрак')));
+				} else if (filter === 'lunch') {
+					filtered = allOptions.filter(opt => opt.mealNames?.some(m => m.includes('Обед')));
+				} else if (filter === 'dinner') {
+					filtered = allOptions.filter(opt => opt.mealNames?.some(m => m.includes('Ужин')));
+				} else if (filter === 'weekend') {
+					// Показываем только опцию "Выходной"
+					filtered = [];
+				}
+				// 'all' — показываем всё
+
+				// Получаем текущее значение
+				const monthData = state.calendarData[month] || [];
+				const entry = monthData.find(e => e.day === day);
+				const currentValue = entry?.value || null;
+
+				// Рендерим отфильтрованный список
+				const listContainer = document.getElementById('calendarDayList');
+				if (!listContainer) return;
+
+				let html = '';
+
+				// Опция "Выходной" (всегда показываем)
+				html += `
+					<div style="padding: 12px; border: 2px solid #f59e0b; border-radius: 12px; cursor: pointer; transition: all 0.2s; background: #fef3c7; text-align: center;"
+						 onclick="CalendarModule.setDayValue('${month}', ${day}, null)"
+						 onmouseover="this.style.transform='scale(1.02)'; this.style.boxShadow='0 4px 12px rgba(245,158,11,0.3)';"
+						 onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='none';">
+						<div style="font-size: 1.2rem;">🏖️</div>
+						<div style="font-weight: 600; color: #d97706;">Выходной</div>
+						<div style="font-size: 0.7rem; color: #92400e;">Очистить ячейку</div>
+					</div>
+				`;
+
+				// Если фильтр "Выходной" — показываем только его
+				if (filter === 'weekend') {
+					listContainer.innerHTML = html;
+					return;
+				}
+
+				// Варианты меню
+				for (const option of filtered) {
+					const isCurrent = currentValue === option.menuNumber;
+					const color = window.DailyMenuModule?.getMenuColor?.(option.menuNumber) || { primary: '#10b981', light: '#dcfce7' };
+					
+					html += `
+						<div style="padding: 12px; border: 2px solid ${isCurrent ? '#10b981' : '#e2e8f0'}; border-radius: 12px; cursor: pointer; transition: all 0.2s; background: ${isCurrent ? '#dcfce7' : 'white'};"
+							 onclick="CalendarModule.setDayValue('${month}', ${day}, ${option.menuNumber})"
+							 onmouseover="this.style.transform='scale(1.02)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.08)';"
+							 onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='none';">
+							<div style="display: flex; justify-content: space-between; align-items: center;">
+								<span style="font-weight: 700; color: ${isCurrent ? '#16a34a' : '#0f172a'};">
+									<span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: ${color.primary}; margin-right: 8px;"></span>
+									Меню #${option.menuNumber}
+									${isCurrent ? '<span style="font-size: 0.6rem; background: #10b981; color: white; padding: 1px 8px; border-radius: 10px; margin-left: 8px;">✓</span>' : ''}
+								</span>
+								<span style="font-size: 0.65rem; color: #64748b;">
+									${option.week ? `Неделя ${option.week}` : ''} ${option.day ? `День ${option.day}` : ''}
+								</span>
+							</div>
+							<div style="font-size: 0.7rem; color: #64748b; margin-top: 4px;">
+								${option.mealNames?.join(' · ') || ''} 
+								${option.dishCount ? `· ${option.dishCount} блюд` : ''}
+							</div>
+							${option.preview ? `
+								<div style="font-size: 0.6rem; color: #94a3b8; margin-top: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+									${option.preview}
+								</div>
+							` : ''}
+						</div>
+					`;
+				}
+
+				listContainer.innerHTML = html;
+			});
+		});
 
         // Модальное окно - закрытие
         document.getElementById('calendarDayModalClose')?.addEventListener('click', () => {
@@ -1001,14 +2009,16 @@ const CalendarModule = (function() {
             document.getElementById('calendarDayModal').style.display = 'none';
         });
 
-        document.getElementById('calendarDayModalClear')?.addEventListener('click', function() {
-            const month = state.selectedCell?.month;
-            const day = state.selectedCell?.day;
-            if (month && day) {
-                setDayValue(month, day, null);
-                document.getElementById('calendarDayModal').style.display = 'none';
-            }
-        });
+		document.getElementById('calendarDayModalClear')?.addEventListener('click', function() {
+			const month = state.selectedCell?.month;
+			const day = state.selectedCell?.day;
+			if (month && day) {
+				if (confirm(`Очистить день ${month} ${day}?`)) {
+					setDayValue(month, day, null);
+					document.getElementById('calendarDayModal').style.display = 'none';
+				}
+			}
+		});
 
         // Закрытие по клику на фон
         document.getElementById('calendarDayModal')?.addEventListener('click', function(e) {
@@ -1032,7 +2042,8 @@ const CalendarModule = (function() {
         loadFromStorage: loadFromStorage,
         saveToStorage: saveToStorage,
         generateEmpty: generateEmptyCalendar,
-        parseExcel: parseCalendarFromExcel
+        parseExcel: parseCalendarFromExcel,
+		getAvailableMenuOptions: getAvailableMenuOptions  // <-- ЭТОЙ СТРОКИ НЕ ХВАТАЕТ
     };
 
 })();
