@@ -15,6 +15,7 @@
 	<!-- Подключение модуля ежедневного меню -->
 	<script src="daily-menu-module.js"></script>
 	<script src="kp.js"></script>	
+	<script src="utils.js"></script>		
 	<script src="analytics-module.js"></script>
 	<script>
 		// Проверяем, что модуль загрузился
@@ -5904,6 +5905,12 @@
 									  currentTemplateData.weeks[item.week][item.day][item.meal]) ? 
 									  currentTemplateData.weeks[item.week][item.day][item.meal].items : [];
 
+					// ===== ПРИМЕНЯЕМ ОКРУГЛЕНИЕ ПРИ ОТОБРАЖЕНИИ =====
+					const roundedCalories = RoundingModule.roundCalories(item.calories);
+					const roundedProteins = RoundingModule.roundNutrient(item.proteins);
+					const roundedFats = RoundingModule.roundNutrient(item.fats);
+					const roundedCarbs = RoundingModule.roundNutrient(item.carbs);
+
 					html += `<tr data-week="${item.week}" data-day="${item.day}" data-meal="${item.meal}">`;
 
 					if (firstRow) {
@@ -6381,6 +6388,11 @@
 					};
 				}
 			}
+			
+			// ===== ПРИМЕНЯЕМ ОКРУГЛЕНИЕ К ДЕМО-ДАННЫМ =====
+			const roundedData = RoundingModule.applyRoundingToMenu(currentTemplateData);
+			currentTemplateData = roundedData;
+			originalTemplateData = JSON.parse(JSON.stringify(roundedData));			
 			
 			flatItems = buildFlatFromTemplate(currentTemplateData);
 			originalTemplateData = JSON.parse(JSON.stringify(currentTemplateData));
@@ -7868,10 +7880,11 @@
 									if (hasName) {
 										worksheet.getCell(`E${currentRow}`).value = item.name;
 										worksheet.getCell(`F${currentRow}`).value = item.weight || 0;
-										worksheet.getCell(`G${currentRow}`).value = item.proteins || 0;
-										worksheet.getCell(`H${currentRow}`).value = item.fats || 0;
-										worksheet.getCell(`I${currentRow}`).value = item.carbs || 0;
-										worksheet.getCell(`J${currentRow}`).value = item.calories || 0;
+										// ===== ПРИМЕНЯЕМ ОКРУГЛЕНИЕ ПРИ ЭКСПОРТЕ =====
+										worksheet.getCell(`G${currentRow}`).value = RoundingModule.roundNutrient(item.proteins || 0);
+										worksheet.getCell(`H${currentRow}`).value = RoundingModule.roundNutrient(item.fats || 0);
+										worksheet.getCell(`I${currentRow}`).value = RoundingModule.roundNutrient(item.carbs || 0);
+										worksheet.getCell(`J${currentRow}`).value = RoundingModule.roundCalories(item.calories || 0);
 										worksheet.getCell(`K${currentRow}`).value = item.recipeId || '';
 										worksheet.getCell(`L${currentRow}`).value = item.price || 0;
 									}
@@ -8419,21 +8432,23 @@
 					const result = parseRealTemplateFile(wb);
 					
 					if (result.template && result.template.weeks && Object.keys(result.template.weeks).length > 0) {
-						currentTemplateData = result.template;
-						originalTemplateData = JSON.parse(JSON.stringify(result.template));
+						// ===== ПРИМЕНЯЕМ ОКРУГЛЕНИЕ К ЗАГРУЖЕННЫМ ДАННЫМ =====
+						const roundedTemplate = RoundingModule.applyRoundingToMenu(result.template);
+						currentTemplateData = roundedTemplate;
+						originalTemplateData = JSON.parse(JSON.stringify(roundedTemplate));
 						
 						schoolInfo = result.schoolInfo;
 						updateSchoolInfoUI();
 						localStorage.setItem('schoolInfo', JSON.stringify(schoolInfo));
 						
-						historyStack = [JSON.parse(JSON.stringify(result.template))];
+						historyStack = [JSON.parse(JSON.stringify(roundedTemplate))];
 						historyIndex = 0;
 						flatItems = buildFlatFromTemplate(currentTemplateData);
 						renderEditor();
 						addAddMealButtonToUI();
 						addTotalPriceButton();
 						
-						// ✅ ДОБАВЬТЕ ЭТИ СТРОКИ:
+						// Обновляем глобальные переменные
 						window.templateMenuData = currentTemplateData;
 						window.schoolInfo = schoolInfo;
 						if (typeof AnalyticsModule !== 'undefined' && AnalyticsModule.reload) {
@@ -11014,6 +11029,12 @@
 			
 			// Создаём новую структуру
 			const newTemplate = { weeks: {} };
+			
+			// ===== ПРИМЕНЯЕМ ОКРУГЛЕНИЕ К СОЗДАННОМУ МЕНЮ =====
+			const roundedData = RoundingModule.applyRoundingToMenu(currentTemplateData);
+			currentTemplateData = roundedData;
+			originalTemplateData = JSON.parse(JSON.stringify(roundedData));
+						
 			
 			for (let week = 1; week <= weeksCount; week++) {
 				newTemplate.weeks[week] = {};
@@ -15716,6 +15737,150 @@
 
 	console.log('✅ Система принудительной синхронизации запущена');	
 	
+	// ============================================================
+	// ПОСТОЯННОЕ ИСПРАВЛЕНИЕ СИНХРОНИЗАЦИИ ДЛЯ ЕЖЕДНЕВНОГО МЕНЮ
+	// ============================================================
+
+	(function ensureDailyMenuSync() {
+		console.log('🔧 Установка постоянной синхронизации DailyMenuModule...');
+		
+		// Функция принудительной синхронизации
+		window.forceSyncDailyMenu = function() {
+			console.log('🔄 forceSyncDailyMenu() вызван');
+			
+			if (!window.DailyMenuModule) {
+				console.error('❌ DailyMenuModule не загружен');
+				return false;
+			}
+			
+			const module = window.DailyMenuModule;
+			let state = null;
+			
+			try {
+				state = module.getState();
+			} catch(e) {
+				console.warn('⚠️ Ошибка получения состояния:', e);
+			}
+			
+			// Если состояния нет — создаём
+			if (!state) {
+				console.log('🔄 Состояние отсутствует, создаём...');
+				const newState = {
+					templateMenuData: currentTemplateData,
+					schoolInfo: schoolInfo,
+					selectedMenuNumber: 1,
+					isEditMode: false,
+					dailyMenuData: null,
+					dailyMenuItems: [],
+					dailyViolations: [],
+					savedVariants: []
+				};
+				
+				// Подменяем getState
+				const origGetState = module.getState;
+				module.getState = function() {
+					return newState;
+				};
+				module._state = newState;
+				state = newState;
+				console.log('✅ Состояние создано');
+			}
+			
+			// Обновляем данные
+			state.templateMenuData = currentTemplateData || window.templateMenuData;
+			state.schoolInfo = schoolInfo || window.schoolInfo;
+			
+			// Показываем контент
+			const placeholder = document.getElementById('dailyMenuPlaceholder');
+			const content = document.getElementById('dailyMenuContent');
+			if (placeholder) placeholder.style.display = 'none';
+			if (content) content.style.display = 'block';
+			
+			// Обновляем UI
+			try {
+				if (module.updateMenuSelectorUI) module.updateMenuSelectorUI();
+			} catch(e) {}
+			
+			// Загружаем меню
+			try {
+				const menuNum = state.selectedMenuNumber || 1;
+				if (module.loadDailyMenu) {
+					module.loadDailyMenu(menuNum);
+				}
+			} catch(e) {}
+			
+			// Обновляем статус
+			try {
+				if (module.updateStatusBarMenu) module.updateStatusBarMenu();
+			} catch(e) {}
+			
+			console.log('✅ Синхронизация завершена');
+			return true;
+		};
+		
+		// Запускаем синхронизацию при загрузке
+		if (document.readyState === 'complete' || document.readyState === 'interactive') {
+			setTimeout(window.forceSyncDailyMenu, 300);
+		} else {
+			document.addEventListener('DOMContentLoaded', function() {
+				setTimeout(window.forceSyncDailyMenu, 300);
+			});
+		}
+		
+		// Перехватываем переключение вкладок
+		const origSwitchTab = window.switchTab;
+		if (origSwitchTab) {
+			window.switchTab = function(tabId) {
+				origSwitchTab(tabId);
+				if (tabId === 'tabDaily') {
+					setTimeout(window.forceSyncDailyMenu, 400);
+				}
+			};
+		}
+		
+		// Перехватываем renderEditor
+		const origRenderEditor = window.renderEditor;
+		if (origRenderEditor) {
+			window.renderEditor = function() {
+				origRenderEditor();
+				// Если активна вкладка ежедневного меню — синхронизируем
+				const dailyTab = document.getElementById('tabDaily');
+				if (dailyTab && dailyTab.style.display !== 'none') {
+					setTimeout(window.forceSyncDailyMenu, 300);
+				}
+			};
+		}
+		
+		// Добавляем кнопку синхронизации в панель действий (если её нет)
+		setTimeout(function() {
+			const actionsGrid = document.querySelector('.actions-grid-premium');
+			if (actionsGrid && !document.getElementById('manualSyncBtn')) {
+				const syncBtn = document.createElement('button');
+				syncBtn.id = 'manualSyncBtn';
+				syncBtn.className = 'action-btn warning';
+				syncBtn.innerHTML = '<i class="fas fa-sync-alt"></i> <span>Синхронизировать</span>';
+				syncBtn.title = 'Принудительная синхронизация данных ежедневного меню';
+				syncBtn.addEventListener('click', function() {
+					window.forceSyncDailyMenu();
+					if (typeof showStatus === 'function') {
+						showStatus('🔄 Данные синхронизированы', 'success');
+					}
+				});
+				
+				const resetBtn = document.getElementById('resetToOriginalBtn');
+				if (resetBtn) {
+					actionsGrid.insertBefore(syncBtn, resetBtn);
+				} else {
+					actionsGrid.appendChild(syncBtn);
+				}
+				console.log('✅ Кнопка "Синхронизировать" добавлена');
+			}
+		}, 1000);
+		
+		console.log('✅ Постоянная синхронизация настроена!');
+	})();	
+	
+	
 	</script>
 
 
@@ -15754,6 +15919,8 @@
 			50% { opacity: 0.5; }
 		}
 	</style>
+
+
 
 </body>
 </html>

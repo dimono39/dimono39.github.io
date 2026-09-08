@@ -474,6 +474,18 @@ const DailyMenuModule = (function() {
 			dinner: JSON.parse(JSON.stringify(dayData.dinner || { items: [] })),
 			dinner2: JSON.parse(JSON.stringify(dayData.dinner2 || { items: [] }))
 		};
+		
+		// ===== ПРИМЕНЯЕМ ОКРУГЛЕНИЕ К ДАННЫМ ЕЖЕДНЕВНОГО МЕНЮ =====
+		// Преобразуем в структуру, понятную модулю округления
+		const tempWrapper = {
+			weeks: {
+				1: {
+					1: state.dailyMenuData
+				}
+			}
+		};
+		const roundedWrapper = RoundingModule.applyRoundingToMenu(tempWrapper);
+		state.dailyMenuData = roundedWrapper.weeks[1][1];		
 
 		for (const mealType in state.dailyMenuData) {
 			if (state.dailyMenuData[mealType] && state.dailyMenuData[mealType].items) {
@@ -552,7 +564,12 @@ const DailyMenuModule = (function() {
 
                     const violation = state.dailyViolations.find(v => v.meal === mealType && v.itemIndex === idx && v.code === 15);
                     const hasError = !!violation;
-
+					
+					// ===== ПРИМЕНЯЕМ ОКРУГЛЕНИЕ ПРИ ОТОБРАЖЕНИИ =====
+					const roundedCalories = RoundingModule.roundCalories(item.calories);
+					const roundedWeight = RoundingModule.roundNutrient(item.weight);
+         
+		 
                     html += `
                         <div style="display: flex; justify-content: space-between; align-items: center; padding: 4px 8px; background: white; border-radius: 8px; border: 1px solid ${hasError ? '#ef4444' : '#e2e8f0'}; font-size: 0.85rem; transition: all 0.2s;">
                             <span style="flex: 1;">
@@ -993,108 +1010,121 @@ const DailyMenuModule = (function() {
         return workbook;
     }
 
-    function createExcelDataStructure(menu) {
-        const data = [];
-        const schoolName = menu.schoolName || '';
-        const date = menu.date || new Date();
-        const dayStr = String(date.getDate()).padStart(2, '0');
-        const monthStr = String(date.getMonth() + 1).padStart(2, '0');
-        const yearStr = date.getFullYear();
+	function createExcelDataStructure(menu) {
+		const data = [];
+		const schoolName = menu.schoolName || '';
+		const date = menu.date || new Date();
+		const dayStr = String(date.getDate()).padStart(2, '0');
+		const monthStr = String(date.getMonth() + 1).padStart(2, '0');
+		const yearStr = date.getFullYear();
 
-        data.push(["Школа", schoolName, "", "", "Отд./корп", "", "", "", "День", `${dayStr}.${monthStr}.${yearStr}`]);
-        data.push(["", "", "", "", "", "", "", "", "", ""]);
-        data.push(["Прием пищи", "Раздел", "№ рец.", "Блюдо", "Выход, г", "Цена", "Калорийность", "Белки", "Жиры", "Углеводы"]);
+		data.push(["Школа", schoolName, "", "", "Отд./корп", "", "", "", "День", `${dayStr}.${monthStr}.${yearStr}`]);
+		data.push(["", "", "", "", "", "", "", "", "", ""]);
+		data.push(["Прием пищи", "Раздел", "№ рец.", "Блюдо", "Выход, г", "Цена", "Калорийность", "Белки", "Жиры", "Углеводы"]);
 
-        const addMeal = (mealName, mealType, items, alwaysShow = false) => {
-            const mealItems = items || [];
-            const realItems = mealItems.filter(item => {
-                const name = item.name || '';
-                return name && name.trim() !== '' && !name.trim().startsWith('[');
-            });
+		const addMeal = (mealName, mealType, items, alwaysShow = false) => {
+			const mealItems = items || [];
+			const realItems = mealItems.filter(item => {
+				const name = item.name || '';
+				return name && name.trim() !== '' && !name.trim().startsWith('[');
+			});
 
-            const hasRealItems = realItems.length > 0;
-            if (!hasRealItems && !alwaysShow) return;
+			const hasRealItems = realItems.length > 0;
+			if (!hasRealItems && !alwaysShow) return;
 
-            const structure = MEAL_STRUCTURE[mealType] || { sections: [] };
-            const itemsBySection = new Map();
+			const structure = MEAL_STRUCTURE[mealType] || { sections: [] };
+			const itemsBySection = new Map();
 
-            for (const item of realItems) {
-                const section = normalizeSectionName(item.section || '');
-                if (!itemsBySection.has(section)) itemsBySection.set(section, []);
-                itemsBySection.get(section).push(item);
-            }
+			for (const item of realItems) {
+				const section = normalizeSectionName(item.section || '');
+				if (!itemsBySection.has(section)) itemsBySection.set(section, []);
+				itemsBySection.get(section).push(item);
+			}
 
-            let isFirstItem = true;
+			// ===== ОБЪЯВЛЯЕМ ПЕРЕМЕННУЮ ЗДЕСЬ =====
+			let isFirstItem = true;
 
-            for (const section of structure.sections || []) {
-                const sectionItems = itemsBySection.get(section) || [];
-                if (sectionItems.length > 0) {
-                    for (const item of sectionItems) {
-                        data.push([
-                            isFirstItem ? mealName : "",
-                            item.originalSection || item.section || "",
-                            item.recipeId || "",
-                            item.name || "",
-                            item.weight || "",
-                            item.price || "",
-                            item.calories || "",
-                            item.proteins || "",
-                            item.fats || "",
-                            item.carbs || ""
-                        ]);
-                        isFirstItem = false;
-                    }
-                } else if (alwaysShow) {
-                    data.push([
-                        isFirstItem ? mealName : "",
-                        section,
-                        "",
-                        "",
-                        "",
-                        "",
-                        "",
-                        "",
-                        "",
-                        ""
-                    ]);
-                    isFirstItem = false;
-                }
-            }
+			// Обрабатываем стандартные разделы
+			for (const section of structure.sections || []) {
+				const sectionItems = itemsBySection.get(section) || [];
+				if (sectionItems.length > 0) {
+					for (const item of sectionItems) {
+						const roundedCalories = RoundingModule.roundCalories(item.calories || 0);
+						const roundedProteins = RoundingModule.roundNutrient(item.proteins || 0);
+						const roundedFats = RoundingModule.roundNutrient(item.fats || 0);
+						const roundedCarbs = RoundingModule.roundNutrient(item.carbs || 0);
+						
+						data.push([
+							isFirstItem ? mealName : "",
+							item.originalSection || item.section || "",
+							item.recipeId || "",
+							item.name || "",
+							item.weight || "",
+							item.price || "",
+							roundedCalories,
+							roundedProteins,
+							roundedFats,
+							roundedCarbs
+						]);
+						isFirstItem = false;
+					}
+				} else if (alwaysShow) {
+					data.push([
+						isFirstItem ? mealName : "",
+						section,
+						"",
+						"",
+						"",
+						"",
+						"",
+						"",
+						"",
+						""
+					]);
+					isFirstItem = false;
+				}
+			}
 
-            for (const [section, sectionItems] of itemsBySection) {
-                if (!structure.sections?.includes(section)) {
-                    for (const item of sectionItems) {
-                        data.push([
-                            isFirstItem ? mealName : "",
-                            item.originalSection || item.section || "",
-                            item.recipeId || "",
-                            item.name || "",
-                            item.weight || "",
-                            item.price || "",
-                            item.calories || "",
-                            item.proteins || "",
-                            item.fats || "",
-                            item.carbs || ""
-                        ]);
-                        isFirstItem = false;
-                    }
-                }
-            }
+			// Обрабатываем дополнительные разделы
+			for (const [section, sectionItems] of itemsBySection) {
+				if (structure.sections?.includes(section)) continue;
+				for (const item of sectionItems) {
+					const roundedCalories = RoundingModule.roundCalories(item.calories || 0);
+					const roundedProteins = RoundingModule.roundNutrient(item.proteins || 0);
+					const roundedFats = RoundingModule.roundNutrient(item.fats || 0);
+					const roundedCarbs = RoundingModule.roundNutrient(item.carbs || 0);
+					
+					data.push([
+						isFirstItem ? mealName : "",
+						item.originalSection || item.section || "",
+						item.recipeId || "",
+						item.name || "",
+						item.weight || "",
+						item.price || "",
+						roundedCalories,
+						roundedProteins,
+						roundedFats,
+						roundedCarbs
+					]);
+					isFirstItem = false;
+				}
+			}
 
-            if (!isFirstItem) {
-                data.push(["", "", "", "", "", "", "", "", "", ""]);
-            }
-        };
+			// Пустая строка после приёма пищи
+			if (!isFirstItem) {
+				data.push(["", "", "", "", "", "", "", "", "", ""]);
+			}
+		};
 
-        addMeal('Завтрак', 'breakfast', menu.breakfast?.items || [], true);
-        addMeal('Завтрак 2', 'breakfast2', menu.breakfast2?.items || [], true);
-        addMeal('Обед', 'lunch', menu.lunch?.items || [], true);
-        addMeal('Полдник', 'afternoonSnack', menu.afternoonSnack?.items || [], false);
-        addMeal('Ужин', 'dinner', menu.dinner?.items || [], false);
-        addMeal('Ужин 2', 'dinner2', menu.dinner2?.items || [], false);
+		addMeal('Завтрак', 'breakfast', menu.breakfast?.items || [], true);
+		addMeal('Завтрак 2', 'breakfast2', menu.breakfast2?.items || [], true);
+		addMeal('Обед', 'lunch', menu.lunch?.items || [], true);
+		addMeal('Полдник', 'afternoonSnack', menu.afternoonSnack?.items || [], false);
+		addMeal('Ужин', 'dinner', menu.dinner?.items || [], false);
+		addMeal('Ужин 2', 'dinner2', menu.dinner2?.items || [], false);
 
-        return data;
-    }
+		return data;
+	}
 
     function hexToArgb(hexColor) {
         if (!hexColor) return 'FFFFFFFF';
@@ -1539,6 +1569,10 @@ const DailyMenuModule = (function() {
 			`;
 			
 			for (const item of visibleItems) {
+				// ===== ПРИМЕНЯЕМ ОКРУГЛЕНИЕ ПРИ ПЕЧАТИ =====
+				const roundedCalories = RoundingModule.roundCalories(item.calories || 0);
+				const roundedWeight = RoundingModule.roundNutrient(item.weight || 0);
+								
 				tableRows += `
 					<tr>
 						<td>${escapeHtml(item.section || '—')}</td>
@@ -2282,3 +2316,5 @@ if (document.readyState === 'loading') {
 } else {
     DailyMenuModule.init();
 }
+
+window.DailyMenuModule = DailyMenuModule;
