@@ -901,11 +901,11 @@ function parseCalendarFromExcel(workbook) {
 					html += `
 						<td style="padding: 4px; border: 1px solid #e2e8f0; text-align: center; cursor: pointer; background: #dcfce7; transition: all 0.2s;"
 							data-month="${month}" data-day="${d}" data-value="${menuNum}"
-							title="Меню #${menuNum} (клик — выбрать, правой клик — открыть в ежедневном меню)"
+							title="Меню #${menuNum} (клик — открыть в ежедневном меню, правой клик — выбрать меню)"
 							onmouseover="this.style.transform='scale(1.05)'; this.style.boxShadow='0 2px 8px rgba(16,185,129,0.3)';"
 							onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='none';"
-							onclick="CalendarModule.openDayModal('${month}', ${d})"
-							oncontextmenu="CalendarModule.openInDailyMenu('${month}', ${d}, ${menuNum})">
+							oncontextmenu="CalendarModule.openDayModal('${month}', ${d})"
+							onclick="CalendarModule.openInDailyMenu('${month}', ${d}, ${menuNum})">
 							<span style="font-weight: 600; color: #16a34a;">${menuNum}</span>
 							<div style="font-size: 0.5rem; color: #16a34a; margin-top: 2px;">🍽️</div>
 						</td>
