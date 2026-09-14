@@ -3812,6 +3812,80 @@
 		.daily-status-bar:hover .status-time {
 			color: #475569;
 		}
+				
+		/* ============================================================
+		   КРАСИВЫЙ БЛОК ВАРИАНТА
+		   ============================================================ */
+
+		/* Все инпуты внутри блока — с плавным фокусом */
+		.variant-name-block input[type="text"] {
+			outline: none;
+			font-family: inherit;
+		}
+
+		.variant-name-block input[type="text"]::placeholder {
+			color: #cbd5e1;
+			font-weight: 400;
+		}
+
+		/* Кнопки в блоке действий */
+		.variant-name-block .actions-group .btn {
+			display: inline-flex;
+			align-items: center;
+			gap: 6px;
+			transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+			position: relative;
+			overflow: hidden;
+		}
+
+		.variant-name-block .actions-group .btn:hover {
+			transform: translateY(-2px);
+		}
+
+		.variant-name-block .actions-group .btn:active {
+			transform: translateY(0);
+		}
+
+		/* При скрытой подписи «Согласовано» — показываем красную рамку */
+		#agreedSignatureBlock.hidden-signature {
+			opacity: 0.5;
+			border-left-color: #dc2626;
+			background: #fef2f2;
+		}
+
+		/* Адаптивность */
+		@media (max-width: 640px) {
+			.variant-name-block {
+				padding: 12px !important;
+				gap: 10px !important;
+			}
+			
+			.variant-name-block > div {
+				padding: 10px 12px !important;
+			}
+			
+			.variant-name-block .actions-group {
+				flex-direction: column;
+			}
+			
+			.variant-name-block .actions-group .btn {
+				width: 100%;
+				justify-content: center;
+			}
+			
+			.variant-name-block .actions-group > div[style*="width: 1px"] {
+				display: none;
+			}
+			
+			/* Инпуты в столбик */
+			#dailyApprovalPosition,
+			#dailyApprovalName,
+			#dailyAgreedPosition,
+			#dailyAgreedName {
+				width: 100% !important;
+				flex: none !important;
+			}
+		}		
 		
     </style>
 </head>
@@ -4701,55 +4775,321 @@
 							<!-- Результат проверки -->
 							<div id="validationResult" class="validation-summary"></div>
 
-							<!-- Название варианта и действия -->
-							<div class="variant-name-block" style="flex-wrap: wrap; gap: 12px;">
-								<div style="display: flex; flex-wrap: wrap; gap: 12px; width: 100%;">
-									<!-- Название -->
-									<div style="display: flex; align-items: center; gap: 8px; flex: 2; min-width: 200px;">
-										<span class="variant-label">
-											<i class="fas fa-file-excel" style="color: #10b981;"></i> Имя файла:
-										</span>
-										<input type="text" id="variantNameInput" placeholder="ГГГГ-ММ-ДД-sm.xlsx" value="" style="flex: 1; min-width: 150px;">
-										<span style="font-size: 0.65rem; color: #94a3b8; white-space: nowrap;">
-											<i class="fas fa-info-circle"></i> .xlsx
-										</span>
+							<!-- ============================================================ -->
+							<!-- НАЗВАНИЕ ВАРИАНТА И ДЕЙСТВИЯ (УЛУЧШЕННАЯ ВЕРСИЯ) -->
+							<!-- ============================================================ -->
+							<div class="variant-name-block" style="
+								display: flex;
+								flex-direction: column;
+								gap: 16px;
+								padding: 20px;
+								background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+								border-radius: 16px;
+								border: 1px solid #e2e8f0;
+								margin-top: 16px;
+							">
+
+								<!-- ===== БЛОК 1: ИМЯ ФАЙЛА ===== -->
+								<div style="
+									display: flex;
+									align-items: center;
+									gap: 12px;
+									padding: 12px 16px;
+									background: white;
+									border-radius: 12px;
+									border: 1px solid #e2e8f0;
+									box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+									transition: all 0.2s ease;
+								" onmouseover="this.style.boxShadow='0 2px 8px rgba(0,0,0,0.06)'" onmouseout="this.style.boxShadow='0 1px 3px rgba(0,0,0,0.02)'">
+
+									<div style="
+										width: 36px; height: 36px;
+										background: linear-gradient(135deg, #10b981, #059669);
+										border-radius: 10px;
+										display: flex; align-items: center; justify-content: center;
+										flex-shrink: 0;
+									">
+										<i class="fas fa-file-excel" style="color: white; font-size: 16px;"></i>
 									</div>
-									
-									<!-- Утверждающий -->
-									<div style="display: flex; align-items: center; gap: 8px; flex: 1; min-width: 180px;">
-										<span class="variant-label">
-											<i class="fas fa-user-tie"></i> Утвердил:
-										</span>
-										<input type="text" id="dailyApprovalPosition" placeholder="Должность" value="Директор" style="flex: 1; min-width: 80px;">
-										<input type="text" id="dailyApprovalName" placeholder="ФИО" value="Иванова И.И." style="flex: 1; min-width: 100px;">
+
+									<div style="flex: 1; min-width: 0;">
+										<label style="
+											display: block;
+											font-size: 0.7rem;
+											color: #94a3b8;
+											font-weight: 600;
+											text-transform: uppercase;
+											letter-spacing: 0.3px;
+											margin-bottom: 4px;
+										">
+											Имя файла
+										</label>
+										<input type="text" id="variantNameInput"
+											   placeholder="ГГГГ-ММ-ДД-sm.xlsx"
+											   value=""
+											   style="
+												   width: 100%;
+												   padding: 6px 10px;
+												   border: 1px solid #e2e8f0;
+												   border-radius: 8px;
+												   font-size: 0.9rem;
+												   background: #f8fafc;
+												   transition: all 0.2s ease;
+												   color: #0f172a;
+												   font-weight: 500;
+											   "
+											   onfocus="this.style.borderColor='#10b981'; this.style.background='white'; this.style.boxShadow='0 0 0 3px rgba(16,185,129,0.1)'"
+											   onblur="this.style.borderColor='#e2e8f0'; this.style.background='#f8fafc'; this.style.boxShadow='none'">
 									</div>
-									
+
+									<span style="
+										font-size: 0.7rem;
+										color: #94a3b8;
+										background: #f1f5f9;
+										padding: 4px 10px;
+										border-radius: 20px;
+										white-space: nowrap;
+										font-weight: 500;
+									">
+										.xlsx
+									</span>
+								</div>
+
+								<!-- ===== БЛОК 2: ПОДПИСИ (УТВЕРДИЛ + СОГЛАСОВАНО) ===== -->
+								<div style="
+									display: grid;
+									grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+									gap: 12px;
+								">
+
+									<!-- Утвердил -->
+									<div style="
+										display: flex;
+										align-items: center;
+										gap: 12px;
+										padding: 12px 16px;
+										background: white;
+										border-radius: 12px;
+										border: 1px solid #e2e8f0;
+										border-left: 4px solid #3b82f6;
+										box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+									">
+										<div style="
+											width: 36px; height: 36px;
+											background: linear-gradient(135deg, #3b82f6, #2563eb);
+											border-radius: 10px;
+											display: flex; align-items: center; justify-content: center;
+											flex-shrink: 0;
+										">
+											<i class="fas fa-user-tie" style="color: white; font-size: 15px;"></i>
+										</div>
+
+										<div style="flex: 1; min-width: 0;">
+											<label style="
+												display: block;
+												font-size: 0.7rem;
+												color: #94a3b8;
+												font-weight: 600;
+												text-transform: uppercase;
+												letter-spacing: 0.3px;
+												margin-bottom: 4px;
+											">
+												Утвердил
+											</label>
+											<div style="display: flex; gap: 6px;">
+												<input type="text" id="dailyApprovalPosition"
+													   placeholder="Должность"
+													   value="Директор"
+													   style="
+														   flex: 1;
+														   min-width: 0;
+														   padding: 6px 10px;
+														   border: 1px solid #e2e8f0;
+														   border-radius: 8px;
+														   font-size: 0.8rem;
+														   background: #f8fafc;
+														   color: #0f172a;
+														   transition: all 0.2s ease;
+													   "
+													   onfocus="this.style.borderColor='#3b82f6'; this.style.background='white'"
+													   onblur="this.style.borderColor='#e2e8f0'; this.style.background='#f8fafc'">
+												<input type="text" id="dailyApprovalName"
+													   placeholder="ФИО"
+													   value="Иванова И.И."
+													   style="
+														   flex: 1.2;
+														   min-width: 0;
+														   padding: 6px 10px;
+														   border: 1px solid #e2e8f0;
+														   border-radius: 8px;
+														   font-size: 0.8rem;
+														   background: #f8fafc;
+														   color: #0f172a;
+														   font-weight: 500;
+														   transition: all 0.2s ease;
+													   "
+													   onfocus="this.style.borderColor='#3b82f6'; this.style.background='white'"
+													   onblur="this.style.borderColor='#e2e8f0'; this.style.background='#f8fafc'">
+											</div>
+										</div>
+									</div>
+
 									<!-- Согласовано -->
-									<div style="display: flex; align-items: center; gap: 8px; flex: 1; min-width: 180px;">
-										<span class="variant-label">
-											<i class="fas fa-handshake"></i> Согласовано:
-										</span>
-										<input type="text" id="dailyAgreedPosition" placeholder="Должность" value="Диетсестра" style="flex: 1; min-width: 80px;">
-										<input type="text" id="dailyAgreedName" placeholder="ФИО" value="____________________" style="flex: 1; min-width: 100px;">
+									<div id="agreedSignatureBlock" style="
+										display: flex;
+										align-items: center;
+										gap: 12px;
+										padding: 12px 16px;
+										background: white;
+										border-radius: 12px;
+										border: 1px solid #e2e8f0;
+										border-left: 4px solid #10b981;
+										box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+										transition: all 0.3s ease;
+									">
+										<div style="
+											width: 36px; height: 36px;
+											background: linear-gradient(135deg, #10b981, #059669);
+											border-radius: 10px;
+											display: flex; align-items: center; justify-content: center;
+											flex-shrink: 0;
+										">
+											<i class="fas fa-handshake" style="color: white; font-size: 15px;"></i>
+										</div>
+
+										<div style="flex: 1; min-width: 0;">
+											<div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+												<label style="
+													font-size: 0.7rem;
+													color: #94a3b8;
+													font-weight: 600;
+													text-transform: uppercase;
+													letter-spacing: 0.3px;
+												">
+													Согласовано
+												</label>
+												<!-- Инлайн-галочка -->
+												<label style="
+													display: inline-flex;
+													align-items: center;
+													gap: 4px;
+													cursor: pointer;
+													font-size: 0.65rem;
+													color: #94a3b8;
+													margin-left: auto;
+													padding: 2px 8px;
+													background: #f8fafc;
+													border-radius: 12px;
+													transition: all 0.2s ease;
+												"
+												onmouseover="this.style.background='#f1f5f9'"
+												onmouseout="this.style.background='#f8fafc'">
+													<input type="checkbox" id="hideAgreedInPrint"
+														   style="width: 12px; height: 12px; cursor: pointer; margin: 0;">
+													<span>не печатать</span>
+												</label>
+											</div>
+											<div style="display: flex; gap: 6px;">
+												<input type="text" id="dailyAgreedPosition"
+													   placeholder="Должность"
+													   value="Диетсестра"
+													   style="
+														   flex: 1;
+														   min-width: 0;
+														   padding: 6px 10px;
+														   border: 1px solid #e2e8f0;
+														   border-radius: 8px;
+														   font-size: 0.8rem;
+														   background: #f8fafc;
+														   color: #0f172a;
+														   transition: all 0.2s ease;
+													   "
+													   onfocus="this.style.borderColor='#10b981'; this.style.background='white'"
+													   onblur="this.style.borderColor='#e2e8f0'; this.style.background='#f8fafc'">
+												<input type="text" id="dailyAgreedName"
+													   placeholder="ФИО"
+													   value="____________________"
+													   style="
+														   flex: 1.2;
+														   min-width: 0;
+														   padding: 6px 10px;
+														   border: 1px solid #e2e8f0;
+														   border-radius: 8px;
+														   font-size: 0.8rem;
+														   background: #f8fafc;
+														   color: #0f172a;
+														   font-weight: 500;
+														   transition: all 0.2s ease;
+													   "
+													   onfocus="this.style.borderColor='#10b981'; this.style.background='white'"
+													   onblur="this.style.borderColor='#e2e8f0'; this.style.background='#f8fafc'">
+											</div>
+										</div>
 									</div>
 								</div>
-								
-								<!-- Кнопки действий -->
-								<div class="actions-group" style="width: 100%; display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-start;">
-									<button id="validateDailyBtn" class="btn btn-warning" style="padding: 6px 16px; font-size: 0.75rem;">
+
+								<!-- ===== БЛОК 3: КНОПКИ ДЕЙСТВИЙ ===== -->
+								<div class="actions-group" style="
+									display: flex;
+									flex-wrap: wrap;
+									gap: 8px;
+									padding-top: 4px;
+									border-top: 1px dashed #e2e8f0;
+									padding-top: 16px;
+								">
+									<!-- Основные действия -->
+									<button id="validateDailyBtn" class="btn btn-warning" style="
+										padding: 8px 18px;
+										font-size: 0.78rem;
+										font-weight: 600;
+										box-shadow: 0 2px 6px rgba(245,158,11,0.2);
+									">
 										<i class="fas fa-check-double"></i> Проверить
 									</button>
-									<button id="saveVariantBtn" class="btn btn-purple" style="padding: 6px 16px; font-size: 0.75rem;">
+
+									<button id="saveVariantBtn" class="btn btn-purple" style="
+										padding: 8px 18px;
+										font-size: 0.78rem;
+										font-weight: 600;
+										box-shadow: 0 2px 6px rgba(139,92,246,0.2);
+									">
 										<i class="fas fa-save"></i> Сохранить
 									</button>
-									<button id="createDailyBtn" class="btn btn-primary" style="padding: 6px 16px; font-size: 0.75rem; background: linear-gradient(135deg, #8b5cf6, #7c3aed);">
-										<i class="fas fa-file-excel"></i> Скачать
+
+									<button id="createDailyBtn" class="btn btn-primary" style="
+										padding: 8px 18px;
+										font-size: 0.78rem;
+										font-weight: 600;
+										background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+										box-shadow: 0 2px 6px rgba(139,92,246,0.3);
+									">
+										<i class="fas fa-file-excel"></i> Скачать Excel
 									</button>
-									<button id="printSettingsBtn" class="btn btn-info" style="padding: 6px 16px; font-size: 0.75rem; background: linear-gradient(135deg, #0891b2, #06b6d4);">
+
+									<!-- Разделитель -->
+									<div style="
+										width: 1px;
+										background: #e2e8f0;
+										margin: 0 4px;
+										align-self: stretch;
+									"></div>
+
+									<!-- Дополнительные действия -->
+									<button id="printSettingsBtn" class="btn btn-info" style="
+										padding: 8px 18px;
+										font-size: 0.78rem;
+										font-weight: 600;
+										background: linear-gradient(135deg, #0891b2, #06b6d4);
+										box-shadow: 0 2px 6px rgba(8,145,178,0.2);
+									">
 										<i class="fas fa-cog"></i> Настройки печати
 									</button>
-									<!-- ✅ НОВАЯ КНОПКА: обновить имя файла -->
-									<button id="updateFileNameBtn" class="btn btn-secondary" style="padding: 6px 16px; font-size: 0.75rem;">
+
+									<button id="updateFileNameBtn" class="btn btn-secondary" style="
+										padding: 8px 18px;
+										font-size: 0.78rem;
+										font-weight: 600;
+									">
 										<i class="fas fa-sync-alt"></i> Обновить имя
 									</button>
 								</div>
@@ -11123,6 +11463,9 @@
 			
 			// ✅ ОБНОВЛЯЕМ ШАПКУ ЕЖЕДНЕВНОГО МЕНЮ
 			updateDailyMenuHeaderInfo();
+			
+			// ✅ СИНХРОНИЗИРУЕМ ПОЛЯ ПОДПИСЕЙ
+			syncSchoolInfoToDailyApprovalInputs();
 		}
 
 		// ✅ НОВАЯ ФУНКЦИЯ: обновление информации в шапке ежедневного меню
@@ -11159,6 +11502,28 @@
 			}
 		}
 
+		// ============================================================
+		// СИНХРОНИЗАЦИЯ ДАННЫХ ШКОЛЫ С ПОЛЯМИ ПОДПИСЕЙ ЕЖЕДНЕВНОГО МЕНЮ
+		// ============================================================
+		function syncSchoolInfoToDailyApprovalInputs() {
+			if (!schoolInfo) return;
+			
+			const approvalPositionInput = document.getElementById('dailyApprovalPosition');
+			const approvalNameInput = document.getElementById('dailyApprovalName');
+			
+			if (approvalPositionInput) {
+				approvalPositionInput.value = schoolInfo.approval?.position || 'Директор';
+			}
+			if (approvalNameInput) {
+				approvalNameInput.value = schoolInfo.approval?.name || '';
+			}
+			
+			console.log('✅ Поля подписей обновлены из schoolInfo:', {
+				position: schoolInfo.approval?.position,
+				name: schoolInfo.approval?.name
+			});
+		}
+
 		function saveSchoolInfo() {
 			const schoolNameInput = document.getElementById('schoolNameInput');
 			const positionInput = document.getElementById('approvalPositionInput');
@@ -11193,12 +11558,40 @@
 			// Сохраняем в localStorage
 			localStorage.setItem('schoolInfo', JSON.stringify(schoolInfo));
 			
+			// ✅ ДОБАВЛЯЕМ: Обновляем глобальную переменную для всех модулей
+			window.schoolInfo = schoolInfo;
+			
+			// ✅ ДОБАВЛЯЕМ: Передаём данные в модуль ежедневного меню
+			if (window.DailyMenuModule) {
+				const dailyState = window.DailyMenuModule.getState?.();
+				if (dailyState) {
+					dailyState.schoolInfo = schoolInfo;
+				}
+				// Если есть метод syncData — используем его
+				if (window.DailyMenuModule.syncData) {
+					window.DailyMenuModule.syncData(currentTemplateData, schoolInfo);
+				}
+			}
+			
+			// ✅ ДОБАВЛЯЕМ: Передаём данные в модуль аналитики
+			if (window.AnalyticsModule) {
+				const analyticsState = window.AnalyticsModule.getState?.();
+				if (analyticsState) {
+					analyticsState.schoolInfo = schoolInfo;
+				}
+			}
+			
+			// ✅ ДОБАВЛЯЕМ: Передаём данные в модуль календаря
+			if (window.CalendarModule) {
+				// Календарь использует schoolInfo из глобальной области
+			}
+			
 			// ✅ ОБНОВЛЯЕМ ШАПКУ ЕЖЕДНЕВНОГО МЕНЮ
 			updateDailyMenuHeaderInfo();
 			
-			// ✅ ОБНОВЛЯЕМ СТАТУСНУЮ СТРОКУ
-			if (typeof updateStatusBar === 'function') {
-				updateStatusBar();
+			// ✅ ОБНОВЛЯЕМ СТАТУСНУЮ СТРОКУ ЕЖЕДНЕВНОГО МЕНЮ
+			if (window.DailyMenuModule && window.DailyMenuModule.updateStatusBarMenu) {
+				window.DailyMenuModule.updateStatusBarMenu();
 			}
 			
 			showStatus('✅ Информация об организации сохранена', 'success');
@@ -11225,8 +11618,14 @@
 				} catch(e) {}
 			}
 			updateSchoolInfoUI();
+			
+			// ✅ ЗАПОЛНЯЕМ ПОЛЯ ПОДПИСЕЙ В ЕЖЕДНЕВНОМ МЕНЮ
+			syncSchoolInfoToDailyApprovalInputs();
+			
+			// ✅ ОБНОВЛЯЕМ ГЛОБАЛЬНУЮ ПЕРЕМЕННУЮ
+			window.schoolInfo = schoolInfo;
 		}
-
+		
 		// ========== АНАЛИЗ СБАЛАНСИРОВАННОСТИ МЕНЮ ==========
 
 		function analyzeMealBalance() {
@@ -12099,6 +12498,9 @@
 				// 1. Ежедневное меню
 				if (tabId === 'tabDaily') {
 					console.log('📅 Переключение на ежедневное меню...');
+    
+					// ✅ СИНХРОНИЗИРУЕМ ПОЛЯ ПОДПИСЕЙ
+					syncSchoolInfoToDailyApprovalInputs();		
 					
 					// Принудительно синхронизируем данные
 					window.templateMenuData = currentTemplateData;
@@ -14114,6 +14516,10 @@
 					<input type="checkbox" id="printShowApproval" checked>
 					<span><i class="fas fa-file-signature"></i> Подписи (утвердил, согласовано)</span>
 				</label>
+				<label style="display: flex; align-items: center; gap: 12px; padding: 8px; cursor: pointer; border-radius: 8px; transition: background 0.2s;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='transparent'">
+					<input type="checkbox" id="printShowAgreed" checked>
+					<span><i class="fas fa-handshake"></i> Печатать подпись «Согласовано» (диетсестра)</span>
+				</label>				
 			</div>
 			
 			<div style="background: #f8fafc; padding: 12px 16px; border-radius: 12px; margin-bottom: 20px;">
@@ -14133,6 +14539,76 @@
 <script>
 
 
+
+	// ============================================================
+	// НАСТРОЙКА ОТОБРАЖЕНИЯ ПОДПИСИ ДИЕТСЕСТРЫ
+	// ============================================================
+	(function initAgreedSignatureSetting() {
+		// Загружаем сохранённое значение
+		const savedValue = localStorage.getItem('showAgreedSignature');
+		const showAgreed = savedValue === null ? true : savedValue === 'true';
+		
+		// Устанавливаем в чекбоксы
+		const printShowAgreed = document.getElementById('printShowAgreed');
+		const showAgreedSignature = document.getElementById('showAgreedSignature');
+		
+		if (printShowAgreed) printShowAgreed.checked = showAgreed;
+		if (showAgreedSignature) showAgreedSignature.checked = showAgreed;
+		
+		// Обработчики
+		function saveSetting(value) {
+			localStorage.setItem('showAgreedSignature', value ? 'true' : 'false');
+			window.showAgreedSignature = value;
+			
+			// Синхронизируем оба чекбокса
+			if (printShowAgreed) printShowAgreed.checked = value;
+			if (showAgreedSignature) showAgreedSignature.checked = value;
+		}
+		
+		printShowAgreed?.addEventListener('change', function() {
+			saveSetting(this.checked);
+		});
+		
+		showAgreedSignature?.addEventListener('change', function() {
+			saveSetting(this.checked);
+		});
+		
+		// Сохраняем в глобальную переменную
+		window.showAgreedSignature = showAgreed;
+		
+		console.log('✅ Настройка подписи диетсестры инициализирована:', showAgreed);
+	})();
+
+
+	// ============================================================
+	// ГАЛОЧКА СКРЫТИЯ ПОДПИСИ ДИЕТСЕСТРЫ (ПРЯМО В ИНТЕРФЕЙСЕ)
+	// ============================================================
+	(function initHideAgreedCheckbox() {
+		const checkbox = document.getElementById('hideAgreedInPrint');
+		if (!checkbox) {
+			setTimeout(initHideAgreedCheckbox, 500);
+			return;
+		}
+		
+		// Загружаем сохранённое значение
+		const saved = localStorage.getItem('showAgreedSignature');
+		const showAgreed = saved === null ? true : saved === 'true';
+		checkbox.checked = !showAgreed; // инвертируем, т.к. галочка «скрыть»
+		
+		checkbox.addEventListener('change', function() {
+			const showAgreed = !this.checked;
+			window.showAgreedSignature = showAgreed;
+			localStorage.setItem('showAgreedSignature', showAgreed ? 'true' : 'false');
+			
+			// Синхронизируем с чекбоксом в настройках печати
+			const printShowAgreed = document.getElementById('printShowAgreed');
+			if (printShowAgreed) printShowAgreed.checked = showAgreed;
+			
+			showStatus(showAgreed ? '✅ Подпись «Согласовано» будет печататься' : '✅ Подпись «Согласовано» скрыта', 'success');
+		});
+		
+		console.log('✅ Галочка скрытия подписи диетсестры инициализирована');
+	})();
 
 
 	// ============================================================
@@ -15516,37 +15992,37 @@
 	// Перехватываем все места, где могут загружаться данные
 
 	// 1. Загрузка файла
-	const originalLoadTemplate = loadTemplateFromFile;
+	const originalLoadTemplate1 = loadTemplateFromFile;
 	if (typeof loadTemplateFromFile === 'function') {
 		loadTemplateFromFile = function(file) {
-			originalLoadTemplate(file);
+			originalLoadTemplate1(file);
 			setTimeout(onDataLoaded, 300);
 		};
 	}
 
 	// 2. Создание демо-данных
-	const originalCreateDemo = createDemoData;
+	const originalCreateDemo1 = createDemoData;
 	if (typeof createDemoData === 'function') {
 		createDemoData = function() {
-			originalCreateDemo();
+			originalCreateDemo1();
 			setTimeout(onDataLoaded, 300);
 		};
 	}
 
 	// 3. Создание типового меню
-	const originalCreateMenu = createMenuStructure;
+	const originalCreateMenu1 = createMenuStructure;
 	if (typeof createMenuStructure === 'function') {
 		createMenuStructure = function(weeksCount, daysPerWeek, selectedMeals) {
-			originalCreateMenu(weeksCount, daysPerWeek, selectedMeals);
+			originalCreateMenu1(weeksCount, daysPerWeek, selectedMeals);
 			setTimeout(onDataLoaded, 300);
 		};
 	}
 
 	// 4. Загрузка из localStorage
-	const originalLoadFromStorage = loadFromStorage;
+	const originalLoadFromStorage1 = loadFromStorage;
 	if (typeof loadFromStorage === 'function') {
 		loadFromStorage = function() {
-			const result = originalLoadFromStorage();
+			const result = originalLoadFromStorage1();
 			setTimeout(onDataLoaded, 300);
 			return result;
 		};
@@ -15878,6 +16354,30 @@
 		}, 1000);
 		
 		console.log('✅ Постоянная синхронизация настроена!');
+	})();	
+	
+	// Визуальное затемнение блока «Согласовано» при скрытии подписи
+	(function initAgreedBlockVisual() {
+		const checkbox = document.getElementById('hideAgreedInPrint');
+		const block = document.getElementById('agreedSignatureBlock');
+		
+		if (!checkbox || !block) return;
+		
+		function updateVisual() {
+			if (checkbox.checked) {
+				block.classList.add('hidden-signature');
+			} else {
+				block.classList.remove('hidden-signature');
+			}
+		}
+		
+		checkbox.addEventListener('change', updateVisual);
+		
+		// Применяем при загрузке
+		const saved = localStorage.getItem('showAgreedSignature');
+		const showAgreed = saved === null ? true : saved === 'true';
+		checkbox.checked = !showAgreed;
+		updateVisual();
 	})();	
 	
 	

@@ -3,13 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>PRO Редактор типового меню ФЦМПО v5.0 + создание ежедневного меню</title>
+    <title>PRO Редактор типового меню ФЦМПО v7.1 + создание ежедневного меню + календарь питания</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
+	<!-- Подключение html2canvas для PDF -->
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+	<!-- Подключение jsPDF для PDF -->
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>	
 	<!-- Подключение модуля ежедневного меню -->
 	<script src="daily-menu-module.js"></script>
+	<script src="kp.js"></script>	
+	<script src="utils.js"></script>		
 	<script src="analytics-module.js"></script>
 	<script>
 		// Проверяем, что модуль загрузился
@@ -21,953 +27,123 @@
 		}
 	</script>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-        }
-
-        body {
-            background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%);
-            min-height: 100vh;
-            padding: 24px;
-            position: relative;
-            overflow-x: hidden;
-        }
-
-        body::before {
-            content: '';
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: radial-gradient(circle at 20% 50%, rgba(16, 185, 129, 0.08) 0%, transparent 50%);
-            pointer-events: none;
-            z-index: 0;
-        }
-
-        body::after {
-            content: '';
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: radial-gradient(circle at 80% 80%, rgba(139, 92, 246, 0.08) 0%, transparent 50%);
-            pointer-events: none;
-            z-index: 0;
-        }
-
-        .container {
-            max-width: 1600px;
-            margin: 0 auto;
-            position: relative;
-            z-index: 1;
-        }
-
-        header {
-            background: linear-gradient(135deg, rgba(5, 150, 105, 0.95), rgba(16, 185, 129, 0.95));
-            backdrop-filter: blur(10px);
-            color: white;
-            padding: 32px 40px;
-            border-radius: 32px;
-            margin-bottom: 28px;
-            position: relative;
-            overflow: hidden;
-            box-shadow: 0 25px 40px -12px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.1);
-            animation: slideDown 0.6s ease-out;
-        }
-
-        @keyframes slideDown {
-            from {
-                opacity: 0;
-                transform: translateY(-30px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        header::before {
-            content: '';
-            position: absolute;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: linear-gradient(45deg, transparent 30%, rgba(255, 255, 255, 0.15) 50%, transparent 70%);
-            animation: shine 8s infinite;
-        }
-
-        @keyframes shine {
-            0% {
-                transform: translateX(-100%) translateY(-100%) rotate(45deg);
-            }
-            100% {
-                transform: translateX(100%) translateY(100%) rotate(45deg);
-            }
-        }
-
-        h1 {
-            font-size: 1.8rem;
-            font-weight: 700;
-            position: relative;
-            z-index: 1;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .subtitle {
-            opacity: 0.9;
-            margin-top: 8px;
-            font-size: 0.9rem;
-            position: relative;
-            z-index: 1;
-        }
-
-        .card {
-            background: rgba(255, 255, 255, 0.98);
-            backdrop-filter: blur(0px);
-            border-radius: 32px;
-            padding: 28px;
-            margin-bottom: 28px;
-            box-shadow: 0 20px 40px -12px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(0, 0, 0, 0.05);
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-            animation: fadeInUp 0.5s ease-out;
-        }
-
-        .card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 24px 48px -12px rgba(0, 0, 0, 0.2);
-        }
-
-        @keyframes fadeInUp {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        .card-title {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            border-bottom: 2px solid #e2e8f0;
-            padding-bottom: 16px;
-            margin-bottom: 24px;
-            color: #0f172a;
-            font-weight: 700;
-            font-size: 1.2rem;
-        }
-
-        .card-title i {
-            font-size: 1.6rem;
-            background: linear-gradient(135deg, #059669, #10b981);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-
-        .btn {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            padding: 10px 20px;
-            border: none;
-            border-radius: 60px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            font-size: 0.85rem;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .btn::before {
-            content: '';
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 0;
-            height: 0;
-            border-radius: 50%;
-            background: rgba(255, 255, 255, 0.3);
-            transform: translate(-50%, -50%);
-            transition: width 0.6s, height 0.6s;
-        }
-
-        .btn:hover::before {
-            width: 300px;
-            height: 300px;
-        }
-
-        .btn-primary {
-            background: linear-gradient(135deg, #059669, #10b981);
-            color: white;
-            box-shadow: 0 4px 12px rgba(5, 150, 105, 0.3);
-        }
-
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(5, 150, 105, 0.4);
-        }
-
-        .btn-success {
-            background: linear-gradient(135deg, #2563eb, #3b82f6);
-            color: white;
-            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
-        }
-
-        .btn-success:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(37, 99, 235, 0.4);
-        }
-
-        .btn-warning {
-            background: linear-gradient(135deg, #d97706, #f59e0b);
-            color: white;
-        }
-
-        .btn-secondary {
-            background: linear-gradient(135deg, #64748b, #94a3b8);
-            color: white;
-        }
-
-        .btn-danger {
-            background: linear-gradient(135deg, #dc2626, #ef4444);
-            color: white;
-        }
-
-        .btn-info {
-            background: linear-gradient(135deg, #0891b2, #06b6d4);
-            color: white;
-        }
-
-        .btn-purple {
-            background: linear-gradient(135deg, #7c3aed, #8b5cf6);
-            color: white;
-        }
-
-        .btn:active {
-            transform: translateY(1px);
-        }
-
-        .buttons-container {
-            display: flex;
-            gap: 12px;
-            flex-wrap: wrap;
-            margin-top: 24px;
-        }
-
-        .file-zone {
-            border: 2px dashed #cbd5e1;
-            border-radius: 24px;
-            padding: 45px;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            background: linear-gradient(135deg, #f8fafc, #f1f5f9);
-            position: relative;
-            overflow: hidden;
-        }
-
-        .file-zone:hover {
-            border-color: #059669;
-            background: linear-gradient(135deg, #f0fdf4, #dcfce7);
-            transform: scale(1.01);
-        }
-
-        .file-zone.drag-over {
-            border-color: #059669;
-            background: #ecfdf5;
-            transform: scale(1.02);
-        }
-
-        .editor-wrapper {
-            overflow-x: auto;
-            border-radius: 20px;
-            border: 1px solid #e2e8f0;
-            background: white;
-            max-height: 65vh;
-            overflow-y: auto;
-            scroll-behavior: smooth;
-        }
-
-        .editor-table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 0.75rem;
-            min-width: 1400px;
-        }
-
-        .editor-table th,
-        .editor-table td {
-            border: 1px solid #e2e8f0;
-            padding: 10px 12px;
-            vertical-align: top;
-            transition: background 0.2s ease;
-        }
-
-        .editor-table th {
-            background: linear-gradient(135deg, #f8fafc, #f1f5f9);
-            font-weight: 700;
-            position: sticky;
-            top: 0;
-            z-index: 20;
-            font-size: 0.7rem;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            color: #475569;
-        }
-
-        .editor-table tr:hover td {
-            background: #faf5ff;
-        }
-
-        .editor-table input,
-        .editor-table select {
-            width: 100%;
-            padding: 6px 10px;
-            border: 1px solid #e2e8f0;
-            border-radius: 12px;
-            font-size: 0.75rem;
-            background: white;
-            transition: all 0.2s ease;
-        }
-
-        .editor-table input:focus,
-        .editor-table select:focus {
-            outline: none;
-            border-color: #10b981;
-            box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
-            transform: scale(1.02);
-        }
-
-        .cell-error {
-            background: linear-gradient(135deg, #fef2f2, #fee2e2) !important;
-            border-left: 3px solid #ef4444 !important;
-        }
-
-        .cell-warning {
-            background: linear-gradient(135deg, #fffbeb, #fef9e6) !important;
-            border-left: 3px solid #f59e0b !important;
-        }
-
-        .cell-duplicate {
-            background: linear-gradient(135deg, #fdf2f8, #fce7f3) !important;
-            border-left: 3px solid #ec4899 !important;
-        }
-
-        .meal-badge {
-            background: #e2e8f0;
-            padding: 3px 8px;
-            border-radius: 20px;
-            font-size: 0.6rem;
-            margin-left: 6px;
-            display: inline-block;
-            font-weight: 600;
-        }
-
-        .meal-badge.warning {
-            background: linear-gradient(135deg, #fee2e2, #fecaca);
-            color: #dc2626;
-        }
-
-        .meal-badge.ok {
-            background: linear-gradient(135deg, #dcfce7, #bbf7d0);
-            color: #16a34a;
-        }
-
-        .stats-panel {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-            gap: 12px;
-            margin-bottom: 24px;
-        }
-
-        .stat-card {
-            background: linear-gradient(135deg, #f8fafc, #f1f5f9);
-            padding: 16px 12px;
-            border-radius: 20px;
-            text-align: center;
-            border-bottom: 3px solid #10b981;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .stat-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(16, 185, 129, 0.1), transparent);
-            transition: left 0.5s;
-        }
-
-        .stat-card:hover::before {
-            left: 100%;
-        }
-
-        .stat-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
-        }
-
-        .stat-number {
-            font-size: 1.8rem;
-            font-weight: 800;
-            background: linear-gradient(135deg, #0f172a, #1e293b);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-
-        .stat-label {
-            font-size: 0.7rem;
-            text-transform: uppercase;
-            color: #64748b;
-            margin-top: 6px;
-            font-weight: 600;
-            letter-spacing: 0.5px;
-        }
-
-        .rules-panel {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            margin-bottom: 24px;
-            padding: 16px;
-            background: linear-gradient(135deg, #f8fafc, #f1f5f9);
-            border-radius: 20px;
-            max-height: 140px;
-            overflow-y: auto;
-        }
-
-        .rule-badge {
-            padding: 6px 14px;
-            border-radius: 30px;
-            font-size: 0.7rem;
-            font-weight: 600;
-            background: white;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            border: 1px solid #e2e8f0;
-        }
-
-        .rule-badge:hover {
-            transform: translateX(4px) scale(1.05);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-        }
-
-        .rule-badge.ok {
-            background: linear-gradient(135deg, #dcfce7, #bbf7d0);
-            color: #16a34a;
-            border-color: #86efac;
-        }
-
-        .rule-badge.warning {
-            background: linear-gradient(135deg, #fef9e6, #fef3c7);
-            color: #d97706;
-            border-color: #fcd34d;
-        }
-
-        .search-bar {
-            display: flex;
-            gap: 12px;
-            margin-bottom: 20px;
-            align-items: center;
-            flex-wrap: wrap;
-        }
-
-        .search-input {
-            flex: 1;
-            padding: 10px 18px;
-            border: 1px solid #e2e8f0;
-            border-radius: 40px;
-            font-size: 0.85rem;
-            transition: all 0.3s ease;
-            background: white;
-        }
-
-        .search-input:focus {
-            outline: none;
-            border-color: #10b981;
-            box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
-        }
-
-        .filter-select {
-            padding: 10px 18px;
-            border: 1px solid #e2e8f0;
-            border-radius: 40px;
-            background: white;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-
-        .status-message {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            padding: 14px 24px;
-            border-radius: 60px;
-            display: none;
-            font-weight: 500;
-            z-index: 10000;
-            animation: slideInRight 0.3s ease-out;
-            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
-        }
-
-        @keyframes slideInRight {
-            from {
-                opacity: 0;
-                transform: translateX(100px);
-            }
-            to {
-                opacity: 1;
-                transform: translateX(0);
-            }
-        }
-
-        .status-success {
-            background: linear-gradient(135deg, #10b981, #059669);
-            color: white;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .status-error {
-            background: linear-gradient(135deg, #ef4444, #dc2626);
-            color: white;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .status-info {
-            background: linear-gradient(135deg, #3b82f6, #2563eb);
-            color: white;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-		
-		.cell-flash input,
-		.cell-flash select {
-			background-color: transparent !important;
+		 /* ============================================================
+		   PRO РЕДАКТОР МЕНЮ v8.0 — PREMIUM UI
+		   Единая дизайн-система: Emerald / Violet / Slate
+		   ============================================================ */
+
+		/* ---------- ДИЗАЙН-ТОКЕНЫ ---------- */
+		:root {
+			/* Цвета — основной */
+			--emerald-50:  #ecfdf5;
+			--emerald-100: #d1fae5;
+			--emerald-500: #10b981;
+			--emerald-600: #059669;
+			--emerald-700: #047857;
+
+			/* Цвета — акцент */
+			--violet-50:  #f5f3ff;
+			--violet-100: #ede9fe;
+			--violet-500: #8b5cf6;
+			--violet-600: #7c3aed;
+
+			/* Цвета — нейтральные */
+			--slate-50:  #f8fafc;
+			--slate-100: #f1f5f9;
+			--slate-200: #e2e8f0;
+			--slate-300: #cbd5e1;
+			--slate-400: #94a3b8;
+			--slate-500: #64748b;
+			--slate-600: #475569;
+			--slate-700: #334155;
+			--slate-800: #1e293b;
+			--slate-900: #0f172a;
+
+			/* Семантические */
+			--info:    #0ea5e9;
+			--warning: #f59e0b;
+			--danger:  #ef4444;
+			--success: #10b981;
+
+			/* Тени */
+			--shadow-xs: 0 1px 2px rgba(15,23,42,0.04);
+			--shadow-sm: 0 2px 8px rgba(15,23,42,0.06);
+			--shadow-md: 0 4px 16px rgba(15,23,42,0.08);
+			--shadow-lg: 0 12px 32px rgba(15,23,42,0.12);
+			--shadow-xl: 0 24px 48px rgba(15,23,42,0.16);
+
+			/* Радиусы */
+			--r-sm: 10px;
+			--r-md: 14px;
+			--r-lg: 20px;
+			--r-xl: 28px;
+			--r-full: 999px;
+
+			/* Анимации */
+			--ease: cubic-bezier(0.4, 0, 0.2, 1);
+			--ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
 		}
 
-		@keyframes cellPulse {
-			0%, 100% { 
-				background-color: transparent;
-				box-shadow: none;
-			}
-			50% { 
-				background-color: #fef08a !important;
-				box-shadow: 0 0 15px rgba(245, 158, 11, 0.6);
-			}
-		}
-		
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.6);
-            backdrop-filter: blur(8px);
-            z-index: 2000;
-            justify-content: center;
-            align-items: center;
-            animation: fadeIn 0.2s ease;
-        }
-
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-            }
-            to {
-                opacity: 1;
-            }
-        }
-
-		.modal-content {
-			background: white;
-			padding: 28px;
-			border-radius: 32px;
-			max-width: 1200px;
-			width: 95%;
-			max-height: 85vh;
-			overflow-y: auto;
-			animation: slideUp 0.3s ease;
+		/* ---------- СБРОС ---------- */
+		* {
+			margin: 0;
+			padding: 0;
+			box-sizing: border-box;
+			font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 		}
 
-		/* Стили для таблицы в отчёте */
-		#reportContent {
-			overflow-x: auto;
+		body {
+			background: 
+				radial-gradient(circle at 15% 0%,  rgba(16,185,129,0.06), transparent 45%),
+				radial-gradient(circle at 85% 100%, rgba(139,92,246,0.06), transparent 45%),
+				linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%);
+			background-attachment: fixed;
+			min-height: 100vh;
+			padding: 24px;
+			color: var(--slate-800);
+			-webkit-font-smoothing: antialiased;
 		}
 
-		.violation-table {
-			width: 100%;
-			min-width: 800px;
-		}
-
-        @keyframes slideUp {
-            from {
-                opacity: 0;
-                transform: translateY(30px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        .auto-save-badge {
-            position: fixed;
-            bottom: 24px;
-            left: 24px;
-            background: rgba(5, 150, 105, 0.95);
-            backdrop-filter: blur(10px);
-            color: white;
-            padding: 8px 16px;
-            border-radius: 40px;
-            font-size: 0.75rem;
-            z-index: 1000;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-            transition: opacity 0.3s ease;
-        }
-
-        .floating-btn {
-            position: fixed;
-            bottom: 24px;
-            right: 24px;
-            width: 52px;
-            height: 52px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #10b981, #059669);
-            color: white;
-            border: none;
-            cursor: pointer;
-            box-shadow: 0 8px 20px rgba(5, 150, 105, 0.4);
-            z-index: 1000;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.2rem;
-            transition: all 0.3s ease;
-        }
-
-        .floating-btn:hover {
-            transform: scale(1.1) translateY(-4px);
-            box-shadow: 0 12px 28px rgba(5, 150, 105, 0.5);
-        }
-
-        .checkbox-col {
-            width: 36px;
-            text-align: center;
-        }
-
-        .item-checkbox,
-        #selectAllCheckbox {
-            width: 18px;
-            height: 18px;
-            cursor: pointer;
-            accent-color: #10b981;
-        }
-
-		@media print {
-			.btn, .floating-btn, .buttons-container, .rules-panel, .stats-panel, 
-			.search-bar, .batch-actions, .auto-save-badge, .file-zone, .modal,
-			header, .card-title .btn, .buttons-container, .floating-btn,
-			.batch-actions, .search-bar, #scrollTopBtn, .status-message {
-				display: none !important;
-			}
-			
-			body {
-				background: white !important;
-				padding: 0 !important;
-				margin: 0 !important;
-			}
-			
-			.container {
-				max-width: 100% !important;
-				margin: 0 !important;
-				padding: 10px !important;
-			}
-			
-			.card {
-				box-shadow: none !important;
-				padding: 0 !important;
-				margin: 0 !important;
-				break-inside: avoid;
-			}
-			
-			.editor-wrapper {
-				overflow: visible !important;
-				max-height: none !important;
-			}
-			
-			.editor-table {
-				width: 100% !important;
-				font-size: 9pt !important;
-				border-collapse: collapse !important;
-			}
-			
-			.editor-table th, .editor-table td {
-				border: 1px solid #000 !important;
-				padding: 4px !important;
-			}
-			
-			.editor-table th {
-				background: #f0f0f0 !important;
-				font-weight: bold !important;
-			}
-			
-			.editor-table input, .editor-table select {
-				border: none !important;
-				background: transparent !important;
-				padding: 0 !important;
-				font-size: 9pt !important;
-				width: auto !important;
-			}
-			
-			.meal-badge {
-				border: 1px solid #ccc !important;
-				background: #f5f5f5 !important;
-				print-color-adjust: exact;
-				-webkit-print-color-adjust: exact;
-			}
-			
-			.stat-card, .rules-panel {
-				print-color-adjust: exact;
-				-webkit-print-color-adjust: exact;
-			}
-			
-			@page {
-				size: A4 landscape;
-				margin: 1.5cm;
-			}
-			
-			body, .container, .card, .editor-wrapper {
-				-webkit-print-color-adjust: exact !important;
-				print-color-adjust: exact !important;
-			}
-		}
-		/* Стили для помощника */
-		.assistant-message {
-			margin-bottom: 16px;
-			padding: 12px 16px;
-			border-radius: 16px;
-			animation: slideInLeft 0.3s ease-out;
-		}
-
-		.assistant-ai {
-			background: linear-gradient(135deg, #f3e8ff, #e9d5ff);
-			border-left: 4px solid #7c3aed;
-		}
-
-		.assistant-user {
-			background: linear-gradient(135deg, #dcfce7, #bbf7d0);
-			border-left: 4px solid #10b981;
-			text-align: right;
-		}
-
-		.assistant-tip {
-			background: linear-gradient(135deg, #fef3c7, #fde68a);
-			border-left: 4px solid #f59e0b;
-		}
-
-		.assistant-warning {
-			background: linear-gradient(135deg, #fee2e2, #fecaca);
-			border-left: 4px solid #ef4444;
-		}
-
-		.assistant-avatar {
-			display: flex;
-			align-items: center;
-			gap: 8px;
-			margin-bottom: 8px;
-			font-weight: 600;
-		}
-
-		.quick-actions {
-			display: flex;
-			flex-wrap: wrap;
-			gap: 8px;
-			margin: 16px 0;
-		}
-
-		.quick-btn {
-			padding: 6px 12px;
-			background: #f1f5f9;
-			border: 1px solid #e2e8f0;
-			border-radius: 20px;
-			font-size: 11px;
-			cursor: pointer;
-			transition: all 0.2s ease;
-		}
-
-		.quick-btn:hover {
-			background: #e2e8f0;
-			transform: translateY(-1px);
-		}
-
-		.field-hint {
-			border-bottom: 1px dashed #10b981;
-			cursor: help;
+		.container {
+			max-width: 1600px;
+			margin: 0 auto;
 			position: relative;
+			z-index: 1;
 		}
 
-		.field-hint:hover {
-			background: #f0fdf4;
-		}
-
-		@keyframes slideInLeft {
-			from {
-				opacity: 0;
-				transform: translateX(-20px);
-			}
-			to {
-				opacity: 1;
-				transform: translateX(0);
-			}
-		}
-
-		.assistant-suggestion {
-			background: #e0f2fe;
-			border-radius: 8px;
-			padding: 10px;
-			margin-top: 10px;
-			font-size: 12px;
-		}
-
-		.suggestion-btn {
-			background: #0284c7;
-			color: white;
-			border: none;
-			padding: 4px 12px;
-			border-radius: 16px;
-			cursor: pointer;
-			margin-top: 8px;
-			font-size: 11px;
-		}
-
-		.suggestion-btn:hover {
-			background: #0369a1;
-		}
-		/* Стили для кнопки добавления приёма пищи */
-		.add-meal-btn {
-			background: linear-gradient(135deg, #0891b2, #06b6d4);
-			color: white;
-			margin-left: auto;
-		}
-
-		.meal-type-badge {
-			display: inline-flex;
-			align-items: center;
-			gap: 6px;
-			padding: 4px 10px;
-			border-radius: 20px;
-			font-size: 11px;
-			font-weight: 600;
-		}
-
-		.meal-type-breakfast { background: #fef3c7; color: #d97706; }
-		.meal-type-breakfast2 { background: #dcfce7; color: #16a34a; }
-		.meal-type-lunch { background: #fee2e2; color: #dc2626; }
-		.meal-type-afternoonSnack { background: #e0f2fe; color: #0284c7; }
-		.meal-type-dinner { background: #f3e8ff; color: #7c3aed; }
-		.meal-type-dinner2 { background: #fce7f3; color: #db2777; }		
-		
-		/* Стили для вкладок */
-		.tab-btn {
-			transition: all 0.2s ease;
-		}
-
-		.tab-btn:hover {
-			background: #f1f5f9;
-		}
-
-		.meal-panel {
-			transition: all 0.3s ease;
-		}
-
-		/* Чекбоксы дней */
-		#dayCheckboxes label, #weekCheckboxes label {
-			display: inline-flex;
-			align-items: center;
-			gap: 6px;
-			padding: 6px 12px;
-			background: #f1f5f9;
-			border-radius: 20px;
-			cursor: pointer;
-			transition: all 0.2s ease;
-			font-size: 13px;
-		}
-
-		#dayCheckboxes label:hover, #weekCheckboxes label:hover {
-			background: #e2e8f0;
-		}
-
-		#dayCheckboxes input, #weekCheckboxes input {
-			width: 16px;
-			height: 16px;
-			cursor: pointer;
-			accent-color: #10b981;
-		}		
-		
-		/* ========== PREMIUM HEADER СТИЛИ ========== */
+		/* ============================================================
+		   HEADER
+		   ============================================================ */
 		.premium-header {
 			background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 25%, #0f172a 50%, #1e1b4b 75%, #0f172a 100%);
 			background-size: 200% 200%;
-			animation: gradientShift 8s ease infinite;
+			animation: gradientShift 12s ease infinite;
 			color: white;
 			padding: 0;
-			border-radius: 32px;
+			border-radius: var(--r-xl);
 			margin-bottom: 28px;
 			position: relative;
 			overflow: hidden;
-			box-shadow: 0 25px 40px -12px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.1);
+			box-shadow: var(--shadow-xl), 0 0 0 1px rgba(255,255,255,0.08);
 		}
 
 		@keyframes gradientShift {
-			0% { background-position: 0% 50%; }
+			0%, 100% { background-position: 0% 50%; }
 			50% { background-position: 100% 50%; }
-			100% { background-position: 0% 50%; }
 		}
 
 		.header-bg-animation {
 			position: absolute;
-			top: 0;
-			left: 0;
-			width: 100%;
-			height: 100%;
+			inset: 0;
 			background: 
-				radial-gradient(circle at 20% 50%, rgba(16, 185, 129, 0.15) 0%, transparent 50%),
-				radial-gradient(circle at 80% 80%, rgba(139, 92, 246, 0.15) 0%, transparent 50%),
-				radial-gradient(circle at 40% 20%, rgba(245, 158, 11, 0.08) 0%, transparent 50%);
-			animation: bgPulse 4s ease-in-out infinite;
+				radial-gradient(circle at 20% 50%, rgba(16,185,129,0.15), transparent 50%),
+				radial-gradient(circle at 80% 80%, rgba(139,92,246,0.15), transparent 50%);
+			animation: bgPulse 6s ease-in-out infinite;
+			pointer-events: none;
 		}
 
 		@keyframes bgPulse {
-			0%, 100% { opacity: 0.5; }
+			0%, 100% { opacity: 0.6; }
 			50% { opacity: 1; }
 		}
 
@@ -996,51 +172,44 @@
 			position: relative;
 			width: 64px;
 			height: 64px;
-			background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(139, 92, 246, 0.2));
-			border-radius: 24px;
+			background: linear-gradient(135deg, rgba(16,185,129,0.25), rgba(139,92,246,0.25));
+			border-radius: var(--r-lg);
 			display: flex;
 			align-items: center;
 			justify-content: center;
 			backdrop-filter: blur(10px);
-			border: 1px solid rgba(255, 255, 255, 0.2);
-			animation: float 3s ease-in-out infinite;
+			border: 1px solid rgba(255,255,255,0.2);
+			animation: float 4s ease-in-out infinite;
 		}
 
 		@keyframes float {
-			0%, 100% { transform: translateY(0px); }
+			0%, 100% { transform: translateY(0); }
 			50% { transform: translateY(-5px); }
 		}
 
 		.logo-icon i {
-			font-size: 32px;
-			color: #10b981;
+			font-size: 30px;
+			color: var(--emerald-500);
 		}
 
 		.logo-pulse {
 			position: absolute;
-			width: 100%;
-			height: 100%;
-			border-radius: 24px;
-			background: radial-gradient(circle, rgba(16, 185, 129, 0.4), transparent);
-			animation: pulseRing 2s ease-out infinite;
+			inset: 0;
+			border-radius: var(--r-lg);
+			background: radial-gradient(circle, rgba(16,185,129,0.4), transparent);
+			animation: pulseRing 2.5s ease-out infinite;
 		}
 
 		@keyframes pulseRing {
-			0% {
-				opacity: 0.5;
-				transform: scale(1);
-			}
-			100% {
-				opacity: 0;
-				transform: scale(1.5);
-			}
+			0% { opacity: 0.5; transform: scale(1); }
+			100% { opacity: 0; transform: scale(1.4); }
 		}
 
 		.logo-text h1 {
 			font-size: 1.6rem;
 			font-weight: 700;
-			margin: 0;
 			line-height: 1.2;
+			margin: 0;
 		}
 
 		.gradient-text {
@@ -1051,16 +220,13 @@
 		}
 
 		.highlight {
-			background: linear-gradient(135deg, #fff, #e2e8f0);
-			-webkit-background-clip: text;
-			-webkit-text-fill-color: transparent;
-			background-clip: text;
+			color: #e2e8f0;
 			margin-left: 6px;
 		}
 
 		.badge-container {
 			display: flex;
-			gap: 10px;
+			gap: 8px;
 			margin-top: 8px;
 			flex-wrap: wrap;
 		}
@@ -1070,38 +236,36 @@
 			align-items: center;
 			gap: 6px;
 			padding: 4px 12px;
-			border-radius: 20px;
+			border-radius: var(--r-full);
 			font-size: 0.7rem;
 			font-weight: 600;
 			backdrop-filter: blur(10px);
 		}
 
 		.badge.premium {
-			background: linear-gradient(135deg, rgba(245, 158, 11, 0.3), rgba(245, 158, 11, 0.1));
-			border: 1px solid rgba(245, 158, 11, 0.5);
+			background: rgba(245,158,11,0.15);
+			border: 1px solid rgba(245,158,11,0.4);
 			color: #fbbf24;
 		}
-
 		.badge.version {
-			background: linear-gradient(135deg, rgba(16, 185, 129, 0.3), rgba(16, 185, 129, 0.1));
-			border: 1px solid rgba(16, 185, 129, 0.5);
+			background: rgba(16,185,129,0.15);
+			border: 1px solid rgba(16,185,129,0.4);
 			color: #34d399;
 		}
-
 		.badge.ai {
-			background: linear-gradient(135deg, rgba(139, 92, 246, 0.3), rgba(139, 92, 246, 0.1));
-			border: 1px solid rgba(139, 92, 246, 0.5);
+			background: rgba(139,92,246,0.15);
+			border: 1px solid rgba(139,92,246,0.4);
 			color: #a78bfa;
 		}
 
 		.stats-row {
 			display: flex;
 			gap: 16px;
-			background: rgba(255, 255, 255, 0.08);
+			background: rgba(255,255,255,0.06);
 			backdrop-filter: blur(10px);
 			padding: 12px 20px;
-			border-radius: 48px;
-			border: 1px solid rgba(255, 255, 255, 0.15);
+			border-radius: var(--r-full);
+			border: 1px solid rgba(255,255,255,0.12);
 		}
 
 		.stat-chip {
@@ -1113,7 +277,7 @@
 
 		.stat-chip i {
 			font-size: 1rem;
-			color: #10b981;
+			color: var(--emerald-500);
 		}
 
 		.stat-chip span {
@@ -1130,11 +294,11 @@
 		.features-grid {
 			display: flex;
 			flex-wrap: wrap;
-			gap: 12px;
+			gap: 10px;
 			margin-bottom: 24px;
 			padding: 16px 0;
-			border-top: 1px solid rgba(255, 255, 255, 0.1);
-			border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+			border-top: 1px solid rgba(255,255,255,0.08);
+			border-bottom: 1px solid rgba(255,255,255,0.08);
 		}
 
 		.feature-item {
@@ -1143,20 +307,20 @@
 			align-items: center;
 			gap: 8px;
 			padding: 6px 14px;
-			background: rgba(255, 255, 255, 0.05);
-			border-radius: 40px;
+			background: rgba(255,255,255,0.05);
+			border-radius: var(--r-full);
 			cursor: pointer;
-			transition: all 0.3s ease;
+			transition: all 0.25s var(--ease);
 		}
 
 		.feature-item:hover {
-			background: rgba(16, 185, 129, 0.2);
+			background: rgba(16,185,129,0.2);
 			transform: translateY(-2px);
 		}
 
 		.feature-icon i {
 			font-size: 0.9rem;
-			color: #10b981;
+			color: var(--emerald-500);
 		}
 
 		.feature-text {
@@ -1169,15 +333,15 @@
 			bottom: 100%;
 			left: 50%;
 			transform: translateX(-50%) translateY(-8px);
-			background: #1e293b;
+			background: var(--slate-800);
 			color: white;
 			padding: 6px 12px;
-			border-radius: 8px;
+			border-radius: var(--r-sm);
 			font-size: 0.7rem;
 			white-space: nowrap;
 			opacity: 0;
 			visibility: hidden;
-			transition: all 0.2s ease;
+			transition: all 0.2s var(--ease);
 			pointer-events: none;
 			z-index: 10;
 		}
@@ -1201,7 +365,7 @@
 			align-items: center;
 			gap: 12px;
 			font-size: 0.8rem;
-			opacity: 0.8;
+			opacity: 0.85;
 			font-style: italic;
 		}
 
@@ -1216,43 +380,109 @@
 			gap: 8px;
 			font-size: 0.7rem;
 			padding: 6px 12px;
-			background: rgba(16, 185, 129, 0.15);
-			border-radius: 20px;
+			background: rgba(16,185,129,0.15);
+			border-radius: var(--r-full);
 			backdrop-filter: blur(10px);
 		}
 
-		.auto-save-indicator i {
+		/* ---------- ПЕРЕКЛЮЧАТЕЛЬ РЕЖИМОВ ---------- */
+		.mode-toggle-wrapper {
+			display: flex;
+			align-items: center;
+			gap: 12px;
+			background: rgba(255,255,255,0.08);
+			padding: 6px 12px 6px 18px;
+			border-radius: var(--r-full);
+			backdrop-filter: blur(10px);
+			border: 1px solid rgba(255,255,255,0.12);
+			margin-top: 12px;
+		}
+
+		.mode-toggle-label {
+			font-size: 0.75rem;
+			font-weight: 500;
+			color: rgba(255,255,255,0.75);
+			white-space: nowrap;
+		}
+
+		.mode-toggle {
+			display: flex;
+			background: rgba(0,0,0,0.3);
+			border-radius: var(--r-full);
+			padding: 3px;
+			gap: 2px;
+		}
+
+		.mode-toggle-btn {
+			padding: 6px 16px;
+			border: none;
+			border-radius: var(--r-full);
+			background: transparent;
+			color: rgba(255,255,255,0.6);
 			font-size: 0.7rem;
+			font-weight: 600;
+			cursor: pointer;
+			transition: all 0.3s var(--ease);
 		}
 
-		@keyframes spin {
-			from { transform: rotate(0deg); }
-			to { transform: rotate(360deg); }
+		.mode-toggle-btn.active {
+			background: white;
+			color: var(--emerald-600);
+			box-shadow: var(--shadow-sm);
 		}
 
-		.fa-spin {
-			animation: spin 1s linear infinite;
-		}		
-		
-		/* ========== PREMIUM КАРТОЧКА РЕДАКТИРОВАНИЯ ========== */
+		.mode-toggle-btn:hover:not(.active) {
+			color: white;
+		}
+
+		/* ============================================================
+		   CARDS
+		   ============================================================ */
+		.card,
 		.premium-card {
-			background: rgba(255, 255, 255, 0.98);
-			backdrop-filter: blur(0px);
-			border-radius: 32px;
-			padding: 0;
-			margin-bottom: 28px;
-			box-shadow: 0 20px 40px -12px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(0, 0, 0, 0.05);
-			overflow: hidden;
-			transition: transform 0.3s ease, box-shadow 0.3s ease;
+			background: rgba(255,255,255,0.98);
+			border-radius: var(--r-xl);
+			padding: 28px;
+			margin-bottom: 24px;
+			box-shadow: var(--shadow-lg), 0 0 0 1px rgba(15,23,42,0.04);
+			animation: fadeInUp 0.5s var(--ease);
 		}
 
+		.premium-card { padding: 0; overflow: hidden; }
+
+		@keyframes fadeInUp {
+			from { opacity: 0; transform: translateY(16px); }
+			to   { opacity: 1; transform: translateY(0); }
+		}
+
+		.card-title {
+			display: flex;
+			align-items: center;
+			gap: 12px;
+			border-bottom: 2px solid var(--slate-100);
+			padding-bottom: 16px;
+			margin-bottom: 24px;
+			color: var(--slate-900);
+			font-weight: 700;
+			font-size: 1.15rem;
+		}
+
+		.card-title i {
+			font-size: 1.4rem;
+			background: linear-gradient(135deg, var(--emerald-600), var(--emerald-500));
+			-webkit-background-clip: text;
+			-webkit-text-fill-color: transparent;
+			background-clip: text;
+		}
+
+		/* Premium header карточки */
 		.card-header-premium {
 			display: flex;
 			justify-content: space-between;
 			align-items: center;
 			padding: 24px 28px;
-			background: linear-gradient(135deg, #f8fafc, #f1f5f9);
-			border-bottom: 1px solid #e2e8f0;
+			background: linear-gradient(135deg, var(--slate-50), var(--slate-100));
+			border-bottom: 1px solid var(--slate-200);
 			flex-wrap: wrap;
 			gap: 16px;
 		}
@@ -1267,15 +497,16 @@
 			position: relative;
 			width: 48px;
 			height: 48px;
-			background: linear-gradient(135deg, #10b981, #059669);
-			border-radius: 16px;
+			background: linear-gradient(135deg, var(--emerald-500), var(--emerald-600));
+			border-radius: var(--r-md);
 			display: flex;
 			align-items: center;
 			justify-content: center;
+			flex-shrink: 0;
 		}
 
 		.card-icon-wrapper i {
-			font-size: 24px;
+			font-size: 22px;
 			color: white;
 			position: relative;
 			z-index: 2;
@@ -1283,11 +514,10 @@
 
 		.card-icon-bg {
 			position: absolute;
-			width: 100%;
-			height: 100%;
-			border-radius: 16px;
+			inset: 0;
+			border-radius: var(--r-md);
 			background: radial-gradient(circle, rgba(255,255,255,0.3), transparent);
-			animation: pulse 2s ease-in-out infinite;
+			animation: pulse 2.5s ease-in-out infinite;
 		}
 
 		@keyframes pulse {
@@ -1296,51 +526,433 @@
 		}
 
 		.card-title-premium {
-			font-size: 1.3rem;
+			font-size: 1.25rem;
 			font-weight: 700;
-			color: #0f172a;
+			color: var(--slate-900);
 			margin: 0;
 		}
 
 		.card-subtitle-premium {
 			font-size: 0.75rem;
-			color: #64748b;
+			color: var(--slate-500);
 			margin: 4px 0 0;
 		}
 
-		.view-toggle {
-			display: flex;
-			background: #e2e8f0;
-			border-radius: 40px;
-			padding: 3px;
-		}
-
-		.view-btn {
-			padding: 6px 16px;
+		/* ============================================================
+		   BUTTONS
+		   ============================================================ */
+		.btn {
+			display: inline-flex;
+			align-items: center;
+			justify-content: center;
+			gap: 8px;
+			padding: 10px 20px;
 			border: none;
-			background: transparent;
-			border-radius: 40px;
-			cursor: pointer;
-			font-size: 0.75rem;
+			border-radius: var(--r-full);
 			font-weight: 600;
-			transition: all 0.2s ease;
+			font-size: 0.85rem;
+			cursor: pointer;
+			transition: all 0.25s var(--ease);
+			position: relative;
+			overflow: hidden;
+			white-space: nowrap;
+			font-family: inherit;
 		}
 
-		.view-btn.active {
+		.btn::before {
+			content: '';
+			position: absolute;
+			inset: 0;
+			background: radial-gradient(circle at center, rgba(255,255,255,0.3), transparent 70%);
+			opacity: 0;
+			transition: opacity 0.4s;
+		}
+
+		.btn:hover::before { opacity: 1; }
+
+		.btn-primary {
+			background: linear-gradient(135deg, var(--emerald-600), var(--emerald-500));
+			color: white;
+			box-shadow: 0 4px 12px rgba(5,150,105,0.25);
+		}
+		.btn-primary:hover {
+			transform: translateY(-2px);
+			box-shadow: 0 8px 20px rgba(5,150,105,0.35);
+		}
+
+		.btn-success {
+			background: linear-gradient(135deg, #2563eb, #3b82f6);
+			color: white;
+			box-shadow: 0 4px 12px rgba(37,99,235,0.25);
+		}
+		.btn-success:hover {
+			transform: translateY(-2px);
+			box-shadow: 0 8px 20px rgba(37,99,235,0.35);
+		}
+
+		.btn-warning {
+			background: linear-gradient(135deg, #d97706, var(--warning));
+			color: white;
+			box-shadow: 0 4px 12px rgba(245,158,11,0.25);
+		}
+		.btn-warning:hover {
+			transform: translateY(-2px);
+			box-shadow: 0 8px 20px rgba(245,158,11,0.35);
+		}
+
+		.btn-secondary {
+			background: linear-gradient(135deg, var(--slate-500), var(--slate-400));
+			color: white;
+			box-shadow: 0 4px 12px rgba(100,116,139,0.2);
+		}
+		.btn-secondary:hover {
+			transform: translateY(-2px);
+			box-shadow: 0 8px 20px rgba(100,116,139,0.3);
+		}
+
+		.btn-danger {
+			background: linear-gradient(135deg, #dc2626, var(--danger));
+			color: white;
+			box-shadow: 0 4px 12px rgba(239,68,68,0.25);
+		}
+		.btn-danger:hover {
+			transform: translateY(-2px);
+			box-shadow: 0 8px 20px rgba(239,68,68,0.35);
+		}
+
+		.btn-info {
+			background: linear-gradient(135deg, #0891b2, var(--info));
+			color: white;
+			box-shadow: 0 4px 12px rgba(14,165,233,0.25);
+		}
+		.btn-info:hover {
+			transform: translateY(-2px);
+			box-shadow: 0 8px 20px rgba(14,165,233,0.35);
+		}
+
+		.btn-purple {
+			background: linear-gradient(135deg, var(--violet-600), var(--violet-500));
+			color: white;
+			box-shadow: 0 4px 12px rgba(139,92,246,0.25);
+		}
+		.btn-purple:hover {
+			transform: translateY(-2px);
+			box-shadow: 0 8px 20px rgba(139,92,246,0.35);
+		}
+
+		.btn:active { transform: translateY(0); }
+
+		/* ============================================================
+		   TABS
+		   ============================================================ */
+		.tab-navigation {
+			display: flex;
+			gap: 4px;
+			background: rgba(255,255,255,0.06);
+			backdrop-filter: blur(10px);
+			border: 1px solid rgba(255,255,255,0.1);
+			border-radius: var(--r-lg);
+			padding: 5px;
+			margin-bottom: 24px;
+			flex-wrap: wrap;
+		}
+
+		.tab-btn {
+			padding: 10px 22px;
+			border: none;
+			border-radius: var(--r-md);
+			background: transparent;
+			font-weight: 600;
+			font-size: 0.85rem;
+			cursor: pointer;
+			transition: all 0.25s var(--ease);
+			color: rgba(255,255,255,0.7);
+			display: inline-flex;
+			align-items: center;
+			gap: 8px;
+		}
+
+		.tab-btn:hover {
+			color: white;
+			background: rgba(255,255,255,0.08);
+		}
+
+		.tab-btn.active {
 			background: white;
-			box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-			color: #059669;
+			color: var(--emerald-600);
+			box-shadow: var(--shadow-md);
 		}
 
-		.view-btn:hover:not(.active) {
-			background: rgba(255,255,255,0.5);
+		/* ============================================================
+		   FILE ZONE
+		   ============================================================ */
+		.file-zone {
+			border: 2px dashed var(--slate-300);
+			border-radius: var(--r-lg);
+			padding: 45px;
+			text-align: center;
+			cursor: pointer;
+			transition: all 0.3s var(--ease);
+			background: linear-gradient(135deg, var(--slate-50), var(--slate-100));
 		}
 
-		/* Поисковая панель */
+		.file-zone:hover {
+			border-color: var(--emerald-500);
+			background: linear-gradient(135deg, var(--emerald-50), #dcfce7);
+			transform: scale(1.01);
+		}
+
+		.file-zone.drag-over {
+			border-color: var(--emerald-500);
+			background: var(--emerald-50);
+			transform: scale(1.02);
+		}
+
+		/* ============================================================
+		   EDITOR TABLE
+		   ============================================================ */
+		.editor-wrapper,
+		.editor-wrapper-premium {
+			overflow-x: auto;
+			background: white;
+			max-height: 65vh;
+			overflow-y: auto;
+			scroll-behavior: smooth;
+			border-radius: var(--r-md);
+		}
+
+		.editor-wrapper { border: 1px solid var(--slate-200); }
+		.editor-wrapper-premium { border: none; }
+
+		.editor-table {
+			width: 100%;
+			border-collapse: collapse;
+			font-size: 0.75rem;
+			min-width: 1400px;
+		}
+
+		.editor-table th {
+			background: linear-gradient(135deg, var(--slate-50), var(--slate-100));
+			padding: 14px 12px;
+			font-weight: 700;
+			font-size: 0.7rem;
+			text-transform: uppercase;
+			letter-spacing: 0.4px;
+			color: var(--slate-600);
+			position: sticky;
+			top: 0;
+			z-index: 20;
+			border-bottom: 2px solid var(--slate-200);
+		}
+
+		.editor-table td {
+			padding: 10px 12px;
+			border-bottom: 1px solid var(--slate-100);
+			transition: background 0.15s var(--ease);
+			vertical-align: top;
+		}
+
+		.editor-table tr:hover td { background: #faf5ff; }
+
+		.editor-table input,
+		.editor-table select {
+			width: 100%;
+			padding: 6px 10px;
+			border: 1px solid var(--slate-200);
+			border-radius: var(--r-sm);
+			font-size: 0.75rem;
+			background: white;
+			transition: all 0.2s var(--ease);
+			font-family: inherit;
+		}
+
+		.editor-table input:focus,
+		.editor-table select:focus {
+			outline: none;
+			border-color: var(--emerald-500);
+			box-shadow: 0 0 0 3px rgba(16,185,129,0.1);
+		}
+
+		.editor-wrapper-premium.compact .editor-table { font-size: 0.7rem; min-width: 1200px; }
+		.editor-wrapper-premium.compact .editor-table th,
+		.editor-wrapper-premium.compact .editor-table td { padding: 6px 8px; }
+
+		/* Ячейки статусов */
+		.cell-error {
+			background: linear-gradient(135deg, #fef2f2, #fee2e2) !important;
+			border-left: 3px solid var(--danger) !important;
+		}
+		.cell-warning {
+			background: linear-gradient(135deg, #fffbeb, #fef3c7) !important;
+			border-left: 3px solid var(--warning) !important;
+		}
+		.cell-duplicate {
+			background: linear-gradient(135deg, #fdf2f8, #fce7f3) !important;
+			border-left: 3px solid #ec4899 !important;
+		}
+
+		.meal-badge {
+			background: var(--slate-200);
+			padding: 3px 8px;
+			border-radius: var(--r-full);
+			font-size: 0.6rem;
+			margin-left: 6px;
+			display: inline-block;
+			font-weight: 600;
+		}
+		.meal-badge.warning {
+			background: linear-gradient(135deg, #fee2e2, #fecaca);
+			color: #dc2626;
+		}
+		.meal-badge.ok {
+			background: linear-gradient(135deg, #dcfce7, #bbf7d0);
+			color: #16a34a;
+		}
+		.meal-price-badge {
+			background: #fef3c7 !important;
+			color: #d97706 !important;
+		}
+
+		/* ============================================================
+		   STATS & RULES
+		   ============================================================ */
+		.stats-grid-premium,
+		.stats-panel {
+			display: grid;
+			grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+			gap: 12px;
+		}
+
+		.stats-grid-premium {
+			padding: 20px 28px;
+			background: var(--slate-50);
+			border-bottom: 1px solid var(--slate-200);
+		}
+
+		.stats-panel { margin-bottom: 24px; }
+
+		.stat-card,
+		.stat-card-premium {
+			background: white;
+			padding: 14px 12px;
+			border-radius: var(--r-md);
+			text-align: center;
+			box-shadow: var(--shadow-xs);
+			cursor: pointer;
+			transition: all 0.25s var(--ease);
+		}
+
+		.stat-card {
+			border-bottom: 3px solid var(--emerald-500);
+		}
+
+		.stat-card:hover,
+		.stat-card-premium:hover {
+			transform: translateY(-3px);
+			box-shadow: var(--shadow-md);
+		}
+
+		.stat-number,
+		.stat-number-premium {
+			font-size: 1.6rem;
+			font-weight: 800;
+			line-height: 1;
+			background: linear-gradient(135deg, var(--slate-900), var(--slate-700));
+			-webkit-background-clip: text;
+			-webkit-text-fill-color: transparent;
+			background-clip: text;
+		}
+
+		.stat-number { font-size: 1.8rem; }
+
+		.stat-label,
+		.stat-label-premium {
+			font-size: 0.65rem;
+			text-transform: uppercase;
+			color: var(--slate-500);
+			margin-top: 6px;
+			font-weight: 600;
+			letter-spacing: 0.4px;
+		}
+
+		/* Rules */
+		.rules-container-premium { border-bottom: 1px solid var(--slate-200); }
+
+		.rules-header {
+			display: flex;
+			align-items: center;
+			gap: 10px;
+			padding: 14px 28px;
+			background: var(--slate-50);
+			cursor: pointer;
+			user-select: none;
+		}
+
+		.rules-header i:first-child { color: var(--emerald-600); }
+		.rules-header span { flex: 1; font-weight: 600; font-size: 0.8rem; color: var(--slate-900); }
+
+		.toggle-rules {
+			background: none;
+			border: none;
+			cursor: pointer;
+			color: var(--slate-500);
+		}
+
+		.rules-panel,
+		.rules-panel-premium {
+			display: flex;
+			flex-wrap: wrap;
+			gap: 10px;
+			padding: 16px 28px;
+			background: white;
+			max-height: 200px;
+			overflow-y: auto;
+		}
+
+		.rules-panel {
+			background: linear-gradient(135deg, var(--slate-50), var(--slate-100));
+			border-radius: var(--r-lg);
+			max-height: 140px;
+			padding: 16px;
+			margin-bottom: 24px;
+		}
+
+		.rules-panel-premium.collapsed { display: none; }
+
+		.rule-badge {
+			padding: 6px 14px;
+			border-radius: var(--r-full);
+			font-size: 0.7rem;
+			font-weight: 600;
+			background: white;
+			cursor: pointer;
+			transition: all 0.25s var(--ease);
+			border: 1px solid var(--slate-200);
+		}
+
+		.rule-badge:hover {
+			transform: translateY(-2px);
+			box-shadow: var(--shadow-sm);
+		}
+
+		.rule-badge.ok {
+			background: linear-gradient(135deg, #dcfce7, #bbf7d0);
+			color: #16a34a;
+			border-color: #86efac;
+		}
+		.rule-badge.warning {
+			background: linear-gradient(135deg, #fef3c7, #fde68a);
+			color: #d97706;
+			border-color: #fcd34d;
+		}
+
+		/* ============================================================
+		   SEARCH / FILTERS
+		   ============================================================ */
 		.search-panel-premium {
 			padding: 20px 28px;
 			background: white;
-			border-bottom: 1px solid #f1f5f9;
+			border-bottom: 1px solid var(--slate-100);
 		}
 
 		.search-fields {
@@ -1349,33 +961,34 @@
 			flex-wrap: wrap;
 		}
 
-		.search-input-wrapper {
-			flex: 2;
-			position: relative;
-		}
+		.search-input-wrapper { flex: 2; position: relative; min-width: 220px; }
 
 		.search-input-wrapper i {
 			position: absolute;
 			left: 14px;
 			top: 50%;
 			transform: translateY(-50%);
-			color: #94a3b8;
+			color: var(--slate-400);
 			font-size: 14px;
+			pointer-events: none;
 		}
 
 		.search-input-premium {
 			width: 100%;
-			padding: 12px 16px 12px 40px;
-			border: 1px solid #e2e8f0;
-			border-radius: 40px;
+			padding: 12px 16px 12px 42px;
+			border: 1px solid var(--slate-200);
+			border-radius: var(--r-full);
 			font-size: 0.85rem;
-			transition: all 0.2s ease;
+			transition: all 0.2s var(--ease);
+			font-family: inherit;
+			background: var(--slate-50);
 		}
 
 		.search-input-premium:focus {
 			outline: none;
-			border-color: #10b981;
-			box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+			border-color: var(--emerald-500);
+			background: white;
+			box-shadow: 0 0 0 3px rgba(16,185,129,0.1);
 		}
 
 		.clear-search {
@@ -1387,37 +1000,41 @@
 			border: none;
 			font-size: 18px;
 			cursor: pointer;
-			color: #94a3b8;
+			color: var(--slate-400);
 		}
 
-		.filter-group {
-			display: flex;
-			gap: 12px;
-			flex-wrap: wrap;
-		}
+		.filter-group { display: flex; gap: 12px; flex-wrap: wrap; }
 
 		.filter-select-premium {
 			padding: 10px 20px;
-			border: 1px solid #e2e8f0;
-			border-radius: 40px;
+			border: 1px solid var(--slate-200);
+			border-radius: var(--r-full);
 			background: white;
 			font-size: 0.8rem;
 			cursor: pointer;
+			font-family: inherit;
+			transition: all 0.2s var(--ease);
+		}
+
+		.filter-select-premium:focus {
+			outline: none;
+			border-color: var(--emerald-500);
 		}
 
 		.btn-filter-clear {
 			padding: 10px 20px;
-			border: 1px solid #e2e8f0;
-			border-radius: 40px;
+			border: 1px solid var(--slate-200);
+			border-radius: var(--r-full);
 			background: white;
 			cursor: pointer;
 			font-size: 0.8rem;
-			transition: all 0.2s ease;
+			transition: all 0.2s var(--ease);
+			font-family: inherit;
 		}
 
 		.btn-filter-clear:hover {
-			background: #f1f5f9;
-			border-color: #cbd5e1;
+			background: var(--slate-50);
+			border-color: var(--slate-300);
 		}
 
 		.active-filters {
@@ -1432,8 +1049,8 @@
 			align-items: center;
 			gap: 6px;
 			padding: 4px 12px;
-			background: #f1f5f9;
-			border-radius: 20px;
+			background: var(--slate-100);
+			border-radius: var(--r-full);
 			font-size: 0.7rem;
 		}
 
@@ -1442,101 +1059,17 @@
 			border: none;
 			cursor: pointer;
 			font-size: 14px;
-			color: #64748b;
+			color: var(--slate-500);
 		}
 
-		/* Статистика */
-		.stats-grid-premium {
-			display: grid;
-			grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
-			gap: 12px;
-			padding: 20px 28px;
-			background: #f8fafc;
-			border-bottom: 1px solid #e2e8f0;
-		}
-
-		.stat-card-premium {
-			background: white;
-			padding: 14px 12px;
-			border-radius: 20px;
-			text-align: center;
-			transition: all 0.3s ease;
-			box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-			cursor: pointer;
-		}
-
-		.stat-card-premium:hover {
-			transform: translateY(-2px);
-			box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-		}
-
-		.stat-number-premium {
-			font-size: 1.6rem;
-			font-weight: 800;
-			line-height: 1;
-		}
-
-		.stat-label-premium {
-			font-size: 0.65rem;
-			text-transform: uppercase;
-			color: #64748b;
-			margin-top: 6px;
-			font-weight: 600;
-		}
-
-		/* Контейнер правил */
-		.rules-container-premium {
-			border-bottom: 1px solid #e2e8f0;
-		}
-
-		.rules-header {
-			display: flex;
-			align-items: center;
-			gap: 10px;
-			padding: 14px 28px;
-			background: #f8fafc;
-			cursor: pointer;
-			user-select: none;
-		}
-
-		.rules-header i:first-child {
-			color: #059669;
-		}
-
-		.rules-header span {
-			flex: 1;
-			font-weight: 600;
-			font-size: 0.8rem;
-			color: #0f172a;
-		}
-
-		.toggle-rules {
-			background: none;
-			border: none;
-			cursor: pointer;
-			color: #64748b;
-		}
-
-		.rules-panel-premium {
-			display: flex;
-			flex-wrap: wrap;
-			gap: 10px;
-			padding: 16px 28px;
-			background: white;
-			max-height: 200px;
-			overflow-y: auto;
-			transition: all 0.3s ease;
-		}
-
-		.rules-panel-premium.collapsed {
-			display: none;
-		}
-
-		/* Панель массовых операций */
+		/* ============================================================
+		   BATCH PANEL
+		   ============================================================ */
 		.batch-panel-premium {
 			background: linear-gradient(135deg, #fef3c7, #fde68a);
 			padding: 16px 28px;
-			border-bottom: 1px solid #e2e8f0;
+			border-bottom: 1px solid var(--slate-200);
+			display: none;
 		}
 
 		.batch-header {
@@ -1549,10 +1082,10 @@
 		}
 
 		.selected-count {
-			background: #f59e0b;
+			background: var(--warning);
 			color: white;
-			padding: 2px 8px;
-			border-radius: 20px;
+			padding: 2px 10px;
+			border-radius: var(--r-full);
 			font-size: 0.7rem;
 		}
 
@@ -1569,76 +1102,57 @@
 			gap: 6px;
 			padding: 8px 16px;
 			border: none;
-			border-radius: 40px;
+			border-radius: var(--r-full);
 			font-size: 0.75rem;
 			font-weight: 600;
 			cursor: pointer;
-			transition: all 0.2s ease;
+			transition: all 0.2s var(--ease);
+			font-family: inherit;
 		}
 
-		.batch-btn.danger {
-			background: #fee2e2;
-			color: #dc2626;
-		}
-
-		.batch-btn.danger:hover {
-			background: #fecaca;
-		}
-
-		.batch-btn.primary {
-			background: #10b981;
-			color: white;
-		}
-
-		.batch-btn.primary:hover {
-			background: #059669;
-		}
-
-		.batch-btn.success {
-			background: #dcfce7;
-			color: #16a34a;
-		}
-
-		.batch-btn.success:hover {
-			background: #bbf7d0;
-		}
+		.batch-btn.danger { background: #fee2e2; color: #dc2626; }
+		.batch-btn.danger:hover { background: #fecaca; }
+		.batch-btn.primary { background: var(--emerald-500); color: white; }
+		.batch-btn.primary:hover { background: var(--emerald-600); }
+		.batch-btn.success { background: #dcfce7; color: #16a34a; }
+		.batch-btn.success:hover { background: #bbf7d0; }
 
 		.batch-select {
 			padding: 8px 16px;
-			border: 1px solid #e2e8f0;
-			border-radius: 40px;
+			border: 1px solid var(--slate-200);
+			border-radius: var(--r-full);
 			font-size: 0.75rem;
 			background: white;
+			font-family: inherit;
 		}
 
-		.batch-multiplier {
-			display: flex;
-			gap: 8px;
-			align-items: center;
-		}
+		.batch-multiplier { display: flex; gap: 8px; align-items: center; }
 
 		.batch-multiplier input {
 			width: 70px;
 			padding: 8px 12px;
-			border: 1px solid #e2e8f0;
-			border-radius: 40px;
+			border: 1px solid var(--slate-200);
+			border-radius: var(--r-full);
 			text-align: center;
+			font-family: inherit;
 		}
 
 		.batch-divider {
 			width: 1px;
 			height: 30px;
-			background: #e2e8f0;
+			background: var(--slate-200);
 		}
 
-		/* Кнопки действий */
+		/* ============================================================
+		   ACTIONS GRID
+		   ============================================================ */
 		.actions-grid-premium {
 			display: flex;
 			flex-wrap: wrap;
 			gap: 8px;
 			padding: 20px 28px;
 			background: white;
-			border-bottom: 1px solid #e2e8f0;
+			border-bottom: 1px solid var(--slate-200);
 		}
 
 		.action-btn {
@@ -1647,293 +1161,186 @@
 			gap: 8px;
 			padding: 8px 16px;
 			border: none;
-			border-radius: 40px;
+			border-radius: var(--r-full);
 			font-size: 0.75rem;
 			font-weight: 600;
 			cursor: pointer;
-			transition: all 0.2s ease;
+			transition: all 0.2s var(--ease);
+			font-family: inherit;
 		}
 
-		.action-btn.primary {
-			background: linear-gradient(135deg, #059669, #10b981);
-			color: white;
-		}
+		.action-btn:hover { transform: translateY(-2px); }
 
-		.action-btn.secondary {
-			background: #f1f5f9;
-			color: #475569;
-		}
-
-		.action-btn.success {
-			background: #dcfce7;
-			color: #16a34a;
-		}
-
-		.action-btn.danger {
-			background: #fee2e2;
-			color: #dc2626;
-		}
-
-		.action-btn.warning {
-			background: #fef3c7;
-			color: #d97706;
-		}
-
-		.action-btn.info {
-			background: #e0f2fe;
-			color: #0284c7;
-		}
-
-		.action-btn.purple {
-			background: #f3e8ff;
-			color: #7c3aed;
-		}
-
-		.action-btn:hover {
-			transform: translateY(-2px);
-		}
+		.action-btn.primary   { background: linear-gradient(135deg, var(--emerald-600), var(--emerald-500)); color: white; }
+		.action-btn.secondary { background: var(--slate-100); color: var(--slate-600); }
+		.action-btn.success   { background: #dcfce7; color: #16a34a; }
+		.action-btn.danger    { background: #fee2e2; color: #dc2626; }
+		.action-btn.warning   { background: #fef3c7; color: #d97706; }
+		.action-btn.info      { background: #e0f2fe; color: #0284c7; }
+		.action-btn.purple    { background: var(--violet-100); color: var(--violet-600); }
 
 		.action-divider {
 			width: 1px;
 			height: 30px;
-			background: #e2e8f0;
+			background: var(--slate-200);
+			margin: 0 4px;
 		}
 
-		/* Редактор таблицы */
-		.editor-wrapper-premium {
-			overflow-x: auto;
-			background: white;
-			max-height: 65vh;
-			overflow-y: auto;
-		}
-
-		/* Пустое состояние */
-		.empty-state {
-			text-align: center;
-			padding: 80px 40px;
-			color: #94a3b8;
-		}
-
-		.empty-state-icon {
-			position: relative;
-			width: 80px;
-			height: 80px;
-			margin: 0 auto 20px;
-			background: #f1f5f9;
-			border-radius: 50%;
-			display: flex;
-			align-items: center;
-			justify-content: center;
-		}
-
-		.empty-state-icon i {
-			font-size: 40px;
-			color: #cbd5e1;
-		}
-
-		.empty-state-pulse {
-			position: absolute;
-			width: 100%;
-			height: 100%;
-			border-radius: 50%;
-			background: radial-gradient(circle, rgba(16,185,129,0.2), transparent);
-			animation: emptyPulse 2s ease-out infinite;
-		}
-
-		@keyframes emptyPulse {
-			0% {
-				transform: scale(1);
-				opacity: 0.5;
-			}
-			100% {
-				transform: scale(1.5);
-				opacity: 0;
-			}
-		}
-
-		.empty-state h3 {
-			margin-bottom: 8px;
-			color: #475569;
-		}
-
-		/* Улучшенная таблица */
-		.editor-table {
-			width: 100%;
-			border-collapse: collapse;
-			font-size: 0.75rem;
-			min-width: 1400px;
-		}
-
-		.editor-table th {
-			background: linear-gradient(135deg, #f8fafc, #f1f5f9);
-			padding: 14px 12px;
-			font-weight: 700;
-			font-size: 0.7rem;
-			text-transform: uppercase;
-			color: #475569;
-			position: sticky;
-			top: 0;
-			z-index: 20;
-			border-bottom: 2px solid #e2e8f0;
-		}
-
-		.editor-table td {
-			padding: 10px 12px;
-			border-bottom: 1px solid #f1f5f9;
-			transition: background 0.2s ease;
-		}
-
-		.editor-table tr:hover td {
-			background: #faf5ff;
-		}
-
-		/* Компактный режим */
-		.editor-wrapper-premium.compact .editor-table {
-			font-size: 0.7rem;
-			min-width: 1200px;
-		}
-
-		.editor-wrapper-premium.compact .editor-table th,
-		.editor-wrapper-premium.compact .editor-table td {
-			padding: 6px 8px;
-		}		
-		
-			/* Стиль для колонки цены */
-			.editor-table td:nth-child(13) input {
-				background: linear-gradient(135deg, #fff, #fffbeb);
-				border-color: #fcd34d;
-			}
-
-			.editor-table td:nth-child(13) input:focus {
-				border-color: #f59e0b;
-				box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.1);
-			}
-
-			/* Итого по цене в строке приёма пищи */
-			.meal-price-badge {
-				display: inline-block;
-				padding: 2px 8px;
-				border-radius: 12px;
-				font-size: 10px;
-				background: #fef3c7;
-				color: #d97706;
-				margin-left: 8px;
-			}		
-		
-		/* Кнопка прокрутки вверх (СПРАВА) */
-		.floating-btn#scrollTopBtn {
-			position: fixed;
-			bottom: 24px;
-			right: 24px;
-			width: 48px;
-			height: 48px;
-			border-radius: 50%;
-			background: linear-gradient(135deg, #10b981, #059669);
-			color: white;
-			border: none;
-			cursor: pointer;
-			box-shadow: 0 8px 20px rgba(5, 150, 105, 0.4);
-			z-index: 1000;
-			display: flex;
-			align-items: center;
-			justify-content: center;
-			font-size: 1.2rem;
-			transition: all 0.3s ease;
-		}
-
-		.floating-btn#scrollTopBtn:hover {
-			transform: scale(1.1) translateY(-4px);
-			box-shadow: 0 12px 28px rgba(5, 150, 105, 0.5);
-		}
-
-		/* Кнопка резервных копий (СЛЕВА) — отдельный стиль, не конфликтует */
-		#backupToggleBtn {
-			position: relative !important;
-			bottom: auto !important;
-			right: auto !important;
-		}		
-		
 		/* ============================================================
-		   СТИЛИ ДЛЯ ВКЛАДКИ "ЕЖЕДНЕВНОЕ МЕНЮ"
+		   MODALS
 		   ============================================================ */
+		.modal {
+			display: none;
+			position: fixed;
+			inset: 0;
+			background: rgba(15,23,42,0.7);
+			backdrop-filter: blur(8px);
+			z-index: 2000;
+			justify-content: center;
+			align-items: center;
+			animation: fadeIn 0.2s var(--ease);
+		}
 
-		/* ---- Контейнеры ---- */
-		.daily-menu-wrapper {
+		@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+		.modal-content {
 			background: white;
-			border-radius: 32px;
+			padding: 28px;
+			border-radius: var(--r-xl);
+			max-width: 1200px;
+			width: 95%;
+			max-height: 85vh;
+			overflow-y: auto;
+			animation: slideUp 0.3s var(--ease);
+		}
+
+		@keyframes slideUp {
+			from { opacity: 0; transform: translateY(24px); }
+			to   { opacity: 1; transform: translateY(0); }
+		}
+
+		/* ============================================================
+		   STATUS / BADGES / VALIDATION
+		   ============================================================ */
+		.status-message {
+			position: fixed;
+			top: 20px;
+			right: 20px;
+			padding: 14px 24px;
+			border-radius: var(--r-full);
+			display: none;
+			font-weight: 500;
+			z-index: 10000;
+			animation: slideInRight 0.3s var(--ease);
+			box-shadow: var(--shadow-lg);
+			align-items: center;
+			gap: 10px;
+			font-size: 0.85rem;
+		}
+
+		@keyframes slideInRight {
+			from { opacity: 0; transform: translateX(100px); }
+			to   { opacity: 1; transform: translateX(0); }
+		}
+
+		.status-success { background: linear-gradient(135deg, var(--emerald-500), var(--emerald-600)); color: white; display: flex; }
+		.status-error   { background: linear-gradient(135deg, #ef4444, #dc2626); color: white; display: flex; }
+		.status-info    { background: linear-gradient(135deg, #3b82f6, #2563eb); color: white; display: flex; }
+
+		.validation-summary {
+			padding: 12px 16px;
+			border-radius: var(--r-md);
+			margin-top: 12px;
+			font-size: 0.85rem;
+			display: none;
+		}
+		.validation-summary.ok      { display: block; background: #dcfce7; color: #16a34a; border: 1px solid #bbf7d0; }
+		.validation-summary.warning { display: block; background: #fef3c7; color: #d97706; border: 1px solid #fde68a; }
+		.validation-summary.error   { display: block; background: #fee2e2; color: #dc2626; border: 1px solid #fecaca; }
+
+		/* ============================================================
+		   DAILY MENU — ЕДИНЫЙ ЧИСТЫЙ БЛОК
+		   ============================================================ */
+		.daily-menu-wrapper {
+			width: 100%;
+			max-width: 100%;
+			background: white;
+			border-radius: var(--r-xl);
 			overflow: hidden;
-			border: 1px solid #e2e8f0;
-			box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+			border: 1px solid var(--slate-200);
+			box-shadow: var(--shadow-md);
 		}
 
 		.daily-menu-header {
-			background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+			background: linear-gradient(135deg, var(--slate-50), var(--slate-100));
 			padding: 24px 28px 16px;
-			border-bottom: 1px solid #e2e8f0;
+			border-bottom: 1px solid var(--slate-200);
+			width: 100%;
+			overflow-x: hidden;
 		}
 
 		.daily-menu-body {
 			padding: 0 28px 24px;
 			background: white;
+			width: 100%;
+			max-width: 100%;
+			overflow: hidden;
 		}
 
-		/* ---- Статусная строка ---- */
+		/* Статусная строка */
 		.daily-status-bar {
 			display: flex;
 			flex-wrap: wrap;
-			gap: 16px 28px;
+			gap: 8px 20px;
 			padding: 10px 18px;
 			background: white;
-			border-radius: 12px;
-			border: 1px solid #e2e8f0;
-			font-size: 0.8rem;
+			border-radius: var(--r-md);
+			border: 1px solid var(--slate-200);
+			font-size: 0.85rem;
 			margin-top: 12px;
-			box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+			box-shadow: var(--shadow-xs);
+			align-items: center;
 		}
 
-		.daily-status-bar .status-item {
+		.status-item {
 			display: flex;
 			align-items: center;
 			gap: 6px;
-			color: #475569;
+			color: var(--slate-600);
 		}
 
-		.daily-status-bar .status-item .label {
-			color: #94a3b8;
+		.status-item .label {
+			color: var(--slate-400);
 			font-weight: 400;
+			font-size: 0.8rem;
 		}
 
-		.daily-status-bar .status-item .value {
+		.status-item .value {
 			font-weight: 600;
-			color: #0f172a;
+			color: var(--slate-900);
+			font-size: 0.9rem;
 		}
 
-		.daily-status-bar .status-item .value.highlight {
-			color: #8b5cf6;
+		.status-item .value.menu-number {
+			font-size: 1.2rem;
+			font-weight: 800;
+			min-width: 24px;
+			color: var(--violet-600);
 		}
 
-		.daily-status-bar .status-item .value.danger {
-			color: #dc2626;
-		}
-
-		.daily-status-bar .status-item .value.warning {
-			color: #f59e0b;
-		}
-
-		.daily-status-bar .status-item .value.success {
-			color: #10b981;
-		}
-
-		.daily-status-bar .status-time {
+		.status-time {
 			margin-left: auto;
 			font-size: 0.7rem;
-			color: #94a3b8;
+			color: var(--slate-400);
+			white-space: nowrap;
 		}
 
-		/* ---- Выбор меню ---- */
+		/* Выбор меню */
 		.menu-selector-wrapper {
 			padding: 16px 0;
-			border-bottom: 1px solid #f1f5f9;
+			border-bottom: 1px solid var(--slate-100);
+			width: 100%;
+			overflow-x: auto;
 		}
 
 		.menu-selector-wrapper .selector-label {
@@ -1941,207 +1348,182 @@
 			display: block;
 			margin-bottom: 10px;
 			font-size: 0.85rem;
-			color: #0f172a;
+			color: var(--slate-900);
 		}
 
 		.menu-selector {
 			display: flex;
 			flex-wrap: wrap;
-			gap: 8px;
+			gap: 6px;
+			width: 100%;
 		}
 
 		.menu-number-btn {
-			position: relative;
-			padding: 10px 16px;
-			border: 2px solid #e2e8f0;
-			border-radius: 14px;
+			flex: 0 0 auto;
+			min-width: 50px;
+			max-width: 70px;
+			padding: 8px 10px;
+			border: 2px solid var(--slate-200);
+			border-radius: var(--r-md);
 			background: white;
 			cursor: pointer;
-			transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+			transition: all 0.25s var(--ease);
 			text-align: center;
-			min-width: 58px;
-			flex: 0 0 auto;
+			box-sizing: border-box;
 		}
 
 		.menu-number-btn:hover {
 			transform: translateY(-2px);
-			box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
-			border-color: #cbd5e1;
+			box-shadow: var(--shadow-sm);
+			border-color: var(--slate-300);
 		}
 
 		.menu-number-btn .num {
-			font-size: 1.2rem;
+			font-size: 1rem;
 			font-weight: 700;
-			color: #0f172a;
-			transition: color 0.2s;
+			color: var(--slate-900);
+			display: block;
+			line-height: 1.2;
 		}
 
 		.menu-number-btn .count {
-			font-size: 0.6rem;
-			color: #94a3b8;
+			font-size: 0.5rem;
+			color: var(--slate-400);
+			display: block;
 			margin-top: 2px;
-			transition: color 0.2s;
+			line-height: 1.2;
 		}
 
 		.menu-number-btn .color-bar {
 			width: 100%;
 			height: 3px;
 			border-radius: 2px;
-			margin-top: 6px;
+			margin-top: 4px;
 			transition: all 0.3s;
 		}
 
 		.menu-number-btn.active {
-			border-color: var(--menu-color, #10b981);
-			background: var(--menu-light, #f0fdf4);
+			border-color: var(--menu-color, var(--emerald-500));
+			background: var(--menu-light, var(--emerald-50));
 			transform: translateY(-3px);
-			box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+			box-shadow: var(--shadow-md);
 		}
 
-		.menu-number-btn.active .num {
-			color: var(--menu-color, #059669);
-		}
+		.menu-number-btn.active .num { color: var(--menu-color, var(--emerald-600)); }
+		.menu-number-btn.active .count { color: var(--menu-color, var(--emerald-600)); }
 
-		.menu-number-btn.active .count {
-			color: var(--menu-color, #059669);
-		}
+		.menu-number-btn .badge-empty,
+		.menu-number-btn .badge-count { display: none !important; }
 
-		.menu-number-btn .badge-empty {
-			font-size: 0.5rem;
-			color: #94a3b8;
-			background: #f1f5f9;
-			padding: 1px 6px;
-			border-radius: 8px;
-			margin-top: 2px;
-			display: inline-block;
-		}
-
-		.menu-number-btn .badge-count {
-			font-size: 0.5rem;
-			color: white;
-			background: var(--menu-color, #10b981);
-			padding: 1px 6px;
-			border-radius: 8px;
-			margin-top: 2px;
-			display: inline-block;
-		}
-
-		/* ---- Панель инструментов ---- */
+		/* Тулбар */
 		.daily-toolbar {
 			display: flex;
 			flex-wrap: wrap;
 			gap: 12px;
 			padding: 14px 0;
-			border-bottom: 1px solid #f1f5f9;
+			border-bottom: 1px solid var(--slate-100);
 			align-items: center;
 		}
 
-		.toolbar-group {
-			display: flex;
-			gap: 6px;
-			align-items: center;
-		}
+		.toolbar-group { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
 
 		.toolbar-group .group-label {
 			font-size: 0.7rem;
-			color: #94a3b8;
+			color: var(--slate-400);
 			font-weight: 500;
 			text-transform: uppercase;
 			letter-spacing: 0.3px;
 			margin-right: 4px;
 		}
 
-		/* ---- Кнопки режимов ---- */
 		.mode-btn {
 			padding: 6px 16px;
-			border: 2px solid #e2e8f0;
-			border-radius: 20px;
+			border: 2px solid var(--slate-200);
+			border-radius: var(--r-full);
 			background: white;
 			cursor: pointer;
 			font-weight: 500;
 			font-size: 0.8rem;
-			color: #64748b;
-			transition: all 0.25s ease;
+			color: var(--slate-500);
+			transition: all 0.25s var(--ease);
+			font-family: inherit;
 		}
 
-		.mode-btn:hover {
-			background: #f8fafc;
-			border-color: #cbd5e1;
-		}
+		.mode-btn:hover { background: var(--slate-50); border-color: var(--slate-300); }
 
 		.mode-btn.active {
-			border-color: #10b981;
-			background: #f0fdf4;
-			color: #059669;
-			box-shadow: 0 2px 8px rgba(16, 185, 129, 0.12);
+			border-color: var(--emerald-500);
+			background: var(--emerald-50);
+			color: var(--emerald-600);
+			box-shadow: 0 2px 8px rgba(16,185,129,0.12);
 		}
 
-		/* ---- Фильтры приёмов пищи ---- */
 		.meal-filter-btn {
 			padding: 4px 14px;
-			border: 1.5px solid #e2e8f0;
-			border-radius: 16px;
+			border: 1.5px solid var(--slate-200);
+			border-radius: var(--r-full);
 			background: white;
 			cursor: pointer;
 			font-size: 0.7rem;
-			color: #64748b;
-			transition: all 0.2s ease;
+			color: var(--slate-500);
+			transition: all 0.2s var(--ease);
 			font-weight: 500;
+			font-family: inherit;
 		}
 
 		.meal-filter-btn:hover {
-			background: #f8fafc;
-			border-color: #cbd5e1;
+			background: var(--slate-50);
+			border-color: var(--slate-300);
 			transform: translateY(-1px);
 		}
 
 		.meal-filter-btn.active {
-			background: #f0fdf4;
-			color: #059669;
-			border-color: #10b981;
-			box-shadow: 0 2px 6px rgba(16, 185, 129, 0.1);
+			background: var(--emerald-50);
+			color: var(--emerald-600);
+			border-color: var(--emerald-500);
+			box-shadow: 0 2px 6px rgba(16,185,129,0.1);
 		}
 
-		/* ---- Предпросмотр ---- */
+		/* Preview */
 		.daily-preview {
-			background: #f8fafc;
-			border-radius: 16px;
+			background: var(--slate-50);
+			border-radius: var(--r-md);
 			padding: 20px;
 			margin-top: 16px;
 			min-height: 120px;
-			border: 1px solid #e2e8f0;
-			transition: all 0.3s ease;
+			border: 1px solid var(--slate-200);
+			transition: all 0.3s var(--ease);
+			width: 100%;
+			overflow-x: auto;
+			animation: fadeSlideIn 0.3s var(--ease);
+		}
+
+		@keyframes fadeSlideIn {
+			from { opacity: 0; transform: translateY(10px); }
+			to   { opacity: 1; transform: translateY(0); }
 		}
 
 		.daily-preview-empty {
 			text-align: center;
-			color: #94a3b8;
+			color: var(--slate-400);
 			padding: 40px 20px;
 		}
 
 		.daily-preview-empty i {
 			font-size: 3rem;
-			color: #cbd5e1;
+			color: var(--slate-300);
 			margin-bottom: 12px;
 			display: block;
 		}
 
-		.daily-preview-empty p {
-			font-size: 0.95rem;
-		}
+		.daily-preview-empty p { font-size: 0.95rem; }
 
-		/* ---- Блок приёма пищи в предпросмотре ---- */
-		.meal-block {
-			margin-bottom: 14px;
-		}
-
-		.meal-block:last-child {
-			margin-bottom: 0;
-		}
+		.meal-block { margin-bottom: 14px; }
+		.meal-block:last-child { margin-bottom: 0; }
 
 		.meal-block .meal-title {
 			font-weight: 600;
-			color: #0f172a;
+			color: var(--slate-900);
 			font-size: 0.9rem;
 			margin-bottom: 6px;
 			display: flex;
@@ -2151,7 +1533,7 @@
 
 		.meal-block .meal-title .meal-count {
 			font-size: 0.7rem;
-			color: #94a3b8;
+			color: var(--slate-400);
 			font-weight: normal;
 		}
 
@@ -2168,16 +1550,16 @@
 			align-items: center;
 			padding: 6px 12px;
 			background: white;
-			border-radius: 8px;
-			border: 1px solid #e2e8f0;
+			border-radius: var(--r-sm);
+			border: 1px solid var(--slate-200);
 			font-size: 0.85rem;
-			transition: all 0.2s ease;
-			box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+			transition: all 0.2s var(--ease);
+			box-shadow: var(--shadow-xs);
 		}
 
 		.meal-block .meal-item:hover {
-			border-color: #cbd5e1;
-			box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+			border-color: var(--slate-300);
+			box-shadow: var(--shadow-sm);
 		}
 
 		.meal-block .meal-item .dish-info {
@@ -2197,30 +1579,19 @@
 		}
 
 		.meal-block .meal-item .dish-name {
-			white-space: nowrap;
-			overflow: hidden;
-			text-overflow: ellipsis;
+			white-space: normal;
+			word-wrap: break-word;
+			overflow: visible;
 		}
 
 		.meal-block .meal-item .dish-meta {
-			color: #64748b;
+			color: var(--slate-500);
 			font-size: 0.75rem;
 			margin-left: 12px;
 			white-space: nowrap;
 			display: flex;
 			align-items: center;
 			gap: 10px;
-		}
-
-		.meal-block .meal-item .dish-meta .meta-item {
-			display: flex;
-			align-items: center;
-			gap: 3px;
-		}
-
-		.meal-block .meal-item .dish-meta .meta-item .meta-label {
-			font-size: 0.6rem;
-			color: #94a3b8;
 		}
 
 		.meal-block .meal-item .replace-btn {
@@ -2231,7 +1602,7 @@
 			font-size: 0.8rem;
 			padding: 2px 8px;
 			border-radius: 4px;
-			transition: all 0.2s ease;
+			transition: all 0.2s var(--ease);
 		}
 
 		.meal-block .meal-item .replace-btn:hover {
@@ -2240,29 +1611,26 @@
 		}
 
 		.meal-block .meal-item.has-error {
-			border-color: #ef4444;
+			border-color: var(--danger);
 			background: #fef2f2;
 		}
 
-		.meal-block .meal-item.has-error .dish-name {
-			color: #dc2626;
-		}
+		.meal-block .meal-item.has-error .dish-name { color: #dc2626; }
 
 		.meal-block .meal-empty {
-			color: #94a3b8;
+			color: var(--slate-400);
 			font-style: italic;
 			padding: 4px 16px;
 			font-size: 0.8rem;
 		}
 
-		/* ---- Панель вариантов ---- */
+		/* Variants */
 		.variants-panel {
-			background: #f8fafc;
-			border-radius: 16px;
+			background: var(--slate-50);
+			border-radius: var(--r-md);
 			padding: 16px;
 			margin-top: 16px;
-			border: 1px solid #e2e8f0;
-			transition: all 0.3s ease;
+			border: 1px solid var(--slate-200);
 		}
 
 		.variants-panel .panel-header {
@@ -2274,7 +1642,7 @@
 
 		.variants-panel .panel-header .panel-title {
 			font-weight: 600;
-			color: #0f172a;
+			color: var(--slate-900);
 			font-size: 0.9rem;
 			display: flex;
 			align-items: center;
@@ -2283,7 +1651,7 @@
 
 		.variants-panel .panel-header .panel-count {
 			font-size: 0.75rem;
-			color: #64748b;
+			color: var(--slate-500);
 		}
 
 		.variants-list {
@@ -2298,16 +1666,17 @@
 			align-items: center;
 			padding: 10px 14px;
 			background: white;
-			border-radius: 10px;
-			border: 1px solid #e2e8f0;
-			transition: all 0.2s ease;
-			border-left: 4px solid var(--variant-color, #10b981);
+			border-radius: var(--r-md);
+			border: 1px solid var(--slate-200);
+			transition: all 0.2s var(--ease);
+			border-left: 4px solid var(--variant-color, var(--emerald-500));
+			animation: fadeSlideIn 0.25s var(--ease);
 		}
 
 		.variants-list .variant-item:hover {
 			transform: translateX(4px);
-			box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-			border-color: #cbd5e1;
+			box-shadow: var(--shadow-sm);
+			border-color: var(--slate-300);
 		}
 
 		.variants-list .variant-item .info {
@@ -2318,24 +1687,17 @@
 
 		.variants-list .variant-item .info .name {
 			font-weight: 600;
-			color: #0f172a;
+			color: var(--slate-900);
 			font-size: 0.9rem;
 		}
 
 		.variants-list .variant-item .info .meta {
 			font-size: 0.7rem;
-			color: #64748b;
+			color: var(--slate-500);
 			display: flex;
 			align-items: center;
 			gap: 12px;
 			flex-wrap: wrap;
-		}
-
-		.variants-list .variant-item .info .meta .dot {
-			display: inline-block;
-			width: 6px;
-			height: 6px;
-			border-radius: 50%;
 		}
 
 		.variants-list .variant-item .actions {
@@ -2349,40 +1711,21 @@
 			border-radius: 6px;
 			cursor: pointer;
 			font-size: 0.7rem;
-			transition: all 0.2s ease;
+			transition: all 0.2s var(--ease);
 			font-weight: 500;
+			font-family: inherit;
 		}
 
-		.variants-list .variant-item .actions .load-btn {
-			background: #dcfce7;
-			color: #16a34a;
-		}
-
-		.variants-list .variant-item .actions .load-btn:hover {
-			background: #bbf7d0;
-		}
-
-		.variants-list .variant-item .actions .export-btn {
-			background: #e0f2fe;
-			color: #0284c7;
-		}
-
-		.variants-list .variant-item .actions .export-btn:hover {
-			background: #bae6fd;
-		}
-
-		.variants-list .variant-item .actions .delete-btn {
-			background: #fee2e2;
-			color: #dc2626;
-		}
-
-		.variants-list .variant-item .actions .delete-btn:hover {
-			background: #fecaca;
-		}
+		.variants-list .variant-item .actions .load-btn   { background: #dcfce7; color: #16a34a; }
+		.variants-list .variant-item .actions .load-btn:hover { background: #bbf7d0; }
+		.variants-list .variant-item .actions .export-btn { background: #e0f2fe; color: #0284c7; }
+		.variants-list .variant-item .actions .export-btn:hover { background: #bae6fd; }
+		.variants-list .variant-item .actions .delete-btn { background: #fee2e2; color: #dc2626; }
+		.variants-list .variant-item .actions .delete-btn:hover { background: #fecaca; }
 
 		.variants-list .variants-empty {
 			text-align: center;
-			color: #94a3b8;
+			color: var(--slate-400);
 			padding: 20px;
 			font-size: 0.85rem;
 		}
@@ -2391,24 +1734,25 @@
 			font-size: 2rem;
 			display: block;
 			margin-bottom: 8px;
-			color: #cbd5e1;
+			color: var(--slate-300);
 		}
 
-		/* ---- Дата пикер ---- */
+		/* Date picker */
 		.date-picker-wrapper {
 			display: flex;
 			align-items: center;
 			gap: 10px;
-			background: #f8fafc;
+			background: var(--slate-50);
 			padding: 6px 14px;
-			border-radius: 10px;
-			border: 1px solid #e2e8f0;
-			transition: all 0.2s ease;
+			border-radius: var(--r-md);
+			border: 1px solid var(--slate-200);
+			transition: all 0.2s var(--ease);
 		}
 
 		.date-picker-wrapper:focus-within {
-			border-color: #10b981;
-			box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.08);
+			border-color: var(--emerald-500);
+			box-shadow: 0 0 0 3px rgba(16,185,129,0.08);
+			background: white;
 		}
 
 		.date-picker-wrapper input[type="date"] {
@@ -2418,640 +1762,412 @@
 			background: transparent;
 			font-size: 0.9rem;
 			min-width: 140px;
-			color: #0f172a;
+			color: var(--slate-900);
+			font-family: inherit;
 		}
 
-		.date-picker-wrapper input[type="date"]:focus {
-			outline: none;
-		}
+		.date-picker-wrapper input[type="date"]:focus { outline: none; }
 
 		.date-picker-wrapper .date-hint {
 			font-size: 0.7rem;
-			color: #94a3b8;
+			color: var(--slate-400);
 			white-space: nowrap;
 		}
 
-		/* ---- Блок названия варианта ---- */
-		.variant-name-block {
-			display: flex;
-			gap: 12px;
-			align-items: center;
-			margin-top: 16px;
-			flex-wrap: wrap;
-			padding: 12px 16px;
-			background: #f8fafc;
-			border-radius: 12px;
-			border: 1px solid #e2e8f0;
-		}
+		/* Упрощённый выбор даты */
+		.date-quick-select { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
 
-		.variant-name-block .variant-label {
+		.date-quick-btn {
+			padding: 6px 16px;
+			border: 2px solid var(--slate-200);
+			border-radius: var(--r-full);
+			background: white;
+			cursor: pointer;
+			font-size: 0.8rem;
 			font-weight: 600;
-			white-space: nowrap;
-			font-size: 0.85rem;
-			color: #0f172a;
-			display: flex;
+			color: var(--slate-600);
+			transition: all 0.2s var(--ease);
+			display: inline-flex;
 			align-items: center;
 			gap: 6px;
+			font-family: inherit;
 		}
 
-		.variant-name-block input[type="text"] {
-			flex: 1;
-			min-width: 180px;
-			padding: 6px 14px;
-			border: 1px solid #e2e8f0;
-			border-radius: 8px;
-			font-size: 0.9rem;
-			background: white;
-			transition: all 0.2s ease;
+		.date-quick-btn:hover {
+			border-color: var(--violet-500);
+			background: var(--violet-50);
+			transform: translateY(-2px);
 		}
 
-		.variant-name-block input[type="text"]:focus {
-			outline: none;
-			border-color: #10b981;
-			box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.08);
+		.date-quick-btn.active {
+			border-color: var(--violet-500);
+			background: var(--violet-100);
+			color: var(--violet-600);
 		}
 
-		.variant-name-block .actions-group {
+		.date-quick-btn.today { border-color: var(--emerald-500); color: var(--emerald-600); }
+		.date-quick-btn.today:hover { background: #ecfdf5; }
+		.date-quick-btn.today.active { background: #d1fae5; color: var(--emerald-700); }
+
+		.date-quick-btn.tomorrow { border-color: #3b82f6; color: #2563eb; }
+		.date-quick-btn.tomorrow:hover { background: #eff6ff; }
+		.date-quick-btn.tomorrow.active { background: #dbeafe; color: #1d4ed8; }
+
+		/* Date display */
+		.date-display-block {
 			display: flex;
-			gap: 8px;
 			flex-wrap: wrap;
+			gap: 12px;
+			align-items: center;
+			margin-top: 8px;
+			padding: 8px 14px;
+			background: var(--slate-50);
+			border-radius: var(--r-md);
+			border: 1px solid var(--slate-200);
 		}
 
-		/* ---- Результат проверки ---- */
-		.validation-summary {
-			padding: 12px 16px;
-			border-radius: 12px;
-			margin-top: 12px;
-			font-size: 0.85rem;
-			display: none;
+		.date-display-block .date-label {
+			font-size: 0.75rem;
+			color: var(--slate-400);
+			font-weight: 500;
 		}
 
-		.validation-summary.ok {
-			display: block;
-			background: #dcfce7;
-			color: #16a34a;
-			border: 1px solid #bbf7d0;
+		.date-display-block .date-value {
+			font-weight: 600;
+			color: var(--slate-900);
+			font-size: 0.9rem;
 		}
 
-		.validation-summary.ok i {
-			color: #16a34a;
-		}
+		/* Блок варианта — уже в вашей HTML-вставке, оставляем */
 
-		.validation-summary.warning {
-			display: block;
-			background: #fef3c7;
-			color: #d97706;
-			border: 1px solid #fde68a;
-		}
-
-		.validation-summary.warning i {
-			color: #d97706;
-		}
-
-		.validation-summary.error {
-			display: block;
-			background: #fee2e2;
-			color: #dc2626;
-			border: 1px solid #fecaca;
-		}
-
-		.validation-summary.error i {
-			color: #dc2626;
-		}
-
-		/* ---- Адаптивность ---- */
-		@media (max-width: 768px) {
-			.daily-menu-header {
-				padding: 16px 16px 12px;
-			}
-			
-			.daily-menu-body {
-				padding: 0 16px 16px;
-			}
-			
-			.daily-status-bar {
-				gap: 8px 16px;
-				padding: 8px 12px;
-				font-size: 0.7rem;
-			}
-			
-			.daily-status-bar .status-time {
-				margin-left: 0;
-				width: 100%;
-				text-align: right;
-			}
-			
-			.menu-number-btn {
-				padding: 8px 12px;
-				min-width: 48px;
-			}
-			
-			.menu-number-btn .num {
-				font-size: 1rem;
-			}
-			
-			.daily-toolbar {
-				flex-direction: column;
-				align-items: stretch;
-			}
-			
-			.toolbar-group {
-				flex-wrap: wrap;
-			}
-			
-			.variant-name-block {
-				flex-direction: column;
-				align-items: stretch;
-			}
-			
-			.variant-name-block input[type="text"] {
-				min-width: auto;
-			}
-			
-			.variants-list .variant-item {
-				flex-direction: column;
-				align-items: stretch;
-				gap: 8px;
-			}
-			
-			.variants-list .variant-item .actions {
-				justify-content: flex-end;
-			}
-			
-			.meal-block .meal-item {
-				flex-wrap: wrap;
-				gap: 4px;
-			}
-			
-			.meal-block .meal-item .dish-meta {
-				margin-left: 0;
-				flex-wrap: wrap;
-				gap: 6px;
-			}
-		}
-
-		/* ---- Анимации ---- */
-		@keyframes fadeSlideIn {
-			from {
-				opacity: 0;
-				transform: translateY(10px);
-			}
-			to {
-				opacity: 1;
-				transform: translateY(0);
-			}
-		}
-
-		.daily-preview {
-			animation: fadeSlideIn 0.3s ease;
-		}
-
-		.variant-item {
-			animation: fadeSlideIn 0.25s ease;
-		}
-
-		/* ---- Скроллбар ---- */
-		.daily-menu-body ::-webkit-scrollbar {
-			width: 4px;
-			height: 4px;
-		}
-
-		.daily-menu-body ::-webkit-scrollbar-track {
-			background: #f1f5f9;
-			border-radius: 4px;
-		}
-
-		.daily-menu-body ::-webkit-scrollbar-thumb {
-			background: #cbd5e1;
-			border-radius: 4px;
-		}
-
-		.daily-menu-body ::-webkit-scrollbar-thumb:hover {
-			background: #94a3b8;
-		}		
-		
 		/* ============================================================
-		   СТИЛИ ДЛЯ МОДАЛЬНОГО ОКНА "ЗАМЕНА БЛЮДА"
+		   FLOATING BUTTONS
 		   ============================================================ */
-
-		/* ---- Контейнер модалки ---- */
-		.replace-modal .modal-content {
-			max-width: 720px;
-			padding: 0;
-			overflow: hidden;
-			border-radius: 24px;
-			background: white;
-		}
-
-		.replace-modal .modal-header {
-			padding: 20px 24px;
-			background: linear-gradient(135deg, #f8fafc, #f1f5f9);
-			border-bottom: 2px solid #e2e8f0;
-			display: flex;
-			justify-content: space-between;
-			align-items: center;
-		}
-
-		.replace-modal .modal-header .title {
-			display: flex;
-			align-items: center;
-			gap: 12px;
-			font-weight: 700;
-			font-size: 1.1rem;
-			color: #0f172a;
-		}
-
-		.replace-modal .modal-header .title i {
-			color: #3b82f6;
-			font-size: 1.4rem;
-		}
-
-		.replace-modal .modal-header .close-btn {
-			background: none;
+		.floating-btn {
+			position: fixed;
+			bottom: 24px;
+			right: 24px;
+			width: 52px;
+			height: 52px;
+			border-radius: 50%;
+			background: linear-gradient(135deg, var(--emerald-500), var(--emerald-600));
+			color: white;
 			border: none;
-			font-size: 1.5rem;
 			cursor: pointer;
-			color: #94a3b8;
-			transition: all 0.2s ease;
-			padding: 4px 8px;
-			border-radius: 8px;
-		}
-
-		.replace-modal .modal-header .close-btn:hover {
-			background: #f1f5f9;
-			color: #0f172a;
-			transform: rotate(90deg);
-		}
-
-		/* ---- Информация о текущем блюде ---- */
-		.replace-modal .current-dish-card {
-			margin: 20px 24px 16px;
-			padding: 16px 20px;
-			background: linear-gradient(135deg, #fef3c7, #fde68a);
-			border-radius: 16px;
-			border-left: 5px solid #f59e0b;
-			display: flex;
-			justify-content: space-between;
-			align-items: center;
-			flex-wrap: wrap;
-			gap: 12px;
-		}
-
-		.replace-modal .current-dish-card .dish-label {
-			font-size: 0.75rem;
-			color: #92400e;
-			font-weight: 500;
-			text-transform: uppercase;
-			letter-spacing: 0.3px;
-		}
-
-		.replace-modal .current-dish-card .dish-name {
-			font-weight: 700;
-			font-size: 1.1rem;
-			color: #78350f;
-		}
-
-		.replace-modal .current-dish-card .dish-details {
-			display: flex;
-			gap: 16px;
-			font-size: 0.8rem;
-			color: #92400e;
-		}
-
-		.replace-modal .current-dish-card .dish-details span {
+			box-shadow: 0 8px 20px rgba(5,150,105,0.4);
+			z-index: 1000;
 			display: flex;
 			align-items: center;
-			gap: 4px;
+			justify-content: center;
+			font-size: 1.2rem;
+			transition: all 0.3s var(--ease);
 		}
 
-		/* ---- Поиск и фильтры ---- */
-		.replace-modal .search-section {
-			padding: 0 24px 16px;
-			display: flex;
-			flex-wrap: wrap;
-			gap: 12px;
-			align-items: center;
+		.floating-btn:hover {
+			transform: scale(1.1) translateY(-4px);
+			box-shadow: 0 12px 28px rgba(5,150,105,0.5);
 		}
 
-		.replace-modal .search-section .search-wrapper {
-			flex: 1;
-			min-width: 180px;
-			position: relative;
+		.floating-btn#scrollTopBtn {
+			width: 48px;
+			height: 48px;
 		}
 
-		.replace-modal .search-section .search-wrapper i {
+		#assistantFloatingBtn {
+			bottom: 90px;
+			background: linear-gradient(135deg, var(--violet-600), var(--violet-500));
+		}
+
+		#backupToggleBtn {
+			position: relative !important;
+			bottom: auto !important;
+			right: auto !important;
+			background: linear-gradient(135deg, #f59e0b, #d97706);
+			box-shadow: 0 8px 20px rgba(245,158,11,0.4);
+		}
+
+		.simple-create-menu-btn {
+			position: fixed !important;
+			bottom: 90px !important;
+			right: 24px !important;
+			width: 56px !important;
+			height: 56px !important;
+			border-radius: 50% !important;
+			background: linear-gradient(135deg, var(--emerald-500), var(--emerald-600)) !important;
+			color: white !important;
+			border: none !important;
+			cursor: pointer !important;
+			box-shadow: 0 8px 24px rgba(5,150,105,0.4) !important;
+			z-index: 999 !important;
+			display: none !important;
+			align-items: center !important;
+			justify-content: center !important;
+			font-size: 1.4rem !important;
+			transition: all 0.3s var(--ease) !important;
+		}
+
+		.simple-create-menu-btn:hover {
+			transform: scale(1.1) translateY(-4px) !important;
+			box-shadow: 0 12px 32px rgba(5,150,105,0.5) !important;
+		}
+
+		.simple-create-menu-tooltip {
 			position: absolute;
-			left: 12px;
-			top: 50%;
-			transform: translateY(-50%);
-			color: #94a3b8;
+			bottom: calc(100% + 12px);
+			right: 0;
+			background: var(--slate-800);
+			color: white;
+			padding: 8px 14px;
+			border-radius: var(--r-md);
+			font-size: 0.7rem;
+			white-space: nowrap;
+			opacity: 0;
+			visibility: hidden;
+			transition: all 0.3s var(--ease);
+			pointer-events: none;
+			box-shadow: var(--shadow-md);
 		}
 
-		.replace-modal .search-section .search-wrapper input {
-			width: 100%;
-			padding: 8px 12px 8px 36px;
-			border: 2px solid #e2e8f0;
-			border-radius: 12px;
-			font-size: 0.85rem;
-			transition: all 0.2s ease;
-			background: #f8fafc;
+		.simple-create-menu-btn:hover .simple-create-menu-tooltip {
+			opacity: 1;
+			visibility: visible;
+			transform: translateY(-4px);
 		}
 
-		.replace-modal .search-section .search-wrapper input:focus {
-			outline: none;
-			border-color: #3b82f6;
-			background: white;
-			box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-		}
-
-		.replace-modal .search-section .filter-tabs {
+		/* Auto-save badge */
+		.auto-save-badge {
+			position: fixed;
+			bottom: 24px;
+			left: 50%;
+			transform: translateX(-50%);
+			background: rgba(5,150,105,0.95);
+			backdrop-filter: blur(10px);
+			color: white;
+			padding: 8px 18px;
+			border-radius: var(--r-full);
+			font-size: 0.75rem;
+			z-index: 1000;
 			display: flex;
-			flex-wrap: wrap;
-			gap: 4px;
+			align-items: center;
+			gap: 8px;
+			box-shadow: var(--shadow-md);
+			transition: opacity 0.3s var(--ease);
+			pointer-events: none;
+			white-space: nowrap;
 		}
 
-		.replace-modal .search-section .filter-tabs .filter-tab {
+		/* ============================================================
+		   АССИСТЕНТ
+		   ============================================================ */
+		.assistant-message {
+			margin-bottom: 16px;
+			padding: 12px 16px;
+			border-radius: var(--r-md);
+			animation: slideInLeft 0.3s var(--ease);
+		}
+
+		@keyframes slideInLeft {
+			from { opacity: 0; transform: translateX(-20px); }
+			to   { opacity: 1; transform: translateX(0); }
+		}
+
+		.assistant-ai      { background: linear-gradient(135deg, #f3e8ff, #e9d5ff); border-left: 4px solid var(--violet-600); }
+		.assistant-user    { background: linear-gradient(135deg, #dcfce7, #bbf7d0); border-left: 4px solid var(--emerald-500); text-align: right; }
+		.assistant-tip     { background: linear-gradient(135deg, #fef3c7, #fde68a); border-left: 4px solid var(--warning); }
+		.assistant-warning { background: linear-gradient(135deg, #fee2e2, #fecaca); border-left: 4px solid var(--danger); }
+
+		.assistant-avatar {
+			display: flex;
+			align-items: center;
+			gap: 8px;
+			margin-bottom: 8px;
+			font-weight: 600;
+		}
+
+		.quick-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0; }
+
+		.quick-btn {
+			padding: 6px 12px;
+			background: var(--slate-100);
+			border: 1px solid var(--slate-200);
+			border-radius: var(--r-full);
+			font-size: 11px;
+			cursor: pointer;
+			transition: all 0.2s var(--ease);
+			font-family: inherit;
+		}
+
+		.quick-btn:hover {
+			background: var(--slate-200);
+			transform: translateY(-1px);
+		}
+
+		.suggestion-btn {
+			background: #0284c7;
+			color: white;
+			border: none;
 			padding: 4px 12px;
-			border: 1.5px solid #e2e8f0;
-			border-radius: 20px;
-			background: white;
+			border-radius: var(--r-full);
 			cursor: pointer;
-			font-size: 0.7rem;
-			color: #64748b;
-			transition: all 0.2s ease;
-			font-weight: 500;
+			margin-top: 8px;
+			font-size: 11px;
+			font-family: inherit;
 		}
 
-		.replace-modal .search-section .filter-tabs .filter-tab:hover {
-			background: #f8fafc;
-			border-color: #cbd5e1;
+		.suggestion-btn:hover { background: #0369a1; }
+
+		/* ============================================================
+		   ПРОСТОЙ РЕЖИМ
+		   ============================================================ */
+		body.simple-mode .batch-panel-premium,
+		body.simple-mode .feature-item,
+		body.simple-mode .stats-row .stat-chip:not(:first-child),
+		body.simple-mode .view-toggle,
+		body.simple-mode #addWeekBtn,
+		body.simple-mode #mergeSectionsBtn,
+		body.simple-mode #copyDayBtn,
+		body.simple-mode #compareBtn,
+		body.simple-mode #resetToOriginalBtn,
+		body.simple-mode #undoBtn,
+		body.simple-mode #redoBtn,
+		body.simple-mode #refreshTableBtn,
+		body.simple-mode #createStandardMenuBtn,
+		body.simple-mode .floating-btn#scrollTopBtn,
+		body.simple-mode #assistantFloatingBtn,
+		body.simple-mode #backupToggleBtn,
+		body.simple-mode #backupPanel,
+		body.simple-mode .auto-save-badge {
+			display: none !important;
 		}
 
-		.replace-modal .search-section .filter-tabs .filter-tab.active {
-			border-color: #3b82f6;
-			background: #eff6ff;
-			color: #2563eb;
+		body.simple-mode .actions-grid-premium .action-btn { display: none !important; }
+		body.simple-mode .actions-grid-premium .action-btn.simple-visible { display: inline-flex !important; }
+		body.simple-mode .actions-grid-premium .action-btn.simple-visible-export { display: inline-flex !important; }
+
+		body.simple-mode #savedVariantsPanel,
+		body.simple-mode .variant-name-block .actions-group .btn:not(.simple-visible-daily),
+		body.simple-mode #dailyPrintSettingsBtn,
+		body.simple-mode #exportAllVariantsBtn,
+		body.simple-mode .daily-toolbar .mode-btn,
+		body.simple-mode .daily-toolbar .toolbar-group:first-child,
+		body.simple-mode .date-picker-wrapper .date-hint,
+		body.simple-mode .daily-preview .meal-item .replace-btn {
+			display: none !important;
 		}
 
-		.replace-modal .search-section .filter-tabs .filter-tab .count-badge {
-			display: inline-block;
-			background: #e2e8f0;
-			color: #64748b;
-			font-size: 0.6rem;
-			padding: 0 6px;
-			border-radius: 10px;
-			margin-left: 4px;
-		}
+		body.simple-mode .variant-name-block .actions-group .btn.simple-visible-daily { display: inline-flex !important; }
+		body.simple-mode .date-picker-wrapper { display: none !important; }
+		body.simple-mode .date-quick-select { display: flex !important; }
+		body.simple-mode .simple-create-menu-btn { display: flex !important; }
+		body.simple-mode .simple-mode-hint { display: flex !important; }
+		body.simple-mode .daily-simple-hint { display: flex !important; }
 
-		.replace-modal .search-section .filter-tabs .filter-tab.active .count-badge {
-			background: #bfdbfe;
-			color: #2563eb;
-		}
+		body.expert-mode .date-quick-select { display: none !important; }
+		body.expert-mode .date-picker-wrapper { display: flex !important; }
 
-		/* ---- Список блюд для замены ---- */
-		.replace-modal .dishes-list {
-			max-height: 380px;
-			overflow-y: auto;
-			padding: 0 24px 20px;
-		}
-
-		.replace-modal .dishes-list .dish-option {
-			display: flex;
-			justify-content: space-between;
-			align-items: center;
-			padding: 10px 14px;
-			margin-bottom: 6px;
-			border: 1.5px solid #e2e8f0;
-			border-radius: 12px;
-			cursor: pointer;
-			transition: all 0.2s ease;
-			background: white;
-		}
-
-		.replace-modal .dishes-list .dish-option:hover {
-			border-color: #3b82f6;
-			background: #f8fafc;
-			transform: translateX(4px);
-			box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-		}
-
-		.replace-modal .dishes-list .dish-option.current {
-			border-color: #10b981;
-			background: #f0fdf4;
-			cursor: default;
-		}
-
-		.replace-modal .dishes-list .dish-option.current:hover {
-			transform: none;
-			box-shadow: none;
-		}
-
-		.replace-modal .dishes-list .dish-option .dish-info {
-			display: flex;
-			flex-direction: column;
-			gap: 2px;
-			flex: 1;
-		}
-
-		.replace-modal .dishes-list .dish-option .dish-info .dish-title {
-			font-weight: 600;
-			color: #0f172a;
-			font-size: 0.9rem;
-			display: flex;
-			align-items: center;
-			gap: 8px;
-		}
-
-		.replace-modal .dishes-list .dish-option .dish-info .dish-title .badge-current {
-			font-size: 0.6rem;
-			font-weight: 500;
-			color: #10b981;
-			background: #dcfce7;
-			padding: 1px 8px;
-			border-radius: 12px;
-		}
-
-		.replace-modal .dishes-list .dish-option .dish-info .dish-meta {
-			display: flex;
-			flex-wrap: wrap;
-			gap: 8px 16px;
-			font-size: 0.75rem;
-			color: #64748b;
-		}
-
-		.replace-modal .dishes-list .dish-option .dish-info .dish-meta .meta-item {
-			display: flex;
-			align-items: center;
-			gap: 4px;
-		}
-
-		.replace-modal .dishes-list .dish-option .dish-info .dish-meta .meta-item .icon {
-			font-size: 0.6rem;
-		}
-
-		.replace-modal .dishes-list .dish-option .dish-nutrition {
-			display: flex;
-			gap: 8px;
-			font-size: 0.7rem;
-			color: #64748b;
-			padding-left: 12px;
-			border-left: 1px solid #e2e8f0;
-		}
-
-		.replace-modal .dishes-list .dish-option .dish-nutrition .nutrient {
-			text-align: center;
-		}
-
-		.replace-modal .dishes-list .dish-option .dish-nutrition .nutrient .value {
-			font-weight: 600;
-			color: #0f172a;
-		}
-
-		.replace-modal .dishes-list .dish-option .dish-nutrition .nutrient .label {
-			font-size: 0.55rem;
-			color: #94a3b8;
-			text-transform: uppercase;
-		}
-
-		.replace-modal .dishes-list .dish-option .select-indicator {
-			color: #94a3b8;
+		/* Simple mode hints */
+		.simple-mode-hint,
+		.daily-simple-hint {
+			display: none;
+			background: var(--emerald-50);
+			border: 1px solid #bbf7d0;
+			border-radius: var(--r-md);
+			padding: 10px 16px;
 			font-size: 0.8rem;
-			transition: all 0.2s ease;
-			margin-left: 12px;
+			color: #16a34a;
+			margin-bottom: 16px;
+			align-items: center;
+			gap: 10px;
 		}
 
-		.replace-modal .dishes-list .dish-option:hover .select-indicator {
-			color: #3b82f6;
-			transform: translateX(4px);
-		}
+		.daily-simple-hint { padding: 8px 14px; font-size: 0.75rem; margin-bottom: 12px; }
 
-		.replace-modal .dishes-list .dish-option.current .select-indicator {
-			color: #10b981;
-		}
-
-		/* ---- Пустое состояние ---- */
-		.replace-modal .empty-state {
-			text-align: center;
-			padding: 40px 20px;
-			color: #94a3b8;
-		}
-
-		.replace-modal .empty-state i {
-			font-size: 3rem;
-			color: #cbd5e1;
-			margin-bottom: 12px;
-			display: block;
-		}
-
-		.replace-modal .empty-state p {
-			font-size: 0.9rem;
-		}
-
-		.replace-modal .empty-state .hint {
-			font-size: 0.75rem;
-			color: #cbd5e1;
-			margin-top: 4px;
-		}
-
-		/* ---- Подвал модалки ---- */
-		.replace-modal .modal-footer {
-			padding: 16px 24px;
-			background: #f8fafc;
-			border-top: 1px solid #e2e8f0;
-			display: flex;
-			justify-content: flex-end;
-			gap: 12px;
-		}
-
-		.replace-modal .modal-footer .btn {
-			padding: 8px 20px;
-			font-size: 0.8rem;
-		}
-
-		/* ---- Скроллбар для списка ---- */
-		.replace-modal .dishes-list::-webkit-scrollbar {
-			width: 4px;
-		}
-
-		.replace-modal .dishes-list::-webkit-scrollbar-track {
-			background: #f1f5f9;
-			border-radius: 4px;
-		}
-
-		.replace-modal .dishes-list::-webkit-scrollbar-thumb {
-			background: #cbd5e1;
-			border-radius: 4px;
-		}
-
-		.replace-modal .dishes-list::-webkit-scrollbar-thumb:hover {
-			background: #94a3b8;
-		}
-
-		/* ---- Адаптивность ---- */
-		@media (max-width: 640px) {
-			.replace-modal .modal-content {
-				max-width: 100%;
-				border-radius: 16px;
-				margin: 10px;
-				max-height: 95vh;
+		/* ============================================================
+		   PRINT
+		   ============================================================ */
+		@media print {
+			.btn, .floating-btn, .buttons-container, .rules-panel, .stats-panel,
+			.search-bar, .batch-actions, .auto-save-badge, .file-zone, .modal,
+			.premium-header, .tab-navigation, #scrollTopBtn, .status-message,
+			.assistant-message, .variant-name-block, .daily-toolbar {
+				display: none !important;
 			}
 
-			.replace-modal .current-dish-card {
-				flex-direction: column;
-				align-items: stretch;
-				gap: 8px;
+			body {
+				background: white !important;
+				padding: 0 !important;
+				margin: 0 !important;
 			}
 
-			.replace-modal .current-dish-card .dish-details {
-				flex-wrap: wrap;
-				gap: 8px;
+			.container { max-width: 100% !important; margin: 0 !important; padding: 10px !important; }
+			.card, .premium-card { box-shadow: none !important; padding: 0 !important; margin: 0 !important; break-inside: avoid; }
+			.editor-wrapper, .editor-wrapper-premium { overflow: visible !important; max-height: none !important; }
+
+			.editor-table { width: 100% !important; font-size: 9pt !important; border-collapse: collapse !important; }
+			.editor-table th, .editor-table td { border: 1px solid #000 !important; padding: 4px !important; }
+			.editor-table th { background: #f0f0f0 !important; font-weight: bold !important; }
+			.editor-table input, .editor-table select {
+				border: none !important;
+				background: transparent !important;
+				padding: 0 !important;
+				font-size: 9pt !important;
+				width: auto !important;
 			}
 
-			.replace-modal .search-section {
-				flex-direction: column;
-				align-items: stretch;
-			}
+			@page { size: A4 landscape; margin: 1.5cm; }
 
-			.replace-modal .search-section .filter-tabs {
-				justify-content: center;
-			}
-
-			.replace-modal .dishes-list .dish-option {
-				flex-wrap: wrap;
-				gap: 8px;
-			}
-
-			.replace-modal .dishes-list .dish-option .dish-nutrition {
-				border-left: none;
-				padding-left: 0;
-				width: 100%;
-				justify-content: flex-start;
-				border-top: 1px solid #e2e8f0;
-				padding-top: 8px;
-			}
-
-			.replace-modal .modal-footer {
-				flex-wrap: wrap;
-				justify-content: center;
+			body, .container, .card, .editor-wrapper {
+				-webkit-print-color-adjust: exact !important;
+				print-color-adjust: exact !important;
 			}
 		}
 
-		/* ---- Анимация появления ---- */
-		@keyframes modalSlideUp {
-			from {
-				opacity: 0;
-				transform: translateY(30px) scale(0.96);
-			}
-			to {
-				opacity: 1;
-				transform: translateY(0) scale(1);
-			}
-		}
+		/* ============================================================
+		   АДАПТИВНОСТЬ
+		   ============================================================ */
+		@media (max-width: 768px) {
+			body { padding: 12px; }
 
-		.replace-modal .modal-content {
-			animation: modalSlideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+			.header-content { padding: 20px 16px; }
+			.card, .premium-card { padding: 20px 16px; border-radius: var(--r-lg); }
+			.card-header-premium { padding: 16px; }
+			.stats-grid-premium { padding: 16px; }
+
+			.daily-menu-header { padding: 16px; }
+			.daily-menu-body { padding: 0 16px 16px; }
+
+			.daily-status-bar { gap: 8px 16px; padding: 8px 12px; font-size: 0.7rem; }
+			.daily-status-bar .status-time { margin-left: 0; width: 100%; text-align: right; }
+
+			.menu-number-btn { min-width: 40px; padding: 6px 8px; }
+			.menu-number-btn .num { font-size: 0.85rem; }
+
+			.daily-toolbar { flex-direction: column; align-items: stretch; }
+			.toolbar-group { flex-wrap: wrap; }
+
+			.variants-list .variant-item { flex-direction: column; align-items: stretch; gap: 8px; }
+			.variants-list .variant-item .actions { justify-content: flex-end; }
+
+			.meal-block .meal-item { flex-wrap: wrap; gap: 4px; }
+			.meal-block .meal-item .dish-meta { margin-left: 0; flex-wrap: wrap; gap: 6px; }
+
+			.modal-content { padding: 20px 16px; border-radius: var(--r-lg); }
+
+			/* Блок варианта — в столбик */
+			.variant-name-block { padding: 12px !important; gap: 10px !important; }
+			.variant-name-block > div { padding: 10px 12px !important; }
+			.variant-name-block .actions-group { flex-direction: column; }
+			.variant-name-block .actions-group .btn { width: 100%; justify-content: center; }
+			.variant-name-block .actions-group > div[style*="width: 1px"] { display: none; }
+
+			#dailyApprovalPosition,
+			#dailyApprovalName,
+			#dailyAgreedPosition,
+			#dailyAgreedName {
+				width: 100% !important;
+				flex: none !important;
+			}
 		}		
-		
     </style>
 </head>
 <body>
@@ -3080,7 +2196,13 @@
 	</div>
     <div id="statusArea" class="status-message"></div>
 
-
+	<!-- Кнопка создания типового меню (видна только в простом режиме) -->
+	<button id="simpleCreateMenuBtn" class="simple-create-menu-btn" title="Создать типовое меню">
+		<i class="fas fa-magic"></i>
+		<span class="simple-create-menu-tooltip">
+			<i class="fas fa-wand-magic-sparkles"></i> Создать типовое меню
+		</span>
+	</button>
 
 
     <div class="container">
@@ -3103,7 +2225,7 @@
 							</h1>
 							<div class="badge-container">
 								<span class="badge premium"><i class="fas fa-crown"></i> ФЦМПО</span>
-								<span class="badge version"><i class="fas fa-code-branch"></i> v5.0</span>
+								<span class="badge version"><i class="fas fa-code-branch"></i> v7.1</span>
 								<span class="badge ai"><i class="fas fa-robot"></i> AI Assistant</span>
 								<span class="badge ai"><i class="fas fa-robot"></i> от Дмитрия Алексеевича</span>
 							</div>
@@ -3174,6 +2296,21 @@
 					</div>
 				</div>
 			</div>
+			<!-- Переключатель режимов -->
+			<div class="mode-toggle-wrapper">
+				<span class="mode-toggle-label"><i class="fas fa-sliders-h"></i> Режим:</span>
+				<div class="mode-toggle" id="modeToggle">
+					<button class="mode-toggle-btn active" data-mode="simple" id="simpleModeBtn">
+						<i class="fas fa-baby"></i> Простой
+					</button>
+					<button class="mode-toggle-btn" data-mode="expert" id="expertModeBtn">
+						<i class="fas fa-brain"></i> Экспертный
+					</button>
+				</div>
+				<span style="font-size: 0.6rem; color: rgba(255,255,255,0.4); margin-left: auto;">
+					<i class="fas fa-info-circle"></i> Для новичков
+				</span>
+			</div>		
 		</header>
 
 
@@ -3399,9 +2536,12 @@
 			<button class="tab-btn active" data-tab="main" style="padding: 10px 24px; border: none; border-radius: 12px; background: white; font-weight: 600; font-size: 0.9rem; cursor: pointer; transition: all 0.2s ease; color: #059669; border-bottom: 2px solid #059669; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
 				<i class="fas fa-edit"></i> Редактор меню
 			</button>
+			<button class="tab-btn" data-tab="calendar" style="padding: 10px 24px; border: none; border-radius: 12px; background: transparent; font-weight: 600; font-size: 0.9rem; cursor: pointer; transition: all 0.2s ease; color: #64748b;">
+				<i class="fas fa-calendar-alt"></i> Календарь
+			</button>
 			<button class="tab-btn" data-tab="daily" style="padding: 10px 24px; border: none; border-radius: 12px; background: transparent; font-weight: 600; font-size: 0.9rem; cursor: pointer; transition: all 0.2s ease; color: #64748b;">
 				<i class="fas fa-calendar-day"></i> Ежедневное меню
-			</button>
+			</button>			
 			<button class="tab-btn" data-tab="analytics" style="padding: 10px 24px; border: none; border-radius: 12px; background: transparent; font-weight: 600; font-size: 0.9rem; cursor: pointer; transition: all 0.2s ease; color: #64748b;">
 				<i class="fas fa-chart-line"></i> Аналитика
 			</button>
@@ -3625,6 +2765,148 @@
 		</div>
 
 		<!-- ============================================================ -->
+		<!-- ВКЛАДКА: КАЛЕНДАРЬ ПИТАНИЯ -->
+		<!-- ============================================================ -->
+		<div class="tab-content" id="tabCalendar" style="display: none;">
+			<div class="card premium-card">
+				<div class="card-header-premium">
+					<div class="card-header-left">
+						<div class="card-icon-wrapper" style="background: linear-gradient(135deg, #8b5cf6, #7c3aed);">
+							<i class="fas fa-calendar-alt"></i>
+							<div class="card-icon-bg"></div>
+						</div>
+						<div>
+							<h2 class="card-title-premium">Календарь питания</h2>
+							<p class="card-subtitle-premium">Привязка типового меню к дням учебного года</p>
+						</div>
+					</div>
+					<div class="card-header-right">
+						<div style="display: flex; gap: 8px; flex-wrap: wrap;">
+							<button id="calendarUploadBtn" class="btn btn-primary" style="padding: 6px 16px; font-size: 0.75rem;">
+								<i class="fas fa-upload"></i> Загрузить календарь
+							</button>
+							<button id="calendarDownloadBtn" class="btn btn-success" style="padding: 6px 16px; font-size: 0.75rem; background: linear-gradient(135deg, #059669, #10b981);">
+								<i class="fas fa-download"></i> Скачать
+							</button>
+							<button id="calendarResetBtn" class="btn btn-secondary" style="padding: 6px 16px; font-size: 0.75rem;">
+								<i class="fas fa-undo-alt"></i> Сбросить
+							</button>
+						</div>
+					</div>
+				</div>
+
+				<!-- Информационная панель -->
+				<div style="padding: 16px 24px; background: #f8fafc; border-bottom: 1px solid #e2e8f0; display: flex; flex-wrap: wrap; gap: 16px; align-items: center;">
+					<div style="display: flex; align-items: center; gap: 8px;">
+						<i class="fas fa-info-circle" style="color: #8b5cf6;"></i>
+						<span style="font-size: 0.85rem; color: #475569;">
+							<strong id="calendarStatus">Календарь не загружен</strong>
+						</span>
+					</div>
+					<div style="display: flex; gap: 16px; margin-left: auto; font-size: 0.8rem; color: #64748b;">
+						<span><i class="fas fa-utensils" style="color: #10b981;"></i> <span id="calendarTotalDays">0</span> дней с меню</span>
+						<span><i class="fas fa-calendar-day" style="color: #8b5cf6;"></i> <span id="calendarTotalCells">0</span> ячеек</span>
+						<span><i class="fas fa-check-circle" style="color: #10b981;"></i> <span id="calendarFilled">0</span> заполнено</span>
+					</div>
+				</div>
+
+				<!-- Контейнер для календаря -->
+				<div id="calendarContainer" style="padding: 20px 24px; overflow-x: auto; background: white; min-height: 400px;">
+					<div style="text-align: center; padding: 60px 20px; color: #94a3b8;">
+						<i class="fas fa-calendar-plus fa-4x" style="margin-bottom: 16px; color: #cbd5e1;"></i>
+						<h3 style="color: #0f172a; margin-bottom: 8px;">Загрузите календарь питания</h3>
+						<p style="font-size: 0.9rem; color: #64748b;">
+							Нажмите <strong>«Загрузить календарь»</strong> и выберите файл Excel с календарём<br>
+							или используйте <strong>«Создать календарь»</strong> для автоматической генерации
+						</p>
+						<div style="display: flex; gap: 12px; justify-content: center; margin-top: 20px; flex-wrap: wrap;">
+							<button id="calendarUploadBtn2" class="btn btn-primary">
+								<i class="fas fa-upload"></i> Загрузить
+							</button>
+							<button id="calendarGenerateBtn" class="btn btn-purple" style="background: linear-gradient(135deg, #8b5cf6, #7c3aed);">
+								<i class="fas fa-magic"></i> Создать календарь
+							</button>
+						</div>
+					</div>
+				</div>
+
+				<!-- Скрытый input для загрузки -->
+				<input type="file" id="calendarFileInput" accept=".xlsx,.xls" style="display: none;">
+			</div>
+
+			<!-- Модальное окно выбора меню для дня -->
+			<div id="calendarDayModal" class="modal" style="z-index: 20000;">
+				<div class="modal-content" style="max-width: 700px; max-height: 85vh; overflow-y: auto;">
+					<div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 12px; border-bottom: 2px solid #e2e8f0;">
+						<div>
+							<h3 style="color: #0f172a; margin: 0;">
+								<i class="fas fa-calendar-day" style="color: #8b5cf6;"></i>
+								Выбор меню для дня
+							</h3>
+							<p style="color: #64748b; font-size: 0.85rem; margin: 4px 0 0;">
+								<span id="modalDayInfo">—</span>
+								<span id="modalDayWeekday" style="margin-left: 12px; padding: 2px 12px; border-radius: 12px; font-size: 0.7rem; font-weight: 600; display: inline-block;"></span>
+							</p>
+						</div>
+						<button id="calendarDayModalClose" style="background: none; border: none; font-size: 24px; cursor: pointer; color: #94a3b8;">&times;</button>
+					</div>
+
+					<!-- Текущее значение -->
+					<div style="background: #f8fafc; padding: 12px 16px; border-radius: 12px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+						<span style="font-weight: 600; color: #0f172a;">
+							<i class="fas fa-tag"></i> Текущее значение:
+						</span>
+						<span id="modalCurrentValue" style="padding: 4px 16px; background: #e2e8f0; border-radius: 20px; font-weight: 600; color: #475569;">—</span>
+					</div>
+
+					<!-- Поиск -->
+					<div style="margin-bottom: 16px;">
+						<div style="position: relative;">
+							<i class="fas fa-search" style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #94a3b8;"></i>
+							<input type="text" id="calendarDaySearch" placeholder="Поиск по названию блюда..." style="width: 100%; padding: 10px 16px 10px 40px; border: 2px solid #e2e8f0; border-radius: 12px; font-size: 0.9rem;">
+						</div>
+					</div>
+
+					<!-- Список дней с меню -->
+					<div id="calendarDayList" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 8px; max-height: 350px; overflow-y: auto; padding-right: 8px;">
+						<div style="text-align: center; padding: 40px 20px; color: #94a3b8; grid-column: 1 / -1;">
+							<i class="fas fa-spinner fa-spin"></i> Загрузка...
+						</div>
+					</div>
+
+					<div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid #e2e8f0; display: flex; gap: 12px; justify-content: flex-end; flex-wrap: wrap;">
+						<button id="calendarDayModalClear" class="btn btn-secondary">
+							<i class="fas fa-eraser"></i> Очистить
+						</button>
+						<button id="calendarDayModalClose2" class="btn btn-primary">Закрыть</button>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<!-- ВКЛАДКА: АНАЛИТИКА -->
+		<!-- ============================================================ -->
+		<!-- ВКЛАДКА: АНАЛИТИКА МЕНЮ -->
+		<!-- ============================================================ -->
+		<div class="tab-content" id="tabAnalytics" style="display: none;">
+			<div id="analyticsContainer" style="background: white; border-radius: 32px; border: 1px solid #e2e8f0; overflow: hidden;">
+				<!-- Если меню не загружено -->
+				<div id="analyticsPlaceholder" style="padding: 60px 40px; text-align: center; color: #94a3b8;">
+					<i class="fas fa-chart-pie fa-4x" style="margin-bottom: 16px; color: #cbd5e1;"></i>
+					<h3 style="color: #0f172a; margin-bottom: 8px;">Нет данных для анализа</h3>
+					<p style="font-size: 0.9rem; color: #64748b;">Загрузите типовое меню на вкладке «Редактор меню»</p>
+					<button id="analyticsGotoEditorBtn" class="btn btn-primary" style="margin-top: 16px; padding: 8px 24px;">
+						<i class="fas fa-arrow-left"></i> Перейти к загрузке
+					</button>
+				</div>
+				<!-- Контейнер для аналитики -->
+				<div id="analyticsContent" style="padding: 24px 28px; display: none;">
+					<!-- Сюда будет вставлен контент модуля -->
+				</div>
+			</div>
+		</div>
+
+		<!-- ============================================================ -->
 		<!-- ВКЛАДКА: ЕЖЕДНЕВНОЕ МЕНЮ (С НОВЫМИ СТИЛЯМИ) -->
 		<!-- ============================================================ -->
 		<div class="tab-content" id="tabDaily" style="display: none;">
@@ -3678,34 +2960,7 @@
 								<span><i class="fas fa-calendar-check" style="color: #8b5cf6;"></i> <span id="dailyHeaderDate">—</span></span>
 							</div>	
 							<!-- Статусная строка -->
-							<div class="daily-status-bar" id="dailyStatusBar">
-								<span class="status-item">
-									<i class="fas fa-hashtag" style="color: #8b5cf6;"></i>
-									<span class="label">Меню:</span>
-									<span class="value highlight" id="statusMenuNumber">—</span>
-								</span>
-								<span class="status-item">
-									<i class="fas fa-calendar-week" style="color: #10b981;"></i>
-									<span class="label">Неделя:</span>
-									<span class="value" id="statusWeek">—</span>
-								</span>
-								<span class="status-item">
-									<i class="fas fa-calendar-day" style="color: #3b82f6;"></i>
-									<span class="label">День:</span>
-									<span class="value" id="statusDay">—</span>
-								</span>
-								<span class="status-item">
-									<i class="fas fa-utensils" style="color: #f59e0b;"></i>
-									<span class="label">Блюд:</span>
-									<span class="value" id="statusDishes">0</span>
-								</span>
-								<span class="status-item" id="statusViolations" style="display: none;">
-									<i class="fas fa-exclamation-triangle" style="color: #dc2626;"></i>
-									<span class="label">Нарушений:</span>
-									<span class="value danger" id="statusViolationsCount">0</span>
-								</span>
-								<span class="status-time" id="statusLastUpdate">Готово</span>
-							</div>
+
 						</div>
 
 						<!-- Тело -->
@@ -3723,14 +2978,46 @@
 									<label class="selector-label">
 										<i class="fas fa-calendar-alt"></i> Дата меню:
 									</label>
+									
+									<!-- Упрощённый выбор даты (виден в простом режиме) -->
+									<div class="date-quick-select">
+										<button class="date-quick-btn today active" data-days="0">
+											<i class="fas fa-calendar-day"></i> Сегодня
+										</button>
+										<button class="date-quick-btn tomorrow" data-days="1">
+											<i class="fas fa-calendar-plus"></i> Завтра
+										</button>
+										<button class="date-quick-btn" data-days="2">
+											<i class="fas fa-calendar-plus"></i> +2
+										</button>
+										<button class="date-quick-btn" data-days="3">
+											<i class="fas fa-calendar-plus"></i> +3
+										</button>
+										<button class="date-quick-btn" data-days="4">
+											<i class="fas fa-calendar-plus"></i> +4
+										</button>
+										<button class="date-quick-btn" data-days="5">
+											<i class="fas fa-calendar-week"></i> +5
+										</button>
+									</div>
+									
+									<!-- Стандартный выбор даты (виден в экспертном режиме) -->
 									<div class="date-picker-wrapper">
 										<input type="date" id="dailyMenuDate">
 										<span class="date-hint">
 											<i class="fas fa-info-circle"></i> для Excel/PDF
 										</span>
 									</div>
+									
+									<!-- ✅ НОВЫЙ БЛОК: отображение выбранной даты -->
+									<div class="date-display-block" id="dateDisplayBlock">
+										<span class="date-label">
+											<i class="fas fa-calendar-check" style="color: #8b5cf6;"></i>
+											Выбранная дата:
+										</span>
+										<span class="date-value" id="selectedDateDisplay">—</span>
+									</div>
 								</div>
-							</div>
 
 							<!-- Панель инструментов -->
 							<div class="daily-toolbar">
@@ -3769,50 +3056,322 @@
 							<!-- Результат проверки -->
 							<div id="validationResult" class="validation-summary"></div>
 
-							<!-- Название варианта и действия -->
-							<!-- Название варианта, утверждающие и действия -->
-							<div class="variant-name-block" style="flex-wrap: wrap; gap: 12px;">
-								<div style="display: flex; flex-wrap: wrap; gap: 12px; width: 100%;">
-									<!-- Название -->
-									<div style="display: flex; align-items: center; gap: 8px; flex: 2; min-width: 200px;">
-										<span class="variant-label">
-											<i class="fas fa-tag"></i> Название:
-										</span>
-										<input type="text" id="variantNameInput" placeholder="ГГГГ-ММ-ДД-sm.xlsx" value="" style="flex: 1; min-width: 150px;">
+							<!-- ============================================================ -->
+							<!-- НАЗВАНИЕ ВАРИАНТА И ДЕЙСТВИЯ (УЛУЧШЕННАЯ ВЕРСИЯ) -->
+							<!-- ============================================================ -->
+							<div class="variant-name-block" style="
+								display: flex;
+								flex-direction: column;
+								gap: 16px;
+								padding: 20px;
+								background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+								border-radius: 16px;
+								border: 1px solid #e2e8f0;
+								margin-top: 16px;
+							">
+
+								<!-- ===== БЛОК 1: ИМЯ ФАЙЛА ===== -->
+								<div style="
+									display: flex;
+									align-items: center;
+									gap: 12px;
+									padding: 12px 16px;
+									background: white;
+									border-radius: 12px;
+									border: 1px solid #e2e8f0;
+									box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+									transition: all 0.2s ease;
+								" onmouseover="this.style.boxShadow='0 2px 8px rgba(0,0,0,0.06)'" onmouseout="this.style.boxShadow='0 1px 3px rgba(0,0,0,0.02)'">
+
+									<div style="
+										width: 36px; height: 36px;
+										background: linear-gradient(135deg, #10b981, #059669);
+										border-radius: 10px;
+										display: flex; align-items: center; justify-content: center;
+										flex-shrink: 0;
+									">
+										<i class="fas fa-file-excel" style="color: white; font-size: 16px;"></i>
 									</div>
-									
-									<!-- Утверждающий -->
-									<div style="display: flex; align-items: center; gap: 8px; flex: 1; min-width: 180px;">
-										<span class="variant-label">
-											<i class="fas fa-user-tie"></i> Утвердил:
-										</span>
-										<input type="text" id="dailyApprovalPosition" placeholder="Должность" value="Директор" style="flex: 1; min-width: 80px;">
-										<input type="text" id="dailyApprovalName" placeholder="ФИО" value="Иванова И.И." style="flex: 1; min-width: 100px;">
+
+									<div style="flex: 1; min-width: 0;">
+										<label style="
+											display: block;
+											font-size: 0.7rem;
+											color: #94a3b8;
+											font-weight: 600;
+											text-transform: uppercase;
+											letter-spacing: 0.3px;
+											margin-bottom: 4px;
+										">
+											Имя файла
+										</label>
+										<input type="text" id="variantNameInput"
+											   placeholder="ГГГГ-ММ-ДД-sm.xlsx"
+											   value=""
+											   style="
+												   width: 100%;
+												   padding: 6px 10px;
+												   border: 1px solid #e2e8f0;
+												   border-radius: 8px;
+												   font-size: 0.9rem;
+												   background: #f8fafc;
+												   transition: all 0.2s ease;
+												   color: #0f172a;
+												   font-weight: 500;
+											   "
+											   onfocus="this.style.borderColor='#10b981'; this.style.background='white'; this.style.boxShadow='0 0 0 3px rgba(16,185,129,0.1)'"
+											   onblur="this.style.borderColor='#e2e8f0'; this.style.background='#f8fafc'; this.style.boxShadow='none'">
 									</div>
-									
+
+									<span style="
+										font-size: 0.7rem;
+										color: #94a3b8;
+										background: #f1f5f9;
+										padding: 4px 10px;
+										border-radius: 20px;
+										white-space: nowrap;
+										font-weight: 500;
+									">
+										.xlsx
+									</span>
+								</div>
+
+								<!-- ===== БЛОК 2: ПОДПИСИ (УТВЕРДИЛ + СОГЛАСОВАНО) ===== -->
+								<div style="
+									display: grid;
+									grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+									gap: 12px;
+								">
+
+									<!-- Утвердил -->
+									<div style="
+										display: flex;
+										align-items: center;
+										gap: 12px;
+										padding: 12px 16px;
+										background: white;
+										border-radius: 12px;
+										border: 1px solid #e2e8f0;
+										border-left: 4px solid #3b82f6;
+										box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+									">
+										<div style="
+											width: 36px; height: 36px;
+											background: linear-gradient(135deg, #3b82f6, #2563eb);
+											border-radius: 10px;
+											display: flex; align-items: center; justify-content: center;
+											flex-shrink: 0;
+										">
+											<i class="fas fa-user-tie" style="color: white; font-size: 15px;"></i>
+										</div>
+
+										<div style="flex: 1; min-width: 0;">
+											<label style="
+												display: block;
+												font-size: 0.7rem;
+												color: #94a3b8;
+												font-weight: 600;
+												text-transform: uppercase;
+												letter-spacing: 0.3px;
+												margin-bottom: 4px;
+											">
+												Утвердил
+											</label>
+											<div style="display: flex; gap: 6px;">
+												<input type="text" id="dailyApprovalPosition"
+													   placeholder="Должность"
+													   value="Директор"
+													   style="
+														   flex: 1;
+														   min-width: 0;
+														   padding: 6px 10px;
+														   border: 1px solid #e2e8f0;
+														   border-radius: 8px;
+														   font-size: 0.8rem;
+														   background: #f8fafc;
+														   color: #0f172a;
+														   transition: all 0.2s ease;
+													   "
+													   onfocus="this.style.borderColor='#3b82f6'; this.style.background='white'"
+													   onblur="this.style.borderColor='#e2e8f0'; this.style.background='#f8fafc'">
+												<input type="text" id="dailyApprovalName"
+													   placeholder="ФИО"
+													   value="Иванова И.И."
+													   style="
+														   flex: 1.2;
+														   min-width: 0;
+														   padding: 6px 10px;
+														   border: 1px solid #e2e8f0;
+														   border-radius: 8px;
+														   font-size: 0.8rem;
+														   background: #f8fafc;
+														   color: #0f172a;
+														   font-weight: 500;
+														   transition: all 0.2s ease;
+													   "
+													   onfocus="this.style.borderColor='#3b82f6'; this.style.background='white'"
+													   onblur="this.style.borderColor='#e2e8f0'; this.style.background='#f8fafc'">
+											</div>
+										</div>
+									</div>
+
 									<!-- Согласовано -->
-									<div style="display: flex; align-items: center; gap: 8px; flex: 1; min-width: 180px;">
-										<span class="variant-label">
-											<i class="fas fa-handshake"></i> Согласовано:
-										</span>
-										<input type="text" id="dailyAgreedPosition" placeholder="Должность" value="Диетсестра" style="flex: 1; min-width: 80px;">
-										<input type="text" id="dailyAgreedName" placeholder="ФИО" value="____________________" style="flex: 1; min-width: 100px;">
+									<div id="agreedSignatureBlock" style="
+										display: flex;
+										align-items: center;
+										gap: 12px;
+										padding: 12px 16px;
+										background: white;
+										border-radius: 12px;
+										border: 1px solid #e2e8f0;
+										border-left: 4px solid #10b981;
+										box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+										transition: all 0.3s ease;
+									">
+										<div style="
+											width: 36px; height: 36px;
+											background: linear-gradient(135deg, #10b981, #059669);
+											border-radius: 10px;
+											display: flex; align-items: center; justify-content: center;
+											flex-shrink: 0;
+										">
+											<i class="fas fa-handshake" style="color: white; font-size: 15px;"></i>
+										</div>
+
+										<div style="flex: 1; min-width: 0;">
+											<div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+												<label style="
+													font-size: 0.7rem;
+													color: #94a3b8;
+													font-weight: 600;
+													text-transform: uppercase;
+													letter-spacing: 0.3px;
+												">
+													Согласовано
+												</label>
+												<!-- Инлайн-галочка -->
+												<label style="
+													display: inline-flex;
+													align-items: center;
+													gap: 4px;
+													cursor: pointer;
+													font-size: 0.65rem;
+													color: #94a3b8;
+													margin-left: auto;
+													padding: 2px 8px;
+													background: #f8fafc;
+													border-radius: 12px;
+													transition: all 0.2s ease;
+												"
+												onmouseover="this.style.background='#f1f5f9'"
+												onmouseout="this.style.background='#f8fafc'">
+													<input type="checkbox" id="hideAgreedInPrint"
+														   style="width: 12px; height: 12px; cursor: pointer; margin: 0;">
+													<span>не печатать</span>
+												</label>
+											</div>
+											<div style="display: flex; gap: 6px;">
+												<input type="text" id="dailyAgreedPosition"
+													   placeholder="Должность"
+													   value="Диетсестра"
+													   style="
+														   flex: 1;
+														   min-width: 0;
+														   padding: 6px 10px;
+														   border: 1px solid #e2e8f0;
+														   border-radius: 8px;
+														   font-size: 0.8rem;
+														   background: #f8fafc;
+														   color: #0f172a;
+														   transition: all 0.2s ease;
+													   "
+													   onfocus="this.style.borderColor='#10b981'; this.style.background='white'"
+													   onblur="this.style.borderColor='#e2e8f0'; this.style.background='#f8fafc'">
+												<input type="text" id="dailyAgreedName"
+													   placeholder="ФИО"
+													   value="____________________"
+													   style="
+														   flex: 1.2;
+														   min-width: 0;
+														   padding: 6px 10px;
+														   border: 1px solid #e2e8f0;
+														   border-radius: 8px;
+														   font-size: 0.8rem;
+														   background: #f8fafc;
+														   color: #0f172a;
+														   font-weight: 500;
+														   transition: all 0.2s ease;
+													   "
+													   onfocus="this.style.borderColor='#10b981'; this.style.background='white'"
+													   onblur="this.style.borderColor='#e2e8f0'; this.style.background='#f8fafc'">
+											</div>
+										</div>
 									</div>
 								</div>
-								
-								<!-- Кнопки действий -->
-								<div class="actions-group" style="width: 100%; display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-start;">
-									<button id="validateDailyBtn" class="btn btn-warning" style="padding: 6px 16px; font-size: 0.75rem;">
+
+								<!-- ===== БЛОК 3: КНОПКИ ДЕЙСТВИЙ ===== -->
+								<div class="actions-group" style="
+									display: flex;
+									flex-wrap: wrap;
+									gap: 8px;
+									padding-top: 4px;
+									border-top: 1px dashed #e2e8f0;
+									padding-top: 16px;
+								">
+									<!-- Основные действия -->
+									<button id="validateDailyBtn" class="btn btn-warning" style="
+										padding: 8px 18px;
+										font-size: 0.78rem;
+										font-weight: 600;
+										box-shadow: 0 2px 6px rgba(245,158,11,0.2);
+									">
 										<i class="fas fa-check-double"></i> Проверить
 									</button>
-									<button id="saveVariantBtn" class="btn btn-purple" style="padding: 6px 16px; font-size: 0.75rem;">
+
+									<button id="saveVariantBtn" class="btn btn-purple" style="
+										padding: 8px 18px;
+										font-size: 0.78rem;
+										font-weight: 600;
+										box-shadow: 0 2px 6px rgba(139,92,246,0.2);
+									">
 										<i class="fas fa-save"></i> Сохранить
 									</button>
-									<button id="createDailyBtn" class="btn btn-primary" style="padding: 6px 16px; font-size: 0.75rem; background: linear-gradient(135deg, #8b5cf6, #7c3aed);">
-										<i class="fas fa-file-excel"></i> Excel
+
+									<button id="createDailyBtn" class="btn btn-primary" style="
+										padding: 8px 18px;
+										font-size: 0.78rem;
+										font-weight: 600;
+										background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+										box-shadow: 0 2px 6px rgba(139,92,246,0.3);
+									">
+										<i class="fas fa-file-excel"></i> Скачать Excel
 									</button>
-									<button id="printSettingsBtn" class="btn btn-info" style="padding: 6px 16px; font-size: 0.75rem; background: linear-gradient(135deg, #0891b2, #06b6d4);">
+
+									<!-- Разделитель -->
+									<div style="
+										width: 1px;
+										background: #e2e8f0;
+										margin: 0 4px;
+										align-self: stretch;
+									"></div>
+
+									<!-- Дополнительные действия -->
+									<button id="printSettingsBtn" class="btn btn-info" style="
+										padding: 8px 18px;
+										font-size: 0.78rem;
+										font-weight: 600;
+										background: linear-gradient(135deg, #0891b2, #06b6d4);
+										box-shadow: 0 2px 6px rgba(8,145,178,0.2);
+									">
 										<i class="fas fa-cog"></i> Настройки печати
+									</button>
+
+									<button id="updateFileNameBtn" class="btn btn-secondary" style="
+										padding: 8px 18px;
+										font-size: 0.78rem;
+										font-weight: 600;
+									">
+										<i class="fas fa-sync-alt"></i> Обновить имя
 									</button>
 								</div>
 							</div>
@@ -3841,27 +3400,7 @@
 		</div>
 
 
-		<!-- ВКЛАДКА: АНАЛИТИКА -->
-		<!-- ============================================================ -->
-		<!-- ВКЛАДКА: АНАЛИТИКА МЕНЮ -->
-		<!-- ============================================================ -->
-		<div class="tab-content" id="tabAnalytics" style="display: none;">
-			<div id="analyticsContainer" style="background: white; border-radius: 32px; border: 1px solid #e2e8f0; overflow: hidden;">
-				<!-- Если меню не загружено -->
-				<div id="analyticsPlaceholder" style="padding: 60px 40px; text-align: center; color: #94a3b8;">
-					<i class="fas fa-chart-pie fa-4x" style="margin-bottom: 16px; color: #cbd5e1;"></i>
-					<h3 style="color: #0f172a; margin-bottom: 8px;">Нет данных для анализа</h3>
-					<p style="font-size: 0.9rem; color: #64748b;">Загрузите типовое меню на вкладке «Редактор меню»</p>
-					<button id="analyticsGotoEditorBtn" class="btn btn-primary" style="margin-top: 16px; padding: 8px 24px;">
-						<i class="fas fa-arrow-left"></i> Перейти к загрузке
-					</button>
-				</div>
-				<!-- Контейнер для аналитики -->
-				<div id="analyticsContent" style="padding: 24px 28px; display: none;">
-					<!-- Сюда будет вставлен контент модуля -->
-				</div>
-			</div>
-		</div>
+
 
         <footer style="text-align: center; margin-top: 24px; padding: 20px; color: #94a3b8; font-size: 0.75rem;">
             <i class="fas fa-gavel"></i> Правила 1-16 (кроме 7) + 17 дубликаты |
@@ -4987,6 +4526,12 @@
 									  currentTemplateData.weeks[item.week][item.day][item.meal]) ? 
 									  currentTemplateData.weeks[item.week][item.day][item.meal].items : [];
 
+					// ===== ПРИМЕНЯЕМ ОКРУГЛЕНИЕ ПРИ ОТОБРАЖЕНИИ =====
+					const roundedCalories = RoundingModule.roundCalories(item.calories);
+					const roundedProteins = RoundingModule.roundNutrient(item.proteins);
+					const roundedFats = RoundingModule.roundNutrient(item.fats);
+					const roundedCarbs = RoundingModule.roundNutrient(item.carbs);
+
 					html += `<tr data-week="${item.week}" data-day="${item.day}" data-meal="${item.meal}">`;
 
 					if (firstRow) {
@@ -5069,6 +4614,16 @@
                 <div class="stat-card"><div class="stat-number">${totalDays}</div><div class="stat-label">📅 Дней</div></div>
                 <div class="stat-card"><div class="stat-number">${avgWeightPerDay}</div><div class="stat-label">⚖️ Ср. вес/день</div></div>
             `;
+			
+			// Автообновление аналитики
+			if (document.getElementById('tabAnalytics')?.style.display !== 'none') {
+				if (window.AnalyticsModule && window.AnalyticsModule.reload) {
+					setTimeout(() => {
+						window.AnalyticsModule.reload();
+					}, 100);
+				}
+			}			
+			
 
             const rulesMap = {
                 1: 'Завтрак ≥500г', 
@@ -5454,6 +5009,11 @@
 					};
 				}
 			}
+			
+			// ===== ПРИМЕНЯЕМ ОКРУГЛЕНИЕ К ДЕМО-ДАННЫМ =====
+			const roundedData = RoundingModule.applyRoundingToMenu(currentTemplateData);
+			currentTemplateData = roundedData;
+			originalTemplateData = JSON.parse(JSON.stringify(roundedData));			
 			
 			flatItems = buildFlatFromTemplate(currentTemplateData);
 			originalTemplateData = JSON.parse(JSON.stringify(currentTemplateData));
@@ -6941,10 +6501,11 @@
 									if (hasName) {
 										worksheet.getCell(`E${currentRow}`).value = item.name;
 										worksheet.getCell(`F${currentRow}`).value = item.weight || 0;
-										worksheet.getCell(`G${currentRow}`).value = item.proteins || 0;
-										worksheet.getCell(`H${currentRow}`).value = item.fats || 0;
-										worksheet.getCell(`I${currentRow}`).value = item.carbs || 0;
-										worksheet.getCell(`J${currentRow}`).value = item.calories || 0;
+										// ===== ПРИМЕНЯЕМ ОКРУГЛЕНИЕ ПРИ ЭКСПОРТЕ =====
+										worksheet.getCell(`G${currentRow}`).value = RoundingModule.roundNutrient(item.proteins || 0);
+										worksheet.getCell(`H${currentRow}`).value = RoundingModule.roundNutrient(item.fats || 0);
+										worksheet.getCell(`I${currentRow}`).value = RoundingModule.roundNutrient(item.carbs || 0);
+										worksheet.getCell(`J${currentRow}`).value = RoundingModule.roundCalories(item.calories || 0);
 										worksheet.getCell(`K${currentRow}`).value = item.recipeId || '';
 										worksheet.getCell(`L${currentRow}`).value = item.price || 0;
 									}
@@ -7492,21 +7053,23 @@
 					const result = parseRealTemplateFile(wb);
 					
 					if (result.template && result.template.weeks && Object.keys(result.template.weeks).length > 0) {
-						currentTemplateData = result.template;
-						originalTemplateData = JSON.parse(JSON.stringify(result.template));
+						// ===== ПРИМЕНЯЕМ ОКРУГЛЕНИЕ К ЗАГРУЖЕННЫМ ДАННЫМ =====
+						const roundedTemplate = RoundingModule.applyRoundingToMenu(result.template);
+						currentTemplateData = roundedTemplate;
+						originalTemplateData = JSON.parse(JSON.stringify(roundedTemplate));
 						
 						schoolInfo = result.schoolInfo;
 						updateSchoolInfoUI();
 						localStorage.setItem('schoolInfo', JSON.stringify(schoolInfo));
 						
-						historyStack = [JSON.parse(JSON.stringify(result.template))];
+						historyStack = [JSON.parse(JSON.stringify(roundedTemplate))];
 						historyIndex = 0;
 						flatItems = buildFlatFromTemplate(currentTemplateData);
 						renderEditor();
 						addAddMealButtonToUI();
 						addTotalPriceButton();
 						
-						// ✅ ДОБАВЬТЕ ЭТИ СТРОКИ:
+						// Обновляем глобальные переменные
 						window.templateMenuData = currentTemplateData;
 						window.schoolInfo = schoolInfo;
 						if (typeof AnalyticsModule !== 'undefined' && AnalyticsModule.reload) {
@@ -10088,6 +9651,12 @@
 			// Создаём новую структуру
 			const newTemplate = { weeks: {} };
 			
+			// ===== ПРИМЕНЯЕМ ОКРУГЛЕНИЕ К СОЗДАННОМУ МЕНЮ =====
+			const roundedData = RoundingModule.applyRoundingToMenu(currentTemplateData);
+			currentTemplateData = roundedData;
+			originalTemplateData = JSON.parse(JSON.stringify(roundedData));
+						
+			
 			for (let week = 1; week <= weeksCount; week++) {
 				newTemplate.weeks[week] = {};
 				
@@ -10180,6 +9749,62 @@
 			syncSchoolInfoToDailyApprovalInputs();
 		}
 
+		// ✅ НОВАЯ ФУНКЦИЯ: обновление информации в шапке ежедневного меню
+		function updateDailyMenuHeaderInfo() {
+			const schoolName = schoolInfo.name || 'МОУ "Сказочная СОШ"';
+			const approvalPosition = schoolInfo.approval?.position || 'Директор';
+			const approvalName = schoolInfo.approval?.name || 'Иванова И.И.';
+			const approvalDate = schoolInfo.approval?.date || '—';
+			
+			// Обновляем название школы
+			const schoolNameEl = document.querySelector('.daily-menu-header .school-name');
+			if (schoolNameEl) {
+				schoolNameEl.textContent = schoolName;
+			}
+			
+			// Обновляем информацию об утверждающем
+			const approvalEl = document.querySelector('.daily-menu-header .approval-info');
+			if (approvalEl) {
+				approvalEl.textContent = `${approvalPosition} ${approvalName}`;
+			}
+			
+			// Обновляем дату
+			const dateEl = document.getElementById('dailyHeaderDate');
+			if (dateEl) {
+				// Если есть выбранная дата в календаре, используем её
+				const dateInput = document.getElementById('dailyMenuDate');
+				if (dateInput && dateInput.value) {
+					const dateObj = new Date(dateInput.value);
+					const options = { day: 'numeric', month: 'long', year: 'numeric' };
+					dateEl.textContent = dateObj.toLocaleDateString('ru-RU', options);
+				} else {
+					dateEl.textContent = approvalDate;
+				}
+			}
+		}
+
+		// ============================================================
+		// СИНХРОНИЗАЦИЯ ДАННЫХ ШКОЛЫ С ПОЛЯМИ ПОДПИСЕЙ ЕЖЕДНЕВНОГО МЕНЮ
+		// ============================================================
+		function syncSchoolInfoToDailyApprovalInputs() {
+			if (!schoolInfo) return;
+			
+			const approvalPositionInput = document.getElementById('dailyApprovalPosition');
+			const approvalNameInput = document.getElementById('dailyApprovalName');
+			
+			if (approvalPositionInput) {
+				approvalPositionInput.value = schoolInfo.approval?.position || 'Директор';
+			}
+			if (approvalNameInput) {
+				approvalNameInput.value = schoolInfo.approval?.name || '';
+			}
+			
+			console.log('✅ Поля подписей обновлены из schoolInfo:', {
+				position: schoolInfo.approval?.position,
+				name: schoolInfo.approval?.name
+			});
+		}
+
 		function saveSchoolInfo() {
 			const schoolNameInput = document.getElementById('schoolNameInput');
 			const positionInput = document.getElementById('approvalPositionInput');
@@ -10211,14 +9836,49 @@
 				}
 			};
 			
-			// Сохраняем в localStorage для сохранения между сессиями
+			// Сохраняем в localStorage
 			localStorage.setItem('schoolInfo', JSON.stringify(schoolInfo));
+			
+			// ✅ ДОБАВЛЯЕМ: Обновляем глобальную переменную для всех модулей
+			window.schoolInfo = schoolInfo;
+			
+			// ✅ ДОБАВЛЯЕМ: Передаём данные в модуль ежедневного меню
+			if (window.DailyMenuModule) {
+				const dailyState = window.DailyMenuModule.getState?.();
+				if (dailyState) {
+					dailyState.schoolInfo = schoolInfo;
+				}
+				// Если есть метод syncData — используем его
+				if (window.DailyMenuModule.syncData) {
+					window.DailyMenuModule.syncData(currentTemplateData, schoolInfo);
+				}
+			}
+			
+			// ✅ ДОБАВЛЯЕМ: Передаём данные в модуль аналитики
+			if (window.AnalyticsModule) {
+				const analyticsState = window.AnalyticsModule.getState?.();
+				if (analyticsState) {
+					analyticsState.schoolInfo = schoolInfo;
+				}
+			}
+			
+			// ✅ ДОБАВЛЯЕМ: Передаём данные в модуль календаря
+			if (window.CalendarModule) {
+				// Календарь использует schoolInfo из глобальной области
+			}
+			
+			// ✅ ОБНОВЛЯЕМ ШАПКУ ЕЖЕДНЕВНОГО МЕНЮ
+			updateDailyMenuHeaderInfo();
+			
+			// ✅ ОБНОВЛЯЕМ СТАТУСНУЮ СТРОКУ ЕЖЕДНЕВНОГО МЕНЮ
+			if (window.DailyMenuModule && window.DailyMenuModule.updateStatusBarMenu) {
+				window.DailyMenuModule.updateStatusBarMenu();
+			}
 			
 			showStatus('✅ Информация об организации сохранена', 'success');
 			
-			// Если есть загруженные данные, обновляем экспорт
 			if (currentTemplateData) {
-				renderEditor(); // Перерендериваем для обновления отображения
+				renderEditor();
 			}
 		}
 
@@ -10239,8 +9899,14 @@
 				} catch(e) {}
 			}
 			updateSchoolInfoUI();
+			
+			// ✅ ЗАПОЛНЯЕМ ПОЛЯ ПОДПИСЕЙ В ЕЖЕДНЕВНОМ МЕНЮ
+			syncSchoolInfoToDailyApprovalInputs();
+			
+			// ✅ ОБНОВЛЯЕМ ГЛОБАЛЬНУЮ ПЕРЕМЕННУЮ
+			window.schoolInfo = schoolInfo;
 		}
-
+		
 		// ========== АНАЛИЗ СБАЛАНСИРОВАННОСТИ МЕНЮ ==========
 
 		function analyzeMealBalance() {
@@ -11073,6 +10739,9 @@
 				if (currentTemplateData) {
 					saveToStorage();
 				}			
+				if (window.CalendarModule && window.CalendarModule.saveToStorage) {
+					window.CalendarModule.saveToStorage();
+				}				
 				
 				// Скрываем все tab-content
 				document.querySelectorAll('.tab-content').forEach(content => {
@@ -11108,16 +10777,42 @@
 				// ===== ОБРАБОТКА ВКЛАДОК =====
 				
 				// 1. Ежедневное меню
-				if (tabId === 'tabDaily' && window.DailyMenuModule) {
-					setTimeout(function() {
-						// Обновляем данные из глобальной области
-						if (window.DailyMenuModule.getState) {
-							const state = window.DailyMenuModule.getState();
-							state.templateMenuData = window.templateMenuData || null;
-							state.schoolInfo = window.schoolInfo || null;
+				if (tabId === 'tabDaily') {
+					console.log('📅 Переключение на ежедневное меню...');
+    
+					// ✅ СИНХРОНИЗИРУЕМ ПОЛЯ ПОДПИСЕЙ
+					syncSchoolInfoToDailyApprovalInputs();		
+					
+					// Принудительно синхронизируем данные
+					window.templateMenuData = currentTemplateData;
+					window.schoolInfo = schoolInfo;
+					
+					if (window.DailyMenuModule) {
+						// Обновляем состояние
+						const state = window.DailyMenuModule.getState?.();
+						if (state) {
+							state.templateMenuData = currentTemplateData;
+							state.schoolInfo = schoolInfo;
 						}
-						window.DailyMenuModule.reload();
-					}, 300);
+						
+						// Перезагружаем интерфейс
+						setTimeout(function() {
+							if (window.DailyMenuModule.reload) {
+								window.DailyMenuModule.reload();
+							}
+							// Обновляем селектор меню
+							if (window.DailyMenuModule.updateMenuSelectorUI) {
+								window.DailyMenuModule.updateMenuSelectorUI();
+							}
+							// Если есть выбранное меню, загружаем его
+							if (state && state.selectedMenuNumber) {
+								window.DailyMenuModule.loadDailyMenu(state.selectedMenuNumber);
+							} else if (currentTemplateData) {
+								// Загружаем первое меню
+								window.DailyMenuModule.loadDailyMenu(1);
+							}
+						}, 300);
+					}
 				}
 				
 				
@@ -11128,6 +10823,48 @@
 				console.log('window.templateMenuData:', window.templateMenuData);
 				console.log('flatItems:', flatItems);
 
+				// В функции switchTab добавьте:
+				if (tabId === 'tabCalendar') {
+					console.log('📅 Переключение на календарь...');
+					setTimeout(function() {
+						if (window.CalendarModule) {
+							// 1. Принудительно показываем контейнер
+							const container = document.getElementById('calendarContainer');
+							if (container) {
+								container.style.display = 'block';
+								console.log('✅ Контейнер показан');
+							}
+							
+							// 2. Вызываем рендер
+							window.CalendarModule.render();
+							console.log('✅ CalendarModule.render() вызван');
+							
+							// 3. Обновляем статистику
+							if (window.CalendarModule.updateStats) {
+								window.CalendarModule.updateStats();
+							}
+						} else {
+							console.error('❌ CalendarModule не загружен!');
+						}
+					}, 300);
+				}
+
+				if (tabId === 'tabAnalytics') {
+					setTimeout(() => {
+						if (window.AnalyticsModule && window.AnalyticsModule.reload) {
+							// Обновляем данные перед рендером
+							const state = window.AnalyticsModule.getState?.();
+							if (state) {
+								state.templateMenuData = currentTemplateData;
+								state.schoolInfo = schoolInfo;
+								state.isSummerCamp = isSummerCamp;
+								state.flatItems = buildFlatFromTemplate(currentTemplateData);
+								state.allViolations = runAllRules(currentTemplateData);
+							}
+							window.AnalyticsModule.reload();
+						}
+					}, 300);
+				}
 
 				// 2. Аналитика
 				if (tabId === 'tabAnalytics') {
@@ -11456,32 +11193,135 @@
 		// Обновление статусной строки
 		function updateStatusBar() {
 			const state = window.DailyMenuModule?.getState?.();
+			
+			// Получаем элементы статусной строки
+			const menuNumberEl = document.getElementById('statusMenuNumber');
+			const weekEl = document.getElementById('statusWeek');
+			const dayEl = document.getElementById('statusDay');
+			const dishesEl = document.getElementById('statusDishes');
+			const violationsEl = document.getElementById('statusViolations');
+			const violationsCountEl = document.getElementById('statusViolationsCount');
+			const lastUpdateEl = document.getElementById('statusLastUpdate');
+			
 			if (!state || !state.dailyMenuData) {
-				document.getElementById('statusMenuNumber').textContent = '—';
-				document.getElementById('statusWeek').textContent = '—';
-				document.getElementById('statusDay').textContent = '—';
-				document.getElementById('statusDishes').textContent = '0';
+				if (menuNumberEl) {
+					menuNumberEl.textContent = '—';
+					menuNumberEl.className = 'value highlight';
+				}
+				if (weekEl) weekEl.textContent = '—';
+				if (dayEl) dayEl.textContent = '—';
+				if (dishesEl) dishesEl.textContent = '0';
+				if (violationsEl) violationsEl.style.display = 'none';
+				if (lastUpdateEl) lastUpdateEl.textContent = 'Нет данных';
 				return;
 			}
 
-			document.getElementById('statusMenuNumber').textContent = state.dailyMenuData.menuNumber || '—';
-			document.getElementById('statusWeek').textContent = state.dailyMenuData.week || '—';
-			document.getElementById('statusDay').textContent = state.dailyMenuData.day || '—';
-			document.getElementById('statusDishes').textContent = state.dailyMenuItems?.length || 0;
-
-			const violations = state.dailyViolations || [];
-			const violationsEl = document.getElementById('statusViolations');
-			const violationsCountEl = document.getElementById('statusViolationsCount');
+			// === ОСНОВНАЯ ИНФОРМАЦИЯ ===
+			const menuNum = state.dailyMenuData.menuNumber || '—';
+			const week = state.dailyMenuData.week || '—';
+			const day = state.dailyMenuData.day || '—';
+			const dishes = state.dailyMenuItems?.length || 0;
 			
-			if (violations.length > 0) {
-				violationsEl.style.display = 'inline';
-				violationsCountEl.textContent = violations.length;
-				violationsCountEl.style.color = violations.some(v => v.code === 15) ? '#dc2626' : '#f59e0b';
-			} else {
-				violationsEl.style.display = 'none';
+			// Номер меню — выделяем жирным и цветным
+			if (menuNumberEl) {
+				menuNumberEl.textContent = menuNum;
+				menuNumberEl.className = 'value menu-number';
+				// Добавляем цвет в зависимости от номера
+				const color = getMenuColor(menuNum);
+				menuNumberEl.style.color = color.primary;
+			}
+			
+			// Неделя
+			if (weekEl) {
+				weekEl.textContent = week;
+				// Добавляем иконку недели
+				weekEl.style.color = '#10b981';
+			}
+			
+			// День
+			if (dayEl) {
+				dayEl.textContent = day;
+				dayEl.style.color = '#3b82f6';
+			}
+			
+			// Количество блюд
+			if (dishesEl) {
+				dishesEl.textContent = dishes;
+				dishesEl.style.color = dishes > 0 ? '#f59e0b' : '#94a3b8';
 			}
 
-			document.getElementById('statusLastUpdate').textContent = 'Обновлено ' + new Date().toLocaleTimeString();
+			// === НАРУШЕНИЯ ===
+			const violations = state.dailyViolations || [];
+			const criticalErrors = violations.filter(v => v.code === 15);
+			const hasViolations = violations.length > 0;
+			
+			if (violationsEl && violationsCountEl) {
+				if (hasViolations) {
+					violationsEl.style.display = 'inline';
+					violationsCountEl.textContent = violations.length;
+					
+					// Цвет: красный если есть критические, жёлтый если только предупреждения
+					if (criticalErrors.length > 0) {
+						violationsCountEl.style.color = '#dc2626';
+						violationsCountEl.style.fontWeight = 'bold';
+					} else {
+						violationsCountEl.style.color = '#f59e0b';
+						violationsCountEl.style.fontWeight = 'bold';
+					}
+					
+					// Добавляем подсказку при наведении
+					violationsEl.title = criticalErrors.length > 0 
+						? `${criticalErrors.length} критических ошибок (БЖУ > вес)`
+						: `${violations.length - criticalErrors.length} предупреждений`;
+				} else {
+					violationsEl.style.display = 'none';
+				}
+			}
+
+			// === ДОПОЛНИТЕЛЬНАЯ ИНФОРМАЦИЯ ===
+			// Добавляем общую калорийность, если есть блюда
+			if (dishes > 0) {
+				const totalCalories = state.dailyMenuItems.reduce((sum, item) => sum + (item.calories || 0), 0);
+				const totalWeight = state.dailyMenuItems.reduce((sum, item) => sum + (item.weight || 0), 0);
+				
+				// Обновляем время с дополнительной информацией
+				if (lastUpdateEl) {
+					const now = new Date();
+					const timeStr = now.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+					lastUpdateEl.textContent = `Обновлено ${timeStr} • ⚖️ ${totalWeight}г • 🔥 ${totalCalories}ккал`;
+					lastUpdateEl.style.color = '#64748b';
+				}
+			} else {
+				if (lastUpdateEl) {
+					const now = new Date();
+					const timeStr = now.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+					lastUpdateEl.textContent = `Обновлено ${timeStr}`;
+					lastUpdateEl.style.color = '#94a3b8';
+				}
+			}
+
+			// === ИНФОРМАЦИЯ О ШКОЛЕ ===
+			const schoolInfo = state.schoolInfo || window.schoolInfo || {};
+			const schoolNameEl = document.querySelector('.daily-menu-header .school-name');
+			if (schoolNameEl) {
+				schoolNameEl.textContent = schoolInfo.name || 'МОУ "Сказочная СОШ"';
+			}
+			
+			const approvalEl = document.querySelector('.daily-menu-header .approval-info');
+			if (approvalEl) {
+				const pos = schoolInfo.approval?.position || 'Директор';
+				const name = schoolInfo.approval?.name || 'Иванова И.И.';
+				approvalEl.textContent = `${pos} ${name}`;
+			}
+
+			// Обновляем дату в шапке
+			const dateInput = document.getElementById('dailyMenuDate');
+			const headerDateEl = document.getElementById('dailyHeaderDate');
+			if (headerDateEl && dateInput && dateInput.value) {
+				const dateObj = new Date(dateInput.value);
+				const options = { day: 'numeric', month: 'long', year: 'numeric' };
+				headerDateEl.textContent = dateObj.toLocaleDateString('ru-RU', options);
+			}
 		}
 
 		// Экспорт всех вариантов
@@ -12236,6 +12076,576 @@
 			console.log('✅ Кнопка "Обновить аналитику" добавлена');
 		})();
 		
+		// ============================================================
+		// ПЕРЕКЛЮЧАТЕЛЬ РЕЖИМОВ: ПРОСТОЙ / ЭКСПЕРТНЫЙ (ПОЛНОСТЬЮ ИСПРАВЛЕННЫЙ)
+		// ============================================================
+
+		(function initModeToggle() {
+			// Ждём загрузки DOM
+			if (document.readyState === 'loading') {
+				document.addEventListener('DOMContentLoaded', setupModeToggle);
+			} else {
+				setupModeToggle();
+			}
+
+			function setupModeToggle() {
+				const body = document.body;
+				const simpleBtn = document.getElementById('simpleModeBtn');
+				const expertBtn = document.getElementById('expertModeBtn');
+
+				if (!simpleBtn || !expertBtn) {
+					console.warn('⚠️ Кнопки переключения режимов не найдены');
+					return;
+				}
+
+				// Загружаем сохранённый режим
+				const savedMode = localStorage.getItem('editorMode') || 'simple';
+				applyMode(savedMode);
+
+				// Обработчики
+				simpleBtn.addEventListener('click', function() {
+					applyMode('simple');
+				});
+
+				expertBtn.addEventListener('click', function() {
+					applyMode('expert');
+				});
+
+				function applyMode(mode) {
+					// Убираем активный класс у обеих кнопок
+					simpleBtn.classList.remove('active');
+					expertBtn.classList.remove('active');
+
+					if (mode === 'simple') {
+						body.classList.add('simple-mode');
+						body.classList.remove('expert-mode');
+						simpleBtn.classList.add('active');
+						localStorage.setItem('editorMode', 'simple');
+						
+						// Принудительно показываем нужные кнопки
+						setTimeout(function() {
+							showSimpleButtons();
+						}, 50);
+						
+						if (typeof showStatus === 'function') {
+							showStatus('👶 Простой режим — только основные функции', 'info');
+						} else {
+							console.log('👶 Простой режим включён');
+						}
+					} else {
+						body.classList.remove('simple-mode');
+						body.classList.add('expert-mode');
+						expertBtn.classList.add('active');
+						localStorage.setItem('editorMode', 'expert');
+						
+						// Скрываем кнопки простого режима (если они есть)
+						hideSimpleButtons();
+						
+						if (typeof showStatus === 'function') {
+							showStatus('🧠 Экспертный режим — все функции доступны', 'info');
+						} else {
+							console.log('🧠 Экспертный режим включён');
+						}
+					}
+				}
+
+				// Показываем кнопки в простом режиме
+				// Показываем кнопки в простом режиме
+				function showSimpleButtons() {
+					// Список кнопок, которые должны быть видны в простом режиме
+					const buttonIds = [
+						'saveChangesBtn',    // Сохранить
+						'validateOnlyBtn',   // Проверить
+						'printViewBtn',      // Печать
+						'exportExcelBtn',    // Экспорт
+						'compareBtn'         // Отчёт
+					];
+					
+					buttonIds.forEach(function(id) {
+						const el = document.getElementById(id);
+						if (el) {
+							// Добавляем класс для CSS
+							el.classList.add('simple-visible');
+							// Убираем все inline стили, которые могут мешать
+							el.style.display = '';
+							el.style.opacity = '';
+							el.style.visibility = '';
+							// Принудительно показываем через style
+							el.style.setProperty('display', 'inline-flex', 'important');
+							console.log('✅ Показана кнопка:', id);
+						} else {
+							console.warn('⚠️ Кнопка не найдена:', id);
+						}
+					});
+
+					// Кнопки ежедневного меню
+					const dailyIds = [
+						'printDailyBtn',
+						'createDailyBtn',
+						'validateDailyBtn',
+						'saveVariantBtn'
+					];
+					
+					dailyIds.forEach(function(id) {
+						const el = document.getElementById(id);
+						if (el) {
+							el.classList.add('simple-visible-daily');
+							el.style.setProperty('display', 'inline-flex', 'important');
+						}
+					});
+
+					// Кнопка создания меню
+					const createBtn = document.getElementById('simpleCreateMenuBtn');
+					if (createBtn) {
+						createBtn.style.setProperty('display', 'flex', 'important');
+					}
+				}
+
+				// Скрываем кнопки в экспертном режиме (возвращаем стандартное поведение)
+				function hideSimpleButtons() {
+					const buttonIds = [
+						'saveChangesBtn',
+						'validateOnlyBtn',
+						'printViewBtn',
+						'exportExcelBtn',
+						'compareBtn'
+					];
+					
+					buttonIds.forEach(function(id) {
+						const el = document.getElementById(id);
+						if (el) {
+							el.classList.remove('simple-visible');
+							el.style.display = '';
+						}
+					});
+
+					const dailyIds = [
+						'printDailyBtn',
+						'createDailyBtn',
+						'validateDailyBtn',
+						'saveVariantBtn'
+					];
+					
+					dailyIds.forEach(function(id) {
+						const el = document.getElementById(id);
+						if (el) {
+							el.classList.remove('simple-visible-daily');
+							el.style.display = '';
+						}
+					});
+
+					const createBtn = document.getElementById('simpleCreateMenuBtn');
+					if (createBtn) {
+						createBtn.style.display = 'none';
+					}
+				}
+
+				// Добавляем подсказку о режиме в основной редактор
+				function addMainModeHint() {
+					if (document.querySelector('.simple-mode-hint')) return;
+
+					const hint = document.createElement('div');
+					hint.className = 'simple-mode-hint';
+					hint.innerHTML = `
+						<i class="fas fa-lightbulb"></i>
+						<span><strong>👶 Простой режим:</strong> здесь только самое важное. 
+						Чтобы вернуть все инструменты, переключитесь на <strong>«Экспертный»</strong> режим в шапке.</span>
+					`;
+					const editorWrapper = document.querySelector('.editor-wrapper-premium');
+					if (editorWrapper) {
+						editorWrapper.parentNode.insertBefore(hint, editorWrapper);
+					}
+				}
+
+				// Добавляем подсказку о режиме в ежедневное меню
+				function addDailyModeHint() {
+					if (document.querySelector('.daily-simple-hint')) return;
+
+					const hint = document.createElement('div');
+					hint.className = 'daily-simple-hint';
+					hint.innerHTML = `
+						<i class="fas fa-lightbulb"></i>
+						<span><strong>👶 Простой режим:</strong> только просмотр, проверка и печать. 
+						<span style="font-size: 0.7rem; color: #64748b;">Для замены блюд и сохранения вариантов включите «Экспертный» режим.</span></span>
+					`;
+					const dailyWrapper = document.querySelector('.daily-menu-body');
+					if (dailyWrapper) {
+						dailyWrapper.insertBefore(hint, dailyWrapper.firstChild);
+					}
+				}
+
+				// Запускаем
+				setTimeout(function() {
+					showSimpleButtons();
+					addMainModeHint();
+					addDailyModeHint();
+				}, 500);
+
+				// Перехватываем переключение вкладок
+				const observer = new MutationObserver(function() {
+					const dailyTab = document.getElementById('tabDaily');
+					if (dailyTab && dailyTab.style.display !== 'none') {
+						setTimeout(addDailyModeHint, 200);
+					}
+				});
+
+				document.querySelectorAll('.tab-content').forEach(function(tab) {
+					observer.observe(tab, { attributes: true, attributeFilter: ['style'] });
+				});
+
+				// Перехватываем рендер редактора, чтобы кнопки не пропадали
+				const originalRender = window.renderEditor;
+				if (originalRender) {
+					window.renderEditor = function() {
+						originalRender();
+						// После рендера снова показываем кнопки, если простой режим активен
+						if (document.body.classList.contains('simple-mode')) {
+							setTimeout(showSimpleButtons, 100);
+						}
+					};
+				}
+
+				console.log('✅ Переключатель режимов инициализирован');
+			}
+		})();		
+		
+		// ============================================================
+		// КНОПКА СОЗДАНИЯ ТИПОВОГО МЕНЮ (ПРОСТОЙ РЕЖИМ)
+		// ============================================================
+
+		document.addEventListener('DOMContentLoaded', function() {
+			const createMenuBtn = document.getElementById('simpleCreateMenuBtn');
+			if (createMenuBtn) {
+				createMenuBtn.addEventListener('click', function() {
+					// Проверяем, существует ли функция createStandardMenu
+					if (typeof createStandardMenu === 'function') {
+						createStandardMenu();
+					} else {
+						// Если функции нет, пробуем найти кнопку и кликнуть по ней
+						const originalBtn = document.getElementById('createStandardMenuBtn');
+						if (originalBtn) {
+							originalBtn.click();
+						} else {
+							showStatus('❌ Функция создания меню недоступна', 'error');
+						}
+					}
+				});
+			}
+		});		
+		
+		// ============================================================
+		// УПРОЩЁННЫЙ ВЫБОР ДАТЫ В ЕЖЕДНЕВНОМ МЕНЮ
+		// ============================================================
+
+		(function initDateQuickSelect() {
+			// Ждём загрузки DOM
+			if (document.readyState === 'loading') {
+				document.addEventListener('DOMContentLoaded', setupDateQuickSelect);
+			} else {
+				setupDateQuickSelect();
+			}
+
+			function setupDateQuickSelect() {
+				const buttons = document.querySelectorAll('.date-quick-btn');
+				const dateInput = document.getElementById('dailyMenuDate');
+				
+				if (!buttons.length || !dateInput) return;
+
+				// Функция установки даты
+				function setDate(daysOffset) {
+					const date = new Date();
+					date.setDate(date.getDate() + daysOffset);
+					
+					const year = date.getFullYear();
+					const month = String(date.getMonth() + 1).padStart(2, '0');
+					const day = String(date.getDate()).padStart(2, '0');
+					const dateStr = `${year}-${month}-${day}`;
+					
+					dateInput.value = dateStr;
+					
+					// Обновляем активную кнопку
+					buttons.forEach(btn => {
+						btn.classList.remove('active');
+						const btnDays = parseInt(btn.dataset.days);
+						if (btnDays === daysOffset) {
+							btn.classList.add('active');
+						}
+					});
+					
+					// Триггерим событие изменения, чтобы модуль обновился
+					const event = new Event('change', { bubbles: true });
+					dateInput.dispatchEvent(event);
+				}
+
+				// Обработчики кнопок
+				buttons.forEach(btn => {
+					btn.addEventListener('click', function(e) {
+						e.preventDefault();
+						const days = parseInt(this.dataset.days);
+						if (!isNaN(days)) {
+							setDate(days);
+						}
+					});
+				});
+
+				// Если дата уже установлена, синхронизируем кнопки
+				if (dateInput.value) {
+					const today = new Date();
+					const selected = new Date(dateInput.value);
+					const diffDays = Math.round((selected - today) / (1000 * 60 * 60 * 24));
+					
+					buttons.forEach(btn => {
+						btn.classList.remove('active');
+						const btnDays = parseInt(btn.dataset.days);
+						if (btnDays === diffDays) {
+							btn.classList.add('active');
+						}
+					});
+				}
+
+				// При ручном изменении даты обновляем кнопки
+				dateInput.addEventListener('change', function() {
+					if (this.value) {
+						const today = new Date();
+						const selected = new Date(this.value);
+						const diffDays = Math.round((selected - today) / (1000 * 60 * 60 * 24));
+						
+						buttons.forEach(btn => {
+							btn.classList.remove('active');
+							const btnDays = parseInt(btn.dataset.days);
+							if (btnDays === diffDays) {
+								btn.classList.add('active');
+							}
+						});
+					}
+				});
+
+				// Устанавливаем сегодня по умолчанию, если дата не задана
+				if (!dateInput.value) {
+					setDate(0);
+				}
+
+				console.log('✅ Упрощённый выбор даты инициализирован');
+			}
+		})();		
+		
+		// ============================================================
+		// ИНИЦИАЛИЗАЦИЯ ШАПКИ ЕЖЕДНЕВНОГО МЕНЮ ПРИ СТАРТЕ
+		// ============================================================
+
+		setTimeout(function() {
+			// Обновляем информацию о школе
+			updateDailyMenuHeaderInfo();
+			
+			// Обновляем статусную строку
+			if (typeof updateStatusBar === 'function') {
+				updateStatusBar();
+			}
+			
+			// Синхронизируем данные модуля
+			if (window.DailyMenuModule) {
+				const state = DailyMenuModule.getState();
+				if (state) {
+					state.schoolInfo = schoolInfo;
+					state.templateMenuData = currentTemplateData;
+				}
+			}
+			
+			console.log('✅ Шапка ежедневного меню синхронизирована');
+		}, 500);		
+		
+		// ============================================================
+		// УЛУЧШЕННОЕ ОТОБРАЖЕНИЕ СТАТУСА, ДАТЫ И ИМЕНИ ФАЙЛА
+		// ============================================================
+
+		(function initDailyMenuDisplay() {
+			// Ждём загрузки DOM
+			if (document.readyState === 'loading') {
+				document.addEventListener('DOMContentLoaded', setupDailyDisplay);
+			} else {
+				setupDailyDisplay();
+			}
+
+			function setupDailyDisplay() {
+				// --- 1. Обновление отображения даты ---
+				const dateInput = document.getElementById('dailyMenuDate');
+				const dateDisplay = document.getElementById('selectedDateDisplay');
+				
+				if (dateInput && dateDisplay) {
+					// Функция обновления отображения даты
+					function updateDateDisplay() {
+						if (dateInput.value) {
+							const dateObj = new Date(dateInput.value);
+							const options = { day: 'numeric', month: 'long', year: 'numeric' };
+							const weekdays = ['Воскресенье', 'Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота'];
+							const weekday = weekdays[dateObj.getDay()];
+							const dateStr = dateObj.toLocaleDateString('ru-RU', options);
+							dateDisplay.textContent = `${weekday}, ${dateStr}`;
+							dateDisplay.style.color = '#0f172a';
+						} else {
+							dateDisplay.textContent = 'Дата не выбрана';
+							dateDisplay.style.color = '#94a3b8';
+						}
+					}
+					
+					// Обновляем при изменении даты
+					dateInput.addEventListener('change', updateDateDisplay);
+					
+					// Обновляем при загрузке
+					setTimeout(updateDateDisplay, 200);
+				}
+				
+				// --- 2. Автоматическое формирование имени файла ---
+				const variantNameInput = document.getElementById('variantNameInput');
+				const updateFileNameBtn = document.getElementById('updateFileNameBtn');
+				
+				function generateFileName() {
+					if (!dateInput) return;
+					
+					let dateStr = 'ГГГГ-ММ-ДД';
+					if (dateInput.value) {
+						const dateObj = new Date(dateInput.value);
+						const year = dateObj.getFullYear();
+						const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+						const day = String(dateObj.getDate()).padStart(2, '0');
+						dateStr = `${year}-${month}-${day}`;
+					}
+					
+					// Получаем номер меню из состояния
+					let menuNumber = '';
+					if (window.DailyMenuModule) {
+						const state = window.DailyMenuModule.getState();
+						if (state && state.selectedMenuNumber) {
+							menuNumber = `_#${state.selectedMenuNumber}`;
+						}
+					}
+					
+					// Формируем имя файла
+					const fileName = `${dateStr}-sm${menuNumber}.xlsx`;
+					
+					if (variantNameInput) {
+						// Если поле пустое или содержит автоматическое имя, обновляем
+						const currentValue = variantNameInput.value.trim();
+						if (!currentValue || currentValue.includes('-sm')) {
+							variantNameInput.value = fileName;
+						}
+					}
+					
+					return fileName;
+				}
+				
+				// Обновляем имя файла при изменении даты
+				if (dateInput) {
+					dateInput.addEventListener('change', function() {
+						setTimeout(generateFileName, 100);
+					});
+				}
+				
+				// Кнопка "Обновить имя"
+				if (updateFileNameBtn) {
+					updateFileNameBtn.addEventListener('click', function() {
+						const newName = generateFileName();
+						if (newName && variantNameInput) {
+							variantNameInput.value = newName;
+							showStatus(`📄 Имя файла обновлено: ${newName}`, 'success');
+						}
+					});
+				}
+				
+				// --- 3. Обновление статусной строки (расширенное) ---
+				function updateStatusBarExtended() {
+					if (!window.DailyMenuModule) return;
+					
+					const state = window.DailyMenuModule.getState();
+					const menuNumberEl = document.getElementById('statusMenuNumber');
+					const weekEl = document.getElementById('statusWeek');
+					const dayEl = document.getElementById('statusDay');
+					const dishesEl = document.getElementById('statusDishes');
+					const violationsEl = document.getElementById('statusViolations');
+					const violationsCountEl = document.getElementById('statusViolationsCount');
+					
+					if (!state || !state.dailyMenuData) {
+						if (menuNumberEl) menuNumberEl.textContent = '—';
+						if (weekEl) weekEl.textContent = '—';
+						if (dayEl) dayEl.textContent = '—';
+						if (dishesEl) dishesEl.textContent = '0';
+						if (violationsEl) violationsEl.style.display = 'none';
+						return;
+					}
+					
+					// ✅ Показываем полную информацию
+					const menuNum = state.dailyMenuData.menuNumber || '—';
+					const week = state.dailyMenuData.week || '—';
+					const day = state.dailyMenuData.day || '—';
+					const dishes = state.dailyMenuItems?.length || 0;
+					
+					if (menuNumberEl) {
+						menuNumberEl.textContent = menuNum;
+						menuNumberEl.className = 'value menu-number';
+					}
+					if (weekEl) weekEl.textContent = week;
+					if (dayEl) dayEl.textContent = day;
+					if (dishesEl) dishesEl.textContent = dishes;
+					
+					// Нарушения
+					const violations = state.dailyViolations || [];
+					if (violationsEl && violationsCountEl) {
+						if (violations.length > 0) {
+							violationsEl.style.display = 'inline';
+							violationsCountEl.textContent = violations.length;
+							violationsCountEl.style.color = violations.some(v => v.code === 15) ? '#dc2626' : '#f59e0b';
+						} else {
+							violationsEl.style.display = 'none';
+						}
+					}
+					
+					// ✅ Обновляем информацию о школе в шапке
+					const schoolInfo = state.schoolInfo || window.schoolInfo || {};
+					const schoolNameEl = document.querySelector('.daily-menu-header .school-name');
+					if (schoolNameEl) {
+						schoolNameEl.textContent = schoolInfo.name || 'МОУ "Сказочная СОШ"';
+					}
+					
+					const approvalEl = document.querySelector('.daily-menu-header .approval-info');
+					if (approvalEl) {
+						const pos = schoolInfo.approval?.position || 'Директор';
+						const name = schoolInfo.approval?.name || 'Иванова И.И.';
+						approvalEl.textContent = `${pos} ${name}`;
+					}
+				}
+				
+				// Переопределяем функцию updateStatusBar из модуля
+				if (window.DailyMenuModule) {
+					const originalUpdate = window.DailyMenuModule.updateStatusBar;
+					window.DailyMenuModule.updateStatusBar = function() {
+						if (originalUpdate) originalUpdate();
+						setTimeout(updateStatusBarExtended, 50);
+					};
+				}
+				
+				// --- 4. Обновление при загрузке меню ---
+				// Перехватываем loadDailyMenu
+				if (window.DailyMenuModule && window.DailyMenuModule.loadDailyMenu) {
+					const originalLoad = window.DailyMenuModule.loadDailyMenu;
+					window.DailyMenuModule.loadDailyMenu = function(menuNumber) {
+						originalLoad(menuNumber);
+						setTimeout(function() {
+							updateStatusBarExtended();
+							generateFileName();
+						}, 200);
+					};
+				}
+				
+				// --- 5. Инициализация при старте ---
+				setTimeout(function() {
+					updateStatusBarExtended();
+					generateFileName();
+				}, 500);
+				
+				console.log('✅ Улучшенное отображение статуса и даты инициализировано');
+			}
+		})();	
+	
     </script>
 
 
@@ -12387,6 +12797,10 @@
 					<input type="checkbox" id="printShowApproval" checked>
 					<span><i class="fas fa-file-signature"></i> Подписи (утвердил, согласовано)</span>
 				</label>
+				<label style="display: flex; align-items: center; gap: 12px; padding: 8px; cursor: pointer; border-radius: 8px; transition: background 0.2s;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='transparent'">
+					<input type="checkbox" id="printShowAgreed" checked>
+					<span><i class="fas fa-handshake"></i> Печатать подпись «Согласовано» (диетсестра)</span>
+				</label>				
 			</div>
 			
 			<div style="background: #f8fafc; padding: 12px 16px; border-radius: 12px; margin-bottom: 20px;">
@@ -12404,6 +12818,80 @@
 		</div>
 	</div>
 <script>
+
+
+
+	// ============================================================
+	// НАСТРОЙКА ОТОБРАЖЕНИЯ ПОДПИСИ ДИЕТСЕСТРЫ
+	// ============================================================
+	(function initAgreedSignatureSetting() {
+		// Загружаем сохранённое значение
+		const savedValue = localStorage.getItem('showAgreedSignature');
+		const showAgreed = savedValue === null ? true : savedValue === 'true';
+		
+		// Устанавливаем в чекбоксы
+		const printShowAgreed = document.getElementById('printShowAgreed');
+		const showAgreedSignature = document.getElementById('showAgreedSignature');
+		
+		if (printShowAgreed) printShowAgreed.checked = showAgreed;
+		if (showAgreedSignature) showAgreedSignature.checked = showAgreed;
+		
+		// Обработчики
+		function saveSetting(value) {
+			localStorage.setItem('showAgreedSignature', value ? 'true' : 'false');
+			window.showAgreedSignature = value;
+			
+			// Синхронизируем оба чекбокса
+			if (printShowAgreed) printShowAgreed.checked = value;
+			if (showAgreedSignature) showAgreedSignature.checked = value;
+		}
+		
+		printShowAgreed?.addEventListener('change', function() {
+			saveSetting(this.checked);
+		});
+		
+		showAgreedSignature?.addEventListener('change', function() {
+			saveSetting(this.checked);
+		});
+		
+		// Сохраняем в глобальную переменную
+		window.showAgreedSignature = showAgreed;
+		
+		console.log('✅ Настройка подписи диетсестры инициализирована:', showAgreed);
+	})();
+
+
+	// ============================================================
+	// ГАЛОЧКА СКРЫТИЯ ПОДПИСИ ДИЕТСЕСТРЫ (ПРЯМО В ИНТЕРФЕЙСЕ)
+	// ============================================================
+	(function initHideAgreedCheckbox() {
+		const checkbox = document.getElementById('hideAgreedInPrint');
+		if (!checkbox) {
+			setTimeout(initHideAgreedCheckbox, 500);
+			return;
+		}
+		
+		// Загружаем сохранённое значение
+		const saved = localStorage.getItem('showAgreedSignature');
+		const showAgreed = saved === null ? true : saved === 'true';
+		checkbox.checked = !showAgreed; // инвертируем, т.к. галочка «скрыть»
+		
+		checkbox.addEventListener('change', function() {
+			const showAgreed = !this.checked;
+			window.showAgreedSignature = showAgreed;
+			localStorage.setItem('showAgreedSignature', showAgreed ? 'true' : 'false');
+			
+			// Синхронизируем с чекбоксом в настройках печати
+			const printShowAgreed = document.getElementById('printShowAgreed');
+			if (printShowAgreed) printShowAgreed.checked = showAgreed;
+			
+			showStatus(showAgreed ? '✅ Подпись «Согласовано» будет печататься' : '✅ Подпись «Согласовано» скрыта', 'success');
+		});
+		
+		console.log('✅ Галочка скрытия подписи диетсестры инициализирована');
+	})();
+
+
 	// ============================================================
 	// ИСПРАВЛЕННЫЙ МОДУЛЬ ОРФОГРАФИИ С УЛУЧШЕННЫМ РАСПОЗНАВАНИЕМ
 	// ============================================================
@@ -13719,6 +14207,461 @@
 	console.log('🤖 ИИ-модуль орфографии загружен!');
 	console.log('📌 Использование: window.SpellChecker.checkAllMenu()');
 	console.log('📌 Добавить слово: window.addSpellWord("слово")');
+		
+	// В конце основного файла, после загрузки модулей:
+
+	// ============================================================
+	// СИНХРОНИЗАЦИЯ ДАННЫХ ДЛЯ ВСЕХ МОДУЛЕЙ
+	// ============================================================
+
+	function syncAllModules() {
+		console.log('🔄 Синхронизация данных для модулей...');
+		
+		// 1. Обновляем глобальные переменные
+		window.templateMenuData = currentTemplateData;
+		window.schoolInfo = schoolInfo;
+		window.isSummerCamp = isSummerCamp;
+		
+		// 2. Ежедневное меню
+		if (window.DailyMenuModule) {
+			const state = window.DailyMenuModule.getState?.();
+			if (state) {
+				state.templateMenuData = currentTemplateData;
+				state.schoolInfo = schoolInfo;
+			}
+			// Перезагружаем интерфейс, если данные есть
+			if (currentTemplateData && currentTemplateData.weeks) {
+				if (window.DailyMenuModule.reload) {
+					window.DailyMenuModule.reload();
+				}
+				if (window.DailyMenuModule.updateMenuSelectorUI) {
+					window.DailyMenuModule.updateMenuSelectorUI();
+				}
+			}
+		}
+		
+		// 3. Аналитика
+		if (window.AnalyticsModule) {
+			const state = window.AnalyticsModule.getState?.();
+			if (state) {
+				state.templateMenuData = currentTemplateData;
+				state.schoolInfo = schoolInfo;
+				state.isSummerCamp = isSummerCamp;
+				if (currentTemplateData) {
+					state.flatItems = buildFlatFromTemplate(currentTemplateData);
+					state.allViolations = runAllRules(currentTemplateData);
+				}
+			}
+			if (window.AnalyticsModule.reload) {
+				window.AnalyticsModule.reload();
+			}
+		}
+		
+		// 4. Календарь
+		if (window.CalendarModule) {
+			// Календарь хранит свои данные отдельно
+		}
+		
+		console.log('✅ Синхронизация завершена');
+	}
+
+	// Вызываем синхронизацию при загрузке данных
+	function onDataLoaded() {
+		syncAllModules();
+	}
+
+	// Перехватываем все места, где могут загружаться данные
+
+	// 1. Загрузка файла
+	const originalLoadTemplate1 = loadTemplateFromFile;
+	if (typeof loadTemplateFromFile === 'function') {
+		loadTemplateFromFile = function(file) {
+			originalLoadTemplate1(file);
+			setTimeout(onDataLoaded, 300);
+		};
+	}
+
+	// 2. Создание демо-данных
+	const originalCreateDemo1 = createDemoData;
+	if (typeof createDemoData === 'function') {
+		createDemoData = function() {
+			originalCreateDemo1();
+			setTimeout(onDataLoaded, 300);
+		};
+	}
+
+	// 3. Создание типового меню
+	const originalCreateMenu1 = createMenuStructure;
+	if (typeof createMenuStructure === 'function') {
+		createMenuStructure = function(weeksCount, daysPerWeek, selectedMeals) {
+			originalCreateMenu1(weeksCount, daysPerWeek, selectedMeals);
+			setTimeout(onDataLoaded, 300);
+		};
+	}
+
+	// 4. Загрузка из localStorage
+	const originalLoadFromStorage1 = loadFromStorage;
+	if (typeof loadFromStorage === 'function') {
+		loadFromStorage = function() {
+			const result = originalLoadFromStorage1();
+			setTimeout(onDataLoaded, 300);
+			return result;
+		};
+	}
+
+	// Запускаем синхронизацию при старте
+	setTimeout(onDataLoaded, 500);
+
+	// Также при переключении вкладок
+	document.addEventListener('DOMContentLoaded', function() {
+		const tabBtns = document.querySelectorAll('.tab-btn');
+		tabBtns.forEach(btn => {
+			btn.addEventListener('click', function() {
+				const tab = this.dataset.tab;
+				if (tab === 'daily') {
+					setTimeout(syncAllModules, 200);
+				}
+			});
+		});
+	});
+
+	console.log('✅ Синхронизация модулей настроена!');	
+		
+	// Создаём пользовательское событие
+	document.addEventListener('menuDataLoaded', function(e) {
+		console.log('📢 Событие menuDataLoaded получено');
+		syncAllModules();
+	});
+
+	// Вызываем событие после загрузки данных
+	function triggerDataLoaded() {
+		const event = new CustomEvent('menuDataLoaded', {
+			detail: { data: currentTemplateData }
+		});
+		document.dispatchEvent(event);
+	}	
+	
+	// ============================================================
+	// ФИНАЛЬНАЯ ИНИЦИАЛИЗАЦИЯ ВСЕХ МОДУЛЕЙ
+	// ============================================================
+
+	(function finalInit() {
+		console.log('🚀 Финальная инициализация...');
+		
+		// Проверяем, загружены ли данные
+		const hasData = currentTemplateData && 
+						currentTemplateData.weeks && 
+						Object.keys(currentTemplateData.weeks).length > 0;
+		
+		if (hasData) {
+			console.log('✅ Данные найдены, синхронизируем модули...');
+			syncAllModules();
+		} else {
+			console.log('⏳ Данные не найдены, ждём загрузки...');
+			// Подписываемся на событие загрузки
+			document.addEventListener('menuDataLoaded', function() {
+				console.log('📢 Получено событие загрузки данных');
+				syncAllModules();
+			});
+		}
+		
+		// Также проверяем через интервал (на случай, если событие не сработало)
+		let checkAttempts = 0;
+		const checkInterval = setInterval(function() {
+			checkAttempts++;
+			const hasDataNow = currentTemplateData && 
+							   currentTemplateData.weeks && 
+							   Object.keys(currentTemplateData.weeks).length > 0;
+			
+			if (hasDataNow) {
+				console.log(`✅ Данные обнаружены на попытке ${checkAttempts}`);
+				syncAllModules();
+				clearInterval(checkInterval);
+			} else if (checkAttempts > 20) {
+				console.log('⚠️ Данные не загружены после 20 попыток');
+				clearInterval(checkInterval);
+			}
+		}, 500);
+	})();	
+	
+	// ============================================================
+	// ПРИНУДИТЕЛЬНАЯ СИНХРОНИЗАЦИЯ ДАННЫХ (ДОБАВИТЬ В КОНЕЦ ФАЙЛА)
+	// ============================================================
+
+	(function forceSyncAllModules() {
+		console.log('🔄 ПРИНУДИТЕЛЬНАЯ СИНХРОНИЗАЦИЯ МОДУЛЕЙ...');
+		
+		// 1. СИНХРОНИЗИРУЕМ ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ
+		window.templateMenuData = currentTemplateData;
+		window.schoolInfo = schoolInfo;
+		window.isSummerCamp = isSummerCamp;
+		window.flatItems = flatItems;
+		window.allViolations = allViolations;
+		
+		// 2. ЕЖЕДНЕВНОЕ МЕНЮ — принудительно обновляем состояние
+		if (window.DailyMenuModule) {
+			const state = window.DailyMenuModule.getState();
+			if (state) {
+				// Ключевое: заменяем данные в модуле
+				state.templateMenuData = currentTemplateData;
+				state.schoolInfo = schoolInfo;
+				
+				// Принудительно перезагружаем интерфейс
+				if (window.DailyMenuModule.reload) {
+					window.DailyMenuModule.reload();
+				}
+				
+				// Обновляем селектор меню
+				if (window.DailyMenuModule.updateMenuSelectorUI) {
+					setTimeout(function() {
+						window.DailyMenuModule.updateMenuSelectorUI();
+					}, 200);
+				}
+				
+				// Если есть выбранное меню, перезагружаем его
+				if (state.selectedMenuNumber && currentTemplateData) {
+					setTimeout(function() {
+						window.DailyMenuModule.loadDailyMenu(state.selectedMenuNumber);
+					}, 300);
+				}
+			}
+			
+			console.log('✅ DailyMenuModule синхронизирован');
+		}
+		
+		// 3. АНАЛИТИКА
+		if (window.AnalyticsModule) {
+			const state = window.AnalyticsModule.getState();
+			if (state) {
+				state.templateMenuData = currentTemplateData;
+				state.schoolInfo = schoolInfo;
+				state.isSummerCamp = isSummerCamp;
+				if (currentTemplateData) {
+					state.flatItems = buildFlatFromTemplate(currentTemplateData);
+					state.allViolations = runAllRules(currentTemplateData);
+				}
+			}
+			if (window.AnalyticsModule.reload) {
+				window.AnalyticsModule.reload();
+			}
+			console.log('✅ AnalyticsModule синхронизирован');
+		}
+		
+		// 4. КАЛЕНДАРЬ
+		if (window.CalendarModule) {
+			// Календарь использует свои данные
+			console.log('✅ CalendarModule уже использует свои данные');
+		}
+		
+		console.log('✅ ПРИНУДИТЕЛЬНАЯ СИНХРОНИЗАЦИЯ ЗАВЕРШЕНА');
+		console.log('📊 Текущие данные:', {
+			weeks: currentTemplateData?.weeks ? Object.keys(currentTemplateData.weeks).length : 0,
+			dishes: flatItems?.length || 0,
+			dailyMenuLoaded: !!window.DailyMenuModule?.getState?.()?.dailyMenuData
+		});
+	})();
+
+	// Запускаем синхронизацию каждые 3 секунды (пока данные не загрузятся)
+	let syncAttempts = 0;
+	const syncInterval = setInterval(function() {
+		syncAttempts++;
+		
+		// Проверяем, есть ли данные
+		const hasData = currentTemplateData && 
+						currentTemplateData.weeks && 
+						Object.keys(currentTemplateData.weeks).length > 0;
+		
+		if (hasData) {
+			// Проверяем, синхронизирован ли модуль
+			const dailyState = window.DailyMenuModule?.getState?.();
+			const isSynced = dailyState?.templateMenuData === currentTemplateData;
+			
+			if (!isSynced) {
+				console.log(`🔄 Попытка синхронизации #${syncAttempts}...`);
+				window.forceSyncAllModules();
+			} else {
+				console.log(`✅ Модули синхронизированы (попытка ${syncAttempts})`);
+				clearInterval(syncInterval);
+			}
+		} else if (syncAttempts > 10) {
+			console.log('⚠️ Данные не загружены после 10 попыток');
+			clearInterval(syncInterval);
+		}
+	}, 1000);
+
+	// Добавляем глобальную функцию для ручной синхронизации
+	window.forceSyncAllModules = forceSyncAllModules;
+
+	console.log('✅ Система принудительной синхронизации запущена');	
+	
+	// ============================================================
+	// ПОСТОЯННОЕ ИСПРАВЛЕНИЕ СИНХРОНИЗАЦИИ ДЛЯ ЕЖЕДНЕВНОГО МЕНЮ
+	// ============================================================
+
+	(function ensureDailyMenuSync() {
+		console.log('🔧 Установка постоянной синхронизации DailyMenuModule...');
+		
+		// Функция принудительной синхронизации
+		window.forceSyncDailyMenu = function() {
+			console.log('🔄 forceSyncDailyMenu() вызван');
+			
+			if (!window.DailyMenuModule) {
+				console.error('❌ DailyMenuModule не загружен');
+				return false;
+			}
+			
+			const module = window.DailyMenuModule;
+			let state = null;
+			
+			try {
+				state = module.getState();
+			} catch(e) {
+				console.warn('⚠️ Ошибка получения состояния:', e);
+			}
+			
+			// Если состояния нет — создаём
+			if (!state) {
+				console.log('🔄 Состояние отсутствует, создаём...');
+				const newState = {
+					templateMenuData: currentTemplateData,
+					schoolInfo: schoolInfo,
+					selectedMenuNumber: 1,
+					isEditMode: false,
+					dailyMenuData: null,
+					dailyMenuItems: [],
+					dailyViolations: [],
+					savedVariants: []
+				};
+				
+				// Подменяем getState
+				const origGetState = module.getState;
+				module.getState = function() {
+					return newState;
+				};
+				module._state = newState;
+				state = newState;
+				console.log('✅ Состояние создано');
+			}
+			
+			// Обновляем данные
+			state.templateMenuData = currentTemplateData || window.templateMenuData;
+			state.schoolInfo = schoolInfo || window.schoolInfo;
+			
+			// Показываем контент
+			const placeholder = document.getElementById('dailyMenuPlaceholder');
+			const content = document.getElementById('dailyMenuContent');
+			if (placeholder) placeholder.style.display = 'none';
+			if (content) content.style.display = 'block';
+			
+			// Обновляем UI
+			try {
+				if (module.updateMenuSelectorUI) module.updateMenuSelectorUI();
+			} catch(e) {}
+			
+			// Загружаем меню
+			try {
+				const menuNum = state.selectedMenuNumber || 1;
+				if (module.loadDailyMenu) {
+					module.loadDailyMenu(menuNum);
+				}
+			} catch(e) {}
+			
+			// Обновляем статус
+			try {
+				if (module.updateStatusBarMenu) module.updateStatusBarMenu();
+			} catch(e) {}
+			
+			console.log('✅ Синхронизация завершена');
+			return true;
+		};
+		
+		// Запускаем синхронизацию при загрузке
+		if (document.readyState === 'complete' || document.readyState === 'interactive') {
+			setTimeout(window.forceSyncDailyMenu, 300);
+		} else {
+			document.addEventListener('DOMContentLoaded', function() {
+				setTimeout(window.forceSyncDailyMenu, 300);
+			});
+		}
+		
+		// Перехватываем переключение вкладок
+		const origSwitchTab = window.switchTab;
+		if (origSwitchTab) {
+			window.switchTab = function(tabId) {
+				origSwitchTab(tabId);
+				if (tabId === 'tabDaily') {
+					setTimeout(window.forceSyncDailyMenu, 400);
+				}
+			};
+		}
+		
+		// Перехватываем renderEditor
+		const origRenderEditor = window.renderEditor;
+		if (origRenderEditor) {
+			window.renderEditor = function() {
+				origRenderEditor();
+				// Если активна вкладка ежедневного меню — синхронизируем
+				const dailyTab = document.getElementById('tabDaily');
+				if (dailyTab && dailyTab.style.display !== 'none') {
+					setTimeout(window.forceSyncDailyMenu, 300);
+				}
+			};
+		}
+		
+		// Добавляем кнопку синхронизации в панель действий (если её нет)
+		setTimeout(function() {
+			const actionsGrid = document.querySelector('.actions-grid-premium');
+			if (actionsGrid && !document.getElementById('manualSyncBtn')) {
+				const syncBtn = document.createElement('button');
+				syncBtn.id = 'manualSyncBtn';
+				syncBtn.className = 'action-btn warning';
+				syncBtn.innerHTML = '<i class="fas fa-sync-alt"></i> <span>Синхронизировать</span>';
+				syncBtn.title = 'Принудительная синхронизация данных ежедневного меню';
+				syncBtn.addEventListener('click', function() {
+					window.forceSyncDailyMenu();
+					if (typeof showStatus === 'function') {
+						showStatus('🔄 Данные синхронизированы', 'success');
+					}
+				});
+				
+				const resetBtn = document.getElementById('resetToOriginalBtn');
+				if (resetBtn) {
+					actionsGrid.insertBefore(syncBtn, resetBtn);
+				} else {
+					actionsGrid.appendChild(syncBtn);
+				}
+				console.log('✅ Кнопка "Синхронизировать" добавлена');
+			}
+		}, 1000);
+		
+		console.log('✅ Постоянная синхронизация настроена!');
+	})();	
+	
+	// Визуальное затемнение блока «Согласовано» при скрытии подписи
+	(function initAgreedBlockVisual() {
+		const checkbox = document.getElementById('hideAgreedInPrint');
+		const block = document.getElementById('agreedSignatureBlock');
+		
+		if (!checkbox || !block) return;
+		
+		function updateVisual() {
+			if (checkbox.checked) {
+				block.classList.add('hidden-signature');
+			} else {
+				block.classList.remove('hidden-signature');
+			}
+		}
+		
+		checkbox.addEventListener('change', updateVisual);
+		
+		// Применяем при загрузке
+		const saved = localStorage.getItem('showAgreedSignature');
+		const showAgreed = saved === null ? true : saved === 'true';
+		checkbox.checked = !showAgreed;
+		updateVisual();
+	})();	
+	
+	
 	</script>
 
 
@@ -13757,6 +14700,8 @@
 			50% { opacity: 0.5; }
 		}
 	</style>
+
+
 
 </body>
 </html>

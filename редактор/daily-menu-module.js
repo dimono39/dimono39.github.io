@@ -68,7 +68,21 @@ const DailyMenuModule = (function() {
 		if (hasData) {
 			console.log('✅ DailyMenuModule: Данные найдены, инициализируем...');
 			state.templateMenuData = window.templateMenuData;
-			state.schoolInfo = window.schoolInfo || null;
+			
+			// ✅ ЧИТАЕМ ДАННЫЕ О ШКОЛЕ
+			try {
+				const savedSchool = localStorage.getItem('schoolInfo');
+				if (savedSchool) {
+					state.schoolInfo = JSON.parse(savedSchool);
+					window.schoolInfo = state.schoolInfo;
+					console.log('✅ DailyMenuModule: Загружены данные школы:', state.schoolInfoData.name);
+				} else {
+					state.schoolInfo = window.schoolInfo || null;
+				}
+			} catch(e) {
+				state.schoolInfo = window.schoolInfo || null;
+			}
+			
 			initDailyMenuInterface();
 			return true;
 		}
@@ -1342,6 +1356,10 @@ const DailyMenuModule = (function() {
 	function updateStatusBarMenu() {
 		const state = window.DailyMenuModule?.getState?.();
 		
+		// ✅ ОБЪЯВЛЯЕМ schoolInfoData В САМОМ НАЧАЛЕ — ДО ЛЮБЫХ ИСПОЛЬЗОВАНИЙ
+		const schoolInfoData = state?.schoolInfo || window.schoolInfo || {};
+				
+		
 		// Получаем элементы статусной строки
 		const menuNumberEl = document.getElementById('statusMenuNumber');
 		const weekEl = document.getElementById('statusWeek');
@@ -1460,18 +1478,27 @@ const DailyMenuModule = (function() {
 			lastUpdateEl.textContent = `Обновлено ${timeStr}`;
 			lastUpdateEl.style.color = '#64748b';
 		}
+		
+		// ✅ СИНХРОНИЗИРУЕМ ПОЛЯ ПОДПИСЕЙ С ДАННЫМИ ШКОЛЫ
+		const approvalPositionInput = document.getElementById('dailyApprovalPosition');
+		const approvalNameInput = document.getElementById('dailyApprovalName');
+		if (approvalPositionInput && schoolInfoData.approval?.position) {
+			approvalPositionInput.value = schoolInfoData.approval.position;
+		}
+		if (approvalNameInput && schoolInfoData.approval?.name) {
+			approvalNameInput.value = schoolInfoData.approval.name;
+		}		
 
 		// === ИНФОРМАЦИЯ О ШКОЛЕ ===
-		const schoolInfo = state.schoolInfo || window.schoolInfo || {};
 		const schoolNameEl = document.querySelector('.daily-menu-header .school-name');
 		if (schoolNameEl) {
-			schoolNameEl.textContent = schoolInfo.name || 'МОУ "Сказочная СОШ"';
+			schoolNameEl.textContent = schoolInfoData.name || 'МОУ "Сказочная СОШ"';
 		}
 		
 		const approvalEl = document.querySelector('.daily-menu-header .approval-info');
 		if (approvalEl) {
-			const pos = schoolInfo.approval?.position || 'Директор';
-			const name = schoolInfo.approval?.name || 'Иванова И.И.';
+			const pos = schoolInfoData.approval?.position || 'Директор';
+			const name = schoolInfoData.approval?.name || 'Иванова И.И.';
 			approvalEl.textContent = `${pos} ${name}`;
 		}
 
@@ -1541,11 +1568,22 @@ const DailyMenuModule = (function() {
 		const date = dateInput?.value ? new Date(dateInput.value) : new Date();
 		const dateStr = date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
 		
-		// ✅ ЧИТАЕМ ДАННЫЕ ИЗ ПОЛЕЙ УТВЕРЖДЕНИЯ
-		const approvalPosition = document.getElementById('dailyApprovalPosition')?.value || 'Директор';
-		const approvalName = document.getElementById('dailyApprovalName')?.value || 'Иванова И.И.';
-		const agreedPosition = document.getElementById('dailyAgreedPosition')?.value || 'Диетсестра';
-		const agreedName = document.getElementById('dailyAgreedName')?.value || '____________________';
+		// ✅ ПРИОРИТЕТ: сначала берём из schoolInfo, потом из input, потом fallback
+		const schoolInfoData = state.schoolInfo || window.schoolInfo || {};
+
+		const approvalPosition = schoolInfoData.approval?.position 
+			|| document.getElementById('dailyApprovalPosition')?.value 
+			|| 'Директор';
+
+		const approvalName = schoolInfoData.approval?.name 
+			|| document.getElementById('dailyApprovalName')?.value 
+			|| '';
+
+		const agreedPosition = document.getElementById('dailyAgreedPosition')?.value 
+			|| 'Диетсестра';
+
+		const agreedName = document.getElementById('dailyAgreedName')?.value 
+			|| '____________________';
 		
 		const schoolName = state.schoolInfo?.name || 'МОУ "Сказочная СОШ"';
 		const approvalDate = state.schoolInfo?.approval?.date || '12.01.2026';
@@ -1594,8 +1632,8 @@ const DailyMenuModule = (function() {
 
 		const hasViolations = state.dailyViolations.length > 0;
 		const criticalErrors = state.dailyViolations.filter(v => v.code === 15);
-
-		return `
+		
+		let html =  `
 			<div class="print-wrapper" id="printContent">
 				<div class="print-header" style="border-bottom: 3px solid ${menuColor.primary};">
 					<h1 style="color: ${menuColor.primary};">🍽️ ${CONFIG.PRINT_TITLE}</h1>
@@ -1630,33 +1668,55 @@ const DailyMenuModule = (function() {
 						</tr>
 					</tfoot>
 				</table>
+`;
 
-				<div class="print-footer">
-					<div class="approval">
-						<div>
-							<div>Утвердил</div>
-							<div class="line"></div>
-							<div style="font-size: 9pt; color: #64748b;">${escapeHtml(approvalPosition)}</div>
-							<div style="font-weight: 600;">${escapeHtml(approvalName)}</div>
-						</div>
-						<div>
-							<div>Согласовано</div>
-							<div class="line"></div>
-							<div style="font-size: 9pt; color: #64748b;">${escapeHtml(agreedPosition)}</div>
-							<div style="font-weight: 600;">${escapeHtml(agreedName)}</div>
-						</div>
-						<div>
-							<div>Дата</div>
-							<div class="line"></div>
-							<div style="font-weight: 600;">${approvalDate}</div>
-						</div>
-					</div>
-					<div style="margin-top: 16px; font-size: 8pt; color: #94a3b8;">
-						Документ сформирован в программе "PRO Редактор типового меню ФЦМПО" • ${new Date().toLocaleString('ru-RU')}
-					</div>
+		// ✅ ПРОВЕРЯЕМ НАСТРОЙКУ — показывать ли подпись диетсестры
+		const showAgreed = window.showAgreedSignature !== false;
+
+		let approvalBlocksHtml = `
+			<div>
+				<div>Утвердил</div>
+				<div class="line"></div>
+				<div style="font-size: 9pt; color: #64748b;">${escapeHtml(approvalPosition)}</div>
+				<div style="font-weight: 600;">${escapeHtml(approvalName)}</div>
+			</div>
+		`;
+
+		if (showAgreed) {
+			approvalBlocksHtml += `
+				<div>
+					<div>Согласовано</div>
+					<div class="line"></div>
+					<div style="font-size: 9pt; color: #64748b;">${escapeHtml(agreedPosition)}</div>
+					<div style="font-weight: 600;">${escapeHtml(agreedName)}</div>
+				</div>
+			`;
+		}
+
+		approvalBlocksHtml += `
+			<div>
+				<div>Дата</div>
+				<div class="line"></div>
+				<div style="font-weight: 600;">${approvalDate}</div>
+			</div>
+		`;
+
+		html += `
+			<div class="print-footer">
+				<div class="approval" style="${!showAgreed ? 'justify-content: space-around;' : ''}">
+					${approvalBlocksHtml}
+				</div>
+				<div style="margin-top: 16px; font-size: 8pt; color: #94a3b8;">
+					Документ сформирован в программе "PRO Редактор типового меню ФЦМПО" • ${new Date().toLocaleString('ru-RU')}
 				</div>
 			</div>
 		`;
+		html +=
+`			</div>
+		`;
+		
+		
+		return html;
 	}
 
     function showPrintPreview() {
@@ -1911,26 +1971,41 @@ const DailyMenuModule = (function() {
 
 		// Подписи
 		if (settings.showApproval) {
+			// ✅ ПРОВЕРЯЕМ НАСТРОЙКУ
+			const showAgreed = settings.showAgreed !== false && window.showAgreedSignature !== false;
+			
+			let approvalBlocks = `
+				<div>
+					<div>Утвердил</div>
+					<div class="line"></div>
+					<div style="font-size: 9pt; color: #64748b;">${escapeHtml(approvalPosition)}</div>
+					<div style="font-weight: 600;">${escapeHtml(approvalName)}</div>
+				</div>
+			`;
+			
+			if (showAgreed) {
+				approvalBlocks += `
+					<div>
+						<div>Согласовано</div>
+						<div class="line"></div>
+						<div style="font-size: 9pt; color: #64748b;">${escapeHtml(agreedPosition)}</div>
+						<div style="font-weight: 600;">${escapeHtml(agreedName)}</div>
+					</div>
+				`;
+			}
+			
+			approvalBlocks += `
+				<div>
+					<div>Дата</div>
+					<div class="line"></div>
+					<div style="font-weight: 600;">${approvalDate}</div>
+				</div>
+			`;
+			
 			html += `
 				<div class="print-footer">
-					<div class="approval">
-						<div>
-							<div>Утвердил</div>
-							<div class="line"></div>
-							<div style="font-size: 9pt; color: #64748b;">${escapeHtml(approvalPosition)}</div>
-							<div style="font-weight: 600;">${escapeHtml(approvalName)}</div>
-						</div>
-						<div>
-							<div>Согласовано</div>
-							<div class="line"></div>
-							<div style="font-size: 9pt; color: #64748b;">${escapeHtml(agreedPosition)}</div>
-							<div style="font-weight: 600;">${escapeHtml(agreedName)}</div>
-						</div>
-						<div>
-							<div>Дата</div>
-							<div class="line"></div>
-							<div style="font-weight: 600;">${approvalDate}</div>
-						</div>
+					<div class="approval" style="${!showAgreed ? 'justify-content: space-around;' : ''}">
+						${approvalBlocks}
 					</div>
 					<div style="margin-top: 16px; font-size: 8pt; color: #94a3b8;">
 						Документ сформирован в программе "PRO Редактор типового меню ФЦМПО" • ${new Date().toLocaleString('ru-RU')}
@@ -2037,6 +2112,21 @@ const DailyMenuModule = (function() {
     }
 
     function init() {
+		
+		// ✅ ЧИТАЕМ ДАННЫЕ О ШКОЛЕ ИЗ LOCALSTORAGE
+		try {
+			const savedSchool = localStorage.getItem('schoolInfo');
+			if (savedSchool) {
+				state.schoolInfo = JSON.parse(savedSchool);
+				window.schoolInfo = state.schoolInfo;
+				console.log('✅ DailyMenuModule: Загружены данные школы из localStorage');
+			} else {
+				state.schoolInfo = window.schoolInfo || null;
+			}
+		} catch(e) {
+			state.schoolInfo = window.schoolInfo || null;
+		}		
+		
         // Получаем данные из глобальной области
         state.templateMenuData = window.templateMenuData || null;
         state.schoolInfo = window.schoolInfo || null;
@@ -2231,7 +2321,8 @@ const DailyMenuModule = (function() {
 					showCarbs: document.getElementById('printShowCarbs').checked,
 					showPrice: document.getElementById('printShowPrice').checked,
 					showTotals: document.getElementById('printShowTotals').checked,
-					showApproval: document.getElementById('printShowApproval').checked
+					showApproval: document.getElementById('printShowApproval').checked,
+					showAgreed: document.getElementById('printShowAgreed')?.checked !== false
 				};
 				// Сохраняем настройки в глобальной переменной для использования в печати
 				window._dailyPrintSettings = printSettings;
@@ -2269,6 +2360,13 @@ const DailyMenuModule = (function() {
 		getState: function() { return state; },
 		getMenuColor: getMenuColor,
 		reload: initDailyMenuInterface,
+		
+		// ✅ ДОБАВЛЯЕМ ЭТИ МЕТОДЫ:
+		updateStatusBarMenu: updateStatusBarMenu,
+		updateMenuSelectorUI: updateMenuSelectorUI,
+		renderDailyPreview: renderDailyPreview,
+		buildDailyFlatItems: buildDailyFlatItems,
+		runDailyRules: runDailyRules,		
 		
 		// ===== НОВЫЙ МЕТОД: ПРИНУДИТЕЛЬНАЯ СИНХРОНИЗАЦИЯ =====
 		syncData: function(menuData, schoolData) {
