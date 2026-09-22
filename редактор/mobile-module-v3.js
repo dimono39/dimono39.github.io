@@ -1915,6 +1915,675 @@ body.mobile-module-ready .premium-header {
 
 
     // ============================================================
+    // ФУНКЦИИ ИЗ v2.0 — КАРТОЧНЫЙ ВИД, СВАЙПЫ, PULL-TO-REFRESH
+    // ============================================================
+
+    // ---------- Получение названий и цветов приёмов пищи ----------
+
+    function getMealName(mealType) {
+        const map = {
+            'breakfast': '🌅 Завтрак',
+            'breakfast2': '🍎 Второй завтрак',
+            'lunch': '🍲 Обед',
+            'afternoonSnack': '🍪 Полдник',
+            'dinner': '🌙 Ужин',
+            'dinner2': '🥛 Второй ужин'
+        };
+        return map[mealType] || mealType;
+    }
+
+    function getMealColor(mealType) {
+        const map = {
+            'breakfast': '#f59e0b',
+            'breakfast2': '#f97316',
+            'lunch': '#ef4444',
+            'afternoonSnack': '#10b981',
+            'dinner': '#8b5cf6',
+            'dinner2': '#ec4899'
+        };
+        return map[mealType] || '#64748b';
+    }
+
+    // ---------- КАРТОЧНЫЙ ВИД ТАБЛИЦЫ ----------
+
+    function convertTableToCards(table) {
+        const tbody = table.querySelector('tbody');
+        if (!tbody) return '<div class="mobile-cards"><p style="text-align:center;padding:40px;color:#94a3b8;">Нет данных</p></div>';
+
+        const rows = Array.from(tbody.querySelectorAll('tr'));
+        const mealTypes = ['breakfast', 'breakfast2', 'lunch', 'afternoonSnack', 'dinner', 'dinner2'];
+        const grouped = {};
+
+        // Группируем строки по дню и приёму пищи
+        rows.forEach(row => {
+            if (row.classList.contains('add-row-btn')) {
+                const addBtn = row.querySelector('[data-add]');
+                if (addBtn) {
+                    const [week, day, meal] = addBtn.dataset.add.split('|');
+                    const key = `${week}_${day}_${meal}`;
+                    if (!grouped[key]) grouped[key] = { week, day, meal, items: [], addBtn: null };
+                    grouped[key].addBtn = addBtn;
+                }
+                return;
+            }
+
+            const week = row.dataset.week;
+            const day = row.dataset.day;
+            const meal = row.dataset.meal;
+            if (!week || !day || !meal) return;
+
+            const key = `${week}_${day}_${meal}`;
+            if (!grouped[key]) {
+                grouped[key] = { week, day, meal, items: [], addBtn: null };
+            }
+
+            const cells = row.querySelectorAll('td');
+            const item = {
+                row: row,
+                sectionHTML: cells[4]?.querySelector('select')?.outerHTML || '',
+                nameHTML: cells[5]?.querySelector('input')?.outerHTML || '',
+                weightHTML: cells[6]?.querySelector('input')?.outerHTML || '',
+                caloriesHTML: cells[7]?.querySelector('input')?.outerHTML || '',
+                proteinsHTML: cells[8]?.querySelector('input')?.outerHTML || '',
+                fatsHTML: cells[9]?.querySelector('input')?.outerHTML || '',
+                carbsHTML: cells[10]?.querySelector('input')?.outerHTML || '',
+                recipeIdHTML: cells[11]?.querySelector('input')?.outerHTML || '',
+                priceHTML: cells[12]?.querySelector('input')?.outerHTML || '',
+                deleteId: cells[13]?.querySelector('[data-del]')?.dataset.del || '',
+                hasError: row.querySelector('.cell-error') !== null,
+                hasWarning: row.querySelector('.cell-warning') !== null,
+                name: cells[5]?.querySelector('input')?.value || ''
+            };
+            grouped[key].items.push(item);
+        });
+
+        // Сортируем группы
+        const sortedKeys = Object.keys(grouped).sort((a, b) => {
+            const [wa, da, ma] = a.split('_');
+            const [wb, db, mb] = b.split('_');
+            if (wa !== wb) return parseInt(wa) - parseInt(wb);
+            if (da !== db) return parseInt(da) - parseInt(db);
+            return mealTypes.indexOf(ma) - mealTypes.indexOf(mb);
+        });
+
+        let html = '<div class="mobile-cards">';
+
+        for (const key of sortedKeys) {
+            const group = grouped[key];
+            const { week, day, meal, items } = group;
+
+            const mealColor = getMealColor(meal);
+            const itemsCount = items.filter(i => i.name).length;
+            const totalWeight = items.reduce((sum, i) => {
+                const w = parseFloat(i.weightHTML.match(/value="([^"]*)"/)?.[1] || 0);
+                return sum + (isNaN(w) ? 0 : w);
+            }, 0);
+            const totalCal = items.reduce((sum, i) => {
+                const c = parseFloat(i.caloriesHTML.match(/value="([^"]*)"/)?.[1] || 0);
+                return sum + (isNaN(c) ? 0 : c);
+            }, 0);
+
+            html += `
+                <div class="mobile-meal-group-title" style="border-left-color: ${mealColor};">
+                    <i class="fas fa-utensils" style="color: ${mealColor};"></i>
+                    <span>Неделя ${week} • День ${day} • ${getMealName(meal)}</span>
+                    <span class="count-badge">${itemsCount} блюд • ${totalWeight}г • ${totalCal}ккал</span>
+                </div>
+            `;
+
+            for (const item of items) {
+                const cardClass = item.hasError ? 'has-error' : (item.hasWarning ? 'has-warning' : '');
+                html += `
+                    <div class="mobile-item-card ${cardClass}">
+                        <div class="mobile-item-card-body">
+                            <div class="mobile-field">
+                                <label>Раздел</label>
+                                ${item.sectionHTML}
+                            </div>
+                            <div class="mobile-field">
+                                <label>Название блюда</label>
+                                ${item.nameHTML}
+                            </div>
+                            <div class="mobile-field">
+                                <label>Вес (г)</label>
+                                ${item.weightHTML}
+                            </div>
+                            <div class="mobile-field">
+                                <label>Калорийность (ккал)</label>
+                                ${item.caloriesHTML}
+                            </div>
+                            <div class="mobile-field-row">
+                                <div class="mobile-field">
+                                    <label>Белки</label>
+                                    ${item.proteinsHTML}
+                                </div>
+                                <div class="mobile-field">
+                                    <label>Жиры</label>
+                                    ${item.fatsHTML}
+                                </div>
+                                <div class="mobile-field">
+                                    <label>Углеводы</label>
+                                    ${item.carbsHTML}
+                                </div>
+                            </div>
+                            <div class="mobile-field-row" style="grid-template-columns: 1fr 1fr;">
+                                <div class="mobile-field">
+                                    <label>№ рецептуры</label>
+                                    ${item.recipeIdHTML}
+                                </div>
+                                <div class="mobile-field">
+                                    <label>Цена (₽)</label>
+                                    ${item.priceHTML}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mobile-item-card-footer">
+                            <button class="btn-add" data-action="add-dish" data-add="${week}|${day}|${meal}">
+                                <i class="fas fa-plus"></i> Добавить
+                            </button>
+                            <button class="btn-delete" data-action="delete-dish" data-del="${item.deleteId}">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }
+
+            html += `
+                <button class="mobile-add-card" data-action="add-dish" data-add="${week}|${day}|${meal}">
+                    <i class="fas fa-plus-circle"></i>
+                    <span>Добавить блюдо в «${getMealName(meal)}»</span>
+                </button>
+            `;
+        }
+
+        html += '</div>';
+        return html;
+    }
+
+    function switchToCardView() {
+        if (!CONFIG.ENABLE_CARD_VIEW) return;
+        
+        const wrapper = document.querySelector('.editor-wrapper-premium');
+        if (!wrapper) return;
+
+        const table = wrapper.querySelector('.editor-table');
+        if (!table) return;
+        if (wrapper.querySelector('.mobile-cards')) return;
+
+        log('Переключаюсь на карточный вид');
+        
+        const cardsHTML = convertTableToCards(table);
+        const cardsContainer = document.createElement('div');
+        cardsContainer.innerHTML = cardsHTML;
+        
+        table.style.display = 'none';
+        wrapper.classList.add('card-view');
+        wrapper.appendChild(cardsContainer);
+
+        state.cardViewActive = true;
+        state.viewMode = 'cards';
+
+        attachCardViewEvents(cardsContainer);
+
+        if (CONFIG.REMEMBER_VIEW_MODE) {
+            localStorage.setItem('mobileViewMode', 'cards');
+        }
+    }
+
+    function switchToTableView() {
+        const wrapper = document.querySelector('.editor-wrapper-premium');
+        if (!wrapper) return;
+
+        const table = wrapper.querySelector('.editor-table');
+        const cardsContainer = wrapper.querySelector('.mobile-cards');
+
+        if (table) table.style.display = '';
+        if (cardsContainer) cardsContainer.remove();
+        wrapper.classList.remove('card-view');
+
+        state.cardViewActive = false;
+        state.viewMode = 'table';
+
+        if (CONFIG.REMEMBER_VIEW_MODE) {
+            localStorage.setItem('mobileViewMode', 'table');
+        }
+
+        log('Переключаюсь на табличный вид');
+    }
+
+    function attachCardViewEvents(container) {
+        container.querySelectorAll('[data-action="add-dish"]').forEach(btn => {
+            btn.addEventListener('click', function() {
+                vibrate(10);
+                const addData = this.dataset.add;
+                const addBtn = document.querySelector(`[data-add="${addData}"]`);
+                if (addBtn) {
+                    addBtn.click();
+                    setTimeout(() => refreshCardView(), 400);
+                }
+            });
+        });
+
+        container.querySelectorAll('[data-action="delete-dish"]').forEach(btn => {
+            btn.addEventListener('click', function() {
+                vibrate(20);
+                const delId = this.dataset.del;
+                const delBtn = document.querySelector(`[data-del="${delId}"]`);
+                if (delBtn) {
+                    if (confirm('Удалить это блюдо?')) {
+                        delBtn.click();
+                        setTimeout(() => refreshCardView(), 400);
+                    }
+                }
+            });
+        });
+
+        container.querySelectorAll('input, select').forEach(el => {
+            el.addEventListener('change', function() {
+                const id = this.dataset.id;
+                const field = this.dataset.field;
+                if (id && field) {
+                    const tableEl = document.querySelector(`.editor-table [data-id="${id}"][data-field="${field}"]`);
+                    if (tableEl) {
+                        tableEl.value = this.value;
+                        tableEl.dispatchEvent(new Event('change', { bubbles: true }));
+                    }
+                }
+            });
+        });
+    }
+
+    function refreshCardView() {
+        if (!state.cardViewActive) return;
+        switchToTableView();
+        setTimeout(() => switchToCardView(), 100);
+    }
+
+    function createViewToggle() {
+        if (!CONFIG.ENABLE_CARD_VIEW || !state.isMobile) return;
+        
+        const editorWrapper = document.querySelector('.editor-wrapper-premium');
+        if (!editorWrapper) return;
+        if (document.querySelector('.mobile-view-toggle')) return;
+
+        const toggle = document.createElement('div');
+        toggle.className = 'mobile-view-toggle';
+        toggle.innerHTML = `
+            <button data-view="table" class="${state.viewMode === 'table' ? 'active' : ''}">
+                <i class="fas fa-table"></i>
+                <span>Таблица</span>
+            </button>
+            <button data-view="cards" class="${state.viewMode === 'cards' ? 'active' : ''}">
+                <i class="fas fa-th-large"></i>
+                <span>Карточки</span>
+            </button>
+        `;
+
+        editorWrapper.parentNode.insertBefore(toggle, editorWrapper);
+
+        toggle.querySelectorAll('button').forEach(btn => {
+            btn.addEventListener('click', function() {
+                vibrate(10);
+                const view = this.dataset.view;
+                
+                toggle.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+
+                if (view === 'cards') {
+                    switchToCardView();
+                } else {
+                    switchToTableView();
+                }
+            });
+        });
+
+        log('Переключатель вида создан');
+    }
+
+    // ---------- СВАЙПЫ ----------
+
+    function enableSwipeNavigation() {
+        if (!CONFIG.ENABLE_SWIPE_NAVIGATION || !state.isTouch) return;
+
+        document.addEventListener('touchstart', handleTouchStart, { passive: true });
+        document.addEventListener('touchmove', handleTouchMove, { passive: false });
+        document.addEventListener('touchend', handleTouchEnd, { passive: true });
+
+        log('Свайпы включены');
+    }
+
+    function handleTouchStart(e) {
+        const target = e.target;
+        if (target.closest('input, textarea, select, [contenteditable="true"]')) return;
+        if (target.closest('.editor-wrapper-premium, .daily-preview, .modal-content')) return;
+
+        const touch = e.touches[0];
+        state.touchStartX = touch.clientX;
+        state.touchStartY = touch.clientY;
+        state.touchStartTime = Date.now();
+        state.isSwiping = false;
+    }
+
+    function handleTouchMove(e) {
+        if (!state.touchStartX) return;
+
+        const touch = e.touches[0];
+        const dx = touch.clientX - state.touchStartX;
+        const dy = touch.clientY - state.touchStartY;
+
+        if (!state.isSwiping && Math.abs(dx) > 15) {
+            if (Math.abs(dx) > Math.abs(dy)) {
+                state.isSwiping = true;
+            }
+        }
+
+        if (state.isSwiping) {
+            if (Math.abs(dx) > CONFIG.SWIPE_THRESHOLD / 2) {
+                if (dx > 0) {
+                    showSwipeHint('left');
+                } else {
+                    showSwipeHint('right');
+                }
+            }
+        }
+    }
+
+    function handleTouchEnd(e) {
+        if (!state.isSwiping) {
+            hideSwipeHints();
+            return;
+        }
+
+        const touch = e.changedTouches[0];
+        const dx = touch.clientX - state.touchStartX;
+        const dy = touch.clientY - state.touchStartY;
+        const dt = Date.now() - state.touchStartTime;
+
+        if (Math.abs(dx) > CONFIG.SWIPE_THRESHOLD && 
+            Math.abs(dy) < Math.abs(dx) * 0.7 &&
+            dt < 800) {
+            
+            vibrate(15);
+            const direction = dx > 0 ? 'right' : 'left';
+            handleSwipeAction(direction);
+        }
+
+        state.touchStartX = 0;
+        state.touchStartY = 0;
+        state.isSwiping = false;
+        hideSwipeHints();
+    }
+
+    function handleSwipeAction(direction) {
+        const currentTab = state.currentTab;
+
+        if (currentTab === 'daily') {
+            const dailyState = window.DailyMenuModule?.getState?.();
+            if (!dailyState) return;
+
+            const current = dailyState.selectedMenuNumber || 1;
+            const next = direction === 'right' ? current - 1 : current + 1;
+
+            const maxMenu = window.DailyMenuModule?.getState?.()?.templateMenuData?.weeks
+                ? Object.values(dailyState.templateMenuData.weeks).reduce((sum, w) => sum + Object.keys(w).length, 0)
+                : 1;
+
+            if (next >= 1 && next <= maxMenu) {
+                window.DailyMenuModule.loadDailyMenu(next);
+                if (typeof showStatus === 'function') {
+                    showStatus(`Меню #${next}`, 'info');
+                }
+            } else {
+                if (typeof showStatus === 'function') {
+                    showStatus('Больше меню нет', 'info');
+                }
+            }
+        }
+
+        if (currentTab === 'calendar') {
+            const container = document.getElementById('calendarContainer');
+            if (container) {
+                const scrollAmount = direction === 'right' ? -200 : 200;
+                container.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+            }
+        }
+    }
+
+    function showSwipeHint(side) {
+        let hint = document.querySelector(`.mobile-swipe-hint.${side}`);
+        if (!hint) {
+            hint = document.createElement('div');
+            hint.className = `mobile-swipe-hint ${side}`;
+            hint.innerHTML = side === 'right' 
+                ? '<i class="fas fa-arrow-left"></i><span>Предыдущее</span>'
+                : '<i class="fas fa-arrow-right"></i><span>Следующее</span>';
+            hint.style.cssText = `
+                position: fixed; top: 50%; transform: translateY(-50%);
+                padding: 12px 16px; background: rgba(15,23,42,0.85);
+                backdrop-filter: blur(10px); color: white; border-radius: 16px;
+                font-size: 0.75rem; display: flex; align-items: center; gap: 6px;
+                z-index: 9500; opacity: 0; transition: opacity 0.25s;
+                pointer-events: none;
+            `;
+            if (side === 'left') hint.style.left = '12px';
+            else hint.style.right = '12px';
+            document.body.appendChild(hint);
+        }
+        hint.style.opacity = '1';
+    }
+
+    function hideSwipeHints() {
+        document.querySelectorAll('.mobile-swipe-hint').forEach(h => {
+            h.style.opacity = '0';
+        });
+    }
+
+    // ---------- PULL-TO-REFRESH ----------
+
+    function enablePullToRefresh() {
+        if (!CONFIG.ENABLE_PULL_REFRESH || !state.isTouch) return;
+
+        const indicator = document.createElement('div');
+        indicator.className = 'mobile-pull-indicator';
+        indicator.innerHTML = '<i class="fas fa-sync-alt"></i><span>Потяните вниз</span>';
+        document.body.appendChild(indicator);
+        state.pullIndicator = indicator;
+
+        let startY = 0;
+        let isPulling = false;
+        let canPull = false;
+
+        document.addEventListener('touchstart', (e) => {
+            if (window.scrollY > 0) {
+                canPull = false;
+                return;
+            }
+            
+            const target = e.target;
+            if (target.closest('.editor-wrapper-premium, .daily-preview, .modal-content, input, select')) {
+                canPull = false;
+                return;
+            }
+
+            canPull = true;
+            startY = e.touches[0].clientY;
+            isPulling = false;
+        }, { passive: true });
+
+        document.addEventListener('touchmove', (e) => {
+            if (!canPull) return;
+
+            const currentY = e.touches[0].clientY;
+            const dy = currentY - startY;
+
+            if (dy > 0 && window.scrollY === 0) {
+                isPulling = true;
+                
+                if (dy > CONFIG.PULL_THRESHOLD) {
+                    indicator.classList.add('active', 'ready');
+                    indicator.querySelector('span').textContent = 'Отпустите для обновления';
+                    indicator.querySelector('i').className = 'fas fa-sync-alt fa-spin';
+                } else if (dy > 30) {
+                    indicator.classList.add('active');
+                    indicator.classList.remove('ready');
+                    indicator.querySelector('span').textContent = 'Потяните вниз';
+                    indicator.querySelector('i').className = 'fas fa-arrow-down';
+                }
+            }
+        }, { passive: true });
+
+        document.addEventListener('touchend', () => {
+            if (isPulling && indicator.classList.contains('ready')) {
+                performPullRefresh();
+            }
+            
+            setTimeout(() => {
+                indicator.classList.remove('active', 'ready');
+                indicator.querySelector('span').textContent = 'Потяните вниз';
+                indicator.querySelector('i').className = 'fas fa-sync-alt';
+            }, 300);
+
+            canPull = false;
+            isPulling = false;
+        }, { passive: true });
+
+        log('Pull-to-refresh включён');
+    }
+
+    function performPullRefresh() {
+        if (state.pullIndicator) {
+            state.pullIndicator.classList.add('refreshing');
+            state.pullIndicator.querySelector('span').textContent = 'Обновление...';
+            state.pullIndicator.querySelector('i').className = 'fas fa-sync-alt fa-spin';
+        }
+
+        vibrate(20);
+
+        const currentTab = state.currentTab;
+
+        setTimeout(() => {
+            try {
+                if (currentTab === 'main' && window.renderEditor) {
+                    window.renderEditor();
+                } else if (currentTab === 'calendar' && window.CalendarModule?.render) {
+                    window.CalendarModule.render();
+                } else if (currentTab === 'daily' && window.DailyMenuModule) {
+                    const dailyState = window.DailyMenuModule.getState?.();
+                    if (dailyState?.selectedMenuNumber) {
+                        window.DailyMenuModule.loadDailyMenu(dailyState.selectedMenuNumber);
+                    }
+                } else if (currentTab === 'analytics' && window.AnalyticsModule?.reload) {
+                    window.AnalyticsModule.reload();
+                }
+
+                if (typeof showStatus === 'function') {
+                    showStatus('🔄 Данные обновлены', 'success');
+                }
+            } catch (err) {
+                console.error('Ошибка обновления:', err);
+                if (typeof showStatus === 'function') {
+                    showStatus('Ошибка обновления', 'error');
+                }
+            }
+
+            if (state.pullIndicator) {
+                state.pullIndicator.classList.remove('refreshing', 'active', 'ready');
+                state.pullIndicator.querySelector('span').textContent = 'Потяните вниз';
+                state.pullIndicator.querySelector('i').className = 'fas fa-sync-alt';
+            }
+        }, 600);
+    }
+
+    // ---------- QUICK ACTIONS FAB ----------
+
+    function createQuickActionsFab() {
+        if (!CONFIG.ENABLE_QUICK_ACTIONS || !state.isMobile) return;
+        if (state.quickActionsFab) return;
+
+        const container = document.createElement('div');
+        container.className = 'mobile-quick-actions';
+        container.innerHTML = `
+            <div class="mobile-quick-actions-menu" id="quickActionsMenu">
+                <button class="mobile-quick-action-btn" data-action="save">
+                    <i class="fas fa-save" style="color:#10b981;"></i>
+                    <span>Сохранить</span>
+                </button>
+                <button class="mobile-quick-action-btn" data-action="validate">
+                    <i class="fas fa-check-double" style="color:#f59e0b;"></i>
+                    <span>Проверить</span>
+                </button>
+                <button class="mobile-quick-action-btn" data-action="export">
+                    <i class="fas fa-download" style="color:#3b82f6;"></i>
+                    <span>Экспорт</span>
+                </button>
+                <button class="mobile-quick-action-btn" data-action="scroll-top">
+                    <i class="fas fa-arrow-up" style="color:#8b5cf6;"></i>
+                    <span>Наверх</span>
+                </button>
+            </div>
+            <button class="mobile-quick-actions-main" id="quickActionsMain" aria-label="Быстрые действия">
+                <i class="fas fa-plus"></i>
+            </button>
+        `;
+
+        document.body.appendChild(container);
+        state.quickActionsFab = container;
+
+        const mainBtn = container.querySelector('#quickActionsMain');
+        const menu = container.querySelector('#quickActionsMenu');
+
+        mainBtn.addEventListener('click', () => {
+            vibrate(10);
+            mainBtn.classList.toggle('open');
+            menu.classList.toggle('open');
+        });
+
+        container.querySelectorAll('[data-action]').forEach(btn => {
+            btn.addEventListener('click', function() {
+                vibrate(10);
+                const action = this.dataset.action;
+
+                mainBtn.classList.remove('open');
+                menu.classList.remove('open');
+
+                setTimeout(() => {
+                    handleQuickAction(action);
+                }, 200);
+            });
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!container.contains(e.target)) {
+                mainBtn.classList.remove('open');
+                menu.classList.remove('open');
+            }
+        });
+
+        log('Quick Actions FAB создан');
+    }
+
+    function handleQuickAction(action) {
+        switch (action) {
+            case 'save':
+                const saveBtn = document.getElementById('saveChangesBtn');
+                if (saveBtn) saveBtn.click();
+                break;
+            case 'validate':
+                const validateBtn = document.getElementById('validateOnlyBtn');
+                if (validateBtn) validateBtn.click();
+                break;
+            case 'export':
+                const exportBtn = document.getElementById('exportExcelBtn');
+                if (exportBtn) exportBtn.click();
+                break;
+            case 'scroll-top':
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+                break;
+        }
+    }
+
+    // ============================================================
     // НИЖНЯЯ НАВИГАЦИЯ
     // ============================================================
 

@@ -23,7 +23,7 @@
 	<script src="kp.js"></script>	
 	<script src="utils.js"></script>		
 	<script src="analytics-module.js"></script>
-	<script src="mobile-module.js"></script>
+	<script src="mobile-module-v3.js"></script>
 	<script>
 		// Проверяем, что модуль загрузился
 		if (typeof AnalyticsModule !== 'undefined') {
@@ -14485,7 +14485,13 @@
 			
 			if (!isSynced) {
 				console.log(`🔄 Попытка синхронизации #${syncAttempts}...`);
-				window.forceSyncAllModules();
+				// ✅ ПРАВИЛЬНЫЙ ВЫЗОВ через глобальную функцию, объявленную выше
+				if (typeof window.forceSyncAllModules === 'function') {
+					window.forceSyncAllModules();
+				} else if (typeof forceSyncAllModules === 'function') {
+					// Если глобальной нет, но функция доступна в области видимости
+					forceSyncAllModules();
+				}
 			} else {
 				console.log(`✅ Модули синхронизированы (попытка ${syncAttempts})`);
 				clearInterval(syncInterval);
@@ -14496,8 +14502,34 @@
 		}
 	}, 1000);
 
-	// Добавляем глобальную функцию для ручной синхронизации
-	window.forceSyncAllModules = forceSyncAllModules;
+	// ✅ ДОБАВЛЯЕМ глобальную функцию для ручной синхронизации
+	// Объявляем её ЗАРАНЕЕ как переменную в window
+	window.forceSyncAllModules = window.forceSyncAllModules || function() {
+		console.log('🔄 forceSyncAllModules (fallback) вызван');
+		// Минимальная синхронизация
+		window.templateMenuData = currentTemplateData;
+		window.schoolInfo = schoolInfo;
+		window.isSummerCamp = isSummerCamp;
+		
+		if (window.DailyMenuModule) {
+			const state = window.DailyMenuModule.getState?.();
+			if (state) {
+				state.templateMenuData = currentTemplateData;
+				state.schoolInfo = schoolInfo;
+			}
+		}
+		if (window.AnalyticsModule) {
+			const state = window.AnalyticsModule.getState?.();
+			if (state) {
+				state.templateMenuData = currentTemplateData;
+				state.schoolInfo = schoolInfo;
+				state.isSummerCamp = isSummerCamp;
+			}
+			if (window.AnalyticsModule.reload) {
+				window.AnalyticsModule.reload();
+			}
+		}
+	};
 
 	console.log('✅ Система принудительной синхронизации запущена');	
 	
