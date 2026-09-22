@@ -1,0 +1,54 @@
+{
+  "name": "PRO Редактор типового меню ФЦМПО",
+  "short_name": "PRO Меню",
+  "description": "Профессиональный редактор типового меню для школьных столовых",
+  "start_url": "./testtm1.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0f172a",
+  "theme_color": "#10b981",
+  "lang": "ru",
+  "dir": "ltr",
+  "categories": ["productivity", "education"],
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Редактор меню",
+      "short_name": "Меню",
+      "url": "./testtm1.html?tab=main",
+      "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Ежедневное меню",
+      "short_name": "День",
+      "url": "./testtm1.html?tab=daily",
+      "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Календарь",
+      "short_name": "Календарь",
+      "url": "./testtm1.html?tab=calendar",
+      "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}
