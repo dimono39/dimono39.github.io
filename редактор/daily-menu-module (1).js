@@ -1557,57 +1557,6 @@ const DailyMenuModule = (function() {
     // ============================================================
     // ПЕЧАТЬ И PDF
     // ============================================================
-
-	/**
-	 * Определяет уровень плотности печати в зависимости от объёма меню
-	 * @returns {Object} { level: 1-5, fontSize: number, padding: number, label: string }
-	 */
-	function getPrintDensity() {
-		if (!state.dailyMenuData) {
-			return { level: 3, fontSize: 10, padding: 8, label: 'Обычная' };
-		}
-
-		// Считаем количество видимых блюд
-		const mealTypes = ['breakfast', 'breakfast2', 'lunch', 'afternoonSnack', 'dinner', 'dinner2'];
-		let totalItems = 0;
-		let mealsWithContent = 0;
-
-		for (const mealType of mealTypes) {
-			const meal = state.dailyMenuData[mealType];
-			const items = meal?.items || [];
-			const visible = items.filter(it => it.name && it.name.trim() !== '');
-			if (visible.length > 0) {
-				mealsWithContent++;
-				totalItems += visible.length;
-			}
-		}
-
-		// Определяем уровень плотности
-		// Чем больше блюд и приёмов — тем плотнее вёрстка
-		let level = 1;
-		let fontSize = 11;
-		let padding = 10;
-		let label = 'Просторная';
-
-		if (totalItems <= 15 && mealsWithContent <= 2) {
-			// 1 — очень просторная
-			level = 1; fontSize = 11; padding = 10; label = 'Просторная';
-		} else if (totalItems <= 20 && mealsWithContent <= 3) {
-			// 2 — просторная
-			level = 2; fontSize = 10.5; padding = 8; label = 'Стандартная';
-		} else if (totalItems <= 25 && mealsWithContent <= 4) {
-			// 3 — обычная
-			level = 3; fontSize = 10; padding = 6; label = 'Обычная';
-		} else if (totalItems <= 32 && mealsWithContent <= 5) {
-			// 4 — плотная
-			level = 4; fontSize = 9; padding = 4; label = 'Плотная';
-		} else {
-			// 5 — очень плотная (все приёмы + много блюд)
-			level = 5; fontSize = 8.5; padding = 3; label = 'Компактная';
-		}
-
-		return { level, fontSize, padding, label };
-	}
     
 	function getPrintContent() {
 		if (!state.dailyMenuData) {
@@ -1615,13 +1564,11 @@ const DailyMenuModule = (function() {
 			return null;
 		}
 
-		// ✅ Получаем плотность печати
-		const density = getPrintDensity();
-		
 		const dateInput = document.getElementById('dailyMenuDate');
 		const date = dateInput?.value ? new Date(dateInput.value) : new Date();
 		const dateStr = date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
 		
+		// ✅ ПРИОРИТЕТ: сначала берём из schoolInfo, потом из input, потом fallback
 		const schoolInfoData = state.schoolInfo || window.schoolInfo || {};
 
 		const approvalPosition = schoolInfoData.approval?.position 
@@ -1660,14 +1607,16 @@ const DailyMenuModule = (function() {
 			`;
 			
 			for (const item of visibleItems) {
+				// ===== ПРИМЕНЯЕМ ОКРУГЛЕНИЕ ПРИ ПЕЧАТИ =====
 				const roundedCalories = RoundingModule.roundCalories(item.calories || 0);
-				
+				const roundedWeight = RoundingModule.roundNutrient(item.weight || 0);
+								
 				tableRows += `
 					<tr>
 						<td>${escapeHtml(item.section || '—')}</td>
 						<td>${escapeHtml(item.name)}</td>
 						<td style="text-align: center;">${item.weight || 0}</td>
-						<td style="text-align: center;">${roundedCalories}</td>
+						<td style="text-align: center;">${item.calories || 0}</td>
 						<td style="text-align: center;">${item.price ? item.price.toFixed(2) : '0.00'}</td>
 					</tr>
 				`;
@@ -1684,122 +1633,8 @@ const DailyMenuModule = (function() {
 		const hasViolations = state.dailyViolations.length > 0;
 		const criticalErrors = state.dailyViolations.filter(v => v.code === 15);
 		
-		// ✅ Формируем HTML с динамическими стилями плотности
-		let html = `
-			<div class="print-wrapper density-${density.level}" id="printContent" data-density="${density.level}">
-				<style>
-					/* ===== ДИНАМИЧЕСКАЯ ПЛОТНОСТЬ ПЕЧАТИ ===== */
-					.print-wrapper.density-1 {
-						--print-font-size: 11pt;
-						--print-padding: 10px 12px;
-						--print-header-size: 22pt;
-						--print-sub-size: 12pt;
-						--print-date-size: 11pt;
-						--print-row-height: auto;
-						--print-meal-padding: 10px 12px;
-						--print-margin-bottom: 24px;
-						--print-footer-margin: 30px;
-					}
-					.print-wrapper.density-2 {
-						--print-font-size: 10.5pt;
-						--print-padding: 8px 10px;
-						--print-header-size: 20pt;
-						--print-sub-size: 11pt;
-						--print-date-size: 10pt;
-						--print-row-height: auto;
-						--print-meal-padding: 8px 10px;
-						--print-margin-bottom: 20px;
-						--print-footer-margin: 24px;
-					}
-					.print-wrapper.density-3 {
-						--print-font-size: 10pt;
-						--print-padding: 6px 8px;
-						--print-header-size: 18pt;
-						--print-sub-size: 10pt;
-						--print-date-size: 9.5pt;
-						--print-row-height: auto;
-						--print-meal-padding: 6px 8px;
-						--print-margin-bottom: 16px;
-						--print-footer-margin: 20px;
-					}
-					.print-wrapper.density-4 {
-						--print-font-size: 9pt;
-						--print-padding: 4px 6px;
-						--print-header-size: 16pt;
-						--print-sub-size: 9.5pt;
-						--print-date-size: 8.5pt;
-						--print-row-height: 1.15;
-						--print-meal-padding: 4px 6px;
-						--print-margin-bottom: 12px;
-						--print-footer-margin: 16px;
-					}
-					.print-wrapper.density-5 {
-						--print-font-size: 8.5pt;
-						--print-padding: 3px 5px;
-						--print-header-size: 14pt;
-						--print-sub-size: 8.5pt;
-						--print-date-size: 8pt;
-						--print-row-height: 1.1;
-						--print-meal-padding: 3px 5px;
-						--print-margin-bottom: 8px;
-						--print-footer-margin: 12px;
-					}
-
-					/* Применяем переменные */
-					.print-wrapper .print-header {
-						padding-bottom: calc(var(--print-margin-bottom) * 0.6);
-						margin-bottom: var(--print-margin-bottom);
-					}
-					.print-wrapper .print-header h1 {
-						font-size: var(--print-header-size);
-						margin-bottom: calc(var(--print-margin-bottom) * 0.2);
-					}
-					.print-wrapper .print-header .sub {
-						font-size: var(--print-sub-size);
-					}
-					.print-wrapper .print-header .date-info {
-						font-size: var(--print-date-size);
-						margin-top: calc(var(--print-margin-bottom) * 0.2);
-					}
-
-					.print-wrapper .print-table {
-						font-size: var(--print-font-size);
-						margin: calc(var(--print-margin-bottom) * 0.6) 0;
-					}
-					.print-wrapper .print-table th {
-						padding: var(--print-padding);
-						font-size: var(--print-font-size);
-					}
-					.print-wrapper .print-table td {
-						padding: var(--print-padding);
-						line-height: var(--print-row-height);
-					}
-					.print-wrapper .print-table .meal-header td {
-						padding: var(--print-meal-padding);
-					}
-
-					.print-wrapper .print-footer {
-						margin-top: var(--print-footer-margin);
-						padding-top: calc(var(--print-footer-margin) * 0.5);
-					}
-					.print-wrapper .print-footer .approval {
-						font-size: var(--print-font-size);
-					}
-					.print-wrapper .print-footer .approval .line {
-						width: calc(200px * (var(--print-font-size) / 10pt));
-					}
-
-					/* Скрываем необязательные элементы при высокой плотности */
-					.print-wrapper.density-5 .print-footer > div:last-child {
-						display: none;
-					}
-					.print-wrapper.density-4 .print-footer > div:last-child,
-					.print-wrapper.density-5 .print-footer > div:last-child {
-						margin-top: 8px;
-						font-size: 7pt;
-					}
-				</style>
-
+		let html =  `
+			<div class="print-wrapper" id="printContent">
 				<div class="print-header" style="border-bottom: 3px solid ${menuColor.primary};">
 					<h1 style="color: ${menuColor.primary};">🍽️ ${CONFIG.PRINT_TITLE}</h1>
 					<div class="sub">${escapeHtml(schoolName)}</div>
@@ -1833,8 +1668,9 @@ const DailyMenuModule = (function() {
 						</tr>
 					</tfoot>
 				</table>
-		`;
+`;
 
+		// ✅ ПРОВЕРЯЕМ НАСТРОЙКУ — показывать ли подпись диетсестры
 		const showAgreed = window.showAgreedSignature !== false;
 
 		let approvalBlocksHtml = `
@@ -1875,213 +1711,77 @@ const DailyMenuModule = (function() {
 				</div>
 			</div>
 		`;
+		html +=
+`			</div>
+		`;
 		
-		html += `</div>`;
 		
 		return html;
 	}
 
-	function showPrintPreview() {
-		const content = getPrintContent();
-		if (!content) return;
+    function showPrintPreview() {
+        const content = getPrintContent();
+        if (!content) return;
 
-		const density = getPrintDensity();
-		const modal = document.getElementById('printPreviewModal');
-		const container = document.getElementById('printPreviewContent');
-		container.innerHTML = content;
-		modal.style.display = 'flex';
+        const modal = document.getElementById('printPreviewModal');
+        const container = document.getElementById('printPreviewContent');
+        container.innerHTML = content;
+        modal.style.display = 'flex';
+    }
 
-		// ✅ Показываем пользователю, какой режим применён
-		const densityInfo = {
-			1: '📄 Просторная вёрстка',
-			2: '📄 Стандартная вёрстка',
-			3: '📄 Обычная вёрстка',
-			4: '📄 Плотная вёрстка (для экономии места)',
-			5: '📄 Компактная вёрстка (максимальная экономия)'
-		};
-		showStatus(densityInfo[density.level] || '📄 Готово к печати', 'info');
-	}
+    function printDailyMenu() {
+        const content = getPrintContent();
+        if (!content) return;
 
-	function printDailyMenu() {
-		const content = getPrintContent();
-		if (!content) return;
+        const printWindow = window.open('', '_blank', 'width=1000,height=800');
+        if (!printWindow) {
+            showStatus('Пожалуйста, разрешите всплывающие окна для печати', 'error');
+            return;
+        }
 
-		const printWindow = window.open('', '_blank', 'width=1000,height=800');
-		if (!printWindow) {
-			showStatus('Пожалуйста, разрешите всплывающие окна для печати', 'error');
-			return;
-		}
+        const menuColor = getMenuColor(state.selectedMenuNumber);
 
-		const menuColor = getMenuColor(state.selectedMenuNumber);
-		const density = getPrintDensity();
-
-		printWindow.document.write(`
-			<!DOCTYPE html>
-			<html>
-			<head>
-				<meta charset="UTF-8">
-				<title>Ежедневное меню</title>
-				<style>
-					* { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Arial, sans-serif; }
-					body { padding: 15px; background: white; }
-					.print-wrapper { max-width: 1000px; margin: 0 auto; }
-					
-					/* ===== ДИНАМИЧЕСКАЯ ПЛОТНОСТЬ ===== */
-					.print-wrapper.density-1 {
-						--print-font-size: 11pt;
-						--print-padding: 10px 12px;
-						--print-header-size: 22pt;
-						--print-sub-size: 12pt;
-						--print-date-size: 11pt;
-						--print-meal-padding: 10px 12px;
-						--print-margin-bottom: 24px;
-						--print-footer-margin: 30px;
-					}
-					.print-wrapper.density-2 {
-						--print-font-size: 10.5pt;
-						--print-padding: 8px 10px;
-						--print-header-size: 20pt;
-						--print-sub-size: 11pt;
-						--print-date-size: 10pt;
-						--print-meal-padding: 8px 10px;
-						--print-margin-bottom: 20px;
-						--print-footer-margin: 24px;
-					}
-					.print-wrapper.density-3 {
-						--print-font-size: 10pt;
-						--print-padding: 6px 8px;
-						--print-header-size: 18pt;
-						--print-sub-size: 10pt;
-						--print-date-size: 9.5pt;
-						--print-meal-padding: 6px 8px;
-						--print-margin-bottom: 16px;
-						--print-footer-margin: 20px;
-					}
-					.print-wrapper.density-4 {
-						--print-font-size: 9pt;
-						--print-padding: 4px 6px;
-						--print-header-size: 16pt;
-						--print-sub-size: 9.5pt;
-						--print-date-size: 8.5pt;
-						--print-meal-padding: 4px 6px;
-						--print-margin-bottom: 12px;
-						--print-footer-margin: 16px;
-					}
-					.print-wrapper.density-5 {
-						--print-font-size: 8.5pt;
-						--print-padding: 3px 5px;
-						--print-header-size: 14pt;
-						--print-sub-size: 8.5pt;
-						--print-date-size: 8pt;
-						--print-meal-padding: 3px 5px;
-						--print-margin-bottom: 8px;
-						--print-footer-margin: 12px;
-					}
-
-					/* Шапка */
-					.print-header { 
-						text-align: center; 
-						border-bottom: 3px solid ${menuColor.primary}; 
-						padding-bottom: calc(var(--print-margin-bottom) * 0.6);
-						margin-bottom: var(--print-margin-bottom);
-					}
-					.print-header h1 { 
-						font-size: var(--print-header-size); 
-						color: ${menuColor.primary}; 
-						margin-bottom: calc(var(--print-margin-bottom) * 0.2);
-					}
-					.print-header .sub { font-size: var(--print-sub-size); color: #475569; }
-					.print-header .date-info { 
-						font-size: var(--print-date-size); 
-						color: #64748b; 
-						margin-top: calc(var(--print-margin-bottom) * 0.2);
-					}
-
-					/* Таблица */
-					.print-table { 
-						width: 100%; 
-						border-collapse: collapse; 
-						font-size: var(--print-font-size);
-						margin: calc(var(--print-margin-bottom) * 0.6) 0;
-					}
-					.print-table th { 
-						background: #f1f5f9; 
-						font-weight: 700; 
-						border: 1px solid #cbd5e1; 
-						padding: var(--print-padding); 
-						text-align: left;
-						font-size: var(--print-font-size);
-					}
-					.print-table td { 
-						border: 1px solid #cbd5e1; 
-						padding: var(--print-padding);
-					}
-					.print-table .meal-header { 
-						background: ${menuColor.light}; 
-						font-weight: 600; 
-					}
-					.print-table .meal-header td {
-						padding: var(--print-meal-padding);
-					}
-
-					/* Подвал */
-					.print-footer { 
-						margin-top: var(--print-footer-margin);
-						padding-top: calc(var(--print-footer-margin) * 0.5);
-						border-top: 2px solid #e2e8f0; 
-						text-align: center; 
-						font-size: 9pt; 
-						color: #94a3b8; 
-					}
-					.print-footer .approval { 
-						display: flex; 
-						justify-content: space-around; 
-						margin-top: 16px; 
-						font-size: var(--print-font-size); 
-						color: #475569; 
-					}
-					.print-footer .approval div { text-align: center; }
-					.print-footer .approval .line { 
-						width: calc(200px * (var(--print-font-size) / 10pt)); 
-						border-bottom: 1px solid #475569; 
-						margin: 4px auto 0; 
-					}
-
-					/* При высокой плотности скрываем подпись «Сформировано в программе» */
-					.print-wrapper.density-5 .print-footer > div:last-child {
-						display: none;
-					}
-					.print-wrapper.density-4 .print-footer > div:last-child,
-					.print-wrapper.density-5 .print-footer > div:last-child {
-						margin-top: 8px;
-						font-size: 7pt;
-					}
-
-					@media print {
-						body { padding: 0; }
-						.no-print { display: none; }
-						/* Убираем колонтитулы браузера */
-						@page {
-							margin: 10mm 8mm;
-						}
-					}
-				</style>
-			</head>
-			<body>
-				${content}
-				<script>
-					window.onload = function() {
-						setTimeout(function() {
-							window.print();
-							setTimeout(function() { window.close(); }, 1000);
-						}, 300);
-					};
-				<\/script>
-			</body>
-			</html>
-		`);
-		printWindow.document.close();
-	}
+        printWindow.document.write(`
+            <!DOCTYPE html>
+            <html>
+            <head><title>Ежедневное меню</title>
+            <style>
+                * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Arial, sans-serif; }
+                body { padding: 20px; background: white; }
+                .print-wrapper { max-width: 1000px; margin: 0 auto; }
+                .print-header { text-align: center; border-bottom: 3px solid ${menuColor.primary}; padding-bottom: 20px; margin-bottom: 24px; }
+                .print-header h1 { font-size: 22pt; color: ${menuColor.primary}; margin-bottom: 8px; }
+                .print-header .sub { font-size: 12pt; color: #475569; }
+                .print-header .date-info { font-size: 11pt; color: #64748b; margin-top: 8px; }
+                .print-table { width: 100%; border-collapse: collapse; font-size: 10pt; margin: 16px 0; }
+                .print-table th { background: #f1f5f9; font-weight: 700; border: 1px solid #cbd5e1; padding: 8px 10px; text-align: left; }
+                .print-table td { border: 1px solid #cbd5e1; padding: 6px 10px; }
+                .print-table .meal-header { background: ${menuColor.light}; font-weight: 600; }
+                .print-footer { margin-top: 30px; padding-top: 20px; border-top: 2px solid #e2e8f0; text-align: center; font-size: 9pt; color: #94a3b8; }
+                .print-footer .approval { display: flex; justify-content: space-around; margin-top: 16px; font-size: 10pt; color: #475569; }
+                .print-footer .approval div { text-align: center; }
+                .print-footer .approval .line { width: 200px; border-bottom: 1px solid #475569; margin: 4px auto 0; }
+                @media print {
+                    body { padding: 0; }
+                    .no-print { display: none; }
+                }
+            </style>
+            </head>
+            <body>
+                ${content}
+                <script>
+                    window.onload = function() {
+                        setTimeout(function() {
+                            window.print();
+                            setTimeout(function() { window.close(); }, 1000);
+                        }, 300);
+                    };
+                <\/script>
+            </body>
+            </html>
+        `);
+        printWindow.document.close();
+    }
 
 	function printDailyMenuWithSettings(settings) {
 		const content = getPrintContentWithSettings(settings);
@@ -2100,149 +1800,25 @@ const DailyMenuModule = (function() {
 			<html>
 			<head><title>Ежедневное меню</title>
 			<style>
-                * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Arial, sans-serif; }
-                body { padding: 15px; background: white; }
-                .print-wrapper { max-width: 1000px; margin: 0 auto; }
-                
-                /* ===== ДИНАМИЧЕСКАЯ ПЛОТНОСТЬ ===== */
-                .print-wrapper.density-1 {
-                    --print-font-size: 11pt;
-                    --print-padding: 10px 12px;
-                    --print-header-size: 22pt;
-                    --print-sub-size: 12pt;
-                    --print-date-size: 11pt;
-                    --print-meal-padding: 10px 12px;
-                    --print-margin-bottom: 24px;
-                    --print-footer-margin: 30px;
-                }
-                .print-wrapper.density-2 {
-                    --print-font-size: 10.5pt;
-                    --print-padding: 8px 10px;
-                    --print-header-size: 20pt;
-                    --print-sub-size: 11pt;
-                    --print-date-size: 10pt;
-                    --print-meal-padding: 8px 10px;
-                    --print-margin-bottom: 20px;
-                    --print-footer-margin: 24px;
-                }
-                .print-wrapper.density-3 {
-                    --print-font-size: 10pt;
-                    --print-padding: 6px 8px;
-                    --print-header-size: 18pt;
-                    --print-sub-size: 10pt;
-                    --print-date-size: 9.5pt;
-                    --print-meal-padding: 6px 8px;
-                    --print-margin-bottom: 16px;
-                    --print-footer-margin: 20px;
-                }
-                .print-wrapper.density-4 {
-                    --print-font-size: 9pt;
-                    --print-padding: 4px 6px;
-                    --print-header-size: 16pt;
-                    --print-sub-size: 9.5pt;
-                    --print-date-size: 8.5pt;
-                    --print-meal-padding: 4px 6px;
-                    --print-margin-bottom: 12px;
-                    --print-footer-margin: 16px;
-                }
-                .print-wrapper.density-5 {
-                    --print-font-size: 8.5pt;
-                    --print-padding: 3px 5px;
-                    --print-header-size: 14pt;
-                    --print-sub-size: 8.5pt;
-                    --print-date-size: 8pt;
-                    --print-meal-padding: 3px 5px;
-                    --print-margin-bottom: 8px;
-                    --print-footer-margin: 12px;
-                }
-
-                /* Шапка */
-                .print-header { 
-                    text-align: center; 
-                    border-bottom: 3px solid ${menuColor.primary}; 
-                    padding-bottom: calc(var(--print-margin-bottom) * 0.6);
-                    margin-bottom: var(--print-margin-bottom);
-                }
-                .print-header h1 { 
-                    font-size: var(--print-header-size); 
-                    color: ${menuColor.primary}; 
-                    margin-bottom: calc(var(--print-margin-bottom) * 0.2);
-                }
-                .print-header .sub { font-size: var(--print-sub-size); color: #475569; }
-                .print-header .date-info { 
-                    font-size: var(--print-date-size); 
-                    color: #64748b; 
-                    margin-top: calc(var(--print-margin-bottom) * 0.2);
-                }
-
-                /* Таблица */
-                .print-table { 
-                    width: 100%; 
-                    border-collapse: collapse; 
-                    font-size: var(--print-font-size);
-                    margin: calc(var(--print-margin-bottom) * 0.6) 0;
-                }
-                .print-table th { 
-                    background: #f1f5f9; 
-                    font-weight: 700; 
-                    border: 1px solid #cbd5e1; 
-                    padding: var(--print-padding); 
-                    text-align: left;
-                    font-size: var(--print-font-size);
-                }
-                .print-table td { 
-                    border: 1px solid #cbd5e1; 
-                    padding: var(--print-padding);
-                }
-                .print-table .meal-header { 
-                    background: ${menuColor.light}; 
-                    font-weight: 600; 
-                }
-                .print-table .meal-header td {
-                    padding: var(--print-meal-padding);
-                }
-
-                /* Подвал */
-                .print-footer { 
-                    margin-top: var(--print-footer-margin);
-                    padding-top: calc(var(--print-footer-margin) * 0.5);
-                    border-top: 2px solid #e2e8f0; 
-                    text-align: center; 
-                    font-size: 9pt; 
-                    color: #94a3b8; 
-                }
-                .print-footer .approval { 
-                    display: flex; 
-                    justify-content: space-around; 
-                    margin-top: 16px; 
-                    font-size: var(--print-font-size); 
-                    color: #475569; 
-                }
-                .print-footer .approval div { text-align: center; }
-                .print-footer .approval .line { 
-                    width: calc(200px * (var(--print-font-size) / 10pt)); 
-                    border-bottom: 1px solid #475569; 
-                    margin: 4px auto 0; 
-                }
-
-                /* При высокой плотности скрываем подпись «Сформировано в программе» */
-                .print-wrapper.density-5 .print-footer > div:last-child {
-                    display: none;
-                }
-                .print-wrapper.density-4 .print-footer > div:last-child,
-                .print-wrapper.density-5 .print-footer > div:last-child {
-                    margin-top: 8px;
-                    font-size: 7pt;
-                }
-
-                @media print {
-                    body { padding: 0; }
-                    .no-print { display: none; }
-                    /* Убираем колонтитулы браузера */
-                    @page {
-                        margin: 10mm 8mm;
-                    }
-                }
+				* { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Arial, sans-serif; }
+				body { padding: 20px; background: white; }
+				.print-wrapper { max-width: 1000px; margin: 0 auto; }
+				.print-header { text-align: center; border-bottom: 3px solid ${menuColor.primary}; padding-bottom: 20px; margin-bottom: 24px; }
+				.print-header h1 { font-size: 22pt; color: ${menuColor.primary}; margin-bottom: 8px; }
+				.print-header .sub { font-size: 12pt; color: #475569; }
+				.print-header .date-info { font-size: 11pt; color: #64748b; margin-top: 8px; }
+				.print-table { width: 100%; border-collapse: collapse; font-size: 10pt; margin: 16px 0; }
+				.print-table th { background: #f1f5f9; font-weight: 700; border: 1px solid #cbd5e1; padding: 8px 10px; text-align: left; }
+				.print-table td { border: 1px solid #cbd5e1; padding: 6px 10px; }
+				.print-table .meal-header { background: ${menuColor.light}; font-weight: 600; }
+				.print-footer { margin-top: 30px; padding-top: 20px; border-top: 2px solid #e2e8f0; text-align: center; font-size: 9pt; color: #94a3b8; }
+				.print-footer .approval { display: flex; justify-content: space-around; margin-top: 16px; font-size: 10pt; color: #475569; }
+				.print-footer .approval div { text-align: center; }
+				.print-footer .approval .line { width: 200px; border-bottom: 1px solid #475569; margin: 4px auto 0; }
+				@media print {
+					body { padding: 0; }
+					.no-print { display: none; }
+				}
 			</style>
 			</head>
 			<body>
@@ -2266,8 +1842,6 @@ const DailyMenuModule = (function() {
 			showStatus('Сначала выберите меню', 'error');
 			return null;
 		}
-		
-		const density = getPrintDensity();			
 
 		const dateInput = document.getElementById('dailyMenuDate');
 		const date = dateInput?.value ? new Date(dateInput.value) : new Date();
@@ -2340,7 +1914,7 @@ const DailyMenuModule = (function() {
 
 		// Формируем HTML
 		let html = `
-			<div class="print-wrapper density-${density.level}" id="printContent" data-density="${density.level}">
+			<div class="print-wrapper" id="printContent">
 		`;
 
 		// Шапка
