@@ -6456,7 +6456,14 @@
 			for (let el of document.querySelectorAll('#editorWrapper input, #editorWrapper select')) {
 				el.removeEventListener('keydown', handleEnterNavigation);
 				el.addEventListener('keydown', handleEnterNavigation);
-			}			
+			}		
+			// ✅ ДОБАВИТЬ ЭТОТ БЛОК:
+			for (let btn of document.querySelectorAll('.quick-add-meal-btn')) {
+				btn.removeEventListener('click', handleQuickAddMeal);
+				btn.addEventListener('click', handleQuickAddMeal);
+			}
+
+			
         }
 
         function updateSelectedCount() {
