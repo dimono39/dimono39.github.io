@@ -1,0 +1,25 @@
+{
+  "manifest_version": 3,
+  "name": "Menu Loader for Gosuslugi",
+  "version": "1.0",
+  "description": "Загрузчик типового меню из Excel",
+  "permissions": [
+    "scripting"
+  ],
+  "host_permissions": [
+    "https://edu.gosuslugi.ru/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": ["https://edu.gosuslugi.ru/food/templates/create"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["inject.js"],
+      "matches": ["https://edu.gosuslugi.ru/*"]
+    }
+  ]
+}
