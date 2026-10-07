@@ -10339,6 +10339,20 @@
 			}
 			
 			document.getElementById('addMealModal').style.display = 'none';
+			
+			// ✅ ДОБАВИТЬ ЭТО: принудительно переключаемся на вкладку редактора
+			setTimeout(function() {
+				const mainTabBtn = document.querySelector('.tab-btn[data-tab="main"]');
+				if (mainTabBtn) {
+					mainTabBtn.click();
+				}
+				// Прокручиваем к таблице
+				const editorWrapper = document.getElementById('editorWrapper');
+				if (editorWrapper) {
+					editorWrapper.scrollIntoView({ behavior: 'smooth', block: 'start' });
+				}
+			}, 100);			
+			
 		}
 
 		// Инициализация модального окна добавления приёма пищи
