@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Аналитика питания по районам</title>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+  body { font-family: Arial, sans-serif; margin: 20px; background: #f5f6fa; }
+  h1 { color: #2c3e50; }
+  .controls { margin: 15px 0; }
+  select, button { padding: 8px 12px; font-size: 14px; margin-right: 10px; }
+  button { cursor: pointer; background: #3498db; color: #fff; border: none; border-radius: 4px; }
+  button:hover { background: #2980b9; }
+  .card { background: #fff; padding: 15px 20px; border-radius: 8px; margin-bottom: 20px;
+          box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
+  .ok    { color: #27ae60; font-weight: bold; }
+  .fail  { color: #c0392b; font-weight: bold; }
+  .warn  { color: #e67e22; font-weight: bold; }
+  table { border-collapse: collapse; width: 100%; margin-top: 10px; font-size: 13px; }
+  th, td { border: 1px solid #ddd; padding: 6px 8px; text-align: left; }
+  th { background: #ecf0f1; position: sticky; top: 0; }
+  tr:nth-child(even) { background: #fafafa; }
+  .metric-row { display: flex; gap: 20px; flex-wrap: wrap; }
+  .metric { flex: 1; min-width: 200px; background: #ecf0f1; padding: 12px;
+            border-radius: 6px; }
+  .metric b { display: block; font-size: 22px; margin-top: 4px; }
+  #status { color: #7f8c8d; }
+</style>
+</head>
+<body>
+
+<h1>Аналитика питания по районам</h1>
+<p id="status">Загрузка файла…</p>
+
+<div class="controls">
+  <label>Район: <select id="districtSelect"></select></label>
+  <button id="reloadBtn">Перезагрузить файл</button>
+</div>
+
+<div id="summary"></div>
+<div id="schools"></div>
+
+<script>
+/* ============================================================
+   НАСТРОЙКИ
+   ============================================================ */
+const XLSX_FILE = "мм октябрь.xlsx";   // имя файла рядом с index.html
+
+/* Пороги для оценки "выполняется / не выполняется".
+   По методике:
+   - П35: не менее 90% дней своевременно И не более 20% случаев с ошибками
+   - П36: соблюдение типового меню (здесь берём как факт "+" в колонке)
+   Для агрегата по району используем долю школ, выполнивших критерий. */
+const THRESHOLDS = {
+  timely: 90,        // % своевременно (по школе)
+  noErrors: 80,      // % без ошибок (по школе) => не более 20% с отклонениями
+  districtPassShare: 80 // доля школ района, выполнивших критерий, %
+};
+
+/* ============================================================
+   ЗАГРУЗКА И ПАРСИНГ EXCEL
+   ============================================================ */
+let RAW_ROWS = [];       // исходные строки из листа
+let DISTRICTS = [];      // сгруппированные данные
+
+async function loadWorkbook() {
+  document.getElementById("status").textContent = "Загрузка файла…";
+  try {
+    const resp = await fetch(XLSX_FILE);
+    if (!resp.ok) throw new Error("Файл не найден: " + XLSX_FILE);
+    const buf = await resp.arrayBuffer();
+    const wb = XLSX.read(buf, { type: "array" });
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    // Читаем как массив массивов — так проще работать с "плавающей" структурой
+    const aoa = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "" });
+    RAW_ROWS = aoa;
+    DISTRICTS = parseDistricts(aoa);
+    buildDistrictSelect(DISTRICTS);
+    document.getElementById("status").textContent =
+      "Файл загружен. Найдено районов: " + DISTRICTS.length;
+  } catch (e) {
+    document.getElementById("status").innerHTML =
+      '<span class="fail">Ошибка: ' + e.message + '</span>';
+    console.error(e);
+  }
+}
+
+/* ============================================================
+   ПАРСИНГ: определяем районы и школы
+   ------------------------------------------------------------
+   Логика структуры файла:
+   - Строка с названием района: в колонке A текст, в B..E пусто,
+     а в колонках F/G (или H/I) есть числа (% ФМ / % ТМ).
+     Признак: A не пусто, B..E пусто, F и G — числа.
+   - Строка школы: в A название школы с кодом (запятая в конце),
+     в B — "Дней", в C — "% своевременно", в D — "% без ошибок",
+     в E — "Соблюдение ТМ", в F/G — "+" или пусто.
+   ============================================================ */
+function isNumeric(v) {
+  if (v === "" || v === null || v === undefined) return false;
+  return !isNaN(Number(String(v).replace(",", ".")));
+}
+function toNum(v) {
+  if (v === "" || v === null || v === undefined) return NaN;
+  return Number(String(v).replace(",", "."));
+}
+
+function parseDistricts(aoa) {
+  const districts = [];
+  let current = null;
+
+  // Находим индекс первой "районной" строки, чтобы отбросить шапку
+  for (let i = 0; i < aoa.length; i++) {
+    const r = aoa[i];
+    const a = (r[0] || "").toString().trim();
+    if (a === "Свердловская область") continue; // региональный итог — пропускаем как район
+
+    const bEmpty = (r[1] || "").toString().trim() === "";
+    const cEmpty = (r[2] || "").toString().trim() === "";
+    const dEmpty = (r[3] || "").toString().trim() === "";
+    const eEmpty = (r[4] || "").toString().trim() === "";
+
+    const fNum = isNumeric(r[5]);
+    const gNum = isNumeric(r[6]);
+
+    // Строка района: A не пусто, B..E пусто, F и G — числа
+    if (a && bEmpty && cEmpty && dEmpty && eEmpty && fNum && gNum) {
+      current = {
+        name: a,
+        pFM: toNum(r[5]),          // п.ФМ из файла (для сверки)
+        pTM: toNum(r[6]),          // п.ТМ из файла
+        pctFM: toNum(r[7]),        // % ФМ из файла
+        pctTM: toNum(r[8]),        // % ТМ из файла
+        schools: []
+      };
+      districts.push(current);
+      continue;
+    }
+
+    // Строка школы: A содержит название и код через запятую, B — число дней
+    if (current && a && !bEmpty && !cEmpty && !dEmpty) {
+      const days = toNum(r[1]);
+      const timely = toNum(r[2]);
+      const noErrors = toNum(r[3]);
+      const tm = toNum(r[4]);
+      const fmMark = (r[5] || "").toString().trim() === "+";
+      const tmMark = (r[6] || "").toString().trim() === "+";
+
+      // Отбрасываем строки, где не числа (например, "Итого")
+      if (!isNaN(days) && !isNaN(timely) && !isNaN(noErrors)) {
+        current.schools.push({
+          name: a,
+          days, timely, noErrors, tm,
+          fmMark, tmMark
+        });
+      }
+    }
+  }
+  return districts;
+}
+
+/* ============================================================
+   ЛОГИКА ОЦЕНКИ
+   ------------------------------------------------------------
+   По школе:
+   - FM (П35): timely >= 90 И noErrors >= 80  (не более 20% ошибок)
+   - TM (П36): tmMark === true (в файле "+")
+   По району:
+   - доля школ, выполнивших FM >= THRESHOLDS.districtPassShare => "выполняется"
+   - то же для TM
+   ============================================================ */
+function evaluateSchool(s) {
+  const fmOk = s.timely >= THRESHOLDS.timely && s.noErrors >= THRESHOLDS.noErrors;
+  const tmOk = s.tmMark === true;
+  return { ...s, fmOk, tmOk };
+}
+
+function evaluateDistrict(d) {
+  const schools = d.schools.map(evaluateSchool);
+  const total = schools.length;
+  const fmOkCount = schools.filter(s => s.fmOk).length;
+  const tmOkCount = schools.filter(s => s.tmOk).length;
+  const fmShare = total ? (fmOkCount / total) * 100 : 0;
+  const tmShare = total ? (tmOkCount / total) * 100 : 0;
+  return {
+    ...d,
+    schools,
+    total,
+    fmOkCount, tmOkCount,
+    fmShare, tmShare,
+    fmPass: fmShare >= THRESHOLDS.districtPassShare,
+    tmPass: tmShare >= THRESHOLDS.districtPassShare
+  };
+}
+
+/* ============================================================
+   ИНТЕРФЕЙС
+   ============================================================ */
+function buildDistrictSelect(districts) {
+  const sel = document.getElementById("districtSelect");
+  sel.innerHTML = "";
+  const optAll = document.createElement("option");
+  optAll.value = "__ALL__";
+  optAll.textContent = "— Все районы (сводка) —";
+  sel.appendChild(optAll);
+
+  districts.forEach((d, i) => {
+    const o = document.createElement("option");
+    o.value = i;
+    o.textContent = d.name;
+    sel.appendChild(o);
+  });
+
+  sel.addEventListener("change", () => render(sel.value));
+  render("__ALL__");
+}
+
+function render(value) {
+  if (value === "__ALL__") {
+    renderAll(DISTRICTS);
+  } else {
+    const idx = Number(value);
+    renderDistrict(evaluateDistrict(DISTRICTS[idx]));
+  }
+}
+
+function metricHtml(label, value, pass) {
+  const cls = pass ? "ok" : "fail";
+  const word = pass ? "выполняется" : "не выполняется";
+  return `<div class="metric">${label}<b>${value.toFixed(1)}%</b>
+          <span class="${cls}">${word}</span></div>`;
+}
+
+function renderAll(districts) {
+  const summary = document.getElementById("summary");
+  const evaluated = districts.map(evaluateDistrict);
+  const rows = evaluated.map((d, i) => {
+    return `<tr>
+      <td>${d.name}</td>
+      <td>${d.total}</td>
+      <td>${d.fmOkCount}</td>
+      <td>${d.fmShare.toFixed(1)}%</td>
+      <td class="${d.fmPass ? 'ok' : 'fail'}">${d.fmPass ? 'да' : 'нет'}</td>
+      <td>${d.tmOkCount}</td>
+      <td>${d.tmShare.toFixed(1)}%</td>
+      <td class="${d.tmPass ? 'ok' : 'fail'}">${d.tmPass ? 'да' : 'нет'}</td>
+    </tr>`;
+  }).join("");
+
+  summary.innerHTML = `
+    <div class="card">
+      <h2>Сводка по всем районам</h2>
+      <table>
+        <thead><tr>
+          <th>Район</th><th>Школ</th>
+          <th>ФМ ок</th><th>ФМ, %</th><th>ФМ (порог ${THRESHOLDS.districtPassShare}%)</th>
+          <th>ТМ ок</th><th>ТМ, %</th><th>ТМ (порог ${THRESHOLDS.districtPassShare}%)</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`;
+  document.getElementById("schools").innerHTML = "";
+}
+
+function renderDistrict(d) {
+  const summary = document.getElementById("summary");
+  summary.innerHTML = `
+    <div class="card">
+      <h2>${d.name}</h2>
+      <p>Всего школ: <b>${d.total}</b></p>
+      <div class="metric-row">
+        ${metricHtml("ФМ (П35) — доля школ, выполнивших критерий", d.fmShare, d.fmPass)}
+        ${metricHtml("ТМ (П36) — доля школ, выполнивших критерий", d.tmShare, d.tmPass)}
+      </div>
+      <p style="margin-top:10px;color:#7f8c8d">
+        Порог по району: ${THRESHOLDS.districtPassShare}% школ.
+        По школе: своевременно ≥ ${THRESHOLDS.timely}%, без ошибок ≥ ${THRESHOLDS.noErrors}%;
+        ТМ — отметка «+» в файле.
+      </p>
+    </div>`;
+
+  const rows = d.schools.map(s => `
+    <tr>
+      <td>${s.name}</td>
+      <td>${s.days}</td>
+      <td>${s.timely}%</td>
+      <td>${s.noErrors}%</td>
+      <td class="${s.fmOk ? 'ok' : 'fail'}">${s.fmOk ? 'выполн.' : 'нет'}</td>
+      <td>${s.tm}</td>
+      <td>${s.tmMark ? '+' : ''}</td>
+      <td class="${s.tmOk ? 'ok' : 'fail'}">${s.tmOk ? 'выполн.' : 'нет'}</td>
+    </tr>`).join("");
+
+  document.getElementById("schools").innerHTML = `
+    <div class="card">
+      <h3>Школы района</h3>
+      <table>
+        <thead><tr>
+          <th>Школа</th><th>Дней</th><th>Своевр., %</th><th>Без ошибок, %</th>
+          <th>ФМ (П35)</th><th>Соблюдение ТМ</th><th>ТМ «+»</th><th>ТМ (П36)</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`;
+}
+
+/* ============================================================
+   СТАРТ
+   ============================================================ */
+document.getElementById("reloadBtn").addEventListener("click", loadWorkbook);
+loadWorkbook();
+</script>
+</body>
+</html>
