@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Аналитика питания по районам</title>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+  body { font-family: Arial, sans-serif; margin: 20px; background: #f5f6fa; color: #2c3e50; }
+  h1 { margin-top: 0; }
+  .controls { margin: 15px 0; display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+  select, button { padding: 8px 12px; font-size: 14px; border-radius: 4px; border: 1px solid #ccc; }
+  button { cursor: pointer; background: #3498db; color: #fff; border: none; }
+  button:hover { background: #2980b9; }
+  .card { background: #fff; padding: 15px 20px; border-radius: 8px; margin-bottom: 20px;
+          box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
+  .ok    { color: #27ae60; font-weight: bold; }
+  .fail  { color: #c0392b; font-weight: bold; }
+  .warn  { color: #e67e22; font-weight: bold; }
+  .delta-up   { color: #27ae60; font-weight: bold; }
+  .delta-down { color: #c0392b; font-weight: bold; }
+  .delta-flat { color: #7f8c8d; }
+  table { border-collapse: collapse; width: 100%; margin-top: 10px; font-size: 13px; }
+  th, td { border: 1px solid #ddd; padding: 6px 8px; text-align: left; }
+  th { background: #ecf0f1; position: sticky; top: 0; cursor: pointer; user-select: none; }
+  th.sortable::after { content: " ⇅"; color: #95a5a6; font-size: 11px; }
+  tr:nth-child(even) { background: #fafafa; }
+  .metric-row { display: flex; gap: 20px; flex-wrap: wrap; }
+  .metric { flex: 1; min-width: 220px; background: #ecf0f1; padding: 12px; border-radius: 6px; }
+  .metric b { display: block; font-size: 22px; margin-top: 4px; }
+  .metric small { color: #7f8c8d; }
+  #status { color: #7f8c8d; }
+  .charts { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  @media (max-width: 900px) { .charts { grid-template-columns: 1fr; } }
+  .chart-box { background: #fff; padding: 15px; border-radius: 8px;
+               box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
+  .chart-box h4 { margin: 0 0 10px; }
+  .method { color: #7f8c8d; font-size: 13px; line-height: 1.5; }
+</style>
+</head>
+<body>
+
+<h1>Аналитика питания по районам</h1>
+
+<div class="controls">
+  <label>Месяц:
+    <select id="monthSelect"></select>
+  </label>
+  <label>Район:
+    <select id="districtSelect"></select>
+  </label>
+  <button id="reloadBtn">Перезагрузить</button>
+</div>
+
+<p id="status">Загрузка…</p>
+
+<div id="summary"></div>
+<div id="charts" class="charts"></div>
+<div id="schools"></div>
+
+<script>
+/* ============================================================
+   НАСТРОЙКИ
+   ============================================================ */
+// Список месяцев. value = имя файла, label = подпись в интерфейсе, order = порядок
+const MONTHS = [
+  { value: "мм январь.xlsx", label: "Январь", order: 2026 * 100 + 1 },
+  { value: "мм февраль.xlsx", label: "Февраль", order: 2026 * 100 + 2 },
+  { value: "мм март.xlsx", label: "Март", order: 2026 * 100 + 3 },
+  { value: "мм апрель.xlsx", label: "Апрель", order: 2026 * 100 + 4 },
+  { value: "мм май.xlsx", label: "Май", order: 2026 * 100 + 5 },
+  { value: "мм сентябрь.xlsx", label: "Сентябрь", order: 2026 * 100 + 9 },
+  { value: "мм октябрь.xlsx",  label: "Октябрь",  order: 2026 * 100 + 10 }
+];
+// сортируем по order на всякий случай
+MONTHS.sort((a, b) => a.order - b.order);
+
+const THRESHOLDS = {
+  timely: 90,            // % своевременно (по школе) — П35
+  noErrors: 80,          // % без ошибок (по школе) => не более 20% с отклонениями — П35
+  tmDailyShare: 75,      // день считается соблюдённым, если соблюдение ТМ в этот день ≥ 75%
+  districtPassShare: 100 // доля школ района, выполнивших критерий, %
+};
+
+/* ============================================================
+   СОСТОЯНИЕ
+   ============================================================ */
+const CACHE = {};      // { fileName: { districts, loadedAt } }
+let currentMonthFile = MONTHS[MONTHS.length - 1].value; // по умолчанию последний
+let currentDistrictValue = "__ALL__";
+let currentSort = { field: "name", dir: 1 };
+
+/* ============================================================
+   УТИЛИТЫ
+   ============================================================ */
+function isNumeric(v) {
+  if (v === "" || v === null || v === undefined) return false;
+  return !isNaN(Number(String(v).replace(",", ".")));
+}
+function toNum(v) {
+  if (v === "" || v === null || v === undefined) return NaN;
+  return Number(String(v).replace(",", "."));
+}
+function fmt(n, digits = 1) {
+  if (!isFinite(n)) return "—";
+  return n.toFixed(digits).replace(".", ",");
+}
+function deltaHtml(cur, prev) {
+  if (prev === null || prev === undefined || !isFinite(prev) || !isFinite(cur)) {
+    return '<span class="delta-flat">—</span>';
+  }
+  const d = cur - prev;
+  if (Math.abs(d) < 0.05) return '<span class="delta-flat">0,0 п.п.</span>';
+  const cls = d > 0 ? "delta-up" : "delta-down";
+  const sign = d > 0 ? "+" : "";
+  return `<span class="${cls}">${sign}${fmt(d)} п.п.</span>`;
+}
+
+/* ============================================================
+   ЗАГРУЗКА
+   ============================================================ */
+async function loadMonth(fileName) {
+  if (CACHE[fileName]) return CACHE[fileName];
+  document.getElementById("status").textContent = `Загрузка «${fileName}»…`;
+  const resp = await fetch(fileName);
+  if (!resp.ok) throw new Error("Файл не найден: " + fileName);
+  const buf = await resp.arrayBuffer();
+  const wb = XLSX.read(buf, { type: "array" });
+  const ws = wb.Sheets[wb.SheetNames[0]];
+  const aoa = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "" });
+  const districts = parseDistricts(aoa);
+  CACHE[fileName] = { districts, loadedAt: new Date() };
+  return CACHE[fileName];
+}
+
+/* ============================================================
+   ПАРСИНГ
+   ============================================================ */
+function parseDistricts(aoa) {
+  const districts = [];
+  let current = null;
+
+  for (let i = 0; i < aoa.length; i++) {
+    const r = aoa[i];
+    const a = (r[0] || "").toString().trim();
+    if (!a) continue;
+    if (a === "Свердловская область") continue;
+    if (a.toLowerCase() === "итого") continue;
+
+    const bEmpty = (r[1] || "").toString().trim() === "";
+    const cEmpty = (r[2] || "").toString().trim() === "";
+    const dEmpty = (r[3] || "").toString().trim() === "";
+    const eEmpty = (r[4] || "").toString().trim() === "";
+
+    const fNum = isNumeric(r[5]);
+    const gNum = isNumeric(r[6]);
+
+    // Строка района
+    if (a && bEmpty && cEmpty && dEmpty && eEmpty && fNum && gNum) {
+      current = {
+        name: a,
+        pFM: toNum(r[5]),
+        pTM: toNum(r[6]),
+        pctFM: toNum(r[7]),
+        pctTM: toNum(r[8]),
+        schools: []
+      };
+      districts.push(current);
+      continue;
+    }
+
+    // Строка школы
+    if (current && a && !bEmpty && !cEmpty && !dEmpty) {
+      const days = toNum(r[1]);
+      const timely = toNum(r[2]);
+      const noErrors = toNum(r[3]);
+      const tm = toNum(r[4]);
+      const fmMark = (r[5] || "").toString().trim() === "+";
+      const tmMark = (r[6] || "").toString().trim() === "+";
+
+      if (!isNaN(days) && !isNaN(timely) && !isNaN(noErrors)) {
+        current.schools.push({
+          name: a, days, timely, noErrors, tm, fmMark, tmMark
+        });
+      }
+    }
+  }
+  return districts;
+}
+
+/* ============================================================
+   ОЦЕНКА
+   ------------------------------------------------------------
+   По школе:
+   - FM (П35): timely ≥ 90% И noErrors ≥ 80% (отклонений ≤ 20%)
+   - TM (П36): метка "+" в файле. ПРИМЕЧАНИЕ: день засчитывается,
+     если соблюдение ТМ в этот день ≥ 75% — это правило уже учтено
+     в колонке "Соблюдение ТМ" исходного файла.
+   По району:
+   - доля школ, выполнивших критерий, ≥ districtPassShare (100%)
+   ============================================================ */
+function evaluateSchool(s) {
+  const fmOk = s.timely >= THRESHOLDS.timely && s.noErrors >= THRESHOLDS.noErrors;
+  const tmOk = s.tmMark === true;
+  return { ...s, fmOk, tmOk };
+}
+
+function evaluateDistrict(d) {
+  const schools = d.schools.map(evaluateSchool);
+  const total = schools.length;
+  const fmOkCount = schools.filter(s => s.fmOk).length;
+  const tmOkCount = schools.filter(s => s.tmOk).length;
+  const fmShare = total ? (fmOkCount / total) * 100 : 0;
+  const tmShare = total ? (tmOkCount / total) * 100 : 0;
+  return {
+    ...d, schools, total,
+    fmOkCount, tmOkCount, fmShare, tmShare,
+    fmPass: fmShare >= THRESHOLDS.districtPassShare,
+    tmPass: tmShare >= THRESHOLDS.districtPassShare
+  };
+}
+
+/* Возвращает { fmShare, tmShare, total } для района в конкретном месяце */
+function districtMetrics(fileName, districtName) {
+  const data = CACHE[fileName];
+  if (!data) return null;
+  const d = data.districts.find(x => x.name === districtName);
+  if (!d) return null;
+  const ev = evaluateDistrict(d);
+  return { fmShare: ev.fmShare, tmShare: ev.tmShare, total: ev.total };
+}
+
+/* ============================================================
+   ИНТЕРФЕЙС — селекты
+   ============================================================ */
+function buildMonthSelect() {
+  const sel = document.getElementById("monthSelect");
+  sel.innerHTML = "";
+  MONTHS.forEach(m => {
+    const o = document.createElement("option");
+    o.value = m.value;
+    o.textContent = m.label;
+    sel.appendChild(o);
+  });
+  sel.value = currentMonthFile;
+  sel.addEventListener("change", async () => {
+    currentMonthFile = sel.value;
+    await ensureLoaded();
+    render(currentDistrictValue);
+  });
+}
+
+function buildDistrictSelect(districts) {
+  const sel = document.getElementById("districtSelect");
+  sel.innerHTML = "";
+  const optAll = document.createElement("option");
+  optAll.value = "__ALL__";
+  optAll.textContent = "— Все районы (сводка) —";
+  sel.appendChild(optAll);
+  districts.forEach((d, i) => {
+    const o = document.createElement("option");
+    o.value = d.name;
+    o.textContent = d.name;
+    sel.appendChild(o);
+  });
+  // восстановить выбор, если ещё существует
+  const exists = districts.some(d => d.name === currentDistrictValue);
+  sel.value = exists ? currentDistrictValue : "__ALL__";
+  sel.addEventListener("change", () => {
+    currentDistrictValue = sel.value;
+    render(currentDistrictValue);
+  });
+}
+
+/* ============================================================
+   ЗАГРУЗКА ТЕКУЩЕГО МЕСЯЦА
+   ============================================================ */
+async function ensureLoaded() {
+  try {
+    await loadMonth(currentMonthFile);
+    const data = CACHE[currentMonthFile];
+    buildDistrictSelect(data.districts);
+    document.getElementById("status").textContent =
+      `Загружено: «${MONTHS.find(m => m.value === currentMonthFile).label}». Районов: ${data.districts.length}`;
+    return true;
+  } catch (e) {
+    document.getElementById("status").innerHTML =
+      '<span class="fail">Ошибка: ' + e.message + '</span>';
+    console.error(e);
+    return false;
+  }
+}
+
+/* ============================================================
+   РЕНДЕР
+   ============================================================ */
+let fmChart = null, tmChart = null;
+
+function render(value) {
+  if (value === "__ALL__") {
+    renderAll();
+  } else {
+    renderDistrict(value);
+  }
+}
+
+/* -------------------- СВОДКА ПО ВСЕМ РАЙОНАМ -------------------- */
+function renderAll() {
+  destroyCharts();
+  document.getElementById("charts").innerHTML = "";
+
+  const data = CACHE[currentMonthFile];
+  const evaluated = data.districts.map(evaluateDistrict);
+
+  // предыдущий месяц (по order)
+  const curIdx = MONTHS.findIndex(m => m.value === currentMonthFile);
+  const prevMonth = curIdx > 0 ? MONTHS[curIdx - 1] : null;
+  const prevFile = prevMonth && CACHE[prevMonth.value] ? prevMonth.value : null;
+
+  // сортировка
+  const sorted = [...evaluated].sort((a, b) => {
+    if (currentSort.field === "name") return a.name.localeCompare(b.name) * currentSort.dir;
+    return ((a[currentSort.field] || 0) - (b[currentSort.field] || 0)) * currentSort.dir;
+  });
+
+  const rows = sorted.map(d => {
+    const prev = prevFile ? districtMetrics(prevFile, d.name) : null;
+    return `<tr>
+      <td>${d.name}</td>
+      <td>${d.total}</td>
+      <td>${d.fmOkCount}</td>
+      <td>${fmt(d.fmShare)}%</td>
+      <td class="${d.fmPass ? 'ok' : 'fail'}">${d.fmPass ? 'да' : 'нет'}</td>
+      <td>${prev ? deltaHtml(d.fmShare, prev.fmShare) : '—'}</td>
+      <td>${d.tmOkCount}</td>
+      <td>${fmt(d.tmShare)}%</td>
+      <td class="${d.tmPass ? 'ok' : 'fail'}">${d.tmPass ? 'да' : 'нет'}</td>
+      <td>${prev ? deltaHtml(d.tmShare, prev.tmShare) : '—'}</td>
+    </tr>`;
+  }).join("");
+
+  const monthLabel = MONTHS.find(m => m.value === currentMonthFile).label;
+  const prevLabel = prevMonth ? prevMonth.label : null;
+
+  document.getElementById("summary").innerHTML = `
+    <div class="card">
+      <h2>Сводка по всем районам — ${monthLabel}</h2>
+      ${prevLabel ? `<p class="method">Сравнение с: <b>${prevLabel}</b> (дельта в п.п.)</p>` : ""}
+      <p class="method">
+        <b>ФМ (П35):</b> школа проходит, если своевременно ≥ ${THRESHOLDS.timely}% и без ошибок ≥ ${THRESHOLDS.noErrors}%
+        (отклонений ≤ 20%).<br>
+        <b>ТМ (П36):</b> день считается соблюдённым, если соблюдение типового меню в этот день ≥ ${THRESHOLDS.tmDailyShare}%;
+        в файле колонка «Соблюдение ТМ» — это уже число засчитанных дней, отметка «+» — итоговый флаг школы.<br>
+        <b>Порог по району:</b> ${THRESHOLDS.districtPassShare}% школ.
+      </p>
+      <table>
+        <thead><tr>
+          <th class="sortable" data-field="name">Район</th>
+          <th class="sortable" data-field="total">Школ</th>
+          <th class="sortable" data-field="fmOkCount">ФМ ок</th>
+          <th class="sortable" data-field="fmShare">ФМ, %</th>
+          <th>ФМ (порог ${THRESHOLDS.districtPassShare}%)</th>
+          <th>Δ ФМ</th>
+          <th class="sortable" data-field="tmOkCount">ТМ ок</th>
+          <th class="sortable" data-field="tmShare">ТМ, %</th>
+          <th>ТМ (порог ${THRESHOLDS.districtPassShare}%)</th>
+          <th>Δ ТМ</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`;
+
+  document.querySelectorAll("th.sortable").forEach(th => {
+    th.addEventListener("click", () => {
+      const f = th.dataset.field;
+      if (currentSort.field === f) currentSort.dir *= -1;
+      else { currentSort.field = f; currentSort.dir = 1; }
+      renderAll();
+    });
+  });
+
+  document.getElementById("schools").innerHTML = "";
+}
+
+/* -------------------- КАРТОЧКА РАЙОНА -------------------- */
+function renderDistrict(districtName) {
+  const data = CACHE[currentMonthFile];
+  const d = data.districts.find(x => x.name === districtName);
+  if (!d) {
+    document.getElementById("summary").innerHTML =
+      `<div class="card"><p class="fail">Район «${districtName}» не найден в текущем месяце.</p></div>`;
+    destroyCharts();
+    document.getElementById("charts").innerHTML = "";
+    document.getElementById("schools").innerHTML = "";
+    return;
+  }
+  const ev = evaluateDistrict(d);
+
+  // метрики по всем месяцам
+  const monthSeries = MONTHS.map(m => {
+    const data2 = CACHE[m.value];
+    if (!data2) return { month: m, fmShare: null, tmShare: null, total: null };
+    const mData = districtMetrics(m.value, districtName);
+    return { month: m, ...(mData || { fmShare: null, tmShare: null, total: null }) };
+  });
+
+  // предыдущий месяц (по order)
+  const curIdx = MONTHS.findIndex(m => m.value === currentMonthFile);
+  const prevMonth = curIdx > 0 ? MONTHS[curIdx - 1] : null;
+  const prevM = prevMonth && CACHE[prevMonth.value] ? districtMetrics(prevMonth.value, districtName) : null;
+
+  const monthLabel = MONTHS.find(m => m.value === currentMonthFile).label;
+
+  document.getElementById("summary").innerHTML = `
+    <div class="card">
+      <h2>${d.name} — ${monthLabel}</h2>
+      <p>Всего школ: <b>${ev.total}</b>
+         ${prevM ? ` (в прошлом месяце: <b>${prevM.total}</b>)` : ""}</p>
+      <div class="metric-row">
+        <div class="metric">
+          ФМ (П35) — доля школ, выполнивших критерий
+          <b>${fmt(ev.fmShare)}%</b>
+          <span class="${ev.fmPass ? 'ok' : 'fail'}">${ev.fmPass ? 'выполняется' : 'не выполняется'}</span>
+          <br><small>${prevMonth ? `К ${prevMonth.label.toLowerCase()}: ${deltaHtml(ev.fmShare, prevM ? prevM.fmShare : null)}` : ""}</small>
+        </div>
+        <div class="metric">
+          ТМ (П36) — доля школ, выполнивших критерий
+          <b>${fmt(ev.tmShare)}%</b>
+          <span class="${ev.tmPass ? 'ok' : 'fail'}">${ev.tmPass ? 'выполняется' : 'не выполняется'}</span>
+          <br><small>${prevMonth ? `К ${prevMonth.label.toLowerCase()}: ${deltaHtml(ev.tmShare, prevM ? prevM.tmShare : null)}` : ""}</small>
+        </div>
+      </div>
+      <p class="method" style="margin-top:12px">
+        <b>По школе:</b> ФМ — своевременно ≥ ${THRESHOLDS.timely}%, без ошибок ≥ ${THRESHOLDS.noErrors}%;
+        ТМ — день засчитывается, если соблюдение типового меню в этот день ≥ ${THRESHOLDS.tmDailyShare}% (число засчитанных дней — колонка «Соблюдение ТМ»).<br>
+        <b>По району:</b> показатель выполняется, если доля прошедших школ ≥ ${THRESHOLDS.districtPassShare}%.
+      </p>
+    </div>`;
+
+  renderCharts(monthSeries, d.name, monthLabel);
+
+  // таблица школ
+  const rows = ev.schools.map(s => `
+    <tr>
+      <td>${s.name}</td>
+      <td>${s.days}</td>
+      <td>${s.timely}%</td>
+      <td>${s.noErrors}%</td>
+      <td class="${s.fmOk ? 'ok' : 'fail'}">${s.fmOk ? 'выполн.' : 'нет'}</td>
+      <td>${s.tm}</td>
+      <td>${s.tmMark ? '+' : ''}</td>
+      <td class="${s.tmOk ? 'ok' : 'fail'}">${s.tmOk ? 'выполн.' : 'нет'}</td>
+    </tr>`).join("");
+
+  document.getElementById("schools").innerHTML = `
+    <div class="card">
+      <h3>Школы района — ${monthLabel}</h3>
+      <table>
+        <thead><tr>
+          <th>Школа</th><th>Дней</th><th>Своевр., %</th><th>Без ошибок, %</th>
+          <th>ФМ (П35)</th>
+          <th>Соблюдено дней ТМ</th>
+          <th>Метка «+»</th>
+          <th>ТМ (П36)</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`;
+}
+
+/* ============================================================
+   ГРАФИКИ
+   ============================================================ */
+function destroyCharts() {
+  if (fmChart) { fmChart.destroy(); fmChart = null; }
+  if (tmChart) { tmChart.destroy(); tmChart = null; }
+}
+
+function renderCharts(monthSeries, districtName, monthLabel) {
+  destroyCharts();
+
+  const labels = monthSeries.map(x => x.month.label);
+  const fmData = monthSeries.map(x => x.fmShare);
+  const tmData = monthSeries.map(x => x.tmShare);
+
+  // Предыдущий месяц для столбчатого графика
+  const curIdx = MONTHS.findIndex(m => m.value === currentMonthFile);
+  const prevMonth = curIdx > 0 ? MONTHS[curIdx - 1] : null;
+  const curM = districtMetrics(currentMonthFile, districtName);
+  const prevM = prevMonth && CACHE[prevMonth.value] ? districtMetrics(prevMonth.value, districtName) : null;
+
+  document.getElementById("charts").innerHTML = `
+    <div class="chart-box">
+      <h4>Динамика по месяцам: доля школ, выполнивших показатель (%)</h4>
+      <canvas id="fmChart"></canvas>
+    </div>
+    <div class="chart-box">
+      <h4>Сравнение «${monthLabel}»${prevMonth ? ` vs «${prevMonth.label}»` : ""}: ФМ и ТМ (%)</h4>
+      <canvas id="tmChart"></canvas>
+    </div>`;
+
+  fmChart = new Chart(document.getElementById("fmChart"), {
+    type: "line",
+    data: {
+      labels,
+      datasets: [
+        {
+          label: "ФМ (П35), % школ",
+          data: fmData,
+          borderColor: "#2980b9",
+          backgroundColor: "rgba(41,128,185,0.15)",
+          tension: 0.25,
+          fill: true,
+          pointRadius: 4,
+          spanGaps: true
+        },
+        {
+          label: "ТМ (П36), % школ",
+          data: tmData,
+          borderColor: "#27ae60",
+          backgroundColor: "rgba(39,174,96,0.15)",
+          tension: 0.25,
+          fill: true,
+          pointRadius: 4,
+          spanGaps: true
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      scales: { y: { beginAtZero: true, max: 100, ticks: { callback: v => v + "%" } } },
+      plugins: { legend: { position: "bottom" } }
+    }
+  });
+
+  const compareLabels = prevMonth ? [prevMonth.label, monthLabel] : [monthLabel];
+  const fmCmp = prevMonth ? [prevM ? prevM.fmShare : null, curM.fmShare] : [curM.fmShare];
+  const tmCmp = prevMonth ? [prevM ? prevM.tmShare : null, curM.tmShare] : [curM.tmShare];
+
+  tmChart = new Chart(document.getElementById("tmChart"), {
+    type: "bar",
+    data: {
+      labels: compareLabels,
+      datasets: [
+        { label: "ФМ (П35), %", data: fmCmp, backgroundColor: "#2980b9" },
+        { label: "ТМ (П36), %", data: tmCmp, backgroundColor: "#27ae60" }
+      ]
+    },
+    options: {
+      responsive: true,
+      scales: { y: { beginAtZero: true, max: 100, ticks: { callback: v => v + "%" } } },
+      plugins: {
+        legend: { position: "bottom" },
+        tooltip: {
+          callbacks: {
+            label: ctx => `${ctx.dataset.label}: ${ctx.parsed.y == null ? "—" : fmt(ctx.parsed.y) + "%"}`
+          }
+        }
+      }
+    }
+  });
+}
+
+/* ============================================================
+   СТАРТ
+   ============================================================ */
+async function init() {
+  buildMonthSelect();
+  const ok = await ensureLoaded();
+  if (!ok) return;
+  // догружаем остальные месяцы в фоне, чтобы работало сравнение
+  for (const m of MONTHS) {
+    if (!CACHE[m.value]) {
+      try { await loadMonth(m.value); } catch (e) { console.warn(e); }
+    }
+  }
+  // после загрузки всех месяцев — перерисовываем
+  render(currentDistrictValue);
+}
+
+document.getElementById("reloadBtn").addEventListener("click", async () => {
+  Object.keys(CACHE).forEach(k => delete CACHE[k]);
+  await init();
+});
+
+init();
+</script>
+</body>
+</html>
