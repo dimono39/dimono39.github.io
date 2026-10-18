@@ -74,10 +74,23 @@
   .diag { background:#fef9e7; border-left:4px solid var(--warn);
           padding:8px 12px; font-size:13px; color:#7d6608; border-radius:4px; margin-top:10px; }
   .diag.info { background:#eaf2f8; border-left-color:var(--accent); color:#1b4f72; }
+  .diag.err { background:#fdedec; border-left-color:var(--fail); color:#78281f; }
   .avg-badge { display:inline-block; padding:2px 8px; border-radius:10px; font-size:12px;
                background:#ecf0f1; color:#34495e; margin-left:6px; }
   .avg-badge.up { background:#eafaf1; color:var(--ok); }
   .avg-badge.down { background:#fdedec; color:var(--fail); }
+
+  /* Рекомендации */
+  .recs { margin-top:12px; }
+  .recs summary { cursor:pointer; font-weight:bold; color:var(--accent);
+                  padding:6px 0; outline:none; }
+  .recs summary:hover { color:#1f6391; }
+  .recs ol { margin:8px 0 0 20px; padding:0; font-size:13px; line-height:1.55; }
+  .recs li { margin-bottom:6px; }
+  .recs .rec-note { color:var(--muted); font-size:12px; margin-top:8px; }
+  .recs-block { background:#f4f8fb; border-left:4px solid var(--accent);
+                padding:10px 14px; border-radius:4px; margin-top:12px; }
+  .recs-block h4 { margin:0 0 6px; font-size:14px; }
 </style>
 </head>
 <body>
@@ -146,10 +159,8 @@ const THRESHOLDS = {
   districtPassShare: 100
 };
 
-// Слова, которых НЕ должно быть в названии района
 const SCHOOL_WORDS = /школ|лицей|гимнази|сош|оош|нош|маоу|мбоу|мкоу|мбоо|маоо|пмаоу|детск|садик|интернат|центр|коррекц|кадеты|техникум|колледж/i;
 
-// Строки, которые не являются районами
 const EXCLUDED_REGIONS = new Set([
   "свердловская область",
   "итого",
@@ -161,8 +172,8 @@ const EXCLUDED_REGIONS = new Set([
 /* ============================================================
    СОСТОЯНИЕ
    ============================================================ */
-const CACHE = {};                 // { fileName: { districts } }
-const SCHOOL_INDEX = {};          // { code: { code, name, district, months } }
+const CACHE = {};
+const SCHOOL_INDEX = {};
 let currentMonthFile = MONTHS[MONTHS.length - 1].value;
 let currentDistrictValue = "__ALL__";
 let currentSort = { field: "name", dir: 1 };
@@ -202,17 +213,68 @@ function normStr(s) {
     .trim();
 }
 
-/* Извлекаем код пищеблока — несколько стратегий */
+/* Усиленный extractCode:
+   1) число ≥ 4 цифр в конце (после запятой или пробела)
+   2) число ≥ 4 цифр перед закрывающей кавычкой/точкой в конце
+   3) последнее число ≥ 4 цифр в любом месте
+   4) первое число ≥ 4 цифр в любом месте
+*/
 function extractCode(nameRaw) {
   const name = normStr(nameRaw);
   if (!name) return null;
-  let m = name.match(/,\s*(\d{4,})\s*$/);           // "..., 28363"
+  let m = name.match(/,\s*(\d{4,})\s*[»"'.]?\s*$/);          // "..., 28363" / "..., 28363."
   if (m) return m[1];
-  m = name.match(/\s(\d{4,})\s*$/);                  // "... 28363"
+  m = name.match(/\s(\d{4,})\s*[»"'.]?\s*$/);                  // "... 28363"
   if (m) return m[1];
-  const all = [...name.matchAll(/\d{4,}/g)];         // все числа ≥ 4 цифр
+  m = name.match(/(\d{4,})\s*[»"'.]?\s*$/);                    // "...28363"
+  if (m) return m[1];
+  const all = [...name.matchAll(/\d{4,}/g)];
   if (all.length) return all[all.length - 1][0];
   return null;
+}
+
+/* ============================================================
+   РЕКОМЕНДАЦИИ
+   ============================================================ */
+const RECOMMENDATIONS = {
+  p35: {
+    title: "Рекомендации по П35 (своевременная выкладка меню и отсутствие ошибок)",
+    items: [
+      "Выкладывайте меню накануне дня питания — до дня питания оно уже должно быть в системе.",
+      "Перед публикацией сверьте меню с типовым меню: оно должно совпадать слово в слово (наименования блюд, выход, состав).",
+      "Убедитесь, что в календаре питания день питания стоит верно (правильная дата и день недели).",
+      "Перед публикацией типового меню проверьте его на наличие отклонений от СанПиН (например, в редакторе/нормативном справочнике).",
+      "Утром до 9:00 проверьте, загрузилось ли меню. Если не загрузилось — успейте подать заявку на дочитывание до 9:00.",
+      "Важно: при дочитывании день всё равно может отобразиться как «нет типового меню». Но при сверке на последующих днях этот день будет учтён — главное, чтобы не было ошибки о несвоевременности выкладки."
+    ],
+    note: "Если меню опубликовано своевременно и без ошибок в ≥ 90% дней периода, школа проходит П35."
+  },
+  p36: {
+    title: "Рекомендации по П36 (соответствие ежедневного меню типовому)",
+    items: [
+      "Все выложенные ежедневные меню должны соответствовать типовому меню.",
+      "Меню считается соответствующим, если процент соблюдения равен или выше 75%.",
+      "Допускается замена блюд (по объективным причинам), из-за которой процент соблюдения снижается, но не ниже 75%.",
+      "Проверяйте каждое ежедневное меню перед публикацией: наименования блюд, выход, состав — всё должно совпадать с типовым (кроме допустимых замен).",
+      "Если замена необходима, фиксируйте её причину — это поможет при разборе спорных дней."
+    ],
+    note: "День считается соблюдённым при соблюдении ТМ ≥ 75%; итоговый флаг «+» в файле — признак прохождения П36."
+  }
+};
+
+function recommendationsHtml(which) {
+  const r = RECOMMENDATIONS[which];
+  if (!r) return "";
+  const items = r.items.map(x => `<li>${x}</li>`).join("");
+  return `
+    <div class="recs-block">
+      <h4>${r.title}</h4>
+      <details class="recs" open>
+        <summary>Показать/скрыть рекомендации</summary>
+        <ol>${items}</ol>
+        <div class="rec-note">${r.note}</div>
+      </details>
+    </div>`;
 }
 
 /* ============================================================
@@ -237,6 +299,7 @@ async function loadMonth(fileName) {
       if (!SCHOOL_INDEX[code]) {
         SCHOOL_INDEX[code] = { code, name: normStr(s.name), district: d.name, months: {} };
       } else {
+        // обновляем имя и район более свежими данными
         SCHOOL_INDEX[code].name = normStr(s.name);
         SCHOOL_INDEX[code].district = d.name;
       }
@@ -265,14 +328,13 @@ function looksLikeDistrict(a) {
 function parseDistricts(aoa) {
   const districts = [];
   let current = null;
-  let orphan = null; // «(без района)» — на случай школ без распознанного района
+  let orphan = null;
 
   for (let i = 0; i < aoa.length; i++) {
     const r = aoa[i];
     const a = normStr(r[0] || "");
     if (!a) continue;
 
-    // 1) Строка района: A заполнено, B..E пусты, F и G — числа, A не похоже на школу
     const bEmpty = normStr(r[1] || "") === "";
     const cEmpty = normStr(r[2] || "") === "";
     const dEmpty = normStr(r[3] || "") === "";
@@ -294,7 +356,6 @@ function parseDistricts(aoa) {
       continue;
     }
 
-    // 2) Строка школы: A заполнено, B..D — числа
     if (a && !bEmpty && !cEmpty && !dEmpty) {
       const days = toNum(r[1]);
       const timely = toNum(r[2]);
@@ -318,7 +379,6 @@ function parseDistricts(aoa) {
     }
   }
 
-  // Убираем пустые районы (без школ)
   return districts.filter(d => d.schools.length > 0);
 }
 
@@ -369,7 +429,7 @@ document.querySelectorAll(".tab").forEach(tab => {
 });
 
 /* ============================================================
-   URL: ?school=КОД
+   URL
    ============================================================ */
 function updateUrlSchool(code) {
   const url = new URL(window.location.href);
@@ -574,6 +634,8 @@ function renderDistrict(districtName) {
           <small>${prevMonth ? `К ${prevMonth.label.toLowerCase()}: ${deltaHtml(ev.tmShare, prevM ? prevM.tmShare : null)}` : ""}</small>
         </div>
       </div>
+      ${recommendationsHtml("p35")}
+      ${recommendationsHtml("p36")}
     </div>`;
 
   renderDistrictCharts(monthSeries, d.name, monthLabel);
@@ -718,7 +780,7 @@ function renderDistrictCharts(monthSeries, districtName, monthLabel) {
 }
 
 /* ============================================================
-   ВКЛАДКА «ШКОЛА» — ПОИСК
+   ВКЛАДКА «ШКОЛА»
    ============================================================ */
 const searchInput = document.getElementById("schoolSearch");
 const suggestBox = document.getElementById("schoolSuggest");
@@ -797,7 +859,7 @@ function openSchool(code) {
 }
 
 /* ============================================================
-   РЕНДЕР КАРТОЧКИ ШКОЛЫ
+   КАРТОЧКА ШКОЛЫ
    ============================================================ */
 let sTimelyChart = null, sTmChart = null;
 function destroySchoolCharts() {
@@ -805,19 +867,15 @@ function destroySchoolCharts() {
   if (sTmChart) { sTmChart.destroy(); sTmChart = null; }
 }
 
-/* Находим ближайший месяц с данными (текущий → назад → вперёд) */
 function findNearestMonthWithData(school, preferFile) {
   const idx = MONTHS.findIndex(m => m.value === preferFile);
   if (idx >= 0 && school.months[preferFile]) return preferFile;
-  // назад
   for (let i = idx - 1; i >= 0; i--) {
     if (school.months[MONTHS[i].value]) return MONTHS[i].value;
   }
-  // вперёд
   for (let i = idx + 1; i < MONTHS.length; i++) {
     if (school.months[MONTHS[i].value]) return MONTHS[i].value;
   }
-  // любой первый
   const any = Object.keys(school.months)[0];
   return any || null;
 }
@@ -850,15 +908,24 @@ function renderSchoolTab(code) {
   const prevEv = prevS ? evaluateSchool(prevS) : null;
 
   const curDistrictAvg = effectiveFile ? districtMetrics(effectiveFile, school.district) : null;
-  const prevDistrictAvg = prevMonth ? districtMetrics(prevMonth.value, school.district) : null;
 
-  // Подсказка, если выбранный месяц не совпадает с эффективным
+  // (диагностика) В каком районе нашлась школа — по последнему месяцу, где она есть
+  const lastMonthWithData = [...MONTHS].reverse().find(m => school.months[m.value]);
+  const lastMonthLabel = lastMonthWithData ? lastMonthWithData.label : "—";
+
   const monthMismatch = effectiveFile && effectiveFile !== currentMonthFile
     ? `<div class="diag info">
          В месяце «${selectedMonthLabel}» данных по этой школе нет.
          Показан ближайший месяц с данными: <b>${monthLabel}</b>.
        </div>`
     : "";
+
+  const districtNote = `
+    <div class="diag info">
+      Школа найдена в районе: <b>${school.district}</b>
+      (по последнему месяцу с данными: ${lastMonthLabel}).
+      Если район кажется неверным — проверьте, не попала ли строка школы в чужой район в исходном файле.
+    </div>`;
 
   if (curData) {
     const ev = evaluateSchool(curData);
@@ -875,6 +942,7 @@ function renderSchoolTab(code) {
           Код пищеблока: <b>${school.code}</b> • Район: <b>${school.district}</b> • Месяц: <b>${monthLabel}</b>
         </p>
         ${monthMismatch}
+        ${districtNote}
         <div class="metric-row">
           <div class="metric">
             ФМ (П35)
@@ -896,6 +964,8 @@ function renderSchoolTab(code) {
             <small>Сравнение с ${prevMonth ? prevMonth.label.toLowerCase() : "—"}: см. графики ниже</small>
           </div>
         </div>
+        ${recommendationsHtml("p35")}
+        ${recommendationsHtml("p36")}
       </div>`;
   } else {
     document.getElementById("schoolSummary").innerHTML = `
@@ -907,7 +977,6 @@ function renderSchoolTab(code) {
       </div>`;
   }
 
-  // Графики
   document.getElementById("schoolCharts").innerHTML = `
     <div class="chart-box">
       <h4>Динамика ФМ: % своевременно и % без ошибок</h4>
