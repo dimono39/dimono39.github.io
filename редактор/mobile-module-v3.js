@@ -58,7 +58,7 @@ const MobileModule = (function() {
         ENABLE_DARK_THEME: true,
         ENABLE_VOICE_INPUT: true,
         ENABLE_UPDATE_NOTIFICATION: true,
-        DARK_THEME_MODE: 'auto',        // 'auto' | 'light' | 'dark'
+        DARK_THEME_MODE: 'light',        // 'auto' | 'light' | 'dark'
         SW_PATH: './sw.js',
         MANIFEST_PATH: './manifest.json',
         
