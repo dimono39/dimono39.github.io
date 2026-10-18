@@ -80,7 +80,6 @@
   .avg-badge.up { background:#eafaf1; color:var(--ok); }
   .avg-badge.down { background:#fdedec; color:var(--fail); }
 
-  /* Рекомендации */
   .recs { margin-top:12px; }
   .recs summary { cursor:pointer; font-weight:bold; color:var(--accent);
                   padding:6px 0; outline:none; }
@@ -100,6 +99,7 @@
   ФМ (П35): школа проходит, если своевременно ≥ 90% и без ошибок ≥ 80% (отклонений ≤ 20%).
   ТМ (П36): день засчитан, если соблюдение типового меню в этот день ≥ 75% (в файле — число засчитанных дней).
   Район выполняет показатель, если доля прошедших школ ≥ 100%.
+  <br>Подробный лог работы — в консоли браузера (F12 → Console).
 </p>
 
 <div class="controls">
@@ -139,6 +139,25 @@
 </div>
 
 <script>
+/* ============================================================
+   ЛОГИРОВАНИЕ
+   ============================================================ */
+const LOG_PREFIX = "[MM]";
+function logTime() {
+  const d = new Date();
+  const pad = n => String(n).padStart(2, "0");
+  return `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}.${String(d.getMilliseconds()).padStart(3,"0")}`;
+}
+const LOG = {
+  log: (...a) => console.log(`${LOG_PREFIX} ${logTime()} `, ...a),
+  info: (...a) => console.info(`${LOG_PREFIX} ${logTime()} `, ...a),
+  warn: (...a) => console.warn(`${LOG_PREFIX} ${logTime()} `, ...a),
+  error: (...a) => console.error(`${LOG_PREFIX} ${logTime()} `, ...a),
+  group: (title) => console.group(`${LOG_PREFIX} ${logTime()} ▼ ${title}`),
+  groupEnd: () => console.groupEnd(),
+  table: (data) => console.table(data)
+};
+
 /* ============================================================
    НАСТРОЙКИ
    ============================================================ */
@@ -213,23 +232,22 @@ function normStr(s) {
     .trim();
 }
 
-/* Усиленный extractCode:
-   1) число ≥ 4 цифр в конце (после запятой или пробела)
-   2) число ≥ 4 цифр перед закрывающей кавычкой/точкой в конце
-   3) последнее число ≥ 4 цифр в любом месте
-   4) первое число ≥ 4 цифр в любом месте
-*/
 function extractCode(nameRaw) {
   const name = normStr(nameRaw);
   if (!name) return null;
-  let m = name.match(/,\s*(\d{4,})\s*[»"'.]?\s*$/);          // "..., 28363" / "..., 28363."
-  if (m) return m[1];
-  m = name.match(/\s(\d{4,})\s*[»"'.]?\s*$/);                  // "... 28363"
-  if (m) return m[1];
-  m = name.match(/(\d{4,})\s*[»"'.]?\s*$/);                    // "...28363"
-  if (m) return m[1];
+  let m = name.match(/,\s*(\d{4,})\s*[»"'.]?\s*$/);
+  if (m) { LOG.log("extractCode: стратегия 1 →", m[1], "из:", name); return m[1]; }
+  m = name.match(/\s(\d{4,})\s*[»"'.]?\s*$/);
+  if (m) { LOG.log("extractCode: стратегия 2 →", m[1], "из:", name); return m[1]; }
+  m = name.match(/(\d{4,})\s*[»"'.]?\s*$/);
+  if (m) { LOG.log("extractCode: стратегия 3 →", m[1], "из:", name); return m[1]; }
   const all = [...name.matchAll(/\d{4,}/g)];
-  if (all.length) return all[all.length - 1][0];
+  if (all.length) {
+    const code = all[all.length - 1][0];
+    LOG.warn("extractCode: стратегия 4 →", code, "из:", name);
+    return code;
+  }
+  LOG.warn("extractCode: НЕ удалось извлечь код из:", name);
   return null;
 }
 
@@ -281,36 +299,67 @@ function recommendationsHtml(which) {
    ЗАГРУЗКА
    ============================================================ */
 async function loadMonth(fileName) {
-  if (CACHE[fileName]) return CACHE[fileName];
-  setStatus(`Загрузка «${fileName}»…`);
-  const resp = await fetch(fileName);
-  if (!resp.ok) throw new Error("Файл не найден: " + fileName);
-  const buf = await resp.arrayBuffer();
-  const wb = XLSX.read(buf, { type: "array" });
-  const ws = wb.Sheets[wb.SheetNames[0]];
-  const aoa = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "" });
-  const districts = parseDistricts(aoa);
-  CACHE[fileName] = { districts };
+  if (CACHE[fileName]) {
+    LOG.log("loadMonth: файл уже в кэше, пропускаем:", fileName);
+    return CACHE[fileName];
+  }
+  LOG.group(`loadMonth: старт загрузки «${fileName}»`);
+  try {
+    setStatus(`Загрузка «${fileName}»…`);
+    LOG.log("loadMonth: fetch →", fileName);
+    const t0 = performance.now();
+    const resp = await fetch(fileName);
+    LOG.log("loadMonth: ответ fetch, status =", resp.status, "ok =", resp.ok);
+    if (!resp.ok) throw new Error("Файл не найден: " + fileName);
 
-  districts.forEach(d => {
-    d.schools.forEach(s => {
-      const code = extractCode(s.name);
-      if (!code) return;
-      if (!SCHOOL_INDEX[code]) {
-        SCHOOL_INDEX[code] = { code, name: normStr(s.name), district: d.name, months: {} };
-      } else {
-        // обновляем имя и район более свежими данными
-        SCHOOL_INDEX[code].name = normStr(s.name);
-        SCHOOL_INDEX[code].district = d.name;
-      }
-      SCHOOL_INDEX[code].months[fileName] = s;
+    const buf = await resp.arrayBuffer();
+    LOG.log("loadMonth: размер файла =", buf.byteLength, "байт");
+
+    const wb = XLSX.read(buf, { type: "array" });
+    LOG.log("loadMonth: листов в книге =", wb.SheetNames.length, "→ используем:", wb.SheetNames[0]);
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    const aoa = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "" });
+    LOG.log("loadMonth: строк в листе =", aoa.length);
+
+    const districts = parseDistricts(aoa);
+    LOG.log("loadMonth: найдено районов со школами =", districts.length);
+
+    CACHE[fileName] = { districts };
+
+    let totalSchools = 0, codesOk = 0, codesFail = 0;
+    districts.forEach(d => {
+      d.schools.forEach(s => {
+        totalSchools++;
+        const code = extractCode(s.name);
+        if (!code) { codesFail++; return; }
+        codesOk++;
+        if (!SCHOOL_INDEX[code]) {
+          SCHOOL_INDEX[code] = { code, name: normStr(s.name), district: d.name, months: {} };
+        } else {
+          SCHOOL_INDEX[code].name = normStr(s.name);
+          SCHOOL_INDEX[code].district = d.name;
+        }
+        SCHOOL_INDEX[code].months[fileName] = s;
+      });
     });
-  });
 
-  return CACHE[fileName];
+    LOG.log("loadMonth: школ всего =", totalSchools, "| код извлечён =", codesOk, "| код не извлечён =", codesFail);
+    LOG.log("loadMonth: всего уникальных кодов в индексе =", Object.keys(SCHOOL_INDEX).length);
+
+    const elapsed = (performance.now() - t0).toFixed(1);
+    LOG.info(`loadMonth: «${fileName}» загружен за ${elapsed} мс`);
+    LOG.groupEnd();
+
+    return CACHE[fileName];
+  } catch (e) {
+    LOG.error("loadMonth: ОШИБКА при загрузке «" + fileName + "»:", e);
+    LOG.groupEnd();
+    throw e;
+  }
 }
 
 function setStatus(msg) {
+  LOG.log("setStatus:", msg);
   const el = document.getElementById("status");
   if (el) el.textContent = msg;
 }
@@ -320,20 +369,29 @@ function setStatus(msg) {
    ============================================================ */
 function looksLikeDistrict(a) {
   const low = a.toLowerCase();
-  if (EXCLUDED_REGIONS.has(low)) return false;
-  if (SCHOOL_WORDS.test(a)) return false;
+  if (EXCLUDED_REGIONS.has(low)) {
+    LOG.log("looksLikeDistrict: исключено по списку:", a);
+    return false;
+  }
+  if (SCHOOL_WORDS.test(a)) {
+    LOG.log("looksLikeDistrict: похоже на школу, не район:", a);
+    return false;
+  }
   return true;
 }
 
 function parseDistricts(aoa) {
+  LOG.group("parseDistricts: старт");
   const districts = [];
   let current = null;
   let orphan = null;
+  let skippedLikeDistrict = 0, skippedLikeSchool = 0, linesTotal = 0;
 
   for (let i = 0; i < aoa.length; i++) {
     const r = aoa[i];
     const a = normStr(r[0] || "");
     if (!a) continue;
+    linesTotal++;
 
     const bEmpty = normStr(r[1] || "") === "";
     const cEmpty = normStr(r[2] || "") === "";
@@ -343,7 +401,11 @@ function parseDistricts(aoa) {
     const fNum = isNumeric(r[5]);
     const gNum = isNumeric(r[6]);
 
-    if (a && bEmpty && cEmpty && dEmpty && eEmpty && (fNum || gNum) && looksLikeDistrict(a)) {
+    if (a && bEmpty && cEmpty && dEmpty && eEmpty && (fNum || gNum)) {
+      if (!looksLikeDistrict(a)) {
+        skippedLikeDistrict++;
+        continue;
+      }
       current = {
         name: a,
         pFM: fNum ? toNum(r[5]) : NaN,
@@ -353,6 +415,7 @@ function parseDistricts(aoa) {
         schools: []
       };
       districts.push(current);
+      LOG.log(`[район] строка ${i + 1}: «${a}» (F=${r[5]}, G=${r[6]})`);
       continue;
     }
 
@@ -372,14 +435,25 @@ function parseDistricts(aoa) {
           if (!orphan) {
             orphan = { name: "(без района)", pFM: NaN, pTM: NaN, pctFM: NaN, pctTM: NaN, schools: [] };
             districts.push(orphan);
+            LOG.warn(`[без района] строка ${i + 1}: школа до первого района, создан «(без района)»`);
           }
           orphan.schools.push(school);
         }
+      } else {
+        skippedLikeSchool++;
+        LOG.warn(`[пропуск] строка ${i + 1}: похоже на школу, но числа не распознаны:`, r);
       }
     }
   }
 
-  return districts.filter(d => d.schools.length > 0);
+  const result = districts.filter(d => d.schools.length > 0);
+  LOG.info(`parseDistricts: строк просмотрено = ${linesTotal}, районов = ${result.length}, ` +
+           `школ всего = ${result.reduce((s, d) => s + d.schools.length, 0)}, ` +
+           `пропущено «похожих на район» = ${skippedLikeDistrict}, ` +
+           `пропущено «похожих на школу» = ${skippedLikeSchool}`);
+  LOG.table(result.map(d => ({ "Район": d.name, "Школ": d.schools.length, "п.ФМ": d.pFM, "п.ТМ": d.pTM })));
+  LOG.groupEnd();
+  return result;
 }
 
 /* ============================================================
@@ -398,17 +472,25 @@ function evaluateDistrict(d) {
   const tmOkCount = schools.filter(s => s.tmOk).length;
   const fmShare = total ? (fmOkCount / total) * 100 : 0;
   const tmShare = total ? (tmOkCount / total) * 100 : 0;
-  return {
+  const result = {
     ...d, schools, total, fmOkCount, tmOkCount, fmShare, tmShare,
     fmPass: fmShare >= THRESHOLDS.districtPassShare,
     tmPass: tmShare >= THRESHOLDS.districtPassShare
   };
+  LOG.log(`evaluateDistrict: «${d.name}» — школ ${total}, ФМ ок ${fmOkCount} (${fmt(fmShare)}%), ТМ ок ${tmOkCount} (${fmt(tmShare)}%)`);
+  return result;
 }
-function districtMetrics(fileName, districtName) {
+function districtMetrics(fileName, districtName, silent = false) {
   const data = CACHE[fileName];
-  if (!data) return null;
+  if (!data) {
+    if (!silent) LOG.warn("districtMetrics: нет в кэше файла", fileName);
+    return null;
+  }
   const d = data.districts.find(x => x.name === districtName);
-  if (!d) return null;
+  if (!d) {
+    if (!silent) LOG.warn(`districtMetrics: район «${districtName}» не найден в «${fileName}»`);
+    return null;
+  }
   const ev = evaluateDistrict(d);
   return { fmShare: ev.fmShare, tmShare: ev.tmShare, total: ev.total };
 }
@@ -418,9 +500,10 @@ function districtMetrics(fileName, districtName) {
    ============================================================ */
 document.querySelectorAll(".tab").forEach(tab => {
   tab.addEventListener("click", () => {
+    const name = tab.dataset.tab;
+    LOG.log("tab: переключение на", name);
     document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
     tab.classList.add("active");
-    const name = tab.dataset.tab;
     document.getElementById("tab-district").style.display = name === "district" ? "" : "none";
     document.getElementById("tab-school").style.display = name === "school" ? "" : "none";
     if (name === "school") updateUrlSchool(currentSchoolCode);
@@ -436,16 +519,20 @@ function updateUrlSchool(code) {
   if (code) url.searchParams.set("school", code);
   else url.searchParams.delete("school");
   history.replaceState(null, "", url.toString());
+  LOG.log("updateUrlSchool:", code || "(нет)");
 }
 function readUrlSchool() {
   const url = new URL(window.location.href);
-  return url.searchParams.get("school");
+  const code = url.searchParams.get("school");
+  LOG.log("readUrlSchool:", code);
+  return code;
 }
 
 /* ============================================================
    ВЫБОР МЕСЯЦА
    ============================================================ */
 function buildMonthSelect() {
+  LOG.log("buildMonthSelect");
   const sel = document.getElementById("monthSelect");
   sel.innerHTML = "";
   MONTHS.forEach(m => {
@@ -456,6 +543,7 @@ function buildMonthSelect() {
   });
   sel.value = currentMonthFile;
   sel.addEventListener("change", async () => {
+    LOG.log("monthSelect: выбран", sel.value);
     currentMonthFile = sel.value;
     await ensureLoaded();
     renderDistrictTab();
@@ -467,6 +555,7 @@ function buildMonthSelect() {
    СЕЛЕКТ РАЙОНОВ
    ============================================================ */
 function buildDistrictSelect(districts) {
+  LOG.log("buildDistrictSelect: районов =", districts.length);
   const sel = document.getElementById("districtSelect");
   sel.innerHTML = "";
   const optAll = document.createElement("option");
@@ -482,6 +571,7 @@ function buildDistrictSelect(districts) {
   const exists = districts.some(d => d.name === currentDistrictValue);
   sel.value = exists ? currentDistrictValue : "__ALL__";
   sel.addEventListener("change", () => {
+    LOG.log("districtSelect: выбран", sel.value);
     currentDistrictValue = sel.value;
     renderDistrictTab();
   });
@@ -491,15 +581,19 @@ function buildDistrictSelect(districts) {
    ЗАГРУЗКА МЕСЯЦА
    ============================================================ */
 async function ensureLoaded() {
+  LOG.group(`ensureLoaded: текущий месяц «${currentMonthFile}»`);
   try {
     await loadMonth(currentMonthFile);
     const data = CACHE[currentMonthFile];
     buildDistrictSelect(data.districts);
     setStatus(`Загружено: «${MONTHS.find(m => m.value === currentMonthFile).label}». Районов: ${data.districts.length}`);
+    LOG.info("ensureLoaded: успешно");
+    LOG.groupEnd();
     return true;
   } catch (e) {
+    LOG.error("ensureLoaded: ошибка", e);
     setStatus("Ошибка: " + e.message);
-    console.error(e);
+    LOG.groupEnd();
     return false;
   }
 }
@@ -514,11 +608,13 @@ function destroyCharts() {
 }
 
 function renderDistrictTab() {
+  LOG.log("renderDistrictTab: currentDistrictValue =", currentDistrictValue);
   if (currentDistrictValue === "__ALL__") renderAll();
   else renderDistrict(currentDistrictValue);
 }
 
 function renderAll() {
+  LOG.group("renderAll: сводка по всем районам");
   destroyCharts();
   document.getElementById("charts").innerHTML = "";
 
@@ -528,6 +624,7 @@ function renderAll() {
   const curIdx = MONTHS.findIndex(m => m.value === currentMonthFile);
   const prevMonth = curIdx > 0 ? MONTHS[curIdx - 1] : null;
   const prevFile = prevMonth && CACHE[prevMonth.value] ? prevMonth.value : null;
+  LOG.log("renderAll: предыдущий месяц для сравнения =", prevFile || "—");
 
   const sorted = [...evaluated].sort((a, b) => {
     if (currentSort.field === "name") return a.name.localeCompare(b.name) * currentSort.dir;
@@ -535,18 +632,28 @@ function renderAll() {
   });
 
   const rows = sorted.map(d => {
-    const prev = prevFile ? districtMetrics(prevFile, d.name) : null;
+    const prev = prevFile ? districtMetrics(prevFile, d.name, true) : null;
+    const deltaFm = !prevFile
+      ? '<span class="delta-flat">—</span>'
+      : (prev
+          ? deltaHtml(d.fmShare, prev.fmShare)
+          : '<span class="delta-flat" title="район отсутствует в прошлом месяце">нет в прошлом</span>');
+    const deltaTm = !prevFile
+      ? '<span class="delta-flat">—</span>'
+      : (prev
+          ? deltaHtml(d.tmShare, prev.tmShare)
+          : '<span class="delta-flat" title="район отсутствует в прошлом месяце">нет в прошлом</span>');
     return `<tr>
       <td>${d.name}</td>
       <td>${d.total}</td>
       <td>${d.fmOkCount}</td>
       <td>${fmt(d.fmShare)}%</td>
       <td class="${d.fmPass ? 'ok' : 'fail'}">${d.fmPass ? 'да' : 'нет'}</td>
-      <td>${prev ? deltaHtml(d.fmShare, prev.fmShare) : '—'}</td>
+      <td>${deltaFm}</td>
       <td>${d.tmOkCount}</td>
       <td>${fmt(d.tmShare)}%</td>
       <td class="${d.tmPass ? 'ok' : 'fail'}">${d.tmPass ? 'да' : 'нет'}</td>
-      <td>${prev ? deltaHtml(d.tmShare, prev.tmShare) : '—'}</td>
+      <td>${deltaTm}</td>
     </tr>`;
   }).join("");
 
@@ -555,7 +662,7 @@ function renderAll() {
   document.getElementById("summary").innerHTML = `
     <div class="card">
       <h2>Сводка по всем районам — ${monthLabel}</h2>
-      ${prevMonth ? `<p class="method">Сравнение с: <b>${prevMonth.label}</b> (дельта в п.п.)</p>` : ""}
+      ${prevMonth ? `<p class="method">Сравнение с: <b>${prevMonth.label}</b> (дельта в п.п.). «нет в прошлом» — района не было в файле прошлого месяца.</p>` : ""}
       <p class="method">
         <b>ФМ (П35):</b> школа проходит, если своевременно ≥ ${THRESHOLDS.timely}% и без ошибок ≥ ${THRESHOLDS.noErrors}%.<br>
         <b>ТМ (П36):</b> день считается соблюдённым, если соблюдение ТМ в этот день ≥ ${THRESHOLDS.tmDailyShare}%; в файле — число засчитанных дней, «+» — итоговый флаг.<br>
@@ -583,17 +690,22 @@ function renderAll() {
       const f = th.dataset.field;
       if (currentSort.field === f) currentSort.dir *= -1;
       else { currentSort.field = f; currentSort.dir = 1; }
+      LOG.log("renderAll: сортировка по", f, "направление", currentSort.dir);
       renderAll();
     });
   });
 
   document.getElementById("schools").innerHTML = "";
+  LOG.groupEnd();
 }
 
 function renderDistrict(districtName) {
+  LOG.group(`renderDistrict: «${districtName}»`);
   const data = CACHE[currentMonthFile];
   const d = data.districts.find(x => x.name === districtName);
   if (!d) {
+    LOG.error(`renderDistrict: район «${districtName}» не найден в «${currentMonthFile}»`);
+    LOG.groupEnd();
     document.getElementById("summary").innerHTML =
       `<div class="card"><p class="fail">Район «${districtName}» не найден в текущем месяце.</p></div>`;
     destroyCharts();
@@ -605,13 +717,14 @@ function renderDistrict(districtName) {
 
   const monthSeries = MONTHS.map(m => {
     if (!CACHE[m.value]) return { month: m, fmShare: null, tmShare: null, total: null };
-    const mData = districtMetrics(m.value, districtName);
+    const mData = districtMetrics(m.value, districtName, true);
     return { month: m, ...(mData || { fmShare: null, tmShare: null, total: null }) };
   });
+  LOG.log("renderDistrict: серия по месяцам =", monthSeries.map(x => `${x.month.label}: ${x.fmShare}/${x.tmShare}`));
 
   const curIdx = MONTHS.findIndex(m => m.value === currentMonthFile);
   const prevMonth = curIdx > 0 ? MONTHS[curIdx - 1] : null;
-  const prevM = prevMonth && CACHE[prevMonth.value] ? districtMetrics(prevMonth.value, districtName) : null;
+  const prevM = prevMonth && CACHE[prevMonth.value] ? districtMetrics(prevMonth.value, districtName, true) : null;
 
   const monthLabel = MONTHS.find(m => m.value === currentMonthFile).label;
 
@@ -625,13 +738,13 @@ function renderDistrict(districtName) {
           ФМ (П35) — доля школ, выполнивших критерий
           <b>${fmt(ev.fmShare)}%</b>
           <span class="${ev.fmPass ? 'ok' : 'fail'}">${ev.fmPass ? 'выполняется' : 'не выполняется'}</span>
-          <small>${prevMonth ? `К ${prevMonth.label.toLowerCase()}: ${deltaHtml(ev.fmShare, prevM ? prevM.fmShare : null)}` : ""}</small>
+          <small>${prevMonth ? `К ${prevMonth.label.toLowerCase()}: ${prevM ? deltaHtml(ev.fmShare, prevM.fmShare) : '<span class="delta-flat">нет в прошлом</span>'}` : ""}</small>
         </div>
         <div class="metric">
           ТМ (П36) — доля школ, выполнивших критерий
           <b>${fmt(ev.tmShare)}%</b>
           <span class="${ev.tmPass ? 'ok' : 'fail'}">${ev.tmPass ? 'выполняется' : 'не выполняется'}</span>
-          <small>${prevMonth ? `К ${prevMonth.label.toLowerCase()}: ${deltaHtml(ev.tmShare, prevM ? prevM.tmShare : null)}` : ""}</small>
+          <small>${prevMonth ? `К ${prevMonth.label.toLowerCase()}: ${prevM ? deltaHtml(ev.tmShare, prevM.tmShare) : '<span class="delta-flat">нет в прошлом</span>'}` : ""}</small>
         </div>
       </div>
       ${recommendationsHtml("p35")}
@@ -640,13 +753,17 @@ function renderDistrict(districtName) {
 
   renderDistrictCharts(monthSeries, d.name, monthLabel);
   renderSchoolsTable(ev, monthLabel);
+  LOG.groupEnd();
 }
 
 function renderSchoolsTable(ev, monthLabel) {
+  LOG.group(`renderSchoolsTable: «${ev.name}», месяц ${monthLabel}`);
   let schools = ev.schools.map(s => ({ ...s, code: extractCode(s.name) }));
 
   if (schoolsFilter.onlyProblems) {
+    const before = schools.length;
     schools = schools.filter(s => !s.fmOk || !s.tmOk);
+    LOG.log(`renderSchoolsTable: фильтр «только проблемные» — было ${before}, стало ${schools.length}`);
   }
 
   const f = schoolsFilter.sortField;
@@ -656,6 +773,12 @@ function renderSchoolsTable(ev, monthLabel) {
     const va = a[f] ?? 0, vb = b[f] ?? 0;
     return (va - vb) * dir;
   });
+  LOG.log(`renderSchoolsTable: сортировка по ${f}, направление ${dir}`);
+
+  const noCode = schools.filter(s => !s.code);
+  if (noCode.length) {
+    LOG.warn("renderSchoolsTable: школы без извлечённого кода:", noCode.map(s => s.name));
+  }
 
   const rows = schools.map(s => `
     <tr>
@@ -702,6 +825,7 @@ function renderSchoolsTable(ev, monthLabel) {
 
   document.getElementById("onlyProblems").addEventListener("change", e => {
     schoolsFilter.onlyProblems = e.target.checked;
+    LOG.log("renderSchoolsTable: чекбокс «только проблемные» =", e.target.checked);
     renderSchoolsTable(ev, monthLabel);
   });
 
@@ -710,12 +834,16 @@ function renderSchoolsTable(ev, monthLabel) {
       const field = th.dataset.field;
       if (schoolsFilter.sortField === field) schoolsFilter.sortDir *= -1;
       else { schoolsFilter.sortField = field; schoolsFilter.sortDir = 1; }
+      LOG.log("renderSchoolsTable: сортировка по", field, "направление", schoolsFilter.sortDir);
       renderSchoolsTable(ev, monthLabel);
     });
   });
+
+  LOG.groupEnd();
 }
 
 function renderDistrictCharts(monthSeries, districtName, monthLabel) {
+  LOG.log("renderDistrictCharts: строим графики для", districtName, monthLabel);
   destroyCharts();
 
   const labels = monthSeries.map(x => x.month.label);
@@ -724,8 +852,8 @@ function renderDistrictCharts(monthSeries, districtName, monthLabel) {
 
   const curIdx = MONTHS.findIndex(m => m.value === currentMonthFile);
   const prevMonth = curIdx > 0 ? MONTHS[curIdx - 1] : null;
-  const curM = districtMetrics(currentMonthFile, districtName);
-  const prevM = prevMonth && CACHE[prevMonth.value] ? districtMetrics(prevMonth.value, districtName) : null;
+  const curM = districtMetrics(currentMonthFile, districtName, true);
+  const prevM = prevMonth && CACHE[prevMonth.value] ? districtMetrics(prevMonth.value, districtName, true) : null;
 
   document.getElementById("charts").innerHTML = `
     <div class="chart-box">
@@ -787,10 +915,12 @@ const suggestBox = document.getElementById("schoolSuggest");
 
 function renderSuggestions(query) {
   const q = normStr(query).toLowerCase();
+  LOG.log("renderSuggestions: запрос =", JSON.stringify(query), "→ нормализовано:", JSON.stringify(q));
   if (!q) { suggestBox.style.display = "none"; return; }
   const items = Object.values(SCHOOL_INDEX)
     .filter(s => s.code.includes(q) || s.name.toLowerCase().includes(q))
     .slice(0, 20);
+  LOG.log("renderSuggestions: найдено подсказок =", items.length);
   if (!items.length) { suggestBox.style.display = "none"; return; }
   suggestBox.innerHTML = items.map(s => {
     const monthsCount = Object.keys(s.months).length;
@@ -800,6 +930,7 @@ function renderSuggestions(query) {
   suggestBox.querySelectorAll("div").forEach(el => {
     el.addEventListener("click", () => {
       const code = el.dataset.code;
+      LOG.log("renderSuggestions: выбран код", code);
       searchInput.value = code;
       suggestBox.style.display = "none";
       openSchool(code);
@@ -811,31 +942,37 @@ searchInput.addEventListener("input", e => renderSuggestions(e.target.value));
 searchInput.addEventListener("keydown", e => {
   if (e.key === "Enter") {
     const q = normStr(e.target.value);
+    LOG.log("schoolSearch: Enter, запрос =", JSON.stringify(q));
     if (!q) return;
     const found = findSchoolByQuery(q);
     if (found) openSchool(found.code);
-    else alert("Школа с таким кодом/названием не найдена");
+    else { LOG.warn("schoolSearch: не найдено по запросу", q); alert("Школа с таким кодом/названием не найдена"); }
   }
 });
 
 function findSchoolByQuery(qRaw) {
   const q = normStr(qRaw);
-  if (SCHOOL_INDEX[q]) return SCHOOL_INDEX[q];
+  LOG.log("findSchoolByQuery: ищем", JSON.stringify(q));
+  if (SCHOOL_INDEX[q]) { LOG.log("findSchoolByQuery: точное совпадение по коду", q); return SCHOOL_INDEX[q]; }
   const ql = q.toLowerCase();
   let list = Object.values(SCHOOL_INDEX).filter(s => s.code.includes(q));
-  if (list.length) return list[0];
+  if (list.length) { LOG.log("findSchoolByQuery: частичное совпадение по коду, первый =", list[0].code); return list[0]; }
   list = Object.values(SCHOOL_INDEX).filter(s => s.name.toLowerCase().includes(ql));
-  return list.length ? list[0] : null;
+  if (list.length) { LOG.log("findSchoolByQuery: совпадение по названию, первый =", list[0].code, list[0].name); return list[0]; }
+  LOG.warn("findSchoolByQuery: ничего не найдено для", q);
+  return null;
 }
 
 document.getElementById("searchBtn").addEventListener("click", () => {
   const q = normStr(searchInput.value);
+  LOG.log("searchBtn: запрос =", JSON.stringify(q));
   if (!q) return;
   const found = findSchoolByQuery(q);
   if (found) openSchool(found.code);
-  else alert("Школа с таким кодом/названием не найдена");
+  else { LOG.warn("searchBtn: не найдено"); alert("Школа с таким кодом/названием не найдена"); }
 });
 document.getElementById("resetSearchBtn").addEventListener("click", () => {
+  LOG.log("resetSearchBtn: сброс");
   searchInput.value = "";
   suggestBox.style.display = "none";
   currentSchoolCode = null;
@@ -847,6 +984,7 @@ document.getElementById("resetSearchBtn").addEventListener("click", () => {
 });
 
 function openSchool(code) {
+  LOG.group(`openSchool: код = ${code}`);
   currentSchoolCode = code;
   document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
   document.querySelector('.tab[data-tab="school"]').classList.add("active");
@@ -856,6 +994,7 @@ function openSchool(code) {
   updateUrlSchool(code);
   renderSchoolTab(code);
   window.scrollTo({ top: 0, behavior: "smooth" });
+  LOG.groupEnd();
 }
 
 /* ============================================================
@@ -868,21 +1007,49 @@ function destroySchoolCharts() {
 }
 
 function findNearestMonthWithData(school, preferFile) {
+  LOG.log(`findNearestMonthWithData: код ${school.code}, предпочитаемый месяц = ${preferFile}`);
   const idx = MONTHS.findIndex(m => m.value === preferFile);
-  if (idx >= 0 && school.months[preferFile]) return preferFile;
+  LOG.log("findNearestMonthWithData: idx предпочитаемого =", idx);
+  if (idx >= 0 && school.months[preferFile]) {
+    LOG.log("findNearestMonthWithData: данные есть в выбранном месяце");
+    return preferFile;
+  }
   for (let i = idx - 1; i >= 0; i--) {
-    if (school.months[MONTHS[i].value]) return MONTHS[i].value;
+    if (school.months[MONTHS[i].value]) {
+      LOG.log("findNearestMonthWithData: найден более ранний месяц с данными:", MONTHS[i].value);
+      return MONTHS[i].value;
+    }
   }
   for (let i = idx + 1; i < MONTHS.length; i++) {
-    if (school.months[MONTHS[i].value]) return MONTHS[i].value;
+    if (school.months[MONTHS[i].value]) {
+      LOG.log("findNearestMonthWithData: найден более поздний месяц с данными:", MONTHS[i].value);
+      return MONTHS[i].value;
+    }
   }
   const any = Object.keys(school.months)[0];
+  LOG.log("findNearestMonthWithData: любой первый месяц с данными =", any || "—");
   return any || null;
 }
 
+/* В каком районе школа числится в конкретном месяце (по коду) */
+function findDistrictOfSchoolInMonth(fileName, code) {
+  const data = CACHE[fileName];
+  if (!data) return null;
+  for (const d of data.districts) {
+    for (const s of d.schools) {
+      if (extractCode(s.name) === code) return d.name;
+    }
+  }
+  return null;
+}
+
 function renderSchoolTab(code) {
+  LOG.group(`renderSchoolTab: код = ${code}`);
   const school = SCHOOL_INDEX[code];
   if (!school) {
+    LOG.error(`renderSchoolTab: код ${code} не найден в SCHOOL_INDEX`);
+    LOG.log("renderSchoolTab: доступные коды (первые 20):", Object.keys(SCHOOL_INDEX).slice(0, 20));
+    LOG.groupEnd();
     document.getElementById("schoolSummary").innerHTML =
       `<div class="card"><p class="fail">Школа с кодом «${code}» не найдена.</p></div>`;
     document.getElementById("schoolCharts").innerHTML = "";
@@ -891,11 +1058,16 @@ function renderSchoolTab(code) {
     return;
   }
 
+  LOG.log("renderSchoolTab: школа найдена:", school.name);
+  LOG.log("renderSchoolTab: район по индексу:", school.district);
+  LOG.log("renderSchoolTab: месяцы с данными:", Object.keys(school.months));
+
   const selectedMonthLabel = MONTHS.find(m => m.value === currentMonthFile).label;
   const effectiveFile = findNearestMonthWithData(school, currentMonthFile);
   const effectiveMonth = MONTHS.find(m => m.value === effectiveFile);
   const curData = effectiveFile ? school.months[effectiveFile] : null;
   const monthLabel = effectiveMonth ? effectiveMonth.label : selectedMonthLabel;
+  LOG.log(`renderSchoolTab: выбранный месяц = ${selectedMonthLabel}, эффективный = ${monthLabel}`);
 
   const series = MONTHS.map(m => {
     const s = school.months[m.value];
@@ -905,14 +1077,13 @@ function renderSchoolTab(code) {
   const effIdx = MONTHS.findIndex(m => m.value === effectiveFile);
   const prevMonth = effIdx > 0 ? MONTHS[effIdx - 1] : null;
   const prevS = prevMonth ? school.months[prevMonth.value] : null;
-  const prevEv = prevS ? evaluateSchool(prevS) : null;
 
-  const curDistrictAvg = effectiveFile ? districtMetrics(effectiveFile, school.district) : null;
+  const curDistrictAvg = effectiveFile ? districtMetrics(effectiveFile, school.district, true) : null;
 
-  // (диагностика) В каком районе нашлась школа — по последнему месяцу, где она есть
   const lastMonthWithData = [...MONTHS].reverse().find(m => school.months[m.value]);
   const lastMonthLabel = lastMonthWithData ? lastMonthWithData.label : "—";
 
+  /* Плашка, если выбранный месяц не совпадает с эффективным */
   const monthMismatch = effectiveFile && effectiveFile !== currentMonthFile
     ? `<div class="diag info">
          В месяце «${selectedMonthLabel}» данных по этой школе нет.
@@ -920,11 +1091,33 @@ function renderSchoolTab(code) {
        </div>`
     : "";
 
+  /* Плашка про сравнение с прошлым месяцем */
+  const monthCompare = (() => {
+    if (!prevMonth) return "";
+    const prevExists = !!school.months[prevMonth.value];
+    const curExists = !!school.months[effectiveFile];
+    if (curExists && !prevExists) {
+      return `<div class="diag info">
+        В прошлом месяце (<b>${prevMonth.label}</b>) данных по школе не было — сравнение недоступно.
+      </div>`;
+    }
+    return "";
+  })();
+
+  /* Плашка про район */
+  const monthDistrict = findDistrictOfSchoolInMonth(effectiveFile, code);
+  const districtMismatch = monthDistrict && monthDistrict !== school.district
+    ? `<div class="diag err">
+         Внимание: в файле «${monthLabel}» школа числится в районе
+         «<b>${monthDistrict}</b>», а в индексе — «<b>${school.district}</b>».
+         Проверьте, не попала ли строка школы под чужим районом в исходном Excel.
+       </div>`
+    : "";
+
   const districtNote = `
     <div class="diag info">
       Школа найдена в районе: <b>${school.district}</b>
       (по последнему месяцу с данными: ${lastMonthLabel}).
-      Если район кажется неверным — проверьте, не попала ли строка школы в чужой район в исходном файле.
     </div>`;
 
   if (curData) {
@@ -943,6 +1136,8 @@ function renderSchoolTab(code) {
         </p>
         ${monthMismatch}
         ${districtNote}
+        ${districtMismatch}
+        ${monthCompare}
         <div class="metric-row">
           <div class="metric">
             ФМ (П35)
@@ -968,6 +1163,7 @@ function renderSchoolTab(code) {
         ${recommendationsHtml("p36")}
       </div>`;
   } else {
+    LOG.warn("renderSchoolTab: у школы нет данных ни за один месяц");
     document.getElementById("schoolSummary").innerHTML = `
       <div class="card">
         <h2>${school.name}</h2>
@@ -1061,6 +1257,9 @@ function renderSchoolTab(code) {
         <tbody>${histRows}</tbody>
       </table>
     </div>`;
+
+  LOG.info(`renderSchoolTab: отрисовано для ${school.name} (${school.code}), месяц ${monthLabel}`);
+  LOG.groupEnd();
 }
 
 function fmBadgeHtml(schoolValue, avg) {
@@ -1076,6 +1275,7 @@ function tmBadgeHtml(schoolValue, avg) {
 function buildDiagnostics(school) {
   const present = MONTHS.filter(m => school.months[m.value]).map(m => m.label);
   const missing = MONTHS.filter(m => !school.months[m.value]).map(m => m.label);
+  LOG.log("buildDiagnostics: есть =", present, "| нет =", missing);
   if (!missing.length) return `<div class="diag info">Данные есть за все ${MONTHS.length} месяцев.</div>`;
   return `<div class="diag">
     <b>Наличие данных по месяцам:</b>
@@ -1088,24 +1288,43 @@ function buildDiagnostics(school) {
    СТАРТ
    ============================================================ */
 async function init() {
+  LOG.group("init: старт приложения");
+  LOG.info("init: браузер =", navigator.userAgent);
+  LOG.info("init: список месяцев =", MONTHS.map(m => `${m.label} (${m.value})`));
+
   buildMonthSelect();
   const ok = await ensureLoaded();
-  if (!ok) return;
+  if (!ok) { LOG.error("init: не удалось загрузить текущий месяц, прерываем"); LOG.groupEnd(); return; }
+
+  LOG.log("init: догружаем остальные месяцы в фоне…");
   for (const m of MONTHS) {
     if (!CACHE[m.value]) {
-      try { await loadMonth(m.value); } catch (e) { console.warn("Нет файла:", m.value); }
+      try { await loadMonth(m.value); }
+      catch (e) { LOG.warn(`init: месяц «${m.value}» недоступен:`, e.message); }
     }
   }
+  LOG.info("init: все доступные месяцы загружены. Файлов в кэше:", Object.keys(CACHE).length);
+
   buildDistrictSelect(CACHE[currentMonthFile].districts);
   renderDistrictTab();
 
   const fromUrl = readUrlSchool();
-  if (fromUrl) openSchool(fromUrl);
+  if (fromUrl) {
+    LOG.log("init: открываем школу из URL:", fromUrl);
+    openSchool(fromUrl);
+  }
+
+  LOG.info("init: завершено. Уникальных кодов школ в индексе:", Object.keys(SCHOOL_INDEX).length);
+  LOG.groupEnd();
 }
 
 document.getElementById("reloadBtn").addEventListener("click", async () => {
+  LOG.group("reloadBtn: полная перезагрузка");
+  LOG.log("reloadBtn: очищаем кэш. Было файлов:", Object.keys(CACHE).length, "школ в индексе:", Object.keys(SCHOOL_INDEX).length);
   Object.keys(CACHE).forEach(k => delete CACHE[k]);
   Object.keys(SCHOOL_INDEX).forEach(k => delete SCHOOL_INDEX[k]);
+  LOG.log("reloadBtn: кэш очищен, запускаем init()");
+  LOG.groupEnd();
   await init();
 });
 
