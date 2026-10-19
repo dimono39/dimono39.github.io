@@ -75,6 +75,7 @@
           padding:8px 12px; font-size:13px; color:#7d6608; border-radius:4px; margin-top:10px; }
   .diag.info { background:#eaf2f8; border-left-color:var(--accent); color:#1b4f72; }
   .diag.err { background:#fdedec; border-left-color:var(--fail); color:#78281f; }
+  .diag ul { margin:6px 0 0 18px; padding:0; }
   .avg-badge { display:inline-block; padding:2px 8px; border-radius:10px; font-size:12px;
                background:#ecf0f1; color:#34495e; margin-left:6px; }
   .avg-badge.up { background:#eafaf1; color:var(--ok); }
@@ -99,7 +100,7 @@
   ФМ (П35): школа проходит, если своевременно ≥ 90% и без ошибок ≥ 80% (отклонений ≤ 20%).
   ТМ (П36): день засчитан, если соблюдение типового меню в этот день ≥ 75% (в файле — число засчитанных дней).
   Район выполняет показатель, если доля прошедших школ ≥ 100%.
-  <br>
+  <br>Подробный лог работы — в консоли браузера (F12 → Console).
 </p>
 
 <div class="controls">
@@ -334,12 +335,18 @@ async function loadMonth(fileName) {
         if (!code) { codesFail++; return; }
         codesOk++;
         if (!SCHOOL_INDEX[code]) {
-          SCHOOL_INDEX[code] = { code, name: normStr(s.name), district: d.name, months: {} };
-        } else {
-          SCHOOL_INDEX[code].name = normStr(s.name);
-          SCHOOL_INDEX[code].district = d.name;
+          SCHOOL_INDEX[code] = {
+            code,
+            name: normStr(s.name),
+            district: d.name,
+            months: {},
+            districtsByMonth: {}
+          };
         }
+        SCHOOL_INDEX[code].name = normStr(s.name);
+        SCHOOL_INDEX[code].district = d.name;
         SCHOOL_INDEX[code].months[fileName] = s;
+        SCHOOL_INDEX[code].districtsByMonth[fileName] = d.name;
       });
     });
 
@@ -493,6 +500,35 @@ function districtMetrics(fileName, districtName, silent = false) {
   }
   const ev = evaluateDistrict(d);
   return { fmShare: ev.fmShare, tmShare: ev.tmShare, total: ev.total };
+}
+
+/* Район школы по последнему месяцу, где она есть.
+   Возвращает { district, month } — район и подпись месяца. */
+function getLatestDistrict(code) {
+  const school = SCHOOL_INDEX[code];
+  if (!school) return { district: null, month: null };
+  for (let i = MONTHS.length - 1; i >= 0; i--) {
+    const m = MONTHS[i];
+    const d = school.districtsByMonth?.[m.value];
+    if (d) return { district: d, month: m.label };
+  }
+  return { district: school.district || null, month: null };
+}
+
+/* Район школы в конкретном месяце (или null) */
+function getDistrictInMonth(code, fileName) {
+  const school = SCHOOL_INDEX[code];
+  if (!school) return null;
+  return school.districtsByMonth?.[fileName] || null;
+}
+
+/* Список { label, district } для всех месяцев, где школа есть */
+function getDistrictHistory(code) {
+  const school = SCHOOL_INDEX[code];
+  if (!school) return [];
+  return MONTHS
+    .map(m => ({ label: m.label, district: school.districtsByMonth?.[m.value] }))
+    .filter(x => x.district);
 }
 
 /* ============================================================
@@ -924,7 +960,8 @@ function renderSuggestions(query) {
   if (!items.length) { suggestBox.style.display = "none"; return; }
   suggestBox.innerHTML = items.map(s => {
     const monthsCount = Object.keys(s.months).length;
-    return `<div data-code="${s.code}"><b>${s.code}</b> — ${s.name}<br><small>${s.district} • месяцев с данными: ${monthsCount}</small></div>`;
+    const { district, month } = getLatestDistrict(s.code);
+    return `<div data-code="${s.code}"><b>${s.code}</b> — ${s.name}<br><small>${district}${month ? ` (по ${month.toLowerCase()})` : ""} • месяцев с данными: ${monthsCount}</small></div>`;
   }).join("");
   suggestBox.style.display = "block";
   suggestBox.querySelectorAll("div").forEach(el => {
@@ -1031,18 +1068,6 @@ function findNearestMonthWithData(school, preferFile) {
   return any || null;
 }
 
-/* В каком районе школа числится в конкретном месяце (по коду) */
-function findDistrictOfSchoolInMonth(fileName, code) {
-  const data = CACHE[fileName];
-  if (!data) return null;
-  for (const d of data.districts) {
-    for (const s of d.schools) {
-      if (extractCode(s.name) === code) return d.name;
-    }
-  }
-  return null;
-}
-
 function renderSchoolTab(code) {
   LOG.group(`renderSchoolTab: код = ${code}`);
   const school = SCHOOL_INDEX[code];
@@ -1059,7 +1084,6 @@ function renderSchoolTab(code) {
   }
 
   LOG.log("renderSchoolTab: школа найдена:", school.name);
-  LOG.log("renderSchoolTab: район по индексу:", school.district);
   LOG.log("renderSchoolTab: месяцы с данными:", Object.keys(school.months));
 
   const selectedMonthLabel = MONTHS.find(m => m.value === currentMonthFile).label;
@@ -1078,10 +1102,17 @@ function renderSchoolTab(code) {
   const prevMonth = effIdx > 0 ? MONTHS[effIdx - 1] : null;
   const prevS = prevMonth ? school.months[prevMonth.value] : null;
 
-  const curDistrictAvg = effectiveFile ? districtMetrics(effectiveFile, school.district, true) : null;
+  const curDistrictAvg = effectiveFile ? districtMetrics(effectiveFile, getDistrictInMonth(code, effectiveFile) || school.district, true) : null;
 
-  const lastMonthWithData = [...MONTHS].reverse().find(m => school.months[m.value]);
-  const lastMonthLabel = lastMonthWithData ? lastMonthWithData.label : "—";
+  /* Район: берём из последнего месяца, где школа есть */
+  const latest = getLatestDistrict(code);
+  const latestDistrict = latest.district || school.district || "—";
+  const latestMonth = latest.month || "—";
+  LOG.log(`renderSchoolTab: район по последнему месяцу = ${latestDistrict} (${latestMonth})`);
+
+  /* История районов по месяцам */
+  const history = getDistrictHistory(code);
+  const uniqueDistricts = [...new Set(history.map(x => x.district))];
 
   /* Плашка, если выбранный месяц не совпадает с эффективным */
   const monthMismatch = effectiveFile && effectiveFile !== currentMonthFile
@@ -1104,20 +1135,22 @@ function renderSchoolTab(code) {
     return "";
   })();
 
-  /* Плашка про район */
-  const monthDistrict = findDistrictOfSchoolInMonth(effectiveFile, code);
-  const districtMismatch = monthDistrict && monthDistrict !== school.district
+  /* Плашка про расхождения районов */
+  const districtMismatch = uniqueDistricts.length > 1
     ? `<div class="diag err">
-         Внимание: в файле «${monthLabel}» школа числится в районе
-         «<b>${monthDistrict}</b>», а в индексе — «<b>${school.district}</b>».
-         Проверьте, не попала ли строка школы под чужим районом в исходном Excel.
+         <b>Внимание: школа числится в разных районах в разных месяцах.</b>
+         Скорее всего, в исходных файлах строка школы попала в разные блоки.
+         Проверьте файлы и приведите к одному району.
+         <ul>
+           ${history.map(x => `<li><b>${x.label}</b> — ${x.district}</li>`).join("")}
+         </ul>
        </div>`
     : "";
 
   const districtNote = `
     <div class="diag info">
-      Школа найдена в районе: <b>${school.district}</b>
-      (по последнему месяцу с данными: ${lastMonthLabel}).
+      Школа найдена в районе: <b>${latestDistrict}</b>
+      (по последнему месяцу с данными: <b>${latestMonth}</b>).
     </div>`;
 
   if (curData) {
@@ -1132,7 +1165,7 @@ function renderSchoolTab(code) {
       <div class="card">
         <h2>${school.name}</h2>
         <p class="method">
-          Код пищеблока: <b>${school.code}</b> • Район: <b>${school.district}</b> • Месяц: <b>${monthLabel}</b>
+          Код пищеблока: <b>${school.code}</b> • Район: <b>${latestDistrict}</b> • Месяц данных: <b>${monthLabel}</b>
         </p>
         ${monthMismatch}
         ${districtNote}
@@ -1167,7 +1200,7 @@ function renderSchoolTab(code) {
     document.getElementById("schoolSummary").innerHTML = `
       <div class="card">
         <h2>${school.name}</h2>
-        <p class="method">Код пищеблока: <b>${school.code}</b> • Район: <b>${school.district}</b></p>
+        <p class="method">Код пищеблока: <b>${school.code}</b> • Район: <b>${latestDistrict}</b></p>
         <p class="warn">Нет данных ни за один месяц.</p>
         ${buildDiagnostics(school)}
       </div>`;
@@ -1258,7 +1291,7 @@ function renderSchoolTab(code) {
       </table>
     </div>`;
 
-  LOG.info(`renderSchoolTab: отрисовано для ${school.name} (${school.code}), месяц ${monthLabel}`);
+  LOG.info(`renderSchoolTab: отрисовано для ${school.name} (${school.code}), месяц ${monthLabel}, район ${latestDistrict} (${latestMonth})`);
   LOG.groupEnd();
 }
 
