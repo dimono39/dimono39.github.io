@@ -226,10 +226,17 @@ function deltaHtml(cur, prev) {
   return `<span class="${cls}">${sign}${fmt(d)} п.п.</span>`;
 }
 function normStr(s) {
+  if (s === null || s === undefined) return "";
   return String(s)
-    .replace(/[\u00A0\u202F\u2007]/g, " ")
-    .replace(/[\u00AD\u200B]/g, "")
+    // Удаляем все невидимые символы, включая неразрывные пробелы
+    .replace(/[\u00A0\u1680\u180e\u2000-\u200a\u2028\u2029\u202f\u205f\u3000\ufeff]/g, " ")
+    // Убираем мягкие переносы и нулевой ширины
+    .replace(/[\u00AD\u200B-\u200D\uFEFF]/g, "")
+    // Убираем случайные переносы строк
+    .replace(/[\r\n]+/g, " ")
+    // Схлопываем множественные пробелы в один
     .replace(/\s+/g, " ")
+    // Обрезаем пробелы по краям
     .trim();
 }
 
