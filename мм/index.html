@@ -915,13 +915,6 @@ function renderSchoolTab(code) {
     return "";
   })();
 
-  const districtMismatch = (canon.conflicts && canon.conflicts.length)
-    ? `<div class="diag err">
-         <b>В исходных файлах есть расхождение по району.</b> В интерфейсе используется район большинства месяцев — <b>${canonicalDistrict}</b>. В отдельных месяцах школа записана иначе:
-         <ul>${canon.byMonth.map(x => `<li><b>${x.label}</b> — ${x.district}${x.district === canonicalDistrict ? " (совпадает)" : " (расхождение)"}</li>`).join("")}</ul>
-       </div>`
-    : "";
-
   const districtNote = `<div class="diag info">Район школы: <b>${canonicalDistrict}</b> (определён по большинству месяцев: ${Object.entries(canon.counts).map(([k,v]) => `${k} — ${v}`).join(", ")}).</div>`;
 
   if (curData) {
