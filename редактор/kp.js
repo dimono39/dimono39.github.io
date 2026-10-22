@@ -1616,11 +1616,13 @@ function parseCalendarFromExcel(workbook) {
 			worksheet.getCell('L1').font = { bold: true };
 			
 			// Год
-			worksheet.getCell('AD1').value = 'Год';
-			worksheet.getCell('AD1').font = { bold: true };
-			worksheet.getCell('AD1').alignment = { horizontal: 'right', vertical: 'middle' };
+			worksheet.getCell('AC1').value = 'Год';
+			worksheet.getCell('AC1').font = { bold: true };
+			worksheet.getCell('AC1').alignment = { horizontal: 'right', vertical: 'middle' };
 			
-			worksheet.getCell('AE1').value = year;
+			worksheet.getCell('AD1').value = year;
+			worksheet.getCell('AD1').alignment = { horizontal: 'left', vertical: 'middle' };
+			worksheet.getCell('AD1').font = { bold: true };
 			worksheet.getCell('AE1').alignment = { horizontal: 'left', vertical: 'middle' };
 			worksheet.getCell('AE1').font = { bold: true };
 
