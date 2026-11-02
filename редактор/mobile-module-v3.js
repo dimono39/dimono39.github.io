@@ -2609,6 +2609,10 @@ body.mobile-module-ready .premium-header {
                 <i class="fas fa-calendar-day"></i>
                 <span>День</span>
             </button>
+			<button data-tab="generator">
+				<i class="fas fa-magic"></i>
+				<span>Генер.</span>
+			</button>
             <button data-tab="analytics" aria-label="Аналитика">
                 <i class="fas fa-chart-line"></i>
                 <span>Анализ</span>
