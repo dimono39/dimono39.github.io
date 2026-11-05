@@ -12,6 +12,7 @@
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 	<!-- Подключение jsPDF для PDF -->
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>	
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 	<!-- Подключение модуля ежедневного меню -->
 	<script src="daily-menu-module.js"></script>
 	<script src="generator-module.js"></script>
@@ -4583,6 +4584,179 @@
 			#tabGenerator .gen-menu-navigation .gen-nav-buttons { width: 100%; }
 			#tabGenerator .gen-menu-navigation .gen-nav-buttons button { flex: 1; }
 		}
+
+/* ============================================================
+   УПРОЩЁННЫЙ ГЕНЕРАТОР МЕНЮ
+   ============================================================ */
+
+/* Скрываем старые/лишние элементы в этой вкладке */
+#tabGenerator .gen-guide-grid,
+#tabGenerator .gen-export-options,
+#tabGenerator .gen-daily-menu,
+#tabGenerator .gen-menu-header,
+#tabGenerator .gen-menu-stats {
+    display: none !important;
+}
+
+/* Шаги */
+.gen-step-container {
+    padding: 24px 32px;
+    border-bottom: 2px dashed #e2e8f0;
+    background: white;
+}
+.gen-step-title {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #0f172a;
+    margin-bottom: 20px;
+}
+.gen-step-number {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    background: #3b82f6;
+    color: white;
+    border-radius: 50%;
+    font-size: 0.9rem;
+}
+
+/* Зона загрузки */
+.gen-upload-zone {
+    border: 2px dashed #cbd5e1;
+    background: #f8fafc;
+    border-radius: 16px;
+    padding: 30px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+.gen-upload-zone:hover, .gen-upload-zone.gen-dragover {
+    border-color: #3b82f6;
+    background: #eff6ff;
+    transform: scale(1.01);
+}
+
+/* Файлы */
+.gen-file-list { margin-top: 16px; display: flex; flex-direction: column; gap: 8px; }
+.gen-file-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    border-radius: 12px;
+}
+.gen-file-item.gen-error {
+    background: #fef2f2;
+    border-color: #fecaca;
+}
+.gen-file-info { display: flex; align-items: center; gap: 12px; }
+.gen-file-info i { color: #10b981; font-size: 1.2rem; }
+.gen-file-item.gen-error .gen-file-info i { color: #ef4444; }
+.gen-file-size { font-size: 0.8rem; color: #64748b; }
+
+/* Сохраненные данные */
+.gen-stored-data-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    padding: 12px 16px;
+    border-radius: 12px;
+    margin-top: 16px;
+}
+
+/* Даты */
+.gen-simple-dates {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+.gen-date-input-group label {
+    display: block;
+    font-size: 0.85rem;
+    color: #64748b;
+    margin-bottom: 6px;
+    font-weight: 600;
+}
+.gen-date-input-group input {
+    width: 100%;
+    padding: 12px 16px;
+    border: 1px solid #cbd5e1;
+    border-radius: 12px;
+    font-size: 1rem;
+    outline: none;
+}
+.gen-date-input-group input:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59,130,246,0.1);
+}
+
+/* Экспертные настройки */
+.gen-advanced-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 20px;
+    font-size: 0.9rem;
+    color: #64748b;
+    cursor: pointer;
+    user-select: none;
+}
+.gen-advanced-toggle:hover { color: #3b82f6; }
+.gen-advanced-panel {
+    margin-top: 16px;
+    padding: 16px;
+    background: #f8fafc;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+}
+.gen-form-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+}
+.gen-form-group label {
+    display: block;
+    font-size: 0.8rem;
+    color: #64748b;
+    margin-bottom: 6px;
+}
+.gen-form-group input, .gen-form-group select {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+}
+
+/* Навигация по результатам */
+.gen-menu-navigation {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: white;
+    padding: 12px 20px;
+    border-radius: 16px;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    margin-bottom: 20px;
+}
+.gen-menu-dates { font-weight: 700; color: #0f172a; font-size: 1.1rem; }
+.gen-nav-buttons { display: flex; gap: 8px; align-items: center; }
+
+/* Мобильная адаптация */
+@media (max-width: 768px) {
+    .gen-simple-dates { grid-template-columns: 1fr; }
+    .gen-step-container { padding: 20px 16px; }
+    .gen-menu-navigation { flex-direction: column; gap: 12px; }
+}
 		
     </style>
 </head>
@@ -5326,272 +5500,192 @@
 		</div>
 		
 		<!-- ============================================================ -->
-		<!-- ВКЛАДКА: ГЕНЕРАТОР ЕЖЕДНЕВНЫХ МЕНЮ (ФЦМПО)                  -->
+		<!-- ВКЛАДКА: ГЕНЕРАТОР ЕЖЕДНЕВНЫХ МЕНЮ (УПРОЩЁННАЯ)             -->
 		<!-- ============================================================ -->
 		<div class="tab-content" id="tabGenerator" style="display: none;">
 			<div class="card premium-card">
-				<div class="card-header-premium">
+				
+				<!-- ШАПКА -->
+				<div class="card-header-premium" style="padding-bottom: 10px;">
 					<div class="card-header-left">
-						<div class="card-icon-wrapper" style="background: linear-gradient(135deg, #f59e0b, #d97706);">
+						<div class="card-icon-wrapper" style="background: linear-gradient(135deg, #8b5cf6, #7c3aed);">
 							<i class="fas fa-magic"></i>
 							<div class="card-icon-bg"></div>
 						</div>
 						<div>
-							<h2 class="card-title-premium">Генератор ежедневных меню (ФЦМПО)</h2>
-							<p class="card-subtitle-premium">Создание готовых Excel-файлов ежедневных меню из календаря и типового меню</p>
-						</div>
-					</div>
-					<div class="card-header-right">
-						<div class="buttons-container" style="margin: 0;">
-							<button id="genQuickHelpBtn" class="btn btn-info" style="padding: 6px 16px; font-size: 0.75rem;">
-								<i class="fas fa-question"></i> Справка
-							</button>
+							<h2 class="card-title-premium">Генератор меню (ФЦМПО)</h2>
+							<p class="card-subtitle-premium">Автоматическое создание ежедневных Excel-файлов из календаря и типового меню</p>
 						</div>
 					</div>
 				</div>
 
-				<!-- Статус-сообщение модуля -->
+				<!-- СТАТУС-СООБЩЕНИЕ -->
 				<div id="genStatusMessage" class="gen-status-message" style="display:none;"></div>
 
-				<!-- Быстрая справка -->
-				<div class="gen-quick-guide" id="genQuickGuide" style="padding: 16px 28px;">
-					<div class="gen-guide-grid">
-						<div class="gen-guide-card">
-							<div class="gen-guide-icon"><i class="fas fa-file-excel"></i></div>
-							<h3 class="gen-guide-title">Требования к файлам ФЦМПО</h3>
-							<ul class="gen-guide-list">
-								<li><i class="fas fa-check-circle"></i> Календарь: <strong>kp2026.xlsx</strong></li>
-								<li><i class="fas fa-check-circle"></i> Типовое меню: <strong>tm2026-sm.xlsx</strong></li>
-								<li><i class="fas fa-check-circle"></i> Ежедневное меню: <strong>ГГГГ-ММ-ДД-sm.xlsx</strong></li>
-								<li><i class="fas fa-check-circle"></i> Формат: Excel (.xlsx или .xls)</li>
-							</ul>
-						</div>
-						<div class="gen-guide-card">
-							<div class="gen-guide-icon" style="background: linear-gradient(135deg, #27ae60, #219653);"><i class="fas fa-clock"></i></div>
-							<h3 class="gen-guide-title">Время обработки</h3>
-							<ul class="gen-guide-list">
-								<li><i class="fas fa-clock"></i> Ежедневное меню: после 18:00</li>
-								<li><i class="fas fa-clock"></i> Типовое меню: после 00:00</li>
-								<li><i class="fas fa-clock"></i> Календарь: после 00:00</li>
-								<li><i class="fas fa-clock"></i> Анализ: после 05:00</li>
-							</ul>
-						</div>
-						<div class="gen-guide-card">
-							<div class="gen-guide-icon" style="background: linear-gradient(135deg, #f39c12, #e67e22);"><i class="fas fa-exclamation-triangle"></i></div>
-							<h3 class="gen-guide-title">Важно знать (ФЦМПО)</h3>
-							<ul class="gen-guide-list">
-								<li><i class="fas fa-ban"></i> Не изменять заголовки столбцов</li>
-								<li><i class="fas fa-ban"></i> Не добавлять/удалять столбцы</li>
-								<li><i class="fas fa-check"></i> Можно добавлять строки в прием пищи</li>
-								<li><i class="fas fa-sync"></i> Автосохранение в браузере</li>
-							</ul>
-						</div>
+				<!-- ШАГ 1: ЗАГРУЗКА ФАЙЛОВ -->
+				<div class="gen-step-container">
+					<div class="gen-step-title">
+						<span class="gen-step-number">1</span>
+						<span>Загрузите файлы</span>
 					</div>
-				</div>
-
-				<!-- Загрузка файлов -->
-				<div class="gen-section" style="padding: 16px 28px;">
-					<h3 class="gen-h3"><i class="fas fa-upload"></i> Загрузка файлов ФЦМПО</h3>
-
-					<div class="gen-file-upload-area" id="genDropArea">
-						<i class="fas fa-file-excel fa-3x" style="color:#3498db;margin-bottom:15px;"></i>
-						<h3>Перетащите файлы Excel ФЦМПО сюда</h3>
-						<p>или нажмите для выбора файлов</p>
-						<p style="margin-top:10px;font-size:0.9rem;color:#6c757d;">Требуются: kp2026.xlsx (календарь), tm2026-sm.xlsx (типовое меню)</p>
+					
+					<div class="gen-upload-zone" id="genDropArea">
 						<input type="file" id="genFileInput" style="display:none;" multiple accept=".xlsx,.xls">
+						<i class="fas fa-cloud-upload-alt fa-3x" style="color:#3b82f6; margin-bottom:15px;"></i>
+						<h3 style="margin-bottom: 8px;">Перетащите сюда файлы Excel</h3>
+						<p style="color: #64748b; font-size: 0.9rem;">Нужны два файла: <b>календарь (kp2026.xlsx)</b> и <b>типовое меню (tm2026-sm.xlsx)</b></p>
+						<button class="btn btn-secondary" style="margin-top: 15px; pointer-events: none;">Выбрать файлы</button>
 					</div>
 
+					<!-- Список загруженных файлов -->
 					<div class="gen-file-list" id="genFileList"></div>
-
-					<div id="genFileValidation" class="gen-file-validation" style="display:none;">
-						<div class="gen-validation-status gen-valid">
-							<i class="fas fa-check-circle"></i>
-							<span>Структура файла корректна</span>
+					
+					<!-- Инфо о сохраненных данных -->
+					<div class="gen-stored-data-info" id="genStoredDataInfo" style="display:none;">
+						<div style="display: flex; align-items: center; gap: 12px;">
+							<i class="fas fa-history" style="color: #3b82f6; font-size: 1.2rem;"></i>
+							<div>
+								<div style="font-weight: 600; font-size: 0.9rem;">Найдены сохранённые данные</div>
+								<div id="genStoredDataText" style="font-size: 0.8rem; color: #64748b;"></div>
+							</div>
 						</div>
-					</div>
-
-					<div class="gen-stored-data-info" id="genStoredDataInfo">
-						<h3><i class="fas fa-database"></i> Данные в памяти</h3>
-						<p id="genStoredDataText"></p>
-						<div class="buttons-container">
-							<button id="genLoadFromStorageBtn" class="btn btn-secondary"><i class="fas fa-download"></i> Загрузить из памяти</button>
-							<button id="genClearStorageBtn" class="btn btn-warning"><i class="fas fa-trash"></i> Очистить память</button>
+						<div style="display: flex; gap: 8px;">
+							<button id="genLoadFromStorageBtn" class="btn btn-primary" style="padding: 6px 16px; font-size: 0.8rem;">Загрузить</button>
+							<button id="genClearStorageBtn" class="btn btn-secondary" style="padding: 6px 16px; font-size: 0.8rem;">Очистить</button>
 						</div>
 					</div>
 				</div>
 
-				<!-- Настройки генерации -->
-				<div class="gen-section" style="padding: 16px 28px;">
-					<h3 class="gen-h3"><i class="fas fa-cog"></i> Настройки генерации</h3>
-
-					<div style="display:flex;gap:15px;align-items:center;margin-bottom:20px;">
-						<div class="gen-year-badge" id="genCalendarYear">2026</div>
-						<div>Выберите период в пределах календарного года</div>
+				<!-- ШАГ 2: ПЕРИОД -->
+				<div class="gen-step-container">
+					<div class="gen-step-title">
+						<span class="gen-step-number">2</span>
+						<span>Выберите период генерации</span>
 					</div>
-
-					<div class="gen-form-group">
-						<label for="genStartDate"><i class="fas fa-calendar-alt"></i> Начальная дата</label>
-						<input type="date" id="genStartDate" value="2026-01-01" min="2026-01-01" max="2026-12-31">
-					</div>
-
-					<div class="gen-form-group">
-						<label for="genEndDate"><i class="fas fa-calendar-alt"></i> Конечная дата</label>
-						<input type="date" id="genEndDate" value="2026-01-31" min="2026-01-01" max="2026-12-31">
-					</div>
-
-					<div class="gen-accordion" id="genAdvancedSettings">
-						<div class="gen-accordion-header">
-							<span><i class="fas fa-sliders-h"></i> Дополнительные настройки</span>
-							<i class="fas fa-chevron-down"></i>
+					
+					<div class="gen-simple-dates">
+						<div class="gen-date-input-group">
+							<label>С какого числа</label>
+							<input type="date" id="genStartDate" value="2026-01-01">
 						</div>
-						<div class="gen-accordion-content">
+						<div class="gen-date-input-group">
+							<label>По какое число</label>
+							<input type="date" id="genEndDate" value="2026-01-31">
+						</div>
+					</div>
+
+					<!-- Скрытые (экспертные) настройки -->
+					<div class="gen-advanced-toggle" id="genToggleAdvanced">
+						<i class="fas fa-cog"></i> Дополнительные настройки
+						<i class="fas fa-chevron-down" style="margin-left:auto; transition: transform 0.3s;"></i>
+					</div>
+					<div class="gen-advanced-panel" style="display: none;">
+						<div class="gen-form-row">
 							<div class="gen-form-group">
-								<label><i class="fas fa-school"></i> Название школы</label>
-								<input type="text" id="genSchoolName" placeholder="Введите название школы">
+								<label>Название школы</label>
+								<input type="text" id="genSchoolName" placeholder="МОУ «Школа»">
 							</div>
 							<div class="gen-form-group">
-								<label><i class="fas fa-user-friends"></i> Возрастная категория</label>
+								<label>Возрастная категория</label>
 								<select id="genAgeCategory">
 									<option value="7-11">7-11 лет</option>
 									<option value="12-18">12-18 лет</option>
-									<option value="1-3">1-3 года</option>
-									<option value="4-6">4-6 лет</option>
 								</select>
 							</div>
 							<div class="gen-form-group">
-								<label><i class="fas fa-palette"></i> Цветовое оформление</label>
+								<label>Цветовое оформление</label>
 								<select id="genColorScheme">
 									<option value="default">Стандартная</option>
 									<option value="bright">Яркая</option>
 									<option value="pastel">Пастельная</option>
-									<option value="monochrome">Монохромная</option>
 								</select>
 							</div>
 						</div>
 					</div>
-
-					<div class="buttons-container" style="margin-top:20px;">
-						<button id="genGenerateBtn" class="btn btn-primary" disabled>
-							<i class="fas fa-magic"></i> Создать ежедневные меню
-						</button>
-						<button id="genAnalyzeBtn" class="btn btn-info">
-							<i class="fas fa-chart-bar"></i> Анализ соответствия
-						</button>
-					</div>
-
-					<div class="gen-export-options">
-						<button id="genExportAllBtn" class="btn btn-success" disabled>
-							<i class="fas fa-download"></i> Экспорт всех меню (ZIP)
-						</button>
-						<button id="genExportCurrentBtn" class="btn btn-secondary" disabled>
-							<i class="fas fa-file-excel"></i> Экспорт текущего меню
-						</button>
-						<button id="genDownloadTemplateBtn" class="btn btn-warning">
-							<i class="fas fa-file-download"></i> Скачать шаблон ФЦМПО
-						</button>
-					</div>
 				</div>
 
-				<!-- Предпросмотр данных -->
-				<div class="gen-section" style="padding: 16px 28px;">
-					<h3 class="gen-h3"><i class="fas fa-eye"></i> Предпросмотр данных</h3>
-
-					<div class="gen-data-preview">
-						<div class="gen-preview-title">
-							<span>Календарь питания ФЦМПО</span>
-							<span id="genCalendarYearBadge" class="gen-year-badge" style="display:none;">2026</span>
-						</div>
-						<div id="genCalendarData">Загрузите файл календаря питания (kp2026.xlsx)</div>
+				<!-- ШАГ 3: ДЕЙСТВИЕ -->
+				<div class="gen-step-container" style="text-align: center; border-bottom: none;">
+					<div class="gen-step-title" style="justify-content: center; margin-bottom: 24px;">
+						<span class="gen-step-number">3</span>
+						<span>Создайте меню и скачайте</span>
 					</div>
 
-					<div class="gen-data-preview">
-						<div class="gen-preview-title">
-							<span>Типовое меню ФЦМПО</span>
-							<button id="genToggleMenuView" class="btn btn-secondary" style="padding:6px 12px;font-size:0.85rem;">
-								<i class="fas fa-th"></i> Сетка
+					<button id="genGenerateBtn" class="btn btn-primary" style="width: 100%; max-width: 400px; padding: 16px; font-size: 1.1rem; border-radius: 16px; font-weight: 700;" disabled>
+						<i class="fas fa-magic"></i> Сгенерировать меню
+					</button>
+
+					<!-- Блок экспорта (появляется после генерации) -->
+					<div id="genExportContainer" style="display: none; margin-top: 24px; padding-top: 24px; border-top: 2px dashed #e2e8f0;">
+						<h3 style="color: #10b981; margin-bottom: 16px;"><i class="fas fa-check-circle"></i> Меню успешно сгенерировано!</h3>
+						<div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
+							<button id="genExportAllBtn" class="btn btn-success" style="padding: 12px 32px; font-size: 1rem;">
+								<i class="fas fa-file-archive"></i> Скачать все меню (ZIP)
+							</button>
+							<button id="genExportCurrentBtn" class="btn btn-secondary" style="padding: 12px 32px; font-size: 1rem;">
+								<i class="fas fa-file-excel"></i> Скачать только первый день
 							</button>
 						</div>
-						<div id="genMenuData">Загрузите файл типового меню (tm2026-sm.xlsx)</div>
 					</div>
 				</div>
 
-				<!-- Результат: сетка и детальный вид -->
-				<div class="gen-daily-menu" id="genDailyMenuContainer">
-					<div class="gen-menu-navigation" id="genMenuNavigation" style="display:none;">
-						<div class="gen-nav-buttons">
-							<button id="genPrevMenuBtn" class="btn btn-secondary"><i class="fas fa-chevron-left"></i> Предыдущее</button>
-							<button id="genNextMenuBtn" class="btn btn-secondary">Следующее <i class="fas fa-chevron-right"></i></button>
-						</div>
-						<div class="gen-menu-counter" id="genMenuCounter"></div>
-						<div class="gen-nav-buttons">
-							<button id="genToggleViewBtn" class="btn btn-secondary"><i class="fas fa-list"></i> Детальный вид</button>
-							<button id="genJumpToTodayBtn" class="btn btn-secondary"><i class="fas fa-calendar-day"></i> Сегодня</button>
-							<button id="genComplianceBtn" class="btn btn-info"><i class="fas fa-check-double"></i> Проверить</button>
-						</div>
-					</div>
+			</div>
 
-					<div class="gen-menu-header">
-						<div class="gen-menu-date" id="genCurrentMenuDate">Ежедневные меню</div>
-						<div class="gen-menu-week-info" id="genCurrentMenuInfo">Выберите период и нажмите «Создать ежедневные меню»</div>
-					</div>
-
-					<div class="gen-menu-stats" id="genMenuStats" style="display:none;">
-						<div class="gen-stat-item">
-							<div class="gen-stat-label">Всего меню</div>
-							<div class="gen-stat-value" id="genTotalMenusCount">0</div>
-						</div>
-						<div class="gen-stat-item">
-							<div class="gen-stat-label">Период</div>
-							<div class="gen-stat-value" id="genMenuPeriod">-</div>
-						</div>
-						<div class="gen-stat-item">
-							<div class="gen-stat-label">Школа</div>
-							<div class="gen-stat-value" id="genMenuSchool">-</div>
-						</div>
-						<div class="gen-stat-item">
-							<div class="gen-stat-label">Соответствие</div>
-							<div class="gen-stat-value" id="genMenuCompliance">-</div>
-						</div>
-					</div>
-
-					<div id="genMenuGrid" class="gen-menu-grid" style="display:none;"></div>
-
-					<div id="genDailyMenuContent">
-						<div style="text-align:center;color:#6c757d;padding:60px;">
-							<i class="fas fa-clipboard-list fa-4x" style="margin-bottom:30px;color:#bdc3c7;"></i>
-							<h3 style="margin-bottom:20px;color:#2c3e50;">Готовые ежедневные меню ФЦМПО</h3>
-							<p style="max-width:600px;margin:0 auto;line-height:1.8;">
-								Загрузите файлы календаря питания и типового меню, выберите период и нажмите «Создать ежедневные меню».
-							</p>
-						</div>
-					</div>
-
-					<div id="genDetailedView" class="gen-detailed-view">
-						<div class="gen-menu-detail-header">
-							<h3 id="genDetailMenuDate">Детальный просмотр меню</h3>
-							<button id="genCloseDetailView" class="btn btn-secondary" style="padding:8px 16px;">
-								<i class="fas fa-times"></i> Закрыть
-							</button>
-						</div>
-
-						<div class="gen-meal-options" id="genMealOptions">
-							<div class="gen-meal-option-btn gen-active" data-meal="all">Все приемы пищи</div>
-							<div class="gen-meal-option-btn" data-meal="breakfast">Завтрак</div>
-							<div class="gen-meal-option-btn" data-meal="breakfast2">Завтрак 2</div>
-							<div class="gen-meal-option-btn" data-meal="lunch">Обед</div>
-							<div class="gen-meal-option-btn" data-meal="afternoonSnack">Полдник</div>
-							<div class="gen-meal-option-btn" data-meal="dinner">Ужин</div>
-							<div class="gen-meal-option-btn" data-meal="dinner2">Ужин 2</div>
-						</div>
-
-						<div id="genDetailMeals"></div>
-
-						<div style="margin-top:30px;">
-							<div class="gen-section-title"><i class="fas fa-file-excel"></i> Предпросмотр Excel файла (ФЦМПО)</div>
-							<div id="genExcelPreview" class="gen-excel-preview"></div>
-						</div>
-					</div>
+			<!-- РЕЗУЛЬТАТЫ: Сетка меню -->
+			<div id="genMenuNavigation" class="gen-menu-navigation" style="display:none; margin-top: 24px;">
+				<div class="gen-nav-buttons">
+					<button id="genPrevMenuBtn" class="btn btn-secondary"><i class="fas fa-chevron-left"></i></button>
+					<span class="gen-menu-counter" id="genMenuCounter" style="padding: 0 12px; font-weight: 600; display: flex; align-items: center;">1 из 10</span>
+					<button id="genNextMenuBtn" class="btn btn-secondary"><i class="fas fa-chevron-right"></i></button>
 				</div>
+				<div class="gen-menu-dates" id="genCurrentMenuDate"></div>
+				<div class="gen-nav-buttons">
+					<button id="genToggleViewBtn" class="btn btn-info"><i class="fas fa-list"></i> Детально</button>
+				</div>
+			</div>
+
+			<div id="genMenuGrid" class="gen-menu-grid" style="display:none;"></div>
+			
+			<!-- Детальный вид -->
+			<div id="genDetailedView" class="gen-detailed-view" style="margin-top: 24px;">
+				<div class="gen-menu-detail-header">
+					<h3 id="genDetailMenuDate">Детальный просмотр</h3>
+					<button id="genCloseDetailView" class="btn btn-secondary">Закрыть</button>
+				</div>
+				<div class="gen-meal-options" id="genMealOptions">
+					<div class="gen-meal-option-btn gen-active" data-meal="all">Все приемы</div>
+					<div class="gen-meal-option-btn" data-meal="breakfast">Завтрак</div>
+					<div class="gen-meal-option-btn" data-meal="lunch">Обед</div>
+					<div class="gen-meal-option-btn" data-meal="dinner">Ужин</div>
+				</div>
+				<div id="genDetailMeals"></div>
+			</div>
+
+			<!-- Скрытые элементы для работы логики (не удалять!) -->
+			<div style="display: none !important;">
+				<div id="genCalendarYear">2026</div>
+				<div id="genCalendarYearBadge">2026</div>
+				<div id="genCalendarData"></div>
+				<div id="genMenuData"></div>
+				<button id="genToggleMenuView"></button>
+				<div id="genMenuStats"></div>
+				<div id="genTotalMenusCount"></div>
+				<div id="genMenuPeriod"></div>
+				<div id="genMenuSchool"></div>
+				<div id="genMenuCompliance"></div>
+				<div id="genAnalyzeBtn"></div>
+				<div id="genComplianceBtn"></div>
+				<div id="genDownloadTemplateBtn"></div>
+				<div id="genFileValidation"></div>
+				<div id="genQuickHelpBtn"></div>
+				<div id="genQuickGuide"></div>
+				<div id="genAdvancedSettings"></div>
+				<div id="genJumpToTodayBtn"></div>
+				<div id="genDetailedViewContent"></div>
+				<div id="genExcelPreview"></div>
+				<div id="genCurrentMenuInfo"></div>
+				<div id="genDailyMenuContainer"></div>
+				<div id="genDailyMenuContent"></div>
 			</div>
 		</div>		
 
@@ -16904,6 +16998,9 @@
 		setTimeout(function() {
 			//SpellCheckerModule.init();
 		}, 500);
+		setTimeout(() => {
+			if (window.GeneratorModule) window.GeneratorModule.init();
+		}, 800);
 	});
 
 	// ============================================================

@@ -1,73 +1,36 @@
 /**
  * ============================================================
- * МОДУЛЬ "ГЕНЕРАТОР ЕЖЕДНЕВНЫХ МЕНЮ (ФЦМПО)" v1.0
- * Подключаемый файл для PRO Редактора типового меню
+ * МОДУЛЬ "ГЕНЕРАТОР ЕЖЕДНЕВНЫХ МЕНЮ (ФЦМПО)" v3.0 (Объединённый)
  * ============================================================
+ * Базируется на v1.0 (полная) + v2.0 (упрощённая инициализация/UX)
  *
- * Подключение в testtm2.html (после daily-menu-module.js, до mobile-module-v3.js):
- *   <script src="generator-module.js"></script>
- *
- * Инициализация (в switchTab при переходе на #tabGenerator):
- *   GeneratorModule.init();
- *
- * Все ID элементов в разметке имеют префикс "gen-":
- *   genFileInput, genDropArea, genGenerateBtn, genMenuGrid, ...
- *
- * Все CSS-классы изолированы через #tabGenerator { ... }
+ * Подключение: <script src="generator-module.js"></script>
+ * Вызов: GeneratorModule.init();
  * ============================================================
  */
 
 const GeneratorModule = (function () {
     'use strict';
 
-    // ============================================================
-    // КОНСТАНТЫ
-    // ============================================================
-
     const STORAGE_KEY = 'schoolMenuGeneratorData_v3_fcmpo';
 
-    // Требуемые имена файлов ФЦМПО (для подсказок)
     const GEN_REQUIRED_FILES = {
         calendar: 'kp2026.xlsx',
         template: 'tm2026-sm.xlsx'
     };
 
-    // Структура приёмов пищи (отдельная от MEAL_STRUCTURE из testtm2.html!)
     const GEN_MEAL_STRUCTURE = {
-        'breakfast': {
-            name: 'Завтрак',
-            sections: ['гор.блюдо', 'гор.напиток', 'хлеб', 'фрукты']
-        },
-        'breakfast2': {
-            name: 'Завтрак 2',
-            sections: ['фрукты']
-        },
-        'lunch': {
-            name: 'Обед',
-            sections: ['закуска', '1 блюдо', '2 блюдо', 'гарнир', 'напиток', 'хлеб бел.', 'хлеб черн.']
-        },
-        'afternoonSnack': {
-            name: 'Полдник',
-            sections: ['булочное', 'напиток']
-        },
-        'dinner': {
-            name: 'Ужин',
-            sections: ['гор.блюдо', 'гарнир', 'напиток', 'хлеб']
-        },
-        'dinner2': {
-            name: 'Ужин 2',
-            sections: ['кисломол.', 'булочное', 'напиток', 'фрукты']
-        }
+        'breakfast': { name: 'Завтрак', sections: ['гор.блюдо', 'гор.напиток', 'хлеб', 'фрукты'] },
+        'breakfast2': { name: 'Завтрак 2', sections: ['фрукты'] },
+        'lunch': { name: 'Обед', sections: ['закуска', '1 блюдо', '2 блюдо', 'гарнир', 'напиток', 'хлеб бел.', 'хлеб черн.'] },
+        'afternoonSnack': { name: 'Полдник', sections: ['булочное', 'напиток'] },
+        'dinner': { name: 'Ужин', sections: ['гор.блюдо', 'гарнир', 'напиток', 'хлеб'] },
+        'dinner2': { name: 'Ужин 2', sections: ['кисломол.', 'булочное', 'напиток', 'фрукты'] }
     };
 
-    // Человекочитаемые названия приёмов пищи
     const GEN_MEAL_TYPES = {
-        'breakfast': 'Завтрак',
-        'breakfast2': 'Завтрак 2',
-        'lunch': 'Обед',
-        'afternoonSnack': 'Полдник',
-        'dinner': 'Ужин',
-        'dinner2': 'Ужин 2'
+        'breakfast': 'Завтрак', 'breakfast2': 'Завтрак 2', 'lunch': 'Обед',
+        'afternoonSnack': 'Полдник', 'dinner': 'Ужин', 'dinner2': 'Ужин 2'
     };
 
     const GEN_MONTH_NAMES = [
@@ -75,13 +38,9 @@ const GeneratorModule = (function () {
         'июль', 'август', 'сентябрь', 'октябрь', 'ноябрь', 'декабрь'
     ];
 
-    // ============================================================
-    // СОСТОЯНИЕ
-    // ============================================================
-
     let state = {
-        calendarData: null,       // { schoolName, months: { month: { day: menuType } }, year }
-        templateMenuData: null,   // { weeks: {...}, schoolName, ageCategory, approvalInfo }
+        calendarData: null,
+        templateMenuData: null,
         dailyMenus: [],
         uploadedFiles: [],
         currentMenuIndex: 0,
@@ -94,7 +53,7 @@ const GeneratorModule = (function () {
     };
 
     // ============================================================
-    // УТИЛИТЫ
+    // УТИЛИТЫ (полный набор из v1.0)
     // ============================================================
 
     function GEN_formatFileSize(bytes) {
@@ -108,27 +67,21 @@ const GeneratorModule = (function () {
     function GEN_formatDate(date, format = 'display') {
         if (!date) return '';
         if (typeof date === 'string') date = new Date(date);
-
         const day = String(date.getDate()).padStart(2, '0');
         const month = String(date.getMonth() + 1).padStart(2, '0');
         const year = date.getFullYear();
-
         if (format === 'file') return `${year}-${month}-${day}`;
         if (format === 'excel') return `${day}.${month}.${year}`;
         if (format === 'short') return `${day}.${month}.${year}`;
-
-        const monthNames = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня',
-            'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
+        const monthNames = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
         return `${day} ${monthNames[date.getMonth()]} ${year} г.`;
     }
 
     function GEN_showStatus(message, type = 'info') {
-        // Используем глобальный showStatus, если он есть (из testtm2.html)
         if (typeof window.showStatus === 'function') {
             window.showStatus(message, type);
             return;
         }
-        // Fallback — локальная зона в модуле
         const el = document.getElementById('genStatusMessage');
         if (el) {
             el.textContent = message;
@@ -150,259 +103,137 @@ const GeneratorModule = (function () {
 
     function GEN_normalizeSectionName(section) {
         if (!section) return '';
-        const sectionLower = section.toLowerCase().trim();
+        const s = section.toLowerCase().trim();
+        if (s.includes('фрукт') || s === 'фрукты') return 'фрукты';
 
-        if (sectionLower.includes('фрукт') || sectionLower === 'фрукты') return 'фрукты';
-
-        const sectionMap = {
-            'горячее блюдо': 'гор.блюдо',
-            'горячий напиток': 'гор.напиток',
+        const map = {
+            'горячее блюдо': 'гор.блюдо', 'горячий напиток': 'гор.напиток',
             'горячий напиток с витаминами': 'гор.напиток',
-            'первое блюдо': '1 блюдо',
-            'второе блюдо': '2 блюдо',
-            'хлеб белый': 'хлеб бел.',
-            'хлеб бел': 'хлеб бел.',
-            'хлеб черный': 'хлеб черн.',
-            'хлеб черн': 'хлеб черн.',
-            'хлеб ржаной': 'хлеб черн.',
-            'булочные изделия': 'булочное',
-            'кисломолочный напиток': 'кисломол.',
-            'кисломолочные продукты': 'кисломол.',
-            'бутерброд': 'хлеб',
-            'свежие фрукты': 'фрукты',
-            'фрукт свежий': 'фрукты',
-            'фрукт': 'фрукты',
-            'овощи': 'закуска',
-            'салат': 'закуска',
-            'напиток': 'напиток',
-            'гарнир': 'гарнир',
-            'гор. блюдо': 'гор.блюдо',
-            'гор. напиток': 'гор.напиток',
-            'гор.напиток': 'гор.напиток',
-            'гор.блюдо': 'гор.блюдо',
-            '1 блюдо': '1 блюдо',
-            '2 блюдо': '2 блюдо',
-            'закуска': 'закуска',
-            'хлеб': 'хлеб',
-            'фрукты': 'фрукты'
+            'первое блюдо': '1 блюдо', 'второе блюдо': '2 блюдо',
+            'хлеб белый': 'хлеб бел.', 'хлеб бел': 'хлеб бел.',
+            'хлеб черный': 'хлеб черн.', 'хлеб черн': 'хлеб черн.',
+            'хлеб ржаной': 'хлеб черн.', 'булочные изделия': 'булочное',
+            'кисломолочный напиток': 'кисломол.', 'кисломолочные продукты': 'кисломол.',
+            'свежие фрукты': 'фрукты', 'фрукт свежий': 'фрукты', 'фрукт': 'фрукты',
+            'овощи': 'закуска', 'салат': 'закуска',
+            'гор. блюдо': 'гор.блюдо', 'гор. напиток': 'гор.напиток',
+            'бутерброд': 'хлеб'
         };
+        if (map[s]) return map[s];
+        for (const [k, v] of Object.entries(map)) { if (s.includes(k)) return v; }
 
-        if (sectionMap[sectionLower]) return sectionMap[sectionLower];
-
-        for (const [key, value] of Object.entries(sectionMap)) {
-            if (sectionLower.includes(key)) return value;
+        const standard = ['гор.блюдо', 'гор.напиток', 'хлеб', 'фрукты', 'напиток',
+            'закуска', '1 блюдо', '2 блюдо', 'гарнир', 'хлеб бел.', 'хлеб черн.', 'булочное', 'кисломол.'];
+        for (const std of standard) {
+            const clean = std.replace('.', '').replace(' ', '');
+            if (s.includes(clean)) return std;
         }
-
-        const standardSections = ['гор.блюдо', 'гор.напиток', 'хлеб', 'фрукты', 'напиток',
-            'закуска', '1 блюдо', '2 блюдо', 'гарнир', 'хлеб бел.',
-            'хлеб черн.', 'булочное', 'кисломол.'];
-
-        for (const standard of standardSections) {
-            const cleanStandard = standard.replace('.', '').replace(' ', '');
-            if (sectionLower.includes(cleanStandard)) return standard;
-        }
-
-        return sectionLower;
+        return s;
     }
 
     function GEN_sortMealItemsByStructure(items, mealType) {
         if (!items || items.length === 0) return [];
         const structure = GEN_MEAL_STRUCTURE[mealType];
         if (!structure) return items;
-
-        const normalizedItems = items.map(item => ({
-            ...item,
-            normalizedSection: GEN_normalizeSectionName(item.section || '')
-        }));
-
-        const sortedItems = [];
-        for (const section of structure.sections) {
-            const sectionItems = normalizedItems.filter(item => item.normalizedSection === section);
-            sortedItems.push(...sectionItems);
+        const normalized = items.map(i => ({ ...i, normalizedSection: GEN_normalizeSectionName(i.section || '') }));
+        const sorted = [];
+        for (const sec of structure.sections) {
+            sorted.push(...normalized.filter(i => i.normalizedSection === sec));
         }
-
-        const otherItems = normalizedItems.filter(item =>
-            !structure.sections.includes(item.normalizedSection)
-        );
-        sortedItems.push(...otherItems);
-
-        return sortedItems;
+        sorted.push(...normalized.filter(i => !structure.sections.includes(i.normalizedSection)));
+        return sorted;
     }
 
     function GEN_adjustColor(color, amount) {
         let usePound = false;
         if (color[0] === '#') { color = color.slice(1); usePound = true; }
-
         const num = parseInt(color, 16);
-        let r = (num >> 16) + amount;
-        if (r > 255) r = 255; else if (r < 0) r = 0;
-        let b = ((num >> 8) & 0x00FF) + amount;
-        if (b > 255) b = 255; else if (b < 0) b = 0;
-        let g = (num & 0x0000FF) + amount;
-        if (g > 255) g = 255; else if (g < 0) g = 0;
-
+        let r = (num >> 16) + amount; if (r > 255) r = 255; else if (r < 0) r = 0;
+        let b = ((num >> 8) & 0x00FF) + amount; if (b > 255) b = 255; else if (b < 0) b = 0;
+        let g = (num & 0x0000FF) + amount; if (g > 255) g = 255; else if (g < 0) g = 0;
         return (usePound ? '#' : '') + (g | (b << 8) | (r << 16)).toString(16).padStart(6, '0');
     }
 
-    function GEN_getMealIcon(mealType) {
-        switch (mealType) {
-            case 'breakfast': return 'fa-sun';
-            case 'breakfast2': return 'fa-coffee';
-            case 'lunch': return 'fa-utensils';
-            case 'afternoonSnack': return 'fa-cookie-bite';
-            case 'dinner': return 'fa-moon';
-            case 'dinner2': return 'fa-glass-whiskey';
-            default: return 'fa-utensils';
-        }
+    function GEN_getMealIcon(m) {
+        return { breakfast: 'fa-sun', breakfast2: 'fa-coffee', lunch: 'fa-utensils', afternoonSnack: 'fa-cookie-bite', dinner: 'fa-moon', dinner2: 'fa-glass-whiskey' }[m] || 'fa-utensils';
     }
 
-    function GEN_getMealColor(mealType) {
-        switch (mealType) {
-            case 'breakfast': return '#f39c12';
-            case 'breakfast2': return '#e67e22';
-            case 'lunch': return '#e74c3c';
-            case 'afternoonSnack': return '#2ecc71';
-            case 'dinner': return '#9b59b6';
-            case 'dinner2': return '#3498db';
-            default: return '#3498db';
-        }
+    function GEN_getMealColor(m) {
+        return { breakfast: '#f39c12', breakfast2: '#e67e22', lunch: '#e74c3c', afternoonSnack: '#2ecc71', dinner: '#9b59b6', dinner2: '#3498db' }[m] || '#3498db';
     }
 
-    function GEN_getMealTypeFromName(mealName) {
-        switch (mealName) {
-            case 'Завтрак': return 'breakfast';
-            case 'Завтрак 2': return 'breakfast2';
-            case 'Обед': return 'lunch';
-            case 'Полдник': return 'afternoonSnack';
-            case 'Ужин': return 'dinner';
-            case 'Ужин 2': return 'dinner2';
-            default: return null;
-        }
+    function GEN_getMealTypeFromName(name) {
+        return { 'Завтрак': 'breakfast', 'Завтрак 2': 'breakfast2', 'Обед': 'lunch', 'Полдник': 'afternoonSnack', 'Ужин': 'dinner', 'Ужин 2': 'dinner2' }[name] || null;
     }
 
-    function GEN_getColorScheme(schemeName) {
-        const schemes = {
-            default: {
-                school: 'cfe2f3', header: 'e0e0e0',
-                breakfast: 'fff2cc', breakfast2: 'ffe699', lunch: 'd9d2e9',
-                afternoonSnack: 'd0e0e3', dinner: 'f4cccc', dinner2: 'e6ccff'
-            },
-            bright: {
-                school: 'd5e8f7', header: 'f0f0f0',
-                breakfast: 'fff9cc', breakfast2: 'ffe6cc', lunch: 'e6d9f2',
-                afternoonSnack: 'd0e8e3', dinner: 'ffcccc', dinner2: 'f2ccff'
-            },
-            pastel: {
-                school: 'e8f2fb', header: 'f8f8f8',
-                breakfast: 'fffde6', breakfast2: 'fff2e6', lunch: 'f2e6fa',
-                afternoonSnack: 'e6f5f2', dinner: 'ffe6e6', dinner2: 'f7e6ff'
-            },
-            monochrome: {
-                school: 'f0f0f0', header: 'e0e0e0',
-                breakfast: 'f5f5f5', breakfast2: 'f0f0f0', lunch: 'ebebeb',
-                afternoonSnack: 'e6e6e6', dinner: 'e0e0e0', dinner2: 'dbdbdb'
-            }
+    function GEN_getColorScheme(scheme) {
+        const s = {
+            default: { school: 'cfe2f3', header: 'e0e0e0', breakfast: 'fff2cc', breakfast2: 'ffe699', lunch: 'd9d2e9', afternoonSnack: 'd0e0e3', dinner: 'f4cccc', dinner2: 'e6ccff' },
+            bright: { school: 'd5e8f7', header: 'f0f0f0', breakfast: 'fff9cc', breakfast2: 'ffe6cc', lunch: 'e6d9f2', afternoonSnack: 'd0e8e3', dinner: 'ffcccc', dinner2: 'f2ccff' },
+            pastel: { school: 'e8f2fb', header: 'f8f8f8', breakfast: 'fffde6', breakfast2: 'fff2e6', lunch: 'f2e6fa', afternoonSnack: 'e6f5f2', dinner: 'ffe6e6', dinner2: 'f7e6ff' },
+            monochrome: { school: 'f0f0f0', header: 'e0e0e0', breakfast: 'f5f5f5', breakfast2: 'f0f0f0', lunch: 'ebebeb', afternoonSnack: 'e6e6e6', dinner: 'e0e0e0', dinner2: 'dbdbdb' }
         };
-        return schemes[schemeName] || schemes.default;
+        return s[scheme] || s.default;
     }
 
     function GEN_formatDateForInput(date) {
-        const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const day = String(date.getDate()).padStart(2, '0');
-        return `${year}-${month}-${day}`;
+        const y = date.getFullYear();
+        const m = String(date.getMonth() + 1).padStart(2, '0');
+        const d = String(date.getDate()).padStart(2, '0');
+        return `${y}-${m}-${d}`;
     }
 
     // ============================================================
-    // DOM-ЭЛЕМЕНТЫ
+    // ИНИЦИАЛИЗАЦИЯ ЭЛЕМЕНТОВ (гибрид: полный список ID из v1.0 + динамика из v2.0)
     // ============================================================
 
     function cacheElements() {
-        state.elements = {
-            statusMessage: document.getElementById('genStatusMessage'),
-            fileInput: document.getElementById('genFileInput'),
-            dropArea: document.getElementById('genDropArea'),
-            fileList: document.getElementById('genFileList'),
-            generateBtn: document.getElementById('genGenerateBtn'),
-            exportAllBtn: document.getElementById('genExportAllBtn'),
-            exportCurrentBtn: document.getElementById('genExportCurrentBtn'),
-            downloadTemplateBtn: document.getElementById('genDownloadTemplateBtn'),
-            loadFromStorageBtn: document.getElementById('genLoadFromStorageBtn'),
-            clearStorageBtn: document.getElementById('genClearStorageBtn'),
-            storedDataInfo: document.getElementById('genStoredDataInfo'),
-            storedDataText: document.getElementById('genStoredDataText'),
-            calendarPreview: document.getElementById('genCalendarData'),
-            menuPreview: document.getElementById('genMenuData'),
-            calendarYearBadge: document.getElementById('genCalendarYearBadge'),
-            toggleMenuViewBtn: document.getElementById('genToggleMenuView'),
-            dailyMenuContent: document.getElementById('genDailyMenuContent'),
-            currentMenuDate: document.getElementById('genCurrentMenuDate'),
-            currentMenuInfo: document.getElementById('genCurrentMenuInfo'),
-            menuNavigation: document.getElementById('genMenuNavigation'),
-            prevMenuBtn: document.getElementById('genPrevMenuBtn'),
-            nextMenuBtn: document.getElementById('genNextMenuBtn'),
-            jumpToTodayBtn: document.getElementById('genJumpToTodayBtn'),
-            toggleViewBtn: document.getElementById('genToggleViewBtn'),
-            complianceBtn: document.getElementById('genComplianceBtn'),
-            menuCounter: document.getElementById('genMenuCounter'),
-            menuGrid: document.getElementById('genMenuGrid'),
-            menuStats: document.getElementById('genMenuStats'),
-            totalMenusCount: document.getElementById('genTotalMenusCount'),
-            menuPeriod: document.getElementById('genMenuPeriod'),
-            menuSchool: document.getElementById('genMenuSchool'),
-            menuCompliance: document.getElementById('genMenuCompliance'),
-            detailedView: document.getElementById('genDetailedView'),
-            detailMenuDate: document.getElementById('genDetailMenuDate'),
-            mealOptions: document.getElementById('genMealOptions'),
-            detailMeals: document.getElementById('genDetailMeals'),
-            excelPreview: document.getElementById('genExcelPreview'),
-            closeDetailView: document.getElementById('genCloseDetailView'),
-            startDateInput: document.getElementById('genStartDate'),
-            endDateInput: document.getElementById('genEndDate'),
-            calendarYear: document.getElementById('genCalendarYear'),
-            analyzeBtn: document.getElementById('genAnalyzeBtn'),
-            quickHelpBtn: document.getElementById('genQuickHelpBtn'),
-            advancedSettings: document.getElementById('genAdvancedSettings'),
-            fileValidation: document.getElementById('genFileValidation'),
-            schoolNameInput: document.getElementById('genSchoolName'),
-            ageCategoryInput: document.getElementById('genAgeCategory'),
-            colorSchemeInput: document.getElementById('genColorScheme'),
-            quickGuide: document.getElementById('genQuickGuide'),
-            schoolNameBadge: document.getElementById('genSchoolNameBadge')
-        };
-    }
+        const ids = [
+            'genStatusMessage', 'genFileInput', 'genDropArea', 'genFileList',
+            'genGenerateBtn', 'genExportAllBtn', 'genExportCurrentBtn', 'genExportContainer',
+            'genStoredDataInfo', 'genStoredDataText', 'genLoadFromStorageBtn', 'genClearStorageBtn',
+            'genStartDate', 'genEndDate', 'genCalendarYearBadge', 'genToggleAdvanced',
+            'genSchoolName', 'genAgeCategory', 'genColorScheme',
+            'genMenuNavigation', 'genMenuCounter', 'genCurrentMenuDate', 'genPrevMenuBtn', 'genNextMenuBtn',
+            'genToggleViewBtn', 'genMenuGrid', 'genDetailedView', 'genDetailMenuDate', 'genCloseDetailView',
+            'genMealOptions', 'genDetailMeals', 'genExcelPreview', 'genToggleMenuView',
+            'genCalendarYear', 'genCalendarData', 'genMenuData', 'genMenuStats',
+            'genTotalMenusCount', 'genMenuPeriod', 'genMenuSchool', 'genMenuCompliance',
+            'genAnalyzeBtn', 'genComplianceBtn', 'genDownloadTemplateBtn', 'genFileValidation',
+            'genQuickHelpBtn', 'genQuickGuide', 'genAdvancedSettings', 'genJumpToTodayBtn',
+            'genDailyMenuContainer', 'genDailyMenuContent', 'genCurrentMenuInfo',
+            'genSchoolNameBadge'
+        ];
 
-    // ============================================================
-    // ДАТЫ
-    // ============================================================
+        state.elements = {};
+        ids.forEach(id => {
+            let key = id.replace('gen', '');
+            key = key.charAt(0).toLowerCase() + key.slice(1);
+            state.elements[key] = document.getElementById(id);
+        });
+
+        state.elements.advancedPanel = document.querySelector('.gen-advanced-panel');
+        state.elements.advancedIcon = document.querySelector('#genToggleAdvanced .fa-chevron-down');
+    }
 
     function setDefaultDates() {
-        const year = state.currentYear;
+        const y = state.currentYear;
         const today = new Date();
+        if (!state.elements.startDate || !state.elements.endDate) return;
 
-        const start = state.elements.startDateInput;
-        const end = state.elements.endDateInput;
+        state.elements.startDate.min = `${y}-01-01`;
+        state.elements.startDate.max = `${y}-12-31`;
+        state.elements.endDate.min = `${y}-01-01`;
+        state.elements.endDate.max = `${y}-12-31`;
 
-        if (!start || !end) return;
+        state.elements.startDate.value = GEN_formatDateForInput(new Date(today.getFullYear(), today.getMonth(), 1));
+        state.elements.endDate.value = GEN_formatDateForInput(new Date(today.getFullYear(), today.getMonth() + 1, 0));
 
-        start.min = `${year}-01-01`;
-        start.max = `${year}-12-31`;
-        end.min = `${year}-01-01`;
-        end.max = `${year}-12-31`;
-
-        const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-        start.value = GEN_formatDateForInput(firstDayOfMonth);
-
-        const lastDayOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-        end.value = GEN_formatDateForInput(lastDayOfMonth);
-
-        if (state.elements.calendarYear) {
-            state.elements.calendarYear.textContent = year;
-        }
+        if (state.elements.calendarYear) state.elements.calendarYear.textContent = y;
     }
 
     // ============================================================
-    // ОБРАБОТКА ФАЙЛОВ
+    // ФАЙЛЫ (полная логика v1.0 + улучшенный updateFileList из v2.0)
     // ============================================================
 
     function handleFiles(files) {
@@ -411,7 +242,6 @@ const GeneratorModule = (function () {
                 GEN_showStatus(`Файл ${file.name} не является Excel файлом`, 'error');
                 return;
             }
-
             if (state.uploadedFiles.some(f => f.name === file.name && f.size === file.size)) {
                 GEN_showStatus(`Файл ${file.name} уже загружен`, 'info');
                 return;
@@ -422,9 +252,8 @@ const GeneratorModule = (function () {
                 try {
                     const data = new Uint8Array(e.target.result);
                     const workbook = XLSX.read(data, { type: 'array' });
-
-                    let fileType = '';
                     const fileNameLower = file.name.toLowerCase();
+                    let fileType = '';
 
                     if (fileNameLower.includes('kp') && file.name.match(/\d{4}/)) {
                         fileType = 'calendar';
@@ -433,29 +262,14 @@ const GeneratorModule = (function () {
                         fileType = 'template';
                         processTemplateFile(workbook, file.name);
                     } else {
-                        const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-                        const range = XLSX.utils.decode_range(firstSheet['!ref']);
+                        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+                        const cellA = sheet['A1'] ? sheet['A1'].v.toString().toLowerCase() : '';
+                        const cellA3 = sheet['A3'] ? sheet['A3'].v.toString().toLowerCase() : '';
 
-                        let hasCalendarStructure = false;
-                        let hasTemplateStructure = false;
-
-                        for (let row = 0; row <= Math.min(5, range.e.r); row++) {
-                            const cellA = firstSheet[XLSX.utils.encode_cell({ r: row, c: 0 })];
-                            if (cellA && cellA.v) {
-                                const cellValue = cellA.v.toString().toLowerCase();
-                                if (cellValue.includes('календарь') || cellValue.includes('январь') || cellValue.includes('февраль')) {
-                                    hasCalendarStructure = true;
-                                }
-                                if (cellValue.includes('прием пищи') && cellValue.includes('раздел')) {
-                                    hasTemplateStructure = true;
-                                }
-                            }
-                        }
-
-                        if (hasCalendarStructure) {
+                        if (cellA.includes('календарь') || cellA.includes('январь')) {
                             fileType = 'calendar';
                             processCalendarFile(workbook, file.name);
-                        } else if (hasTemplateStructure) {
+                        } else if (cellA3.includes('прием пищи')) {
                             fileType = 'template';
                             processTemplateFile(workbook, file.name);
                         } else {
@@ -464,503 +278,272 @@ const GeneratorModule = (function () {
                         }
                     }
 
-                    if (fileType === 'calendar' && !fileNameLower.includes('kp')) {
-                        GEN_showStatus(`Рекомендуемое имя файла календаря: ${GEN_REQUIRED_FILES.calendar}`, 'warning');
-                    }
-                    if (fileType === 'template' && !fileNameLower.includes('tm')) {
-                        GEN_showStatus(`Рекомендуемое имя файла типового меню: ${GEN_REQUIRED_FILES.template}`, 'warning');
-                    }
-
-                    const validationResult = validateFileStructure(workbook, fileType);
-                    showValidationResult(validationResult, file.name);
+                    const validation = validateFileStructure(workbook, fileType);
+                    showValidationResult(validation, file.name);
 
                     state.uploadedFiles.push({
-                        name: file.name,
-                        size: file.size,
-                        type: fileType,
-                        date: new Date().toLocaleTimeString(),
-                        valid: validationResult.isValid
+                        name: file.name, size: file.size, type: fileType,
+                        date: new Date().toLocaleTimeString(), valid: validation.isValid
                     });
 
                     updateFileList();
                     checkFilesLoaded();
                     saveToLocalStorage();
                 } catch (error) {
-                    console.error('Ошибка при чтении файла:', error);
-                    GEN_showStatus(`Ошибка при чтении файла ${file.name}: ${error.message}`, 'error');
+                    console.error(error);
+                    GEN_showStatus(`Ошибка при чтении файла ${file.name}`, 'error');
                 }
             };
-            reader.onerror = () => GEN_showStatus(`Ошибка при чтении файла ${file.name}`, 'error');
             reader.readAsArrayBuffer(file);
         });
     }
 
     function validateFileStructure(workbook, fileType) {
-        const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-        const data = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
-
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        const data = XLSX.utils.sheet_to_json(sheet, { header: 1 });
         const result = { isValid: true, errors: [], warnings: [] };
 
         if (fileType === 'calendar') {
-            let hasMonthRow = false;
-            let hasDayNumbers = false;
-
+            let hasMonthRow = false, hasDayNumbers = false;
             for (let i = 0; i < Math.min(20, data.length); i++) {
                 if (data[i] && data[i][0]) {
-                    const cellValue = data[i][0].toString().toLowerCase();
-                    if (GEN_MONTH_NAMES.some(m => cellValue.includes(m))) hasMonthRow = true;
-                    if (!isNaN(parseInt(cellValue)) && parseInt(cellValue) >= 1 && parseInt(cellValue) <= 31) {
-                        hasDayNumbers = true;
-                    }
+                    const v = data[i][0].toString().toLowerCase();
+                    if (GEN_MONTH_NAMES.some(m => v.includes(m))) hasMonthRow = true;
+                    const n = parseInt(v);
+                    if (!isNaN(n) && n >= 1 && n <= 31) hasDayNumbers = true;
                 }
             }
-
             if (!hasMonthRow) result.warnings.push('Не найдена строка с названиями месяцев');
             if (!hasDayNumbers) result.warnings.push('Возможно некорректные заголовки дней');
-
-            let hasSchoolInfo = false;
-            for (let i = 0; i < Math.min(5, data.length); i++) {
-                if (data[i] && data[i].some(cell => cell && cell.toString().toLowerCase().includes('школ'))) {
-                    hasSchoolInfo = true;
-                    break;
-                }
-            }
-            if (!hasSchoolInfo) result.warnings.push('Не найдена информация о школе');
-
         } else if (fileType === 'template') {
-            let headerRowIndex = -1;
+            let headerFound = false;
             for (let i = 0; i < Math.min(15, data.length); i++) {
-                if (data[i] && data[i][2] === 'Прием пищи' && data[i][3] === 'Раздел меню') {
-                    headerRowIndex = i;
-                    break;
+                if (data[i] && (data[i][0] === 'Неделя' || data[i][2] === 'Прием пищи')) {
+                    headerFound = true; break;
                 }
             }
-            if (headerRowIndex === -1) {
-                for (let i = 0; i < Math.min(15, data.length); i++) {
-                    if (data[i] && data[i][0] === 'Неделя' && data[i][1] === 'День недели') {
-                        headerRowIndex = i;
-                        break;
-                    }
-                }
-            }
-            if (headerRowIndex === -1) {
-                result.errors.push('Не найдена строка заголовков типового меню');
-                result.isValid = false;
-            }
-
-            let hasMealData = false;
-            for (let i = 0; i < Math.min(30, data.length); i++) {
-                if (data[i] && data[i][0] &&
-                    ['Завтрак', 'Обед', 'Ужин', 'Полдник'].includes(data[i][0].toString().trim())) {
-                    hasMealData = true;
-                    break;
-                }
-            }
-            if (!hasMealData) result.warnings.push('Не найдены данные о приемах пищи');
-
-            let hasApprovalInfo = false;
-            for (let i = 0; i < Math.min(10, data.length); i++) {
-                if (data[i] && data[i].some(cell => cell && cell.toString().toLowerCase().includes('утвержд'))) {
-                    hasApprovalInfo = true;
-                    break;
-                }
-            }
-            if (!hasApprovalInfo) result.warnings.push('Не найдена информация об утверждении меню');
+            if (!headerFound) { result.errors.push('Не найдена строка заголовков'); result.isValid = false; }
         }
-
         if (data.length < 3) result.warnings.push('Файл содержит слишком мало строк');
-
         return result;
     }
 
-    function showValidationResult(validationResult, fileName) {
-        if (validationResult.isValid) {
-            if (state.elements.fileValidation) {
-                state.elements.fileValidation.style.display = 'flex';
-            }
-            if (validationResult.warnings.length > 0) {
-                GEN_showStatus(`Файл ${fileName} загружен (есть предупреждения: ${validationResult.warnings.join(', ')})`, 'warning');
-            } else {
-                GEN_showStatus(`Файл ${fileName} загружен и проверен`, 'success');
-            }
+    function showValidationResult(v, fileName) {
+        if (v.isValid) {
+            if (state.elements.fileValidation) state.elements.fileValidation.style.display = 'flex';
+            GEN_showStatus(v.warnings.length
+                ? `Файл ${fileName} загружен (предупреждения: ${v.warnings.join(', ')})`
+                : `Файл ${fileName} загружен и проверен`,
+                v.warnings.length ? 'warning' : 'success');
         } else {
-            GEN_showStatus(`Ошибка в файле ${fileName}: ${validationResult.errors.join(', ')}`, 'error');
+            GEN_showStatus(`Ошибка в файле ${fileName}: ${v.errors.join(', ')}`, 'error');
         }
     }
 
     function updateFileList() {
         const el = state.elements.fileList;
         if (!el) return;
-
         el.innerHTML = '';
 
         if (state.uploadedFiles.length === 0) {
-            el.innerHTML = '<p style="text-align:center;color:#6c757d;padding:20px;"><i class="fas fa-file-excel fa-2x" style="margin-bottom:10px;"></i><br>Файлы ФЦМПО не загружены</p>';
+            el.innerHTML = '<p style="text-align:center;color:#64748b;padding:20px;"><i class="fas fa-file-excel fa-2x" style="margin-bottom:10px;opacity:0.5;"></i><br>Файлы ФЦМПО не загружены</p>';
             return;
         }
 
         state.uploadedFiles.forEach(file => {
-            const fileItem = document.createElement('div');
-            fileItem.className = `gen-file-item ${file.valid ? 'gen-success' : 'gen-error'}`;
-
-            let fileTypeIcon = 'fa-file';
-            let fileTypeText = 'Файл';
-
-            if (file.type === 'calendar') { fileTypeIcon = 'fa-calendar-alt'; fileTypeText = 'Календарь питания ФЦМПО'; }
-            else if (file.type === 'template') { fileTypeIcon = 'fa-utensils'; fileTypeText = 'Типовое меню ФЦМПО'; }
-
-            fileItem.innerHTML = `
+            const div = document.createElement('div');
+            div.className = `gen-file-item ${file.valid ? '' : 'gen-error'}`;
+            const icon = file.type === 'calendar' ? 'fa-calendar-alt' : 'fa-utensils';
+            const label = file.type === 'calendar' ? 'Календарь ФЦМПО' : 'Типовое меню ФЦМПО';
+            div.innerHTML = `
                 <div class="gen-file-info">
-                    <i class="fas ${fileTypeIcon}"></i>
+                    <i class="fas ${icon}"></i>
                     <div>
-                        <div><strong>${file.name}</strong></div>
-                        <div class="gen-file-size">${fileTypeText} • ${GEN_formatFileSize(file.size)} • ${file.date}</div>
+                        <div style="font-weight:600;color:#0f172a;font-size:0.9rem;">${file.name}</div>
+                        <div class="gen-file-size">${label} • ${GEN_formatFileSize(file.size)}</div>
                     </div>
                 </div>
                 <i class="fas ${file.valid ? 'fa-check-circle' : 'fa-exclamation-triangle'}"
-                   style="color:${file.valid ? '#27ae60' : '#e74c3c'};"></i>
+                   style="color:${file.valid ? '#10b981' : '#e74c3c'};font-size:1.2rem;"></i>
             `;
-            el.appendChild(fileItem);
+            el.appendChild(div);
         });
     }
 
     function checkFilesLoaded() {
-        const hasCalendar = state.uploadedFiles.some(f => f.type === 'calendar' && f.valid);
-        const hasTemplate = state.uploadedFiles.some(f => f.type === 'template' && f.valid);
+        const hasCal = state.uploadedFiles.some(f => f.type === 'calendar' && f.valid);
+        const hasTpl = state.uploadedFiles.some(f => f.type === 'template' && f.valid);
 
         if (state.elements.generateBtn) {
-            state.elements.generateBtn.disabled = !(hasCalendar && hasTemplate);
+            state.elements.generateBtn.disabled = !(hasCal && hasTpl);
+            state.elements.generateBtn.classList.toggle('pulse', hasCal && hasTpl);
         }
 
-        if (hasCalendar && hasTemplate) {
-            GEN_showStatus('Все необходимые файлы ФЦМПО загружены. Теперь можно создать ежедневные меню.', 'success');
-        } else if (hasCalendar && !hasTemplate) {
-            GEN_showStatus('Загрузите файл типового меню ФЦМПО (tm2026-sm.xlsx)', 'info');
-        } else if (!hasCalendar && hasTemplate) {
-            GEN_showStatus('Загрузите файл календаря питания ФЦМПО (kp2026.xlsx)', 'info');
-        } else {
-            GEN_showStatus('Загрузите файлы календаря питания и типового меню ФЦМПО', 'info');
-        }
+        if (hasCal && hasTpl) GEN_showStatus('Все файлы ФЦМПО загружены. Можно создавать меню.', 'success');
+        else if (hasCal) GEN_showStatus('Загрузите типовое меню (tm2026-sm.xlsx)', 'info');
+        else if (hasTpl) GEN_showStatus('Загрузите календарь питания (kp2026.xlsx)', 'info');
+        else GEN_showStatus('Загрузите календарь и типовое меню ФЦМПО', 'info');
     }
 
     // ============================================================
-    // ПАРСИНГ КАЛЕНДАРЯ
+    // ПАРСИНГ (полная логика v1.0)
     // ============================================================
 
     function processCalendarFile(workbook, fileName) {
-        const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-        const data = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        const data = XLSX.utils.sheet_to_json(sheet, { header: 1 });
 
-        // Название школы
         let schoolName = '';
         for (let i = 0; i < Math.min(10, data.length); i++) {
-            if (data[i] && data[i].some(cell => cell && cell.toString().toLowerCase().includes('школ'))) {
+            if (data[i] && data[i].some(c => c && c.toString().toLowerCase().includes('школ'))) {
                 const row = data[i];
                 for (let j = 0; j < row.length; j++) {
-                    if (row[j] && row[j].toString().toLowerCase().includes('школ')) {
-                        if (j + 1 < row.length && row[j + 1]) {
-                            schoolName = row[j + 1].toString().trim();
-                            break;
-                        }
+                    if (row[j] && row[j].toString().toLowerCase().includes('школ') && j + 1 < row.length && row[j + 1]) {
+                        schoolName = row[j + 1].toString().trim(); break;
                     }
                 }
                 if (schoolName) break;
             }
         }
-
-        if (schoolName && state.elements.schoolNameInput &&
-            (!state.elements.schoolNameInput.value || state.elements.schoolNameInput.value === '')) {
-            state.elements.schoolNameInput.value = schoolName;
+        if (schoolName && state.elements.schoolName && !state.elements.schoolName.value) {
+            state.elements.schoolName.value = schoolName;
         }
 
-        // Строка с месяцами
-        let monthRowIndex = -1;
+        let monthRowIdx = -1;
         for (let i = 0; i < Math.min(50, data.length); i++) {
-            if (data[i] && data[i][0] && typeof data[i][0] === 'string') {
-                const cellValue = data[i][0].toString().toLowerCase();
-                if (GEN_MONTH_NAMES.some(m => cellValue.includes(m))) {
-                    monthRowIndex = i;
-                    break;
-                }
+            if (data[i] && data[i][0] && typeof data[i][0] === 'string' &&
+                GEN_MONTH_NAMES.some(m => data[i][0].toLowerCase().includes(m))) {
+                monthRowIdx = i; break;
             }
         }
+        if (monthRowIdx === -1) { GEN_showStatus('Не удалось найти данные календаря', 'error'); return; }
 
-        if (monthRowIndex === -1) {
-            for (let i = 0; i < Math.min(50, data.length); i++) {
-                if (data[i] && data[i][1] === 1 && data[i][2] === 2) {
-                    monthRowIndex = i + 1;
-                    break;
-                }
-            }
-        }
-
-        if (monthRowIndex === -1) {
-            GEN_showStatus(`Не удалось найти данные календаря в файле ${fileName}`, 'error');
-            return;
-        }
-
-        // Номера дней из заголовков
-        const dayHeaders = data[monthRowIndex - 1] || [];
-        const dayNumbers = [];
-        for (let i = 1; i < dayHeaders.length; i++) {
-            const cell = dayHeaders[i];
-            if (cell !== undefined && cell !== null && cell !== '') {
-                const num = parseInt(cell);
-                if (!isNaN(num) && num >= 1 && num <= 31) dayNumbers.push(num);
-            }
-        }
-        if (dayNumbers.length === 0) {
-            for (let i = 1; i <= 31; i++) dayNumbers.push(i);
-        }
-
-        // Год
-        let yearFromData = state.currentYear;
+        let year = state.currentYear;
         for (let i = 0; i < Math.min(10, data.length); i++) {
-            if (data[i] && data[i].some(cell => cell && cell.toString().includes('Год'))) {
-                const yearRow = data[i];
-                const yearCell = yearRow.find(cell => cell && !isNaN(cell) && cell > 2000 && cell < 2100);
-                if (yearCell) { yearFromData = parseInt(yearCell); break; }
+            if (data[i] && data[i].some(c => c && c.toString().includes('Год'))) {
+                const yCell = data[i].find(c => c && !isNaN(c) && c > 2000 && c < 2100);
+                if (yCell) { year = parseInt(yCell); break; }
             }
         }
-        if (yearFromData === state.currentYear) {
-            const yearMatch = fileName.match(/\d{4}/);
-            if (yearMatch) yearFromData = parseInt(yearMatch[0]);
+        if (year === state.currentYear) {
+            const m = fileName.match(/\d{4}/);
+            if (m) year = parseInt(m[0]);
         }
-
-        state.currentYear = yearFromData;
+        state.currentYear = year;
         setDefaultDates();
         if (state.elements.calendarYearBadge) {
-            state.elements.calendarYearBadge.textContent = state.currentYear;
+            state.elements.calendarYearBadge.textContent = year;
             state.elements.calendarYearBadge.style.display = 'inline-block';
         }
 
-        state.calendarData = {
-            schoolName: schoolName,
-            months: {},
-            year: state.currentYear
-        };
+        state.calendarData = { schoolName, months: {}, year };
+        const dayHeaders = data[monthRowIdx - 1] || [];
+        const dayNumbers = [];
+        for (let i = 1; i < dayHeaders.length; i++) {
+            const n = parseInt(dayHeaders[i]);
+            if (!isNaN(n) && n >= 1 && n <= 31) dayNumbers.push(n);
+        }
+        if (dayNumbers.length === 0) for (let i = 1; i <= 31; i++) dayNumbers.push(i);
 
-        for (let i = monthRowIndex; i < Math.min(monthRowIndex + 12, data.length); i++) {
+        for (let i = monthRowIdx; i < Math.min(monthRowIdx + 12, data.length); i++) {
             const row = data[i];
             if (!row || !row[0]) continue;
-
-            const monthName = row[0].toString().toLowerCase().trim();
-            if (!GEN_MONTH_NAMES.includes(monthName)) continue;
-
-            state.calendarData.months[monthName] = {};
-
-            for (let dayIdx = 0; dayIdx < dayNumbers.length; dayIdx++) {
-                const dayNum = dayNumbers[dayIdx];
-                if (dayNum >= 1 && dayNum <= 31) {
-                    const menuType = row[dayIdx + 1];
-                    if (menuType !== undefined && menuType !== null && menuType !== '') {
-                        const numValue = parseInt(menuType);
-                        if (!isNaN(numValue) && numValue > 0) {
-                            state.calendarData.months[monthName][dayNum] = numValue;
-                        }
-                    }
+            const mName = row[0].toString().toLowerCase().trim();
+            if (!GEN_MONTH_NAMES.includes(mName)) continue;
+            state.calendarData.months[mName] = {};
+            for (let dIdx = 0; dIdx < dayNumbers.length; dIdx++) {
+                const dNum = dayNumbers[dIdx];
+                const val = row[dIdx + 1];
+                if (val !== undefined && val !== null && val !== '') {
+                    const n = parseInt(val);
+                    if (!isNaN(n) && n > 0) state.calendarData.months[mName][dNum] = n;
                 }
             }
         }
-
-        GEN_showStatus(`Календарь питания ФЦМПО загружен из файла ${fileName} (${state.currentYear} год)`, 'success');
+        GEN_showStatus(`Календарь ФЦМПО загружен (${year} год)`, 'success');
         updateCalendarPreview();
     }
 
-    // ============================================================
-    // ПАРСИНГ ТИПОВОГО МЕНЮ
-    // ============================================================
-
     function processTemplateFile(workbook, fileName) {
-        const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-        const data = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        const data = XLSX.utils.sheet_to_json(sheet, { header: 1 });
 
-        const approvalInfo = { position: '', name: '', date: '' };
-        let schoolName = '';
-        let ageCategory = '';
-
-        for (let i = 0; i < Math.min(10, data.length); i++) {
-            const row = data[i];
-            if (!row) continue;
-            for (let j = 0; j < row.length; j++) {
-                const cell = row[j];
-                if (cell && typeof cell === 'string') {
-                    const cellLower = cell.toLowerCase();
-                    if (cellLower.includes('утвержд') || cellLower.includes('согласован')) {
-                        if (j + 1 < row.length && row[j + 1]) approvalInfo.position = row[j + 1].toString().trim();
-                        if (j + 2 < row.length && row[j + 2]) approvalInfo.name = row[j + 2].toString().trim();
-                        if (j + 3 < row.length && row[j + 3]) approvalInfo.date = row[j + 3].toString().trim();
-                    }
-                    if (cellLower.includes('школ')) {
-                        for (let k = j + 1; k < row.length; k++) {
-                            if (row[k] && typeof row[k] === 'string' && row[k].trim().length > 2) {
-                                schoolName = row[k].toString().trim();
-                                break;
-                            }
-                        }
-                    }
-                    if (cellLower.includes('7-11') || cellLower.includes('12-18') ||
-                        cellLower.includes('1-3') || cellLower.includes('4-6')) {
-                        ageCategory = cell.trim();
-                    }
-                }
-            }
-        }
-
-        if (schoolName && state.elements.schoolNameInput &&
-            (!state.elements.schoolNameInput.value || state.elements.schoolNameInput.value === '')) {
-            state.elements.schoolNameInput.value = schoolName;
-        }
-        if (ageCategory && state.elements.ageCategoryInput) {
-            state.elements.ageCategoryInput.value = ageCategory;
-        }
-
-        // Заголовки
-        let headerRowIndex = -1;
+        let headerIdx = -1;
         for (let i = 0; i < Math.min(20, data.length); i++) {
-            const row = data[i];
-            if (row && row.length >= 3) {
-                const col0 = row[0] ? row[0].toString().toLowerCase().trim() : '';
-                const col1 = row[1] ? row[1].toString().toLowerCase().trim() : '';
-                if (col0 === 'неделя' && (col1.includes('день') || col1.includes('недели'))) {
-                    headerRowIndex = i;
-                    break;
-                }
+            if (data[i] && data[i][0] && data[i][0].toString().toLowerCase() === 'неделя') {
+                headerIdx = i; break;
             }
         }
-        if (headerRowIndex === -1) {
-            GEN_showStatus(`Не удалось найти заголовки меню в файле ${fileName}`, 'error');
-            return;
-        }
+        if (headerIdx === -1) { GEN_showStatus('Не найдены заголовки меню', 'error'); return; }
 
-        state.templateMenuData = {
-            schoolName: schoolName || (state.elements.schoolNameInput?.value || ''),
-            ageCategory: ageCategory || (state.elements.ageCategoryInput?.value || ''),
-            approvalInfo: approvalInfo,
-            weeks: {}
-        };
+        state.templateMenuData = { schoolName: '', ageCategory: '', approvalInfo: {}, weeks: {} };
+        let currWeek = null, currDay = null, currMeal = null, foundB = false;
 
-        let currentWeek = null;
-        let currentDay = null;
-        let currentMeal = null;
-        let foundBreakfast = false;
-
-        for (let i = headerRowIndex + 1; i < data.length; i++) {
+        for (let i = headerIdx + 1; i < data.length; i++) {
             const row = data[i];
             if (!row || row.length < 3) continue;
 
-            const weekNum = parseInt(row[0]);
-            const dayNum = parseInt(row[1]);
-
-            if (!isNaN(weekNum) && !isNaN(dayNum)) {
-                currentWeek = weekNum;
-                currentDay = dayNum;
-                currentMeal = null;
-                foundBreakfast = false;
-
-                if (!state.templateMenuData.weeks[currentWeek]) {
-                    state.templateMenuData.weeks[currentWeek] = {};
-                }
-                if (!state.templateMenuData.weeks[currentWeek][currentDay]) {
-                    state.templateMenuData.weeks[currentWeek][currentDay] = {
-                        breakfast: { items: [] },
-                        breakfast2: { items: [] },
-                        lunch: { items: [] },
-                        afternoonSnack: { items: [] },
-                        dinner: { items: [] },
-                        dinner2: { items: [] }
+            const wNum = parseInt(row[0]), dNum = parseInt(row[1]);
+            if (!isNaN(wNum) && !isNaN(dNum)) {
+                currWeek = wNum; currDay = dNum; currMeal = null; foundB = false;
+                if (!state.templateMenuData.weeks[currWeek]) state.templateMenuData.weeks[currWeek] = {};
+                if (!state.templateMenuData.weeks[currWeek][currDay]) {
+                    state.templateMenuData.weeks[currWeek][currDay] = {
+                        breakfast: { items: [] }, breakfast2: { items: [] }, lunch: { items: [] },
+                        afternoonSnack: { items: [] }, dinner: { items: [] }, dinner2: { items: [] }
                     };
                 }
             }
 
-            const mealCell = row[2] ? row[2].toString().trim() : '';
-            if (mealCell && mealCell !== '') {
-                const mealLower = mealCell.toLowerCase();
-                if (mealLower.includes('завтрак')) {
-                    if (foundBreakfast) currentMeal = 'breakfast2';
-                    else { currentMeal = 'breakfast'; foundBreakfast = true; }
-                } else if (mealLower.includes('обед')) {
-                    currentMeal = 'lunch';
-                } else if (mealLower.includes('полдник')) {
-                    currentMeal = 'afternoonSnack';
-                } else if (mealLower.includes('ужин 2') || mealLower.includes('второй ужин')) {
-                    currentMeal = 'dinner2';
-                } else if (mealLower.includes('ужин')) {
-                    currentMeal = 'dinner';
-                } else if (mealLower.includes('итого') || mealLower.includes('среднее')) {
-                    currentMeal = null;
-                    continue;
-                }
+            const mCell = row[2] ? row[2].toString().toLowerCase() : '';
+            if (mCell) {
+                if (mCell.includes('завтрак')) {
+                    if (foundB) currMeal = 'breakfast2'; else { currMeal = 'breakfast'; foundB = true; }
+                } else if (mCell.includes('обед')) currMeal = 'lunch';
+                else if (mCell.includes('полдник')) currMeal = 'afternoonSnack';
+                else if (mCell.includes('ужин 2')) currMeal = 'dinner2';
+                else if (mCell.includes('ужин')) currMeal = 'dinner';
+                else if (mCell.includes('итого') || mCell.includes('среднее')) currMeal = null;
             }
 
-            if (currentWeek && currentDay && currentMeal) {
-                const section = row[3] ? row[3].toString().trim() : '';
-                const dishName = row[4] ? row[4].toString().trim() : '';
-
-                if ((!section && !dishName) ||
-                    (section && section.toLowerCase().includes('итого')) ||
-                    (dishName && dishName.toLowerCase().includes('итого'))) {
-                    continue;
-                }
-
-                if (dishName && (dishName.trim() === '' || dishName.trim().startsWith('[') || dishName.trim() === '[')) {
-                    continue;
-                }
-
-                if (dishName || section) {
+            if (currWeek && currDay && currMeal) {
+                const sec = row[3] ? row[3].toString().trim() : '';
+                const name = row[4] ? row[4].toString().trim() : '';
+                if (name && !name.startsWith('[') && !name.toLowerCase().includes('итого')) {
                     const dish = {
-                        section: GEN_normalizeSectionName(section),
-                        originalSection: section,
-                        name: dishName || '',
-                        weight: parseFloat(row[5]) || 0,
-                        proteins: parseFloat(row[6]) || 0,
-                        fats: parseFloat(row[7]) || 0,
-                        carbs: parseFloat(row[8]) || 0,
+                        section: GEN_normalizeSectionName(sec), originalSection: sec, name,
+                        weight: parseFloat(row[5]) || 0, proteins: parseFloat(row[6]) || 0,
+                        fats: parseFloat(row[7]) || 0, carbs: parseFloat(row[8]) || 0,
                         calories: parseFloat(row[9]) || 0,
-                        recipeId: row[10] ? row[10].toString().trim() : '',
+                        recipeId: row[10] ? row[10].toString() : '',
                         price: parseFloat(row[11]) || 0
                     };
-
-                    if (!dish.name || dish.name.trim() === '') continue;
-
-                    const day = state.templateMenuData.weeks[currentWeek]?.[currentDay];
-                    if (day && day[currentMeal]) {
-                        const isDuplicate = day[currentMeal].items.some(item =>
-                            item.name === dish.name && item.section === dish.section
-                        );
-                        if (!isDuplicate) {
-                            day[currentMeal].items.push(dish);
-                        }
-                    }
+                    const day = state.templateMenuData.weeks[currWeek][currDay];
+                    const isDup = day[currMeal].items.some(it => it.name === dish.name && it.section === dish.section);
+                    if (!isDup) day[currMeal].items.push(dish);
                 }
             }
         }
 
-        // Сортировка
-        for (const weekNum in state.templateMenuData.weeks) {
-            const week = state.templateMenuData.weeks[weekNum];
-            for (const dayNum in week) {
-                const day = week[dayNum];
-                for (const mealType in day) {
-                    if (day[mealType] && day[mealType].items) {
-                        day[mealType].items = GEN_sortMealItemsByStructure(day[mealType].items, mealType);
-                    }
+        for (let w in state.templateMenuData.weeks) {
+            for (let d in state.templateMenuData.weeks[w]) {
+                for (let m in state.templateMenuData.weeks[w][d]) {
+                    state.templateMenuData.weeks[w][d][m].items =
+                        GEN_sortMealItemsByStructure(state.templateMenuData.weeks[w][d][m].items, m);
                 }
             }
         }
-
         GEN_showStatus(`Типовое меню ФЦМПО загружено из файла ${fileName}`, 'success');
         updateMenuPreview();
     }
 
     // ============================================================
-    // ПРЕДПРОСМОТР
+    // ПРЕДПРОСМОТР (полная логика v1.0)
     // ============================================================
 
     function updateCalendarPreview() {
-        const el = state.elements.calendarPreview;
+        const el = state.elements.calendarData;
         if (!el) return;
-
         if (!state.calendarData) {
             el.innerHTML = '<p style="color:#e74c3c;padding:20px;text-align:center;"><i class="fas fa-exclamation-triangle"></i> Календарь ФЦМПО не загружен</p>';
             return;
@@ -969,444 +552,245 @@ const GeneratorModule = (function () {
         let html = '<div style="margin-bottom:20px;">';
         html += `<p><strong><i class="fas fa-calendar"></i> Год:</strong> ${state.currentYear}</p>`;
         html += `<p><strong><i class="fas fa-layer-group"></i> Месяцев с данными:</strong> ${Object.keys(state.calendarData.months || {}).length}</p>`;
-
-        let daysWithMenu = 0;
-        let totalPossibleDays = 0;
-        if (state.calendarData.months) {
-            for (const month in state.calendarData.months) {
-                for (const day in state.calendarData.months[month]) {
-                    totalPossibleDays++;
-                    if (state.calendarData.months[month][day] !== undefined) daysWithMenu++;
-                }
-            }
-        }
-        html += `<p><strong><i class="fas fa-check-circle"></i> Дней с меню:</strong> ${daysWithMenu} из ${totalPossibleDays}</p>`;
         if (state.calendarData.schoolName) {
             html += `<p><strong><i class="fas fa-school"></i> Школа:</strong> ${state.calendarData.schoolName}</p>`;
         }
         html += '</div>';
 
-        html += '<table class="gen-calendar-table">';
-        html += '<tr><th class="gen-month-header">Месяц</th>';
-        for (let day = 1; day <= 31; day++) html += `<th>${day}</th>`;
+        html += '<table class="gen-calendar-table"><tr><th class="gen-month-header">Месяц</th>';
+        for (let d = 1; d <= 31; d++) html += `<th>${d}</th>`;
         html += '</tr>';
 
-        for (const monthName of GEN_MONTH_NAMES) {
-            if (state.calendarData.months && state.calendarData.months[monthName]) {
-                html += `<tr><td class="gen-month-header">${monthName}</td>`;
-                for (let day = 1; day <= 31; day++) {
-                    const menuType = state.calendarData.months[monthName][day];
-                    html += menuType !== undefined
-                        ? `<td class="gen-has-menu">${menuType}</td>`
-                        : '<td></td>';
+        for (const m of GEN_MONTH_NAMES) {
+            if (state.calendarData.months && state.calendarData.months[m]) {
+                html += `<tr><td class="gen-month-header">${m}</td>`;
+                for (let d = 1; d <= 31; d++) {
+                    const t = state.calendarData.months[m][d];
+                    html += t !== undefined ? `<td class="gen-has-menu">${t}</td>` : '<td></td>';
                 }
                 html += '</tr>';
             }
         }
         html += '</table>';
-
-        html += `
-            <div class="gen-calendar-legend">
-                <div class="gen-legend-item">
-                    <div class="gen-legend-color" style="background:linear-gradient(135deg,#d5f4e6,#c1eed8);"></div>
-                    <span>День с меню (цифра - тип меню 1-10)</span>
-                </div>
-                <div class="gen-legend-item">
-                    <div class="gen-legend-color" style="background:white;border:2px solid #e0e6ed;"></div>
-                    <span>Нет меню (0 или пусто)</span>
-                </div>
-            </div>
-        `;
-
         el.innerHTML = html;
     }
 
-    function toggleMenuPreviewView() {
-        state.isMenuGridView = !state.isMenuGridView;
-        if (state.elements.toggleMenuViewBtn) {
-            state.elements.toggleMenuViewBtn.innerHTML = state.isMenuGridView
-                ? '<i class="fas fa-list"></i> Список'
-                : '<i class="fas fa-th"></i> Сетка';
-        }
-        updateMenuPreview();
-    }
-
     function updateMenuPreview() {
-        const el = state.elements.menuPreview;
+        const el = state.elements.menuData;
         if (!el) return;
-
         if (!state.templateMenuData || !state.templateMenuData.weeks) {
             el.innerHTML = '<p style="color:#e74c3c;padding:20px;text-align:center;"><i class="fas fa-exclamation-triangle"></i> Меню ФЦМПО не загружено</p>';
             return;
         }
 
-        if (state.isMenuGridView) {
-            let html = '<div class="gen-menu-preview-grid">';
+        let html = '<div class="gen-menu-preview-grid">';
+        const allDays = [];
+        let totalDishes = 0;
 
-            const allDays = [];
-            let totalDishes = 0;
-
-            for (const weekNum in state.templateMenuData.weeks) {
-                const week = state.templateMenuData.weeks[weekNum];
-                for (const dayNum in week) {
-                    const day = week[dayNum];
-                    let dayDishes = 0;
-                    for (const mealType in day) {
-                        if (day[mealType] && day[mealType].items) {
-                            dayDishes += day[mealType].items.length;
-                        }
-                    }
-                    totalDishes += dayDishes;
-
-                    allDays.push({
-                        week: weekNum,
-                        day: dayNum,
-                        dishes: dayDishes,
-                        breakfastCount: day.breakfast?.items?.length || 0,
-                        breakfast2Count: day.breakfast2?.items?.length || 0,
-                        lunchCount: day.lunch?.items?.length || 0,
-                        afternoonSnackCount: day.afternoonSnack?.items?.length || 0,
-                        dinnerCount: day.dinner?.items?.length || 0,
-                        dinner2Count: day.dinner2?.items?.length || 0
-                    });
-                }
+        for (const w in state.templateMenuData.weeks) {
+            const week = state.templateMenuData.weeks[w];
+            for (const d in week) {
+                const day = week[d];
+                let cnt = 0;
+                for (const m in day) if (day[m].items) cnt += day[m].items.length;
+                totalDishes += cnt;
+                allDays.push({
+                    week: w, day: d, dishes: cnt,
+                    b: day.breakfast?.items?.length || 0,
+                    b2: day.breakfast2?.items?.length || 0,
+                    l: day.lunch?.items?.length || 0,
+                    s: day.afternoonSnack?.items?.length || 0,
+                    dn: day.dinner?.items?.length || 0,
+                    dn2: day.dinner2?.items?.length || 0
+                });
             }
-
-            allDays.sort((a, b) => a.week === b.week ? a.day - b.day : a.week - b.week);
-
-            allDays.forEach(d => {
-                html += `
-                    <div class="gen-menu-preview-day ${d.dishes > 0 ? 'gen-has-menu' : ''}">
-                        <div class="gen-day-number">${d.week}.${d.day}</div>
-                        <div class="gen-day-info">
-                            ${d.dishes} блюд<br>
-                            <small>З:${d.breakfastCount}/З2:${d.breakfast2Count}/О:${d.lunchCount}/П:${d.afternoonSnackCount}/У:${d.dinnerCount}/У2:${d.dinner2Count}</small>
-                        </div>
-                    </div>
-                `;
-            });
-            html += '</div>';
-
-            html += `
-                <div class="gen-preview-info">
-                    <p><strong><i class="fas fa-chart-bar"></i> Всего:</strong> ${Object.keys(state.templateMenuData.weeks).length} недель, ${allDays.length} дней, ${totalDishes} блюд</p>
-                    <p><strong><i class="fas fa-school"></i> Школа:</strong> ${state.templateMenuData.schoolName || 'Не указана'}</p>
-                    <p><strong><i class="fas fa-user-friends"></i> Возрастная категория:</strong> ${state.templateMenuData.ageCategory || 'Не указана'}</p>
-                </div>
-            `;
-            el.innerHTML = html;
-        } else {
-            let html = '<table class="gen-preview-table">';
-            html += '<tr><th>Неделя</th><th>День</th><th>З</th><th>З2</th><th>О</th><th>П</th><th>У</th><th>У2</th><th>Всего</th><th>Пример блюда</th></tr>';
-
-            let count = 0;
-            for (const weekNum in state.templateMenuData.weeks) {
-                if (count >= 10) break;
-                const week = state.templateMenuData.weeks[weekNum];
-                for (const dayNum in week) {
-                    if (count >= 10) break;
-                    const day = week[dayNum];
-                    const breakfastCount = day.breakfast?.items?.length || 0;
-                    const breakfast2Count = day.breakfast2?.items?.length || 0;
-                    const lunchCount = day.lunch?.items?.length || 0;
-                    const afternoonSnackCount = day.afternoonSnack?.items?.length || 0;
-                    const dinnerCount = day.dinner?.items?.length || 0;
-                    const dinner2Count = day.dinner2?.items?.length || 0;
-                    const total = breakfastCount + breakfast2Count + lunchCount + afternoonSnackCount + dinnerCount + dinner2Count;
-
-                    let sampleDish = '-';
-                    for (const mealType in day) {
-                        if (day[mealType] && day[mealType].items && day[mealType].items.length > 0) {
-                            sampleDish = day[mealType].items[0].name.substring(0, 30) +
-                                (day[mealType].items[0].name.length > 30 ? '...' : '');
-                            break;
-                        }
-                    }
-
-                    html += `<tr>
-                        <td>${weekNum}</td><td>${dayNum}</td>
-                        <td>${breakfastCount}</td><td>${breakfast2Count}</td>
-                        <td>${lunchCount}</td><td>${afternoonSnackCount}</td>
-                        <td>${dinnerCount}</td><td>${dinner2Count}</td>
-                        <td>${total}</td><td title="${sampleDish}">${sampleDish}</td>
-                    </tr>`;
-                    count++;
-                }
-            }
-            html += '</table>';
-
-            html += `
-                <div class="gen-preview-info">
-                    <p><strong><i class="fas fa-school"></i> Школа:</strong> ${state.templateMenuData.schoolName || 'Не указана'}</p>
-                    <p><strong><i class="fas fa-user-friends"></i> Возрастная категория:</strong> ${state.templateMenuData.ageCategory || 'Не указана'}</p>
-                    <p><strong><i class="fas fa-calendar-week"></i> Количество недель:</strong> ${Object.keys(state.templateMenuData.weeks).length}</p>
-                </div>
-            `;
-            el.innerHTML = html;
         }
+        allDays.sort((a, b) => a.week === b.week ? a.day - b.day : a.week - b.week);
+
+        allDays.forEach(d => {
+            html += `<div class="gen-menu-preview-day ${d.dishes > 0 ? 'gen-has-menu' : ''}">
+                <div class="gen-day-number">${d.week}.${d.day}</div>
+                <div class="gen-day-info">${d.dishes} блюд<br>
+                <small>З:${d.b}/З2:${d.b2}/О:${d.l}/П:${d.s}/У:${d.dn}/У2:${d.dn2}</small></div>
+            </div>`;
+        });
+        html += '</div>';
+        html += `<div class="gen-preview-info">
+            <p><strong>Всего:</strong> ${allDays.length} дней, ${totalDishes} блюд</p>
+            <p><strong>Школа:</strong> ${state.templateMenuData.schoolName || 'Не указана'}</p>
+        </div>`;
+        el.innerHTML = html;
     }
 
     // ============================================================
-    // ГЕНЕРАЦИЯ ЕЖЕДНЕВНЫХ МЕНЮ
+    // ГЕНЕРАЦИЯ (логика v2.0 с UX-улучшениями)
     // ============================================================
 
     function generateDailyMenus() {
         if (!state.calendarData || !state.templateMenuData) {
-            GEN_showStatus('Не загружены необходимые файлы ФЦМПО', 'error');
-            return;
+            GEN_showStatus('Загрузите оба файла', 'error'); return;
         }
 
-        const startDate = new Date(state.elements.startDateInput.value);
-        const endDate = new Date(state.elements.endDateInput.value);
-
-        if (startDate > endDate) {
-            GEN_showStatus('Начальная дата не может быть позже конечной', 'error');
-            return;
-        }
-        if (startDate.getFullYear() !== state.currentYear || endDate.getFullYear() !== state.currentYear) {
-            GEN_showStatus(`Даты должны быть в пределах ${state.currentYear} года`, 'error');
-            return;
-        }
+        const start = new Date(state.elements.startDate.value);
+        const end = new Date(state.elements.endDate.value);
+        if (start > end) { GEN_showStatus('Дата начала позже конца', 'error'); return; }
 
         state.dailyMenus = [];
-
-        let currentDate = new Date(startDate);
+        let currDate = new Date(start);
         let generatedCount = 0;
         let errorCount = 0;
 
         const btn = state.elements.generateBtn;
-        btn.innerHTML = '<span class="gen-loading"></span> Генерация...';
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Генерация...';
         btn.disabled = true;
 
-        const progressBar = document.createElement('div');
-        progressBar.className = 'gen-progress-bar';
-        const progressFill = document.createElement('div');
-        progressFill.className = 'gen-progress-fill';
-        progressBar.appendChild(progressFill);
-        if (state.elements.statusMessage) {
-            state.elements.statusMessage.parentNode.insertBefore(progressBar, state.elements.statusMessage.nextSibling);
-        }
+        setTimeout(() => {
+            while (currDate <= end) {
+                const y = currDate.getFullYear();
+                const m = currDate.getMonth();
+                const d = currDate.getDate();
+                const mName = GEN_MONTH_NAMES[m];
 
-        const totalDays = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
-        let processedDays = 0;
+                let menuType = null;
+                if (state.calendarData.months[mName]?.[d]) menuType = state.calendarData.months[mName][d];
 
-        const interval = setInterval(() => {
-            if (currentDate > endDate) {
-                clearInterval(interval);
-
-                if (state.dailyMenus.length > 0) {
-                    state.currentMenuIndex = 0;
-                    if (state.elements.menuNavigation) state.elements.menuNavigation.style.display = 'flex';
-                    if (state.elements.menuStats) state.elements.menuStats.style.display = 'flex';
-                    if (state.elements.menuGrid) state.elements.menuGrid.style.display = 'grid';
-                    if (state.elements.dailyMenuContent) state.elements.dailyMenuContent.style.display = 'none';
-                    if (state.elements.detailedView) state.elements.detailedView.classList.remove('active');
-
-                    if (state.elements.exportAllBtn) state.elements.exportAllBtn.disabled = false;
-                    if (state.elements.exportCurrentBtn) state.elements.exportCurrentBtn.disabled = false;
-
-                    updateMenuGrid();
-                    updateMenuStats();
-                    saveToLocalStorage();
-
-                    state.isGridView = true;
-                    if (state.elements.toggleViewBtn) {
-                        state.elements.toggleViewBtn.innerHTML = '<i class="fas fa-list"></i> Детальный вид';
-                    }
-                    progressBar.remove();
-                } else {
-                    if (state.elements.menuNavigation) state.elements.menuNavigation.style.display = 'none';
-                    if (state.elements.menuStats) state.elements.menuStats.style.display = 'none';
-                    if (state.elements.menuGrid) state.elements.menuGrid.style.display = 'none';
-                    if (state.elements.dailyMenuContent) state.elements.dailyMenuContent.style.display = 'block';
-                    if (state.elements.exportAllBtn) state.elements.exportAllBtn.disabled = true;
-                    if (state.elements.exportCurrentBtn) state.elements.exportCurrentBtn.disabled = true;
-                    progressBar.remove();
-                }
-
-                if (generatedCount > 0) {
-                    GEN_showStatus(`Сгенерировано ${generatedCount} ежедневных меню${errorCount > 0 ? ` (ошибок: ${errorCount})` : ''}`, 'success');
-                } else {
-                    GEN_showStatus('Не удалось сгенерировать ни одного меню для выбранного периода', 'error');
-                }
-
-                btn.innerHTML = '<i class="fas fa-magic"></i> Создать ежедневные меню';
-                btn.disabled = false;
-                return;
-            }
-
-            const year = currentDate.getFullYear();
-            const month = currentDate.getMonth();
-            const day = currentDate.getDate();
-            const monthName = GEN_MONTH_NAMES[month];
-
-            let menuType = null;
-            if (state.calendarData?.months?.[monthName]?.[day]) {
-                menuType = state.calendarData.months[monthName][day];
-            }
-
-            if (menuType !== null) {
-                let maxDayInWeek = 5;
-                if (state.templateMenuData && state.templateMenuData.weeks) {
-                    for (const week in state.templateMenuData.weeks) {
-                        for (const d in state.templateMenuData.weeks[week]) {
-                            const dn = parseInt(d);
-                            if (dn > maxDayInWeek) maxDayInWeek = dn;
+                if (menuType !== null) {
+                    let maxDay = 5;
+                    for (let w in state.templateMenuData.weeks) {
+                        for (let dn in state.templateMenuData.weeks[w]) {
+                            const n = parseInt(dn); if (n > maxDay) maxDay = n;
                         }
                     }
-                }
+                    const weekNum = Math.ceil(menuType / maxDay);
+                    const dayNum = menuType - (weekNum - 1) * maxDay;
 
-                const weekNum = Math.ceil(menuType / maxDayInWeek);
-                const dayNum = menuType - (weekNum - 1) * maxDayInWeek;
-
-                if (state.templateMenuData.weeks[weekNum]?.[dayNum]) {
-                    const templateDay = state.templateMenuData.weeks[weekNum][dayNum];
-                    const sortedDay = {};
-
-                    for (const mealType in templateDay) {
-                        if (templateDay[mealType] && templateDay[mealType].items) {
-                            sortedDay[mealType] = { items: GEN_sortMealItemsByStructure(templateDay[mealType].items, mealType) };
-                        } else {
-                            sortedDay[mealType] = { items: [] };
+                    if (state.templateMenuData.weeks[weekNum]?.[dayNum]) {
+                        const tpl = state.templateMenuData.weeks[weekNum][dayNum];
+                        const sortedDay = {};
+                        for (const mt in tpl) {
+                            sortedDay[mt] = { items: GEN_sortMealItemsByStructure(tpl[mt]?.items || [], mt) };
                         }
-                    }
-
-                    state.dailyMenus.push({
-                        date: new Date(currentDate),
-                        dateString: GEN_formatDate(currentDate),
-                        fileName: `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}-sm.xlsx`,
-                        schoolName: state.elements.schoolNameInput?.value || state.templateMenuData.schoolName,
-                        ageCategory: state.elements.ageCategoryInput?.value || state.templateMenuData.ageCategory,
-                        weekNumber: weekNum,
-                        dayNumber: dayNum,
-                        menuType: menuType,
-                        breakfast: sortedDay.breakfast,
-                        breakfast2: sortedDay.breakfast2,
-                        lunch: sortedDay.lunch,
-                        afternoonSnack: sortedDay.afternoonSnack,
-                        dinner: sortedDay.dinner,
-                        dinner2: sortedDay.dinner2
-                    });
-                    generatedCount++;
-                } else {
-                    errorCount++;
+                        state.dailyMenus.push({
+                            date: new Date(currDate),
+                            dateString: GEN_formatDate(currDate),
+                            fileName: `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}-sm.xlsx`,
+                            schoolName: state.elements.schoolName?.value || state.templateMenuData.schoolName || 'Школа',
+                            ageCategory: state.elements.ageCategory?.value || state.templateMenuData.ageCategory || '',
+                            weekNumber: weekNum, dayNumber: dayNum, menuType,
+                            breakfast: sortedDay.breakfast, breakfast2: sortedDay.breakfast2,
+                            lunch: sortedDay.lunch, afternoonSnack: sortedDay.afternoonSnack,
+                            dinner: sortedDay.dinner, dinner2: sortedDay.dinner2
+                        });
+                        generatedCount++;
+                    } else errorCount++;
                 }
+                currDate.setDate(currDate.getDate() + 1);
             }
 
-            currentDate.setDate(currentDate.getDate() + 1);
-            processedDays++;
-            progressFill.style.width = `${(processedDays / totalDays) * 100}%`;
-        }, 50);
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+
+            if (generatedCount > 0) {
+                btn.style.display = 'none';
+                if (state.elements.exportContainer) state.elements.exportContainer.style.display = 'block';
+
+                state.currentMenuIndex = 0;
+                if (state.elements.menuNavigation) state.elements.menuNavigation.style.display = 'flex';
+                if (state.elements.menuStats) state.elements.menuStats.style.display = 'flex';
+                if (state.elements.menuGrid) { state.elements.menuGrid.style.display = 'grid'; updateMenuGrid(); }
+                if (state.elements.menuCounter) state.elements.menuCounter.textContent = `1 из ${state.dailyMenus.length}`;
+                if (state.elements.currentMenuDate) state.elements.currentMenuDate.textContent = state.dailyMenus[0].dateString;
+
+                updateMenuStats();
+                saveToLocalStorage();
+                GEN_showStatus(`Успешно сгенерировано ${generatedCount} меню${errorCount ? ` (ошибок: ${errorCount})` : ''}!`, 'success');
+            } else {
+                GEN_showStatus('Нет данных для выбранного периода', 'error');
+            }
+        }, 300);
     }
 
     // ============================================================
-    // EXCEL СТРУКТУРА
+    // EXCEL (полная структура v1.0 + оформление v2.0)
     // ============================================================
 
     function createExcelDataWithProperStructure(menu) {
-        const data = [];
+        const data = [
+            ['Школа', menu.schoolName, '', '', 'Отд./корп', '', '', '', 'День', GEN_formatDate(menu.date, 'excel')],
+            ['', '', '', '', '', '', '', '', '', ''],
+            ['Прием пищи', 'Раздел', '№ рец.', 'Блюдо', 'Выход, г', 'Цена', 'Калорийность', 'Белки', 'Жиры', 'Углеводы']
+        ];
 
-        const schoolName = menu.schoolName || '';
-        data.push(['Школа', schoolName, '', '', 'Отд./корп', '', '', '', 'День',
-            `${String(menu.date.getDate()).padStart(2, '0')}.${String(menu.date.getMonth() + 1).padStart(2, '0')}.${menu.date.getFullYear()}`]);
+        const addMeal = (name, type, items, alwaysShow = false) => {
+            const realItems = (items || []).filter(i => i.name && i.name.trim() && !i.name.trim().startsWith('['));
+            if (!realItems.length && !alwaysShow) return;
 
-        data.push(['', '', '', '', '', '', '', '', '', '']);
-
-        data.push(['Прием пищи', 'Раздел', '№ рец.', 'Блюдо', 'Выход, г', 'Цена', 'Калорийность', 'Белки', 'Жиры', 'Углеводы']);
-
-        const addMeal = (mealName, mealType, items, alwaysShow = false) => {
-            const mealItems = items || [];
-            const realItems = mealItems.filter(item => {
-                const name = item.name || '';
-                return name && name.trim() !== '' && !name.trim().startsWith('[') && name.trim() !== '[';
+            const structure = GEN_MEAL_STRUCTURE[type];
+            const sorted = GEN_sortMealItemsByStructure(items || [], type);
+            const bySection = new Map();
+            sorted.forEach(it => {
+                const sec = GEN_normalizeSectionName(it.section || '');
+                if (!bySection.has(sec)) bySection.set(sec, []);
+                bySection.get(sec).push(it);
             });
 
-            const hasRealItems = realItems.length > 0;
+            let first = true;
 
-            if (hasRealItems || alwaysShow) {
-                const structure = GEN_MEAL_STRUCTURE[mealType];
-
-                if (mealType === 'breakfast2') {
-                    const sortedItems = GEN_sortMealItemsByStructure(mealItems, mealType);
-                    const section = 'фрукты';
-
-                    if (sortedItems.length > 0 && sortedItems[0].name && sortedItems[0].name.trim() !== '') {
-                        const item = sortedItems[0];
-                        data.push([mealName, section, item.recipeId || '', item.name || '',
-                            item.weight || '', item.price || '', item.calories || '',
-                            item.proteins || '', item.fats || '', item.carbs || '']);
-                    } else {
-                        data.push([mealName, section, '', '', '', '', '', '', '', '']);
-                    }
-                    data.push(['', '', '', '', '', '', '', '', '', '']);
-                    return;
+            if (type === 'breakfast2') {
+                const it = sorted[0];
+                if (it && it.name && it.name.trim()) {
+                    data.push([name, 'фрукты', it.recipeId || '', it.name, it.weight || '',
+                        it.price || 0, it.calories || 0, it.proteins || 0, it.fats || 0, it.carbs || 0]);
+                } else {
+                    data.push([name, 'фрукты', '', '', '', '', '', '', '', '']);
                 }
+                data.push(['', '', '', '', '', '', '', '', '', '']);
+                return;
+            }
 
-                const sortedItems = GEN_sortMealItemsByStructure(mealItems, mealType);
-                const itemsBySection = new Map();
-                sortedItems.forEach(item => {
-                    const section = GEN_normalizeSectionName(item.section || '');
-                    if (!itemsBySection.has(section)) itemsBySection.set(section, []);
-                    itemsBySection.get(section).push(item);
-                });
-
-                let isFirstItem = true;
-
-                if (structure) {
-                    if (mealType === 'lunch' || alwaysShow) {
-                        for (const section of structure.sections) {
-                            const sectionItems = itemsBySection.get(section) || [];
-
-                            if (sectionItems.length > 0) {
-                                sectionItems.forEach(item => {
-                                    if (item.name && item.name.trim() !== '') {
-                                        data.push([isFirstItem ? mealName : '', item.originalSection || item.section || '',
-                                            item.recipeId || '', item.name || '', item.weight || '',
-                                            item.price || '', item.calories || '', item.proteins || '',
-                                            item.fats || '', item.carbs || '']);
-                                        isFirstItem = false;
-                                    }
-                                });
-                            } else {
-                                data.push([isFirstItem ? mealName : '', section, '', '', '', '', '', '', '', '']);
-                                isFirstItem = false;
-                            }
+            if (structure) {
+                if (type === 'lunch' || alwaysShow) {
+                    for (const sec of structure.sections) {
+                        const secItems = bySection.get(sec) || [];
+                        if (secItems.length) {
+                            secItems.forEach(it => {
+                                if (it.name && it.name.trim()) {
+                                    data.push([first ? name : '', it.originalSection || it.section || '', it.recipeId || '',
+                                        it.name, it.weight || '', it.price || 0, it.calories || 0,
+                                        it.proteins || 0, it.fats || 0, it.carbs || 0]);
+                                    first = false;
+                                }
+                            });
+                        } else {
+                            data.push([first ? name : '', sec, '', '', '', '', '', '', '', '']);
+                            first = false;
                         }
-                    } else {
-                        sortedItems.forEach(item => {
-                            if (item.name && item.name.trim() !== '') {
-                                data.push([isFirstItem ? mealName : '', item.originalSection || item.section || '',
-                                    item.recipeId || '', item.name || '', item.weight || '',
-                                    item.price || '', item.calories || '', item.proteins || '',
-                                    item.fats || '', item.carbs || '']);
-                                isFirstItem = false;
-                            }
-                        });
                     }
-                }
-
-                // Блюда из разделов, которых нет в структуре
-                const allSections = Array.from(itemsBySection.keys());
-                const otherSections = allSections.filter(section =>
-                    !structure || !structure.sections.includes(section)
-                );
-
-                for (const section of otherSections) {
-                    const sectionItems = itemsBySection.get(section) || [];
-                    sectionItems.forEach(item => {
-                        if (item.name && item.name.trim() !== '') {
-                            data.push(['', item.originalSection || item.section || '',
-                                item.recipeId || '', item.name || '', item.weight || '',
-                                item.price || '', item.calories || '', item.proteins || '',
-                                item.fats || '', item.carbs || '']);
+                } else {
+                    sorted.forEach(it => {
+                        if (it.name && it.name.trim()) {
+                            data.push([first ? name : '', it.originalSection || it.section || '', it.recipeId || '',
+                                it.name, it.weight || '', it.price || 0, it.calories || 0,
+                                it.proteins || 0, it.fats || 0, it.carbs || 0]);
+                            first = false;
                         }
                     });
                 }
-
-                if (!isFirstItem) {
-                    data.push(['', '', '', '', '', '', '', '', '', '']);
-                }
             }
+
+            const otherSecs = Array.from(bySection.keys()).filter(s => !structure || !structure.sections.includes(s));
+            otherSecs.forEach(sec => {
+                (bySection.get(sec) || []).forEach(it => {
+                    if (it.name && it.name.trim()) {
+                        data.push(['', it.originalSection || it.section || '', it.recipeId || '',
+                            it.name, it.weight || '', it.price || 0, it.calories || 0,
+                            it.proteins || 0, it.fats || 0, it.carbs || 0]);
+                    }
+                });
+            });
+
+            if (!first) data.push(['', '', '', '', '', '', '', '', '', '']);
         };
 
         addMeal('Завтрак', 'breakfast', menu.breakfast?.items || [], true);
@@ -1419,13 +803,8 @@ const GeneratorModule = (function () {
         return data;
     }
 
-    // ============================================================
-    // EXCELJS — СОЗДАНИЕ РАБОЧЕЙ КНИГИ
-    // ============================================================
-
-    async function createDailyMenuWorkbookWithFormatting(menu) {
+    async function createStyledWorkbook(menu) {
         const data = createExcelDataWithProperStructure(menu);
-
         const workbook = new ExcelJS.Workbook();
         workbook.creator = 'Генератор школьного питания ФЦМПО';
         workbook.created = new Date();
@@ -1434,63 +813,54 @@ const GeneratorModule = (function () {
             properties: { defaultRowHeight: 20 },
             pageSetup: { fitToPage: true }
         });
-
         worksheet.addRows(data);
 
         worksheet.columns = [
             { key: 'A', width: 12 }, { key: 'B', width: 15 }, { key: 'C', width: 8 },
-            { key: 'D', width: 35 }, { key: 'E', width: 10 }, { key: 'F', width: 10 },
+            { key: 'D', width: 40 }, { key: 'E', width: 10 }, { key: 'F', width: 10 },
             { key: 'G', width: 15 }, { key: 'H', width: 8 }, { key: 'I', width: 8 }, { key: 'J', width: 10 }
         ];
 
         worksheet.getColumn('F').numFmt = '0.00';
         worksheet.getColumn('F').alignment = { horizontal: 'right' };
-
         ['E', 'G', 'H', 'I', 'J'].forEach(col => {
             worksheet.getColumn(col).numFmt = '0';
             worksheet.getColumn(col).alignment = { horizontal: 'right' };
         });
 
-        const colorScheme = state.elements.colorSchemeInput?.value || 'default';
-        const colors = GEN_getColorScheme(colorScheme);
+        const scheme = state.elements.colorScheme?.value || 'default';
+        const colors = GEN_getColorScheme(scheme);
 
         let currentMealType = null;
         let isFirstRowOfMeal = true;
 
         worksheet.eachRow((row, rowNumber) => {
-            if (rowNumber === 2) {
-                row.height = 0;
-                row.hidden = true;
-                return;
-            }
+            if (rowNumber === 2) { row.height = 0; row.hidden = true; return; }
 
             if (rowNumber === 1) {
                 row.eachCell(cell => {
-                    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: GEN_hexToArgb(colors.school || '#cfe2f3') } };
+                    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: GEN_hexToArgb(colors.school) } };
                     cell.font = { bold: true };
                 });
                 worksheet.mergeCells('B1:D1');
             } else if (rowNumber === 3) {
                 row.eachCell(cell => {
-                    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: GEN_hexToArgb(colors.header || '#e0e0e0') } };
+                    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: GEN_hexToArgb(colors.header) } };
                     cell.font = { bold: true };
                     cell.alignment = { horizontal: 'center', vertical: 'middle' };
                 });
             } else if (rowNumber > 3) {
                 const mealCell = row.getCell('A');
                 const mealValue = mealCell.value ? mealCell.value.toString().trim() : '';
-
                 if (mealValue) {
                     currentMealType = GEN_getMealTypeFromName(mealValue);
                     isFirstRowOfMeal = true;
                 }
-
                 if (currentMealType && colors[currentMealType]) {
                     row.eachCell(cell => {
                         cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: GEN_hexToArgb(colors[currentMealType]) } };
                     });
                 }
-
                 if (isFirstRowOfMeal && mealValue) {
                     mealCell.font = { bold: true };
                     isFirstRowOfMeal = false;
@@ -1513,79 +883,149 @@ const GeneratorModule = (function () {
     }
 
     // ============================================================
-    // СЕТКА И ДЕТАЛЬНЫЙ ВИД
+    // ЭКСПОРТ (полная логика v1.0)
+    // ============================================================
+
+    async function exportCurrentMenuAsExcel() {
+        if (state.dailyMenus.length === 0) return;
+        const menu = state.dailyMenus[state.currentMenuIndex] || state.dailyMenus[0];
+        const btn = state.elements.exportCurrentBtn;
+        const originalText = btn.innerHTML;
+
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Экспорт...';
+        btn.disabled = true;
+
+        try {
+            const wb = await createStyledWorkbook(menu);
+            const buffer = await wb.xlsx.writeBuffer();
+            const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+            saveAs(blob, menu.fileName);
+            GEN_showStatus(`Файл ${menu.fileName} сохранен`, 'success');
+        } catch (error) {
+            console.error(error);
+            GEN_showStatus('Ошибка при экспорте файла', 'error');
+        } finally {
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        }
+    }
+
+    async function exportAllMenusAsZip() {
+        if (state.dailyMenus.length === 0) return;
+        const btn = state.elements.exportAllBtn;
+        const originalText = btn.innerHTML;
+
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Архивация...';
+        btn.disabled = true;
+
+        try {
+            const zip = new JSZip();
+            for (let i = 0; i < state.dailyMenus.length; i++) {
+                const menu = state.dailyMenus[i];
+                try {
+                    const wb = await createStyledWorkbook(menu);
+                    const buffer = await wb.xlsx.writeBuffer();
+                    zip.file(menu.fileName, buffer);
+                    GEN_showStatus(`Создание файлов: ${Math.round(((i+1)/state.dailyMenus.length)*100)}%`, 'info');
+                } catch (e) { console.error(`Ошибка ${menu.fileName}:`, e); }
+            }
+            const content = await zip.generateAsync({ type: 'blob' });
+            const zipName = `Меню_${state.currentYear}_${GEN_formatDate(new Date(), 'file')}.zip`;
+            saveAs(content, zipName);
+            GEN_showStatus(`Архив "${zipName}" успешно скачан`, 'success');
+        } catch (e) {
+            console.error(e);
+            GEN_showStatus('Ошибка при создании архива', 'error');
+        } finally {
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        }
+    }
+
+    function downloadTemplate() {
+        const templateData = [
+            ['Школа', 'МОУ "Примерная школа"', '', '', 'Отд./корп', 'Основной', '', '', 'День', GEN_formatDate(new Date(), 'excel')],
+            ['', '', '', '', '', '', '', '', '', ''],
+            ['Прием пищи', 'Раздел', '№ рец.', 'Блюдо', 'Выход, г', 'Цена', 'Калорийность', 'Белки', 'Жиры', 'Углеводы'],
+            ['Завтрак', 'гор.блюдо', '123', 'Каша молочная рисовая', '200', '45.50', '150', '5', '3', '25'],
+            ['', 'гор.напиток', '456', 'Чай с сахаром', '200', '10.00', '30', '0', '0', '8'],
+            ['', 'хлеб', '789', 'Хлеб пшеничный', '50', '5.00', '120', '4', '1', '24'],
+            ['', 'фрукты', '012', 'Яблоко', '100', '15.00', '52', '0', '0', '14'],
+            ['Завтрак 2', 'фрукты', '345', 'Банан', '100', '20.00', '89', '1', '0', '23'],
+            ['', '', '', '', '', '', '', '', '', ''],
+            ['Обед', 'закуска', '678', 'Салат из свеклы', '100', '25.00', '60', '1', '3', '8'],
+            ['', '1 блюдо', '901', 'Щи из свежей капусты', '250', '35.00', '80', '3', '4', '9'],
+            ['', '2 блюдо', '234', 'Котлета мясная', '80', '45.00', '180', '15', '10', '8'],
+            ['', 'гарнир', '567', 'Картофельное пюре', '150', '20.00', '130', '3', '5', '20'],
+            ['', 'напиток', '890', 'Компот из сухофруктов', '200', '15.00', '85', '0', '0', '21'],
+            ['', 'хлеб бел.', '789', 'Хлеб пшеничный', '50', '5.00', '120', '4', '1', '24'],
+            ['', 'хлеб черн.', '789', 'Хлеб ржаной', '50', '5.00', '115', '4', '1', '23']
+        ];
+        const wb = XLSX.utils.book_new();
+        const ws = XLSX.utils.aoa_to_sheet(templateData);
+        ws['!cols'] = [{ wch: 12 }, { wch: 15 }, { wch: 8 }, { wch: 40 }, { wch: 10 }, { wch: 10 }, { wch: 15 }, { wch: 8 }, { wch: 8 }, { wch: 10 }];
+        XLSX.utils.book_append_sheet(wb, ws, 'Шаблон меню ФЦМПО');
+        XLSX.writeFile(wb, 'шаблон-ежедневного-меню-фцмпо.xlsx');
+        GEN_showStatus('Шаблон ежедневного меню ФЦМПО скачан', 'success');
+    }
+
+    // ============================================================
+    // СЕТКА И ДЕТАЛЬНЫЙ ВИД (полная логика v1.0)
     // ============================================================
 
     function updateMenuGrid() {
         const el = state.elements.menuGrid;
         if (!el) return;
-        if (state.dailyMenus.length === 0) { el.innerHTML = ''; return; }
+        el.innerHTML = '';
+        if (state.dailyMenus.length === 0) return;
 
-        let html = '';
+        state.dailyMenus.forEach((menu, idx) => {
+            const b = menu.breakfast?.items?.length || 0;
+            const b2 = menu.breakfast2?.items?.length || 0;
+            const l = menu.lunch?.items?.length || 0;
+            const s = menu.afternoonSnack?.items?.length || 0;
+            const dn = menu.dinner?.items?.length || 0;
+            const dn2 = menu.dinner2?.items?.length || 0;
+            const total = b + b2 + l + s + dn + dn2;
 
-        state.dailyMenus.forEach((menu, index) => {
-            const breakfastCount = menu.breakfast?.items?.length || 0;
-            const breakfast2Count = menu.breakfast2?.items?.length || 0;
-            const lunchCount = menu.lunch?.items?.length || 0;
-            const afternoonSnackCount = menu.afternoonSnack?.items?.length || 0;
-            const dinnerCount = menu.dinner?.items?.length || 0;
-            const dinner2Count = menu.dinner2?.items?.length || 0;
-            const totalDishes = breakfastCount + breakfast2Count + lunchCount + afternoonSnackCount + dinnerCount + dinner2Count;
-
-            let breakfastSample = '';
-            let lunchSample = '';
-            if (menu.breakfast?.items?.length > 0) {
+            let bSample = '', lSample = '';
+            if (menu.breakfast?.items?.length) {
                 const d = menu.breakfast.items[0];
-                breakfastSample = d.name.substring(0, 25) + (d.name.length > 25 ? '...' : '');
+                bSample = d.name.substring(0, 25) + (d.name.length > 25 ? '...' : '');
             }
-            if (menu.lunch?.items?.length > 0) {
-                const d = menu.lunch.items.find(x => x.name && x.name.trim() !== '') || menu.lunch.items[0];
-                if (d) lunchSample = d.name.substring(0, 25) + (d.name.length > 25 ? '...' : '');
+            if (menu.lunch?.items?.length) {
+                const d = menu.lunch.items.find(x => x.name && x.name.trim()) || menu.lunch.items[0];
+                if (d) lSample = d.name.substring(0, 25) + (d.name.length > 25 ? '...' : '');
             }
 
-            const menuTypeColors = {
-                1: '#3498db', 2: '#2ecc71', 3: '#9b59b6', 4: '#e67e22', 5: '#1abc9c',
-                6: '#34495e', 7: '#d35400', 8: '#16a085', 9: '#8e44ad', 10: '#27ae60'
-            };
-            const headerColor = menuTypeColors[menu.menuType] || '#3498db';
+            const typeColors = { 1: '#3498db', 2: '#2ecc71', 3: '#9b59b6', 4: '#e67e22', 5: '#1abc9c', 6: '#34495e', 7: '#d35400', 8: '#16a085', 9: '#8e44ad', 10: '#27ae60' };
+            const hColor = typeColors[menu.menuType] || '#3498db';
 
-            html += `
-                <div class="gen-menu-card ${index === state.currentMenuIndex ? 'gen-active' : ''}"
-                     data-gen-index="${index}">
-                    <div class="gen-menu-card-header" style="background:linear-gradient(135deg,${headerColor},${GEN_adjustColor(headerColor, -20)});">
-                        <div class="gen-menu-card-date">${GEN_formatDate(menu.date, 'short')}</div>
-                        <div class="gen-menu-card-type">Меню ${menu.menuType}</div>
+            const card = document.createElement('div');
+            card.className = `gen-menu-card ${idx === state.currentMenuIndex ? 'gen-active' : ''}`;
+            card.dataset.genIndex = idx;
+            card.innerHTML = `
+                <div class="gen-menu-card-header" style="background:linear-gradient(135deg,${hColor},${GEN_adjustColor(hColor, -20)});">
+                    <div class="gen-menu-card-date">${GEN_formatDate(menu.date, 'short')}</div>
+                    <div class="gen-menu-card-type">Меню ${menu.menuType}</div>
+                </div>
+                <div class="gen-menu-card-content">
+                    <div class="gen-menu-card-meal">
+                        <div class="gen-meal-title"><i class="fas fa-sun" style="color:#f39c12;"></i> Завтрак (${b})</div>
+                        <div class="gen-meal-dishes">${bSample ? `<div class="gen-dish-item"><span class="gen-dish-name">${bSample}</span></div>` : '<em>Нет данных</em>'}</div>
                     </div>
-                    <div class="gen-menu-card-content">
-                        <div class="gen-menu-card-meal">
-                            <div class="gen-meal-title"><i class="fas fa-sun" style="color:#f39c12;"></i> Завтрак (${breakfastCount})</div>
-                            <div class="gen-meal-dishes">
-                                ${breakfastSample ? `<div class="gen-dish-item"><span class="gen-dish-name">${breakfastSample}</span></div>` : '<em>Нет данных</em>'}
-                            </div>
-                        </div>
-                        <div class="gen-menu-card-meal">
-                            <div class="gen-meal-title"><i class="fas fa-utensils" style="color:#e74c3c;"></i> Обед (${lunchCount})</div>
-                            <div class="gen-meal-dishes">
-                                ${lunchSample ? `<div class="gen-dish-item"><span class="gen-dish-name">${lunchSample}</span></div>` : '<em>Нет данных</em>'}
-                            </div>
-                        </div>
-                    </div>
-                    <div class="gen-menu-card-footer">
-                        <div>Неделя ${menu.weekNumber}, День ${menu.dayNumber}</div>
-                        <div>${totalDishes} блюд</div>
+                    <div class="gen-menu-card-meal">
+                        <div class="gen-meal-title"><i class="fas fa-utensils" style="color:#e74c3c;"></i> Обед (${l})</div>
+                        <div class="gen-meal-dishes">${lSample ? `<div class="gen-dish-item"><span class="gen-dish-name">${lSample}</span></div>` : '<em>Нет данных</em>'}</div>
                     </div>
                 </div>
+                <div class="gen-menu-card-footer">
+                    <div>Неделя ${menu.weekNumber}, День ${menu.dayNumber}</div>
+                    <div>${total} блюд</div>
+                </div>
             `;
-        });
-
-        el.innerHTML = html;
-
-        // Делегирование кликов
-        el.querySelectorAll('.gen-menu-card').forEach(card => {
-            card.addEventListener('click', function () {
-                const idx = parseInt(this.dataset.genIndex);
-                if (!isNaN(idx)) selectMenu(idx);
-            });
+            card.addEventListener('click', () => selectMenu(idx));
+            el.appendChild(card);
         });
     }
 
@@ -1594,20 +1034,16 @@ const GeneratorModule = (function () {
         document.querySelectorAll('.gen-menu-card').forEach(c => c.classList.remove('gen-active'));
         const active = document.querySelector(`.gen-menu-card[data-gen-index="${index}"]`);
         if (active) active.classList.add('gen-active');
-        showDetailedView();
+        if (state.elements.menuCounter) state.elements.menuCounter.textContent = `${index + 1} из ${state.dailyMenus.length}`;
+        if (state.elements.currentMenuDate) state.elements.currentMenuDate.textContent = state.dailyMenus[index].dateString;
+        showDetailedView(state.dailyMenus[index]);
     }
 
-    function showDetailedView() {
-        if (state.dailyMenus.length === 0 || state.currentMenuIndex >= state.dailyMenus.length) return;
-
-        const menu = state.dailyMenus[state.currentMenuIndex];
-        if (state.elements.detailMenuDate) {
-            state.elements.detailMenuDate.textContent = `${menu.dateString} (Меню ${menu.menuType})`;
-        }
-
+    function showDetailedView(menu) {
+        if (!menu) return;
+        if (state.elements.detailMenuDate) state.elements.detailMenuDate.textContent = `${menu.dateString} (Меню ${menu.menuType})`;
         updateMealsDisplay(menu);
         showExcelPreview(menu);
-
         if (state.elements.menuGrid) state.elements.menuGrid.style.display = 'none';
         if (state.elements.detailedView) state.elements.detailedView.classList.add('active');
     }
@@ -1616,315 +1052,227 @@ const GeneratorModule = (function () {
         const el = state.elements.detailMeals;
         if (!el) return;
 
-        const mealsToShow = [];
-        const filter = state.currentMealFilter;
+        const toShow = [];
+        const f = state.currentMealFilter;
+        if (f === 'all' || f === 'breakfast') toShow.push({ type: 'breakfast', data: menu.breakfast });
+        if (f === 'all' || f === 'breakfast2') toShow.push({ type: 'breakfast2', data: menu.breakfast2 });
+        if (f === 'all' || f === 'lunch') toShow.push({ type: 'lunch', data: menu.lunch });
+        if (f === 'all' || f === 'afternoonSnack') toShow.push({ type: 'afternoonSnack', data: menu.afternoonSnack });
+        if (f === 'all' || f === 'dinner') toShow.push({ type: 'dinner', data: menu.dinner });
+        if (f === 'all' || f === 'dinner2') toShow.push({ type: 'dinner2', data: menu.dinner2 });
 
-        if (filter === 'all' || filter === 'breakfast') mealsToShow.push({ type: 'breakfast', data: menu.breakfast });
-        if (filter === 'all' || filter === 'breakfast2') mealsToShow.push({ type: 'breakfast2', data: menu.breakfast2 });
-        if (filter === 'all' || filter === 'lunch') mealsToShow.push({ type: 'lunch', data: menu.lunch });
-        if (filter === 'all' || filter === 'afternoonSnack') mealsToShow.push({ type: 'afternoonSnack', data: menu.afternoonSnack });
-        if (filter === 'all' || filter === 'dinner') mealsToShow.push({ type: 'dinner', data: menu.dinner });
-        if (filter === 'all' || filter === 'dinner2') mealsToShow.push({ type: 'dinner2', data: menu.dinner2 });
+        let html = '';
+        toShow.forEach(meal => {
+            const title = GEN_MEAL_TYPES[meal.type];
+            const icon = GEN_getMealIcon(meal.type);
+            const color = GEN_getMealColor(meal.type);
+            const structure = GEN_MEAL_STRUCTURE[meal.type];
 
-        let mealsHtml = '';
+            const bySection = new Map();
+            (meal.data?.items || []).forEach(it => {
+                const s = GEN_normalizeSectionName(it.section || '');
+                if (!bySection.has(s)) bySection.set(s, []);
+                bySection.get(s).push(it);
+            });
 
-        if (mealsToShow.length === 0) {
-            mealsHtml = `<div style="padding:40px;text-align:center;color:#6c757d;">
-                <i class="fas fa-utensils fa-3x" style="margin-bottom:20px;color:#bdc3c7;"></i><br>
-                <h4>Нет данных для выбранного фильтра</h4>
-            </div>`;
-        } else {
-            mealsToShow.forEach(meal => {
-                const mealTitle = GEN_MEAL_TYPES[meal.type] || meal.type;
-                const icon = GEN_getMealIcon(meal.type);
-                const color = GEN_getMealColor(meal.type);
-                const structure = GEN_MEAL_STRUCTURE[meal.type];
-
-                let mealItemsHtml = '';
-
-                const itemsBySection = new Map();
-                if (meal.data?.items?.length > 0) {
-                    meal.data.items.forEach(item => {
-                        const section = GEN_normalizeSectionName(item.section || '');
-                        if (!itemsBySection.has(section)) itemsBySection.set(section, []);
-                        itemsBySection.get(section).push(item);
-                    });
-                }
-
-                if (structure) {
-                    structure.sections.forEach(section => {
-                        const sectionItems = itemsBySection.get(section) || [];
-                        if (sectionItems.length > 0) {
-                            sectionItems.forEach(item => {
-                                if (item.name && item.name.trim() !== '') {
-                                    mealItemsHtml += `
-                                        <div class="gen-menu-item">
-                                            <div class="gen-item-name">${item.name}</div>
-                                            <div class="gen-item-details">
-                                                <span>${item.section || 'Блюдо'}</span>
-                                                <span>${item.weight} г</span>
-                                            </div>
-                                            <div class="gen-item-details" style="margin-top:5px;">
-                                                <span>Б: ${item.proteins || 0}г</span>
-                                                <span>Ж: ${item.fats || 0}г</span>
-                                                <span>У: ${item.carbs || 0}г</span>
-                                                <span>${item.calories || 0} ккал</span>
-                                            </div>
-                                            <div class="gen-item-details">
-                                                <span>${item.price || 0} ₽</span>
-                                                <span>${item.recipeId ? `Рец. ${item.recipeId}` : ''}</span>
-                                            </div>
-                                        </div>
-                                    `;
-                                }
-                            });
-                        } else {
-                            mealItemsHtml += `
-                                <div class="gen-menu-item" style="opacity:0.6;">
-                                    <div class="gen-item-name" style="color:#6c757d;"><em>${section} (нет данных)</em></div>
-                                    <div class="gen-item-details"><span>Раздел отсутствует</span><span>0 г</span></div>
-                                </div>
-                            `;
-                        }
-                    });
-                }
-
-                const otherSections = Array.from(itemsBySection.keys()).filter(section =>
-                    !structure || !structure.sections.includes(section)
-                );
-                otherSections.forEach(section => {
-                    const sectionItems = itemsBySection.get(section) || [];
-                    sectionItems.forEach(item => {
-                        if (item.name && item.name.trim() !== '') {
-                            mealItemsHtml += `
-                                <div class="gen-menu-item" style="border-left:3px solid #f39c12;">
-                                    <div class="gen-item-name">${item.name} <small style="color:#f39c12;">(доп. раздел)</small></div>
+            let itemsHtml = '';
+            if (structure) {
+                structure.sections.forEach(sec => {
+                    const its = bySection.get(sec) || [];
+                    if (its.length) {
+                        its.forEach(it => {
+                            if (it.name && it.name.trim()) {
+                                itemsHtml += `<div class="gen-menu-item">
+                                    <div class="gen-item-name">${it.name}</div>
                                     <div class="gen-item-details">
-                                        <span>${item.section || 'Блюдо'}</span>
-                                        <span>${item.weight} г</span>
+                                        <span>${it.section || 'Блюдо'}</span><span>${it.weight} г</span>
                                     </div>
                                     <div class="gen-item-details" style="margin-top:5px;">
-                                        <span>Б: ${item.proteins || 0}г</span>
-                                        <span>Ж: ${item.fats || 0}г</span>
-                                        <span>У: ${item.carbs || 0}г</span>
-                                        <span>${item.calories || 0} ккал</span>
+                                        <span>Б:${it.proteins || 0}г</span><span>Ж:${it.fats || 0}г</span>
+                                        <span>У:${it.carbs || 0}г</span><span>${it.calories || 0} ккал</span>
                                     </div>
-                                </div>
-                            `;
-                        }
-                    });
+                                </div>`;
+                            }
+                        });
+                    } else {
+                        itemsHtml += `<div class="gen-menu-item" style="opacity:0.6;">
+                            <div class="gen-item-name" style="color:#64748b;"><em>${sec} (нет данных)</em></div>
+                        </div>`;
+                    }
                 });
+            }
 
-                mealsHtml += `
-                    <div class="gen-menu-section">
-                        <div class="gen-section-title">
-                            <i class="fas ${icon}" style="color:${color};"></i> ${mealTitle}
-                        </div>
-                        <div class="gen-menu-items">
-                            ${mealItemsHtml || '<div class="gen-menu-item"><em>Нет данных в меню</em></div>'}
-                        </div>
-                    </div>
-                `;
+            const others = Array.from(bySection.keys()).filter(s => !structure || !structure.sections.includes(s));
+            others.forEach(sec => {
+                (bySection.get(sec) || []).forEach(it => {
+                    if (it.name && it.name.trim()) {
+                        itemsHtml += `<div class="gen-menu-item" style="border-left:3px solid #f39c12;">
+                            <div class="gen-item-name">${it.name} <small style="color:#f39c12;">(доп.)</small></div>
+                            <div class="gen-item-details"><span>${it.section}</span><span>${it.weight} г</span></div>
+                        </div>`;
+                    }
+                });
             });
-        }
 
-        el.innerHTML = mealsHtml;
+            html += `<div class="gen-menu-section">
+                <div class="gen-section-title"><i class="fas ${icon}" style="color:${color};"></i> ${title}</div>
+                <div class="gen-menu-items">${itemsHtml || '<div class="gen-menu-item"><em>Нет данных</em></div>'}</div>
+            </div>`;
+        });
+
+        el.innerHTML = html || '<p style="color:#64748b;padding:20px;">Нет данных для выбранного фильтра</p>';
     }
 
     function showExcelPreview(menu) {
         const el = state.elements.excelPreview;
         if (!el) return;
+        const data = createExcelDataWithProperStructure(menu);
+        let html = '';
 
-        const excelData = createExcelDataWithProperStructure(menu);
-        let previewHtml = '';
-
-        excelData.forEach((row, rowIndex) => {
-            let rowClass = '';
-            let isMealHeader = false;
-
-            if (rowIndex === 0) rowClass = 'gen-excel-school';
-            else if (rowIndex === 2) rowClass = 'gen-excel-header';
-            else if (['Завтрак', 'Завтрак 2', 'Обед', 'Полдник', 'Ужин', 'Ужин 2'].includes(row[0])) {
-                isMealHeader = true;
-                if (row[0] === 'Завтрак' || row[0] === 'Завтрак 2') rowClass = 'gen-excel-breakfast';
-                else if (row[0] === 'Обед') rowClass = 'gen-excel-lunch';
-                else if (row[0] === 'Полдник') rowClass = 'gen-excel-afternoon-snack';
-                else if (row[0] === 'Ужин') rowClass = 'gen-excel-dinner';
-                else if (row[0] === 'Ужин 2') rowClass = 'gen-excel-dinner2';
-            } else if (rowIndex > 2 && row[0] === '') {
-                for (let i = rowIndex - 1; i >= 0; i--) {
-                    if (excelData[i][0] && excelData[i][0] !== '') {
-                        if (excelData[i][0] === 'Завтрак' || excelData[i][0] === 'Завтрак 2') rowClass = 'gen-excel-breakfast';
-                        else if (excelData[i][0] === 'Обед') rowClass = 'gen-excel-lunch';
-                        else if (excelData[i][0] === 'Полдник') rowClass = 'gen-excel-afternoon-snack';
-                        else if (excelData[i][0] === 'Ужин') rowClass = 'gen-excel-dinner';
-                        else if (excelData[i][0] === 'Ужин 2') rowClass = 'gen-excel-dinner2';
+        data.forEach((row, ri) => {
+            let cls = '';
+            let isHeader = false;
+            if (ri === 0) cls = 'gen-excel-school';
+            else if (ri === 2) cls = 'gen-excel-header';
+            else if (['Завтрак','Завтрак 2','Обед','Полдник','Ужин','Ужин 2'].includes(row[0])) {
+                isHeader = true;
+                if (row[0].includes('Завтрак')) cls = 'gen-excel-breakfast';
+                else if (row[0] === 'Обед') cls = 'gen-excel-lunch';
+                else if (row[0] === 'Полдник') cls = 'gen-excel-afternoon-snack';
+                else if (row[0] === 'Ужин') cls = 'gen-excel-dinner';
+                else if (row[0] === 'Ужин 2') cls = 'gen-excel-dinner2';
+            } else if (ri > 2 && row[0] === '') {
+                for (let i = ri - 1; i >= 0; i--) {
+                    if (data[i][0]) {
+                        if (data[i][0].includes('Завтрак')) cls = 'gen-excel-breakfast';
+                        else if (data[i][0] === 'Обед') cls = 'gen-excel-lunch';
+                        else if (data[i][0] === 'Полдник') cls = 'gen-excel-afternoon-snack';
+                        else if (data[i][0] === 'Ужин') cls = 'gen-excel-dinner';
+                        else if (data[i][0] === 'Ужин 2') cls = 'gen-excel-dinner2';
                         break;
                     }
                 }
             }
-
-            previewHtml += '<div class="gen-excel-row">';
-            row.forEach(cell => {
-                const content = cell !== null && cell !== undefined ? cell.toString() : '';
-                previewHtml += `<div class="gen-excel-cell ${isMealHeader ? '' : rowClass}">${content}</div>`;
+            html += '<div class="gen-excel-row">';
+            row.forEach(c => {
+                html += `<div class="gen-excel-cell ${isHeader ? '' : cls}">${c !== null && c !== undefined ? c : ''}</div>`;
             });
-            previewHtml += '</div>';
+            html += '</div>';
         });
-
-        el.innerHTML = previewHtml;
+        el.innerHTML = html;
     }
 
     // ============================================================
-    // НАВИГАЦИЯ
+    // НАВИГАЦИЯ (полная логика v1.0)
     // ============================================================
 
-    function navigateMenus(direction) {
+    function navigateMenus(dir) {
         if (state.dailyMenus.length === 0) return;
-        state.currentMenuIndex += direction;
+        state.currentMenuIndex += dir;
         if (state.currentMenuIndex < 0) state.currentMenuIndex = state.dailyMenus.length - 1;
         else if (state.currentMenuIndex >= state.dailyMenus.length) state.currentMenuIndex = 0;
-
+        if (state.elements.menuCounter) state.elements.menuCounter.textContent = `${state.currentMenuIndex + 1} из ${state.dailyMenus.length}`;
+        if (state.elements.currentMenuDate) state.elements.currentMenuDate.textContent = state.dailyMenus[state.currentMenuIndex].dateString;
         if (state.isGridView) updateMenuGrid();
-        else updateDetailedView();
-        updateMenuCounter();
-    }
-
-    function toggleView() {
-        state.isGridView = !state.isGridView;
-
-        if (state.isGridView) {
-            if (state.elements.toggleViewBtn) state.elements.toggleViewBtn.innerHTML = '<i class="fas fa-list"></i> Детальный вид';
-            if (state.elements.menuGrid) state.elements.menuGrid.style.display = 'grid';
-            if (state.elements.detailedView) state.elements.detailedView.classList.remove('active');
-            if (state.elements.dailyMenuContent) state.elements.dailyMenuContent.style.display = 'none';
-        } else {
-            if (state.elements.toggleViewBtn) state.elements.toggleViewBtn.innerHTML = '<i class="fas fa-th"></i> Сетка';
-            if (state.elements.menuGrid) state.elements.menuGrid.style.display = 'none';
-            if (state.elements.detailedView) state.elements.detailedView.classList.remove('active');
-            if (state.elements.dailyMenuContent) state.elements.dailyMenuContent.style.display = 'none';
-            showDetailedView();
-        }
-    }
-
-    function updateDetailedView() {
-        if (!state.elements.detailedView?.classList.contains('active')) return;
-        showDetailedView();
+        else showDetailedView(state.dailyMenus[state.currentMenuIndex]);
     }
 
     function jumpToToday() {
         if (state.dailyMenus.length === 0) return;
         const today = new Date();
-        let closest = 0;
-        let diff = Infinity;
+        let closest = 0, diff = Infinity;
         state.dailyMenus.forEach((m, i) => {
             const d = Math.abs(m.date - today);
             if (d < diff) { diff = d; closest = i; }
         });
         state.currentMenuIndex = closest;
+        if (state.elements.menuCounter) state.elements.menuCounter.textContent = `${closest + 1} из ${state.dailyMenus.length}`;
+        if (state.elements.currentMenuDate) state.elements.currentMenuDate.textContent = state.dailyMenus[closest].dateString;
         if (state.isGridView) updateMenuGrid();
-        else updateDetailedView();
-        updateMenuCounter();
+        else showDetailedView(state.dailyMenus[closest]);
+    }
+
+    function toggleView() {
+        state.isGridView = !state.isGridView;
+        if (state.elements.toggleViewBtn) {
+            state.elements.toggleViewBtn.innerHTML = state.isGridView
+                ? '<i class="fas fa-list"></i> Детальный вид'
+                : '<i class="fas fa-th"></i> Сетка';
+        }
+        if (state.isGridView) {
+            if (state.elements.menuGrid) state.elements.menuGrid.style.display = 'grid';
+            if (state.elements.detailedView) state.elements.detailedView.classList.remove('active');
+            updateMenuGrid();
+        } else {
+            if (state.elements.menuGrid) state.elements.menuGrid.style.display = 'none';
+            showDetailedView(state.dailyMenus[state.currentMenuIndex]);
+        }
     }
 
     function updateMenuStats() {
         if (state.dailyMenus.length === 0) return;
-
         if (state.elements.totalMenusCount) state.elements.totalMenusCount.textContent = state.dailyMenus.length;
 
         const first = state.dailyMenus[0].date;
         const last = state.dailyMenus[state.dailyMenus.length - 1].date;
-        if (state.elements.menuPeriod) {
-            state.elements.menuPeriod.textContent = `${GEN_formatDate(first, 'short')} - ${GEN_formatDate(last, 'short')}`;
-        }
+        if (state.elements.menuPeriod) state.elements.menuPeriod.textContent = `${GEN_formatDate(first, 'short')} - ${GEN_formatDate(last, 'short')}`;
 
         const school = state.dailyMenus[0].schoolName || 'Не указана';
-        if (state.elements.menuSchool) {
-            state.elements.menuSchool.textContent = school.length > 20 ? school.substring(0, 20) + '...' : school;
-        }
+        if (state.elements.menuSchool) state.elements.menuSchool.textContent = school.length > 20 ? school.substring(0, 20) + '...' : school;
 
-        const compliance = calculateCompliance();
+        const c = calculateCompliance();
         if (state.elements.menuCompliance) {
-            state.elements.menuCompliance.textContent = `${compliance.percentage}%`;
-            state.elements.menuCompliance.style.color = compliance.percentage >= 80 ? '#27ae60'
-                : compliance.percentage >= 60 ? '#f39c12' : '#e74c3c';
+            state.elements.menuCompliance.textContent = `${c.percentage}%`;
+            state.elements.menuCompliance.style.color = c.percentage >= 80 ? '#27ae60' : c.percentage >= 60 ? '#f39c12' : '#e74c3c';
         }
     }
 
     function calculateCompliance() {
         if (state.dailyMenus.length === 0) return { percentage: 0, matched: 0, total: 0 };
-        let totalItems = 0, matchedItems = 0;
-        state.dailyMenus.forEach(menu => {
-            ['breakfast', 'breakfast2', 'lunch', 'afternoonSnack', 'dinner', 'dinner2'].forEach(mealType => {
-                const items = menu[mealType]?.items || [];
-                totalItems += items.length;
-                matchedItems += items.length;
+        let total = 0, matched = 0;
+        state.dailyMenus.forEach(m => {
+            ['breakfast','breakfast2','lunch','afternoonSnack','dinner','dinner2'].forEach(mt => {
+                const n = m[mt]?.items?.length || 0;
+                total += n; matched += n;
             });
         });
-        return {
-            percentage: totalItems > 0 ? Math.round((matchedItems / totalItems) * 100) : 0,
-            matched: matchedItems,
-            total: totalItems
-        };
-    }
-
-    function updateMenuCounter() {
-        if (!state.elements.menuCounter) return;
-        if (state.dailyMenus.length === 0) {
-            state.elements.menuCounter.textContent = '';
-            return;
-        }
-        state.elements.menuCounter.textContent = `${state.currentMenuIndex + 1} из ${state.dailyMenus.length}`;
+        return { percentage: total > 0 ? Math.round((matched / total) * 100) : 0, matched, total };
     }
 
     // ============================================================
-    // АНАЛИЗ СООТВЕТСТВИЯ
+    // АНАЛИЗ СООТВЕТСТВИЯ (полная логика v1.0)
     // ============================================================
 
     function analyzeMenuCompliance() {
         const analysis = {
-            totalMenus: state.dailyMenus.length,
-            analyzedMenus: 0,
-            totalItems: 0,
-            matchedItems: 0,
-            menuDetails: [],
+            totalMenus: state.dailyMenus.length, analyzedMenus: 0,
+            totalItems: 0, matchedItems: 0, menuDetails: [],
             summary: { excellent: 0, good: 0, poor: 0 }
         };
-
         state.dailyMenus.forEach(menu => {
-            let menuTotal = 0;
-            let menuMatched = 0;
-            ['breakfast', 'breakfast2', 'lunch', 'afternoonSnack', 'dinner', 'dinner2'].forEach(mealType => {
-                const items = menu[mealType]?.items || [];
-                menuTotal += items.length;
-                menuMatched += items.length;
+            let mt = 0, mm = 0;
+            ['breakfast','breakfast2','lunch','afternoonSnack','dinner','dinner2'].forEach(type => {
+                const n = menu[type]?.items?.length || 0;
+                mt += n; mm += n;
             });
-
-            analysis.totalItems += menuTotal;
-            analysis.matchedItems += menuMatched;
+            analysis.totalItems += mt;
+            analysis.matchedItems += mm;
             analysis.analyzedMenus++;
-
-            const percent = menuTotal > 0 ? Math.round((menuMatched / menuTotal) * 100) : 0;
+            const percent = mt > 0 ? Math.round((mm / mt) * 100) : 0;
             analysis.menuDetails.push({
-                date: menu.dateString,
-                fileName: menu.fileName,
-                totalItems: menuTotal,
-                matchedItems: menuMatched,
-                compliancePercentage: percent
+                date: menu.dateString, fileName: menu.fileName,
+                totalItems: mt, matchedItems: mm, compliancePercentage: percent
             });
-
             if (percent >= 90) analysis.summary.excellent++;
             else if (percent >= 70) analysis.summary.good++;
             else analysis.summary.poor++;
         });
-
         return analysis;
     }
 
     function showComplianceAnalysis() {
         if (state.dailyMenus.length === 0) {
-            GEN_showStatus('Нет меню для анализа соответствия', 'error');
-            return;
+            GEN_showStatus('Нет меню для анализа соответствия', 'error'); return;
         }
         const analysis = analyzeMenuCompliance();
         showAnalysisModal(analysis);
@@ -1962,8 +1310,7 @@ const GeneratorModule = (function () {
                                 <td>${d.date}</td><td>${d.fileName}</td><td>${d.totalItems}</td>
                                 <td>${d.compliancePercentage}%</td>
                                 <td>${d.compliancePercentage >= 90 ? 'Отлично' : d.compliancePercentage >= 70 ? 'Хорошо' : 'Требует внимания'}</td>
-                            </tr>
-                        `).join('')}
+                            </tr>`).join('')}
                     </table>
                 </div>
                 <button class="gen-btn gen-btn-primary gen-modal-close-btn" style="width:100%;margin-top:20px;">
@@ -1972,7 +1319,6 @@ const GeneratorModule = (function () {
             </div>
         `;
         document.body.appendChild(modal);
-
         const close = () => modal.remove();
         modal.querySelector('.gen-close-btn').addEventListener('click', close);
         modal.querySelector('.gen-modal-close-btn').addEventListener('click', close);
@@ -1980,147 +1326,39 @@ const GeneratorModule = (function () {
     }
 
     // ============================================================
-    // ЭКСПОРТ
-    // ============================================================
-
-    async function exportAllMenusAsZip() {
-        if (state.dailyMenus.length === 0) {
-            GEN_showStatus('Нет меню для экспорта', 'error');
-            return;
-        }
-
-        const btn = state.elements.exportAllBtn;
-        try {
-            GEN_showStatus(`Создание ZIP архива с ${state.dailyMenus.length} файлами...`, 'info');
-            btn.innerHTML = '<span class="gen-loading"></span> Архивация...';
-            btn.disabled = true;
-
-            const zip = new JSZip();
-
-            for (let i = 0; i < state.dailyMenus.length; i++) {
-                const menu = state.dailyMenus[i];
-                try {
-                    const wb = await createDailyMenuWorkbookWithFormatting(menu);
-                    const buffer = await wb.xlsx.writeBuffer();
-                    zip.file(menu.fileName, buffer);
-                    GEN_showStatus(`Создание файлов: ${Math.round(((i + 1) / state.dailyMenus.length) * 100)}%`, 'info');
-                } catch (error) {
-                    console.error(`Ошибка при создании файла ${menu.fileName}:`, error);
-                }
-            }
-
-            const content = await zip.generateAsync({ type: 'blob' });
-            const zipFileName = `school-menus-${state.currentYear}-${GEN_formatDate(new Date(), 'file')}.zip`;
-            saveAs(content, zipFileName);
-            GEN_showStatus(`ZIP архив "${zipFileName}" успешно создан`, 'success');
-        } catch (error) {
-            console.error('Ошибка при создании ZIP архива:', error);
-            GEN_showStatus(`Ошибка при создании архива: ${error.message}`, 'error');
-        } finally {
-            btn.innerHTML = '<i class="fas fa-download"></i> Экспорт всех меню (ZIP)';
-            btn.disabled = false;
-        }
-    }
-
-    async function exportCurrentMenuAsExcel() {
-        if (state.dailyMenus.length === 0 || state.currentMenuIndex >= state.dailyMenus.length) {
-            GEN_showStatus('Нет текущего меню для экспорта', 'error');
-            return;
-        }
-
-        const btn = state.elements.exportCurrentBtn;
-        try {
-            const menu = state.dailyMenus[state.currentMenuIndex];
-            GEN_showStatus('Создание Excel файла...', 'info');
-            btn.innerHTML = '<span class="gen-loading"></span> Экспорт...';
-            btn.disabled = true;
-
-            const wb = await createDailyMenuWorkbookWithFormatting(menu);
-            const buffer = await wb.xlsx.writeBuffer();
-            const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-            saveAs(blob, menu.fileName);
-
-            GEN_showStatus(`Меню экспортировано в файл ${menu.fileName}`, 'success');
-        } catch (error) {
-            console.error('Ошибка экспорта:', error);
-            GEN_showStatus(`Ошибка экспорта: ${error.message}`, 'error');
-        } finally {
-            btn.innerHTML = '<i class="fas fa-file-excel"></i> Экспорт текущего меню';
-            btn.disabled = false;
-        }
-    }
-
-    function downloadTemplate() {
-        const templateData = [
-            ['Школа', 'МОУ "Примерная школа"', '', '', 'Отд./корп', 'Основной', '', '', 'День', GEN_formatDate(new Date(), 'excel')],
-            ['', '', '', '', '', '', '', '', '', ''],
-            ['Прием пищи', 'Раздел', '№ рец.', 'Блюдо', 'Выход, г', 'Цена', 'Калорийность', 'Белки', 'Жиры', 'Углеводы'],
-            ['Завтрак', 'гор.блюдо', '123', 'Каша молочная рисовая', '200', '45.50', '150', '5', '3', '25'],
-            ['', 'гор.напиток', '456', 'Чай с сахаром', '200', '10.00', '30', '0', '0', '8'],
-            ['', 'хлеб', '789', 'Хлеб пшеничный', '50', '5.00', '120', '4', '1', '24'],
-            ['', 'фрукты', '012', 'Яблоко', '100', '15.00', '52', '0', '0', '14'],
-            ['Завтрак 2', 'фрукты', '345', 'Банан', '100', '20.00', '89', '1', '0', '23'],
-            ['', '', '', '', '', '', '', '', '', ''],
-            ['Обед', 'закуска', '678', 'Салат из свеклы', '100', '25.00', '60', '1', '3', '8'],
-            ['', '1 блюдо', '901', 'Щи из свежей капусты', '250', '35.00', '80', '3', '4', '9'],
-            ['', '2 блюдо', '234', 'Котлета мясная', '80', '45.00', '180', '15', '10', '8'],
-            ['', 'гарнир', '567', 'Картофельное пюре', '150', '20.00', '130', '3', '5', '20'],
-            ['', 'напиток', '890', 'Компот из сухофруктов', '200', '15.00', '85', '0', '0', '21'],
-            ['', 'хлеб бел.', '789', 'Хлеб пшеничный', '50', '5.00', '120', '4', '1', '24'],
-            ['', 'хлеб черн.', '789', 'Хлеб ржаной', '50', '5.00', '115', '4', '1', '23']
-        ];
-
-        const wb = XLSX.utils.book_new();
-        const ws = XLSX.utils.aoa_to_sheet(templateData);
-        ws['!cols'] = [
-            { wch: 12 }, { wch: 15 }, { wch: 8 }, { wch: 40 },
-            { wch: 10 }, { wch: 10 }, { wch: 15 }, { wch: 8 }, { wch: 8 }, { wch: 10 }
-        ];
-        XLSX.utils.book_append_sheet(wb, ws, 'Шаблон меню ФЦМПО');
-        XLSX.writeFile(wb, 'шаблон-ежедневного-меню-фцмпо.xlsx');
-        GEN_showStatus('Шаблон ежедневного меню ФЦМПО скачан', 'success');
-    }
-
-    // ============================================================
-    // LOCALSTORAGE
+    // LOCALSTORAGE (полная логика v1.0)
     // ============================================================
 
     function saveToLocalStorage() {
-        const data = {
-            calendarData: state.calendarData,
-            templateMenuData: state.templateMenuData,
-            dailyMenus: state.dailyMenus,
-            uploadedFiles: state.uploadedFiles,
-            currentYear: state.currentYear,
-            schoolName: state.elements.schoolNameInput?.value || '',
-            ageCategory: state.elements.ageCategoryInput?.value || '',
-            savedAt: new Date().toISOString()
-        };
         try {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+            localStorage.setItem(STORAGE_KEY, JSON.stringify({
+                calendarData: state.calendarData,
+                templateMenuData: state.templateMenuData,
+                dailyMenus: state.dailyMenus,
+                uploadedFiles: state.uploadedFiles,
+                currentYear: state.currentYear,
+                schoolName: state.elements.schoolName?.value || '',
+                ageCategory: state.elements.ageCategory?.value || '',
+                savedAt: new Date().toISOString()
+            }));
             updateStoredDataInfo();
-        } catch (e) {
-            console.error('Ошибка сохранения в LocalStorage:', e);
-        }
+        } catch (e) { console.error('Ошибка сохранения:', e); }
     }
 
     function loadFromLocalStorage() {
         try {
             const saved = localStorage.getItem(STORAGE_KEY);
-            if (!saved) {
-                GEN_showStatus('В памяти нет сохраненных данных', 'info');
-                return;
-            }
-            const parsed = JSON.parse(saved);
+            if (!saved) { GEN_showStatus('В памяти нет сохраненных данных', 'info'); return; }
+            const p = JSON.parse(saved);
 
-            state.calendarData = parsed.calendarData;
-            state.templateMenuData = parsed.templateMenuData;
-            state.dailyMenus = parsed.dailyMenus || [];
-            state.uploadedFiles = parsed.uploadedFiles || [];
-            state.currentYear = parsed.currentYear || 2026;
+            state.calendarData = p.calendarData;
+            state.templateMenuData = p.templateMenuData;
+            state.dailyMenus = p.dailyMenus || [];
+            state.uploadedFiles = p.uploadedFiles || [];
+            state.currentYear = p.currentYear || 2026;
 
-            if (state.elements.schoolNameInput) state.elements.schoolNameInput.value = parsed.schoolName || '';
-            if (state.elements.ageCategoryInput) state.elements.ageCategoryInput.value = parsed.ageCategory || '7-11';
+            if (state.elements.schoolName) state.elements.schoolName.value = p.schoolName || '';
+            if (state.elements.ageCategory) state.elements.ageCategory.value = p.ageCategory || '7-11';
 
             setDefaultDates();
             if (state.elements.calendarYearBadge) {
@@ -2137,18 +1375,16 @@ const GeneratorModule = (function () {
                 state.currentMenuIndex = 0;
                 if (state.elements.menuNavigation) state.elements.menuNavigation.style.display = 'flex';
                 if (state.elements.menuStats) state.elements.menuStats.style.display = 'flex';
-                if (state.elements.menuGrid) state.elements.menuGrid.style.display = 'grid';
-                if (state.elements.dailyMenuContent) state.elements.dailyMenuContent.style.display = 'none';
-                if (state.elements.exportAllBtn) state.elements.exportAllBtn.disabled = false;
-                if (state.elements.exportCurrentBtn) state.elements.exportCurrentBtn.disabled = false;
-                updateMenuGrid();
+                if (state.elements.menuGrid) { state.elements.menuGrid.style.display = 'grid'; updateMenuGrid(); }
+                if (state.elements.exportContainer) state.elements.exportContainer.style.display = 'block';
+                if (state.elements.generateBtn) state.elements.generateBtn.style.display = 'none';
+                if (state.elements.menuCounter) state.elements.menuCounter.textContent = `1 из ${state.dailyMenus.length}`;
                 updateMenuStats();
-                updateMenuCounter();
             }
 
-            GEN_showStatus(`Данные загружены из памяти (сохранены ${GEN_formatDate(new Date(parsed.savedAt))})`, 'success');
+            GEN_showStatus(`Данные загружены из памяти (сохранены ${GEN_formatDate(new Date(p.savedAt))})`, 'success');
         } catch (e) {
-            console.error('Ошибка загрузки из LocalStorage:', e);
+            console.error('Ошибка загрузки:', e);
             GEN_showStatus('Ошибка при загрузке данных из памяти', 'error');
         }
     }
@@ -2166,10 +1402,10 @@ const GeneratorModule = (function () {
         if (saved) {
             if (state.elements.storedDataInfo) state.elements.storedDataInfo.classList.add('active');
             try {
-                const parsed = JSON.parse(saved);
-                const savedDate = new Date(parsed.savedAt);
+                const p = JSON.parse(saved);
                 if (state.elements.storedDataText) {
-                    state.elements.storedDataText.textContent = `Данные сохранены ${GEN_formatDate(savedDate)}. ${parsed.dailyMenus ? `Содержит ${parsed.dailyMenus.length} меню.` : ''}`;
+                    state.elements.storedDataText.textContent =
+                        `Данные сохранены ${GEN_formatDate(new Date(p.savedAt))}. ${p.dailyMenus ? `Содержит ${p.dailyMenus.length} меню.` : ''}`;
                 }
             } catch (e) {
                 if (state.elements.storedDataText) state.elements.storedDataText.textContent = 'В памяти есть сохраненные данные';
@@ -2182,99 +1418,19 @@ const GeneratorModule = (function () {
     function updateStoredDataInfo() { checkLocalStorage(); }
 
     // ============================================================
-    // СОБЫТИЯ
+    // АДАПТЕРЫ (полная логика v1.0)
     // ============================================================
 
-    function setupEvents() {
-        const e = state.elements;
-
-        // Drag&Drop
-        if (e.dropArea && e.fileInput) {
-            e.dropArea.addEventListener('click', () => e.fileInput.click());
-            e.dropArea.addEventListener('dragover', ev => { ev.preventDefault(); e.dropArea.classList.add('gen-dragover'); });
-            e.dropArea.addEventListener('dragleave', () => e.dropArea.classList.remove('gen-dragover'));
-            e.dropArea.addEventListener('drop', ev => {
-                ev.preventDefault();
-                e.dropArea.classList.remove('gen-dragover');
-                handleFiles(Array.from(ev.dataTransfer.files));
-            });
-        }
-        if (e.fileInput) {
-            e.fileInput.addEventListener('change', ev => {
-                handleFiles(Array.from(ev.target.files));
-                ev.target.value = '';
-            });
-        }
-
-        // Навигация
-        e.prevMenuBtn?.addEventListener('click', () => navigateMenus(-1));
-        e.nextMenuBtn?.addEventListener('click', () => navigateMenus(1));
-        e.jumpToTodayBtn?.addEventListener('click', jumpToToday);
-        e.toggleViewBtn?.addEventListener('click', toggleView);
-        e.toggleMenuViewBtn?.addEventListener('click', toggleMenuPreviewView);
-        e.complianceBtn?.addEventListener('click', showComplianceAnalysis);
-        e.closeDetailView?.addEventListener('click', () => {
-            e.detailedView?.classList.remove('active');
-            if (state.isGridView && e.menuGrid) e.menuGrid.style.display = 'grid';
-            else if (e.dailyMenuContent) e.dailyMenuContent.style.display = 'block';
-        });
-
-        // Фильтр приёмов пищи
-        e.mealOptions?.addEventListener('click', ev => {
-            const btn = ev.target.closest('.gen-meal-option-btn');
-            if (!btn) return;
-            e.mealOptions.querySelectorAll('.gen-meal-option-btn').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            state.currentMealFilter = btn.dataset.meal;
-            updateDetailedView();
-        });
-
-        // Данные
-        e.loadFromStorageBtn?.addEventListener('click', loadFromLocalStorage);
-        e.clearStorageBtn?.addEventListener('click', clearLocalStorage);
-        e.generateBtn?.addEventListener('click', generateDailyMenus);
-        e.analyzeBtn?.addEventListener('click', showComplianceAnalysis);
-        e.exportAllBtn?.addEventListener('click', exportAllMenusAsZip);
-        e.exportCurrentBtn?.addEventListener('click', exportCurrentMenuAsExcel);
-        e.downloadTemplateBtn?.addEventListener('click', downloadTemplate);
-
-        // Справка
-        e.quickHelpBtn?.addEventListener('click', () => {
-            e.quickGuide?.scrollIntoView({ behavior: 'smooth' });
-            if (e.quickGuide) {
-                e.quickGuide.style.animation = 'genPulse 0.5s';
-                setTimeout(() => { if (e.quickGuide) e.quickGuide.style.animation = ''; }, 500);
-            }
-        });
-
-        // Аккордеон
-        e.advancedSettings?.addEventListener('click', function () {
-            this.classList.toggle('gen-active');
-        });
-    }
-
-    // ============================================================
-    // АДАПТЕРЫ ДЛЯ ДАННЫХ ИЗ ДРУГИХ МОДУЛЕЙ
-    // ============================================================
-
-    /**
-     * Принимает календарь из CalendarModule (kp.js).
-     * Формат CalendarModule: { calendarData: { [month]: [{day, value, raw}] }, calendarMeta: {year, schoolName} }
-     */
     function adoptCalendarFromModule(calState) {
         if (!calState || !calState.calendarData) return false;
-
         const months = {};
         for (const m of GEN_MONTH_NAMES) {
             const arr = calState.calendarData[m] || [];
             months[m] = {};
             for (const entry of arr) {
-                if (entry.value !== null && entry.value !== undefined) {
-                    months[m][entry.day] = entry.value;
-                }
+                if (entry.value !== null && entry.value !== undefined) months[m][entry.day] = entry.value;
             }
         }
-
         state.calendarData = {
             months,
             schoolName: calState.calendarMeta?.schoolName || '',
@@ -2284,11 +1440,8 @@ const GeneratorModule = (function () {
 
         if (!state.uploadedFiles.some(f => f.type === 'calendar')) {
             state.uploadedFiles.push({
-                name: 'Календарь из модуля «Календарь»',
-                size: 0,
-                type: 'calendar',
-                date: new Date().toLocaleTimeString(),
-                valid: true
+                name: 'Календарь из модуля «Календарь»', size: 0, type: 'calendar',
+                date: new Date().toLocaleTimeString(), valid: true
             });
         }
 
@@ -2303,37 +1456,26 @@ const GeneratorModule = (function () {
         return true;
     }
 
-    /**
-     * Принимает типовое меню из основного редактора (testtm2.html).
-     * Формат: { weeks: {...}, schoolName, ageCategory }
-     */
     function adoptFromEditor(templateData, schoolInfo) {
         if (!templateData || !templateData.weeks) return false;
-
         state.templateMenuData = {
             weeks: templateData.weeks,
             schoolName: schoolInfo?.name || templateData.schoolName || '',
             ageCategory: schoolInfo?.ageCategory || templateData.ageCategory || '',
             approvalInfo: schoolInfo?.approval || { position: '', name: '', date: '' }
         };
-
         if (!state.uploadedFiles.some(f => f.type === 'template')) {
             state.uploadedFiles.push({
-                name: 'Типовое меню из редактора',
-                size: 0,
-                type: 'template',
-                date: new Date().toLocaleTimeString(),
-                valid: true
+                name: 'Типовое меню из редактора', size: 0, type: 'template',
+                date: new Date().toLocaleTimeString(), valid: true
             });
         }
-
-        if (state.elements.schoolNameInput && !state.elements.schoolNameInput.value) {
-            state.elements.schoolNameInput.value = state.templateMenuData.schoolName;
+        if (state.elements.schoolName && !state.elements.schoolName.value) {
+            state.elements.schoolName.value = state.templateMenuData.schoolName;
         }
-        if (state.elements.ageCategoryInput && !state.elements.ageCategoryInput.value) {
-            state.elements.ageCategoryInput.value = state.templateMenuData.ageCategory;
+        if (state.elements.ageCategory && !state.elements.ageCategory.value) {
+            state.elements.ageCategory.value = state.templateMenuData.ageCategory;
         }
-
         updateMenuPreview();
         updateFileList();
         checkFilesLoaded();
@@ -2341,13 +1483,95 @@ const GeneratorModule = (function () {
     }
 
     // ============================================================
-    // ИНИЦИАЛИЗАЦИЯ
+    // СОБЫТИЯ
+    // ============================================================
+
+    function setupEvents() {
+        const e = state.elements;
+
+        // Drag&Drop
+        if (e.dropArea && e.fileInput) {
+            e.dropArea.addEventListener('click', () => e.fileInput.click());
+            e.dropArea.addEventListener('dragover', ev => { ev.preventDefault(); e.dropArea.classList.add('gen-dragover'); });
+            e.dropArea.addEventListener('dragleave', () => e.dropArea.classList.remove('gen-dragover'));
+            e.dropArea.addEventListener('drop', ev => {
+                ev.preventDefault(); e.dropArea.classList.remove('gen-dragover');
+                handleFiles(Array.from(ev.dataTransfer.files));
+            });
+        }
+        if (e.fileInput) {
+            e.fileInput.addEventListener('change', ev => {
+                handleFiles(Array.from(ev.target.files));
+                ev.target.value = '';
+            });
+        }
+
+        // Дополнительные настройки
+        if (e.toggleAdvanced && e.advancedPanel) {
+            e.toggleAdvanced.addEventListener('click', () => {
+                const open = e.advancedPanel.style.display === 'block';
+                e.advancedPanel.style.display = open ? 'none' : 'block';
+                if (e.advancedIcon) e.advancedIcon.style.transform = open ? 'rotate(0deg)' : 'rotate(180deg)';
+            });
+        }
+
+        // Кнопки генерации/экспорта
+        e.generateBtn?.addEventListener('click', generateDailyMenus);
+        e.exportAllBtn?.addEventListener('click', exportAllMenusAsZip);
+        e.exportCurrentBtn?.addEventListener('click', exportCurrentMenuAsExcel);
+        e.downloadTemplateBtn?.addEventListener('click', downloadTemplate);
+
+        // Навигация
+        e.prevMenuBtn?.addEventListener('click', () => navigateMenus(-1));
+        e.nextMenuBtn?.addEventListener('click', () => navigateMenus(1));
+        e.jumpToTodayBtn?.addEventListener('click', jumpToToday);
+        e.toggleViewBtn?.addEventListener('click', toggleView);
+        e.complianceBtn?.addEventListener('click', showComplianceAnalysis);
+        e.analyzeBtn?.addEventListener('click', showComplianceAnalysis);
+        e.toggleMenuView?.addEventListener('click', () => {
+            state.isMenuGridView = !state.isMenuGridView;
+            if (e.toggleMenuView) e.toggleMenuView.innerHTML = state.isMenuGridView
+                ? '<i class="fas fa-list"></i> Список'
+                : '<i class="fas fa-th"></i> Сетка';
+            updateMenuPreview();
+        });
+        e.closeDetailView?.addEventListener('click', () => {
+            e.detailedView?.classList.remove('active');
+            if (state.isGridView && e.menuGrid) e.menuGrid.style.display = 'grid';
+            else if (e.dailyMenuContent) e.dailyMenuContent.style.display = 'block';
+        });
+
+        // Фильтр приёмов пищи
+        e.mealOptions?.addEventListener('click', ev => {
+            const btn = ev.target.closest('.gen-meal-option-btn');
+            if (!btn) return;
+            e.mealOptions.querySelectorAll('.gen-meal-option-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            state.currentMealFilter = btn.dataset.meal;
+            if (state.dailyMenus.length > 0) updateMealsDisplay(state.dailyMenus[state.currentMenuIndex]);
+        });
+
+        // LocalStorage
+        e.loadFromStorageBtn?.addEventListener('click', loadFromLocalStorage);
+        e.clearStorageBtn?.addEventListener('click', clearLocalStorage);
+
+        // Справка
+        e.quickHelpBtn?.addEventListener('click', () => {
+            e.quickGuide?.scrollIntoView({ behavior: 'smooth' });
+            if (e.quickGuide) {
+                e.quickGuide.style.animation = 'genPulse 0.5s';
+                setTimeout(() => { if (e.quickGuide) e.quickGuide.style.animation = ''; }, 500);
+            }
+        });
+    }
+
+    // ============================================================
+    // ИНИЦИАЛИЗАЦИЯ (гибрид v1.0 + v2.0)
     // ============================================================
 
     function init() {
         cacheElements();
-
-        if (!state.elements.fileInput) {
+        if (!state.elements.generateBtn && !state.elements.fileInput) {
             console.warn('⚠️ GeneratorModule: разметка вкладки #tabGenerator не найдена');
             return;
         }
@@ -2361,20 +1585,18 @@ const GeneratorModule = (function () {
             state.isInitialized = true;
         }
 
-        // Если основной редактор уже загрузил типовое меню — автоматически принимаем
+        // Автопринятие из основного редактора
         if (window.templateMenuData && window.templateMenuData.weeks &&
             !state.uploadedFiles.some(f => f.type === 'template')) {
             adoptFromEditor(window.templateMenuData, window.schoolInfo);
         }
 
-        // Если CalendarModule уже загрузил календарь — принимаем
+        // Автопринятие из CalendarModule
         if (window.CalendarModule && window.CalendarModule.getState &&
             !state.uploadedFiles.some(f => f.type === 'calendar')) {
             try {
                 const calState = window.CalendarModule.getState();
-                if (calState && calState.calendarData) {
-                    adoptCalendarFromModule(calState);
-                }
+                if (calState && calState.calendarData) adoptCalendarFromModule(calState);
             } catch (e) { /* noop */ }
         }
 
@@ -2392,7 +1614,7 @@ const GeneratorModule = (function () {
         if (state.dailyMenus.length > 0) {
             updateMenuGrid();
             updateMenuStats();
-            updateMenuCounter();
+            if (state.elements.menuCounter) state.elements.menuCounter.textContent = `1 из ${state.dailyMenus.length}`;
         }
     }
 
@@ -2415,4 +1637,4 @@ const GeneratorModule = (function () {
 })();
 
 window.GeneratorModule = GeneratorModule;
-console.log('✅ generator-module.js загружен');
+console.log('✅ generator-module.js v3.0 (объединённый) загружен');
