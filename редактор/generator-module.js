@@ -190,7 +190,7 @@ const GeneratorModule = (function () {
     function cacheElements() {
         const ids = [
             'genStatusMessage', 'genFileInput', 'genDropArea', 'genFileList',
-            'genGenerateBtn', 'genExportAllBtn', 'genExportCurrentBtn', 'genExportContainer',
+            'genGenerateBtn', 'genExportAllBtn', 'genExportCurrentBtn', 'genExportFullPackageBtn', 'genExportContainer',
             'genStoredDataInfo', 'genStoredDataText', 'genLoadFromStorageBtn', 'genClearStorageBtn',
             'genStartDate', 'genEndDate', 'genCalendarYearBadge', 'genToggleAdvanced',
             'genSchoolName', 'genAgeCategory', 'genColorScheme',
@@ -360,7 +360,7 @@ const GeneratorModule = (function () {
                     <i class="fas ${icon}"></i>
                     <div>
                         <div style="font-weight:600;color:#0f172a;font-size:0.9rem;">${file.name}</div>
-                        <div class="gen-file-size">${label} • ${GEN_formatFileSize(file.size)}</div>
+                        <div class="gen-file-size">${label} • ${file.size === 0 ? 'Данные из модуля' : GEN_formatFileSize(file.size)}</div>
                     </div>
                 </div>
                 <i class="fas ${file.valid ? 'fa-check-circle' : 'fa-exclamation-triangle'}"
@@ -942,6 +942,186 @@ const GeneratorModule = (function () {
         }
     }
 
+	async function exportFullPackage() {
+		if (!state.dailyMenus.length && !state.calendarData && !state.templateMenuData) {
+			GEN_showStatus('Нет данных для экспорта', 'error');
+			return;
+		}
+
+		const btn = state.elements.exportFullPackageBtn;
+		const originalText = btn ? btn.innerHTML : '';
+		if (btn) {
+			btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Сборка комплекта...';
+			btn.disabled = true;
+		}
+
+		const zip = new JSZip();
+		const folderName = 'food';
+		const foodFolder = zip.folder(folderName);
+		const year = state.currentYear || new Date().getFullYear();
+
+		try {
+			// =====================================================
+			// 1. ЕЖЕДНЕВНЫЕ МЕНЮ → food/
+			// =====================================================
+			if (state.dailyMenus.length > 0) {
+				GEN_showStatus('Создание ежедневных меню...', 'info');
+				for (let i = 0; i < state.dailyMenus.length; i++) {
+					const menu = state.dailyMenus[i];
+					try {
+						const wb = await createStyledWorkbook(menu);
+						const buffer = await wb.xlsx.writeBuffer();
+						foodFolder.file(menu.fileName, buffer);
+						GEN_showStatus(`Ежедневные меню: ${Math.round(((i + 1) / state.dailyMenus.length) * 100)}%`, 'info');
+					} catch (e) {
+						console.error(`Ошибка создания ${menu.fileName}:`, e);
+					}
+				}
+			} else {
+				GEN_showStatus('⚠️ Нет сгенерированных ежедневных меню', 'warning');
+			}
+
+			// =====================================================
+			// 2. ТИПОВОЕ МЕНЮ → food/tm{year}-sm.xlsx
+			// =====================================================
+			if (typeof window.exportToExcel === 'function') {
+				GEN_showStatus('Экспорт типового меню...', 'info');
+				let tplBlob = null;
+				const originalSaveAs = window.saveAs;
+
+				try {
+					// Перехватываем saveAs, чтобы получить blob без сохранения
+					window.saveAs = function (blob, filename) {
+						if (filename && /tm\d{4}-sm\.xlsx/i.test(filename)) {
+							tplBlob = blob;
+						} else if (filename && /\.xlsx?$/i.test(filename) && filename.startsWith('tm')) {
+							// fallback на случай нестандартного имени
+							tplBlob = blob;
+						} else {
+							// Всё остальное сохраняем как обычно (на случай параллельных вызовов)
+							originalSaveAs(blob, filename);
+						}
+					};
+
+					await window.exportToExcel();
+				} catch (e) {
+					console.error('Ошибка экспорта типового меню:', e);
+				} finally {
+					window.saveAs = originalSaveAs;
+				}
+
+				if (tplBlob && tplBlob.size > 0) {
+					const tplName = `tm${year}-sm.xlsx`;
+					foodFolder.file(tplName, tplBlob);
+					GEN_showStatus(`Типовое меню добавлено: ${tplName}`, 'success');
+				} else {
+					GEN_showStatus('⚠️ Не удалось получить файл типового меню', 'warning');
+				}
+			} else {
+				GEN_showStatus('⚠️ Функция экспорта типового меню недоступна', 'warning');
+			}
+
+			// =====================================================
+			// 3. КАЛЕНДАРЬ ПИТАНИЯ → food/kp{year}.xlsx
+			// =====================================================
+			if (window.CalendarModule) {
+				GEN_showStatus('Экспорт календаря питания...', 'info');
+				let calendarBlob = null;
+				const originalSaveAs = window.saveAs;
+
+				try {
+					window.saveAs = function (blob, filename) {
+						if (filename && /kp\d{4}\.xlsx?/i.test(filename)) {
+							calendarBlob = blob;
+						} else if (filename && /\.xlsx?$/i.test(filename) && /календар|kp/i.test(filename)) {
+							calendarBlob = blob;
+						} else {
+							originalSaveAs(blob, filename);
+						}
+					};
+
+					// Ищем функции скачивания календаря
+					const downloadFn = window.CalendarModule.downloadCalendar
+						|| window.CalendarModule.exportCalendar
+						|| window.CalendarModule.saveCalendar
+						|| window.downloadCalendar
+						|| window.exportCalendar;
+
+					if (typeof downloadFn === 'function') {
+						await downloadFn.call(window.CalendarModule);
+					} else {
+						// Fallback: клик по кнопке скачивания
+						const dlBtn = document.getElementById('calendarDownloadBtn');
+						if (dlBtn) {
+							dlBtn.click();
+							await new Promise(r => setTimeout(r, 700));
+						} else {
+							GEN_showStatus('⚠️ Кнопка скачивания календаря не найдена', 'warning');
+						}
+					}
+				} catch (e) {
+					console.error('Ошибка экспорта календаря:', e);
+				} finally {
+					window.saveAs = originalSaveAs;
+				}
+
+				if (calendarBlob && calendarBlob.size > 0) {
+					const calName = `kp${year}.xlsx`;
+					foodFolder.file(calName, calendarBlob);
+					GEN_showStatus(`Календарь добавлен: ${calName}`, 'success');
+				} else {
+					GEN_showStatus('⚠️ Не удалось получить файл календаря', 'warning');
+				}
+			}
+
+			// =====================================================
+			// 4. README.txt
+			// =====================================================
+			const readmeText = [
+				'ПОЛНЫЙ КОМПЛЕКТ МЕНЮ (ФЦМПО)',
+				'=============================',
+				`Дата сборки: ${new Date().toLocaleString('ru-RU')}`,
+				`Школа: ${state.elements.schoolName?.value || 'Не указана'}`,
+				`Возрастная категория: ${state.elements.ageCategory?.value || 'Не указана'}`,
+				`Год: ${year}`,
+				'',
+				'СОДЕРЖИМОЕ ПАПКИ food/:',
+				`- kp${year}.xlsx — календарь питания`,
+				`- tm${year}-sm.xlsx — типовое меню`,
+				`- YYYY-MM-DD-sm.xlsx — ежедневные меню (${state.dailyMenus.length} шт.)`,
+				state.dailyMenus.length
+					? `  Период: ${GEN_formatDate(state.dailyMenus[0].date, 'short')} — ${GEN_formatDate(state.dailyMenus[state.dailyMenus.length - 1].date, 'short')}`
+					: '  Ежедневные меню отсутствуют',
+			].join('\n');
+
+			zip.file('README.txt', readmeText);
+
+			// =====================================================
+			// 5. Генерация ZIP
+			// =====================================================
+			GEN_showStatus('Упаковка архива...', 'info');
+			const content = await zip.generateAsync({
+				type: 'blob',
+				compression: 'DEFLATE',
+				compressionOptions: { level: 6 }
+			});
+
+			const zipName = `Полный_комплект_ФЦМПО_${year}_${GEN_formatDate(new Date(), 'file')}.zip`;
+			saveAs(content, zipName);
+
+			GEN_showStatus(`✅ Полный комплект скачан: ${zipName}`, 'success');
+
+		} catch (error) {
+			console.error('Ошибка сборки комплекта:', error);
+			GEN_showStatus(`Ошибка сборки комплекта: ${error.message}`, 'error');
+		} finally {
+			if (btn) {
+				btn.innerHTML = originalText;
+				btn.disabled = false;
+			}
+		}
+	}
+
     function downloadTemplate() {
         const templateData = [
             ['Школа', 'МОУ "Примерная школа"', '', '', 'Отд./корп', 'Основной', '', '', 'День', GEN_formatDate(new Date(), 'excel')],
@@ -1045,7 +1225,7 @@ const GeneratorModule = (function () {
         updateMealsDisplay(menu);
         showExcelPreview(menu);
         if (state.elements.menuGrid) state.elements.menuGrid.style.display = 'none';
-        if (state.elements.detailedView) state.elements.detailedView.classList.add('active');
+        if (state.elements.detailedView) state.elements.detailedView.classList.add('gen-active');
     }
 
     function updateMealsDisplay(menu) {
@@ -1201,7 +1381,7 @@ const GeneratorModule = (function () {
         }
         if (state.isGridView) {
             if (state.elements.menuGrid) state.elements.menuGrid.style.display = 'grid';
-            if (state.elements.detailedView) state.elements.detailedView.classList.remove('active');
+            if (state.elements.detailedView) state.elements.detailedView.classList.remove('gen-active');
             updateMenuGrid();
         } else {
             if (state.elements.menuGrid) state.elements.menuGrid.style.display = 'none';
@@ -1519,6 +1699,7 @@ const GeneratorModule = (function () {
         e.generateBtn?.addEventListener('click', generateDailyMenus);
         e.exportAllBtn?.addEventListener('click', exportAllMenusAsZip);
         e.exportCurrentBtn?.addEventListener('click', exportCurrentMenuAsExcel);
+		e.exportFullPackageBtn?.addEventListener('click', exportFullPackage);
         e.downloadTemplateBtn?.addEventListener('click', downloadTemplate);
 
         // Навигация
@@ -1536,7 +1717,7 @@ const GeneratorModule = (function () {
             updateMenuPreview();
         });
         e.closeDetailView?.addEventListener('click', () => {
-            e.detailedView?.classList.remove('active');
+            e.detailedView?.classList.remove('gen-active');
             if (state.isGridView && e.menuGrid) e.menuGrid.style.display = 'grid';
             else if (e.dailyMenuContent) e.dailyMenuContent.style.display = 'block';
         });
@@ -1575,6 +1756,20 @@ const GeneratorModule = (function () {
             console.warn('⚠️ GeneratorModule: разметка вкладки #tabGenerator не найдена');
             return;
         }
+
+		// ✅ ПАТЧ: Показываем кнопку генерации, если есть данные
+		if (state.elements.generateBtn && state.elements.exportContainer) {
+			// Если меню уже сгенерированы, но мы зашли снова — показываем кнопку
+			// (пользователь может захотеть пересоздать)
+			const hasFiles = state.uploadedFiles.some(f => f.type === 'calendar' && f.valid) &&
+							 state.uploadedFiles.some(f => f.type === 'template' && f.valid);
+			
+			if (hasFiles) {
+				state.elements.generateBtn.style.display = 'inline-flex';
+				// Контейнер экспорта показываем только если меню уже есть
+				// state.elements.exportContainer.style.display = state.dailyMenus.length > 0 ? 'block' : 'none';
+			}
+		}
 
         if (!state.isInitialized) {
             setupEvents();
@@ -1629,6 +1824,7 @@ const GeneratorModule = (function () {
         generate: generateDailyMenus,
         exportAll: exportAllMenusAsZip,
         exportCurrent: exportCurrentMenuAsExcel,
+		exportFullPackage,   // ✅ добавили
         adoptCalendarFromModule,
         adoptFromEditor,
         showComplianceAnalysis

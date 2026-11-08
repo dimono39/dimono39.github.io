@@ -5625,6 +5625,10 @@
 							<button id="genExportCurrentBtn" class="btn btn-secondary" style="padding: 12px 32px; font-size: 1rem;">
 								<i class="fas fa-file-excel"></i> Скачать только первый день
 							</button>
+							<!-- ✅ НОВАЯ КНОПКА -->
+							<button id="genExportFullPackageBtn" class="btn btn-primary" style="padding: 12px 32px; font-size: 1rem; background: linear-gradient(135deg, #8b5cf6, #7c3aed);">
+								<i class="fas fa-box-open"></i> Скачать полный комплект
+							</button>
 						</div>
 					</div>
 				</div>
@@ -9610,8 +9614,14 @@
 			const blob = new Blob([buffer], {
 				type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
 			});
+			// Возвращаем blob, чтобы можно было использовать в "Скачать полный комплект"
+			// Если вызов был прямой (не из ZIP) — сохраняем сразу
+			if (window.__suppressExcelSave) {
+				return blob;
+			}
 			saveAs(blob, `tm2026-sm_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.xlsx`);
 			showStatus('📥 Excel файл сгенерирован по шаблону', 'success');
+			return blob;
 		}
 
 		function parseRealTemplateFile(workbook) {
@@ -13623,8 +13633,16 @@
 					setTimeout(function() {
 						if (window.GeneratorModule) {
 							GeneratorModule.init();
-						} else {
-							console.warn('⚠️ GeneratorModule не загружен');
+							// Принудительно показываем кнопку
+							const btn = document.getElementById('genGenerateBtn');
+							const exportContainer = document.getElementById('genExportContainer');
+							if (btn && exportContainer) {
+								// Если файлы загружены (есть хотя бы один) — показываем кнопку
+								const state = GeneratorModule.getState();
+								if (state.uploadedFiles.length > 0) {
+									btn.style.display = 'inline-flex';
+								}
+							}
 						}
 					}, 300);
 				}				
