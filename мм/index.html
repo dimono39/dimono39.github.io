@@ -2,1057 +2,3194 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Аналитика питания по районам и школам Свердловской области: показатели П35 (ФМ) и П36 (ТМ) по месяцам.">
 <title>Аналитика питания по районам и школам</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%232563eb'/%3E%3Cpath d='M20 16v12a4 4 0 0 0 8 0V16M24 32v16M42 16c-4 3-6 8-6 13 0 4 2 7 6 9v10' stroke='%23fff' stroke-width='4' stroke-linecap='round' fill='none'/%3E%3C/svg%3E">
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <style>
-  :root {
-    --bg:#f5f6fa; --card:#fff; --text:#2c3e50; --muted:#7f8c8d;
-    --accent:#2980b9; --ok:#27ae60; --fail:#c0392b; --warn:#e67e22; --line:#dde2e8;
+  :root{
+    color-scheme: light;
+    --bg:#f2f5fa; --surface:#ffffff; --surface-2:#f7f9fc; --surface-3:#e9eef6;
+    --text:#0f172a; --muted:#64748b; --line:#e1e7f0;
+    --accent:#2563eb; --accent-2:#1d4ed8; --accent-soft:rgba(37,99,235,.1);
+    --ok:#15803d; --ok-soft:rgba(21,128,61,.12);
+    --fail:#dc2626; --fail-soft:rgba(220,38,38,.1);
+    --warn:#b45309; --warn-soft:rgba(180,83,9,.12);
+    --shadow:0 1px 2px rgba(15,23,42,.05), 0 6px 20px rgba(15,23,42,.05);
+    --radius:14px;
   }
-  * { box-sizing: border-box; }
-  body { font-family: Arial, sans-serif; margin: 20px; background: var(--bg); color: var(--text); }
-  h1 { margin: 0 0 6px; }
-  h2, h3, h4 { margin-top: 0; }
-  .hint { color: var(--muted); font-size: 13px; margin: 0 0 14px; }
+  [data-theme="dark"]{
+    color-scheme: dark;
+    --bg:#0b1220; --surface:#111a2b; --surface-2:#16223a; --surface-3:#1e2c47;
+    --text:#e6edf9; --muted:#94a3b8; --line:#26344b;
+    --accent:#60a5fa; --accent-2:#3b82f6; --accent-soft:rgba(96,165,250,.14);
+    --ok:#4ade80; --ok-soft:rgba(74,222,128,.14);
+    --fail:#f87171; --fail-soft:rgba(248,113,113,.14);
+    --warn:#fbbf24; --warn-soft:rgba(251,191,36,.14);
+    --shadow:0 1px 2px rgba(0,0,0,.45), 0 10px 30px rgba(0,0,0,.3);
+  }
+  *,*::before,*::after{box-sizing:border-box}
+  [hidden]{display:none !important}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    margin:0; background:var(--bg); color:var(--text); font-size:14px; line-height:1.45;
+    font-family:-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Noto Sans",sans-serif;
+    font-variant-numeric:tabular-nums;
+  }
+  h1,h2,h3,h4{margin:0; line-height:1.25; letter-spacing:-.01em}
+  p{margin:0}
+  a{color:var(--accent)}
+  button{font:inherit}
+  code{font-family:ui-monospace,SFMono-Regular,Consolas,monospace; font-size:.92em;
+       background:var(--surface-3); padding:1px 5px; border-radius:5px}
+  .muted{color:var(--muted)}
+  .small{font-size:12px}
+  .nowrap{white-space:nowrap}
+  .num{font-variant-numeric:tabular-nums; white-space:nowrap}
 
-  .controls { display:flex; gap:12px; flex-wrap:wrap; align-items:center;
-              margin:15px 0; padding:12px 16px; background:var(--card);
-              border-radius:8px; box-shadow:0 1px 4px rgba(0,0,0,0.06); }
-  select, button, input { padding:8px 12px; font-size:14px; border-radius:4px;
-                          border:1px solid #ccc; }
-  button { cursor:pointer; background:var(--accent); color:#fff; border:none; }
-  button:hover { background:#1f6391; }
-  button.secondary { background:#95a5a6; }
-  button.secondary:hover { background:#7f8c8d; }
-  .search-wrap { position:relative; }
-  .search-suggest { position:absolute; top:100%; left:0; right:0; background:#fff;
-                    border:1px solid #ccc; border-radius:4px; max-height:260px;
-                    overflow-y:auto; z-index:50; display:none; }
-  .search-suggest div { padding:6px 10px; cursor:pointer; font-size:13px; }
-  .search-suggest div:hover { background:#ecf0f1; }
-  .search-suggest small { color:var(--muted); }
+  /* ---------- шапка ---------- */
+  .app-header{
+    position:sticky; top:0; z-index:60; background:var(--surface);
+    border-bottom:1px solid var(--line); padding:12px clamp(14px,2.6vw,36px);
+    display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap;
+  }
+  .brand{display:flex; align-items:center; gap:12px; min-width:0}
+  .brand-logo{
+    width:42px; height:42px; flex:0 0 auto; border-radius:12px; color:#fff;
+    background:linear-gradient(140deg,#1e40af,#2563eb 55%,#3b82f6);
+    display:grid; place-items:center; box-shadow:0 6px 16px rgba(37,99,235,.35);
+  }
+  .brand h1{font-size:18px}
+  .brand p{margin-top:2px; font-size:12px; color:var(--muted)}
+  .header-actions{display:flex; align-items:center; gap:10px; flex-wrap:wrap}
+  .month-switch{display:flex; align-items:center; gap:0; background:var(--surface-2);
+                border:1px solid var(--line); border-radius:11px; padding:2px}
+  .month-switch select{
+    border:none; background:transparent; padding:7px 8px; min-height:34px; font-weight:600;
+    box-shadow:none; min-width:132px; text-align:center
+  }
+  .month-switch select:focus{box-shadow:none; border:none}
+  .month-switch .icon-btn{
+    border:none; background:transparent; color:var(--muted); width:32px; height:34px;
+    border-radius:8px; cursor:pointer; font-size:17px; line-height:1
+  }
+  .month-switch .icon-btn:hover{background:var(--surface-3); color:var(--text)}
+  .month-switch .icon-btn:disabled{opacity:.35; cursor:not-allowed}
 
-  .tabs { display:flex; gap:6px; margin:14px 0 0; }
-  .tab { padding:8px 16px; background:#dfe6ec; border-radius:6px 6px 0 0;
-         cursor:pointer; font-weight:bold; color:#576574; }
-  .tab.active { background:var(--card); color:var(--text); box-shadow:0 -2px 0 var(--accent) inset; }
+  /* ---------- кнопки, поля ---------- */
+  .btn{
+    appearance:none; border:1px solid transparent; border-radius:9px; padding:9px 14px;
+    font-weight:600; background:var(--accent); color:#fff; cursor:pointer;
+    display:inline-flex; align-items:center; justify-content:center; gap:7px;
+    transition:background .15s, color .15s, border-color .15s, transform .05s;
+    white-space:nowrap;
+  }
+  .btn:hover{background:var(--accent-2)}
+  .btn:active{transform:translateY(1px)}
+  .btn:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+  .btn.ghost{background:var(--surface); color:var(--text); border-color:var(--line)}
+  .btn.ghost:hover{background:var(--surface-2);}
+  .btn.small{padding:6px 10px; font-size:12px; border-radius:8px}
+  .btn.icon{padding:9px 11px}
+  .btn:disabled{opacity:.45; cursor:not-allowed; transform:none}
+  select,input[type="search"],input[type="text"]{
+    font:inherit; color:var(--text); background:var(--surface); border:1px solid var(--line);
+    border-radius:9px; padding:8px 11px; min-height:38px; outline:none;
+    transition:border-color .15s, box-shadow .15s; max-width:100%;
+  }
+  select:hover,input[type="search"]:hover,input[type="text"]:hover{border-color:var(--muted)}
+  select:focus,input[type="search"]:focus,input[type="text"]:focus{
+    border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-soft)
+  }
+  .field{display:flex; flex-direction:column; gap:4px}
+  .field>label{font-size:11px; font-weight:700; letter-spacing:.05em; text-transform:uppercase; color:var(--muted)}
+  .check{display:inline-flex; align-items:center; gap:7px; font-size:13px; color:var(--muted);
+         cursor:pointer; user-select:none; padding-bottom:9px}
+  .check input{width:16px; height:16px; accent-color:var(--accent); cursor:pointer; margin:0}
 
-  .card { background:var(--card); padding:16px 20px; border-radius:8px;
-          margin-bottom:20px; box-shadow:0 1px 4px rgba(0,0,0,0.08); }
-  .ok { color:var(--ok); font-weight:bold; }
-  .fail { color:var(--fail); font-weight:bold; }
-  .warn { color:var(--warn); font-weight:bold; }
-  .delta-up { color:var(--ok); font-weight:bold; }
-  .delta-down { color:var(--fail); font-weight:bold; }
-  .delta-flat { color:var(--muted); }
+  /* ---------- строка статуса и вкладки ---------- */
+  .statusbar{
+    display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;
+    padding:8px clamp(14px,2.6vw,36px); background:var(--surface-2);
+    border-bottom:1px solid var(--line); font-size:13px;
+  }
+  .statusbar .status-left{display:flex; align-items:center; gap:8px; flex-wrap:wrap; min-width:0}
+  .statusbar .status-right{display:flex; align-items:center; gap:8px; flex-wrap:wrap}
+  .dot{width:8px; height:8px; border-radius:50%; background:var(--ok); flex:0 0 auto}
+  .dot.fail{background:var(--fail)} .dot.warn{background:var(--warn)} .dot.idle{background:var(--muted)}
+  .chip{
+    display:inline-flex; align-items:center; gap:6px; padding:3px 9px; border-radius:99px;
+    background:var(--surface); border:1px solid var(--line); font-size:12px; color:var(--muted);
+    white-space:nowrap;
+  }
+  .chip.ok{color:var(--ok); border-color:rgba(21,128,61,.25); background:var(--ok-soft)}
+  .chip.fail{color:var(--fail); border-color:rgba(220,38,38,.25); background:var(--fail-soft)}
+  .chip.warn{color:var(--warn); border-color:rgba(180,83,9,.25); background:var(--warn-soft)}
 
-  table { border-collapse:collapse; width:100%; margin-top:10px; font-size:13px; }
-  th, td { border:1px solid var(--line); padding:6px 8px; text-align:left; }
-  th { background:#ecf0f1; position:sticky; top:0; cursor:pointer; user-select:none; }
-  th.sortable::after { content:" ⇅"; color:#95a5a6; font-size:11px; }
-  tr:nth-child(even) { background:#fafafa; }
+  .tabs{
+    display:flex; gap:4px; padding:0 clamp(14px,2.6vw,36px);
+    background:var(--surface); border-bottom:1px solid var(--line); overflow-x:auto;
+  }
+  .tab{
+    appearance:none; border:none; background:transparent; color:var(--muted); cursor:pointer;
+    padding:12px 14px; font-weight:600; font-size:14px; border-bottom:2px solid transparent;
+    margin-bottom:-1px; display:inline-flex; align-items:center; gap:8px; white-space:nowrap;
+  }
+  .tab:hover{color:var(--text)}
+  .tab[aria-selected="true"]{color:var(--accent); border-bottom-color:var(--accent)}
+  .tab:focus-visible{outline:2px solid var(--accent); outline-offset:-2px; border-radius:6px}
+  .tab-count{
+    min-width:22px; padding:1px 7px; border-radius:99px; background:var(--surface-3);
+    color:var(--muted); font-size:11px; font-weight:700; text-align:center
+  }
+  .tab[aria-selected="true"] .tab-count{background:var(--accent-soft); color:var(--accent)}
 
-  .metric-row { display:flex; gap:16px; flex-wrap:wrap; margin-top:8px; }
-  .metric { flex:1; min-width:200px; background:#ecf0f1; padding:12px; border-radius:6px; }
-  .metric b { display:block; font-size:22px; margin-top:4px; }
-  .metric small { color:var(--muted); display:block; margin-top:4px; }
+  /* ---------- каркас ---------- */
+  .app-main{padding:0 clamp(14px,2.6vw,36px) 56px; max-width:1500px; margin:0 auto}
+  .section-head{
+    display:flex; align-items:flex-end; justify-content:space-between; gap:16px;
+    flex-wrap:wrap; margin:20px 0 14px;
+  }
+  .section-title h2{font-size:23px}
+  .section-title p{margin-top:4px; color:var(--muted); font-size:13px}
+  .toolbar{display:flex; align-items:flex-end; gap:10px; flex-wrap:wrap}
+  .toolbar .btn{margin-bottom:0}
+  .toolbar .check{margin-bottom:1px}
 
-  .method { color:var(--muted); font-size:13px; line-height:1.5; margin:10px 0 0; }
-  #status { color:var(--muted); margin:0 0 10px; }
+  .card{
+    background:var(--surface); border:1px solid var(--line); border-radius:var(--radius);
+    box-shadow:var(--shadow); padding:18px 20px;
+  }
+  .stack>*+*{margin-top:16px}
+  .card h3{font-size:15px; margin-bottom:2px}
 
-  .charts { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
-  @media (max-width:960px) { .charts { grid-template-columns:1fr; } }
-  .chart-box { background:var(--card); padding:15px; border-radius:8px;
-               box-shadow:0 1px 4px rgba(0,0,0,0.08); }
-  .chart-box h4 { margin:0 0 10px; }
+  /* ---------- KPI ---------- */
+  .kpis{display:grid; grid-template-columns:repeat(auto-fit,minmax(178px,1fr)); gap:12px}
+  .kpi{
+    background:var(--surface); border:1px solid var(--line); border-radius:12px;
+    padding:13px 15px 12px; position:relative; overflow:hidden; box-shadow:var(--shadow);
+  }
+  .kpi::before{content:""; position:absolute; left:0; top:0; bottom:0; width:4px; background:var(--accent)}
+  .kpi.ok::before{background:var(--ok)} .kpi.fail::before{background:var(--fail)}
+  .kpi.warn::before{background:var(--warn)}
+  .kpi .kpi-label{font-size:11px; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); font-weight:700}
+  .kpi .kpi-value{font-size:27px; font-weight:750; line-height:1.15; margin-top:3px}
+  .kpi .kpi-value small{font-size:14px; font-weight:600; color:var(--muted); margin-left:3px}
+  .kpi .kpi-sub{font-size:12px; color:var(--muted); margin-top:2px}
 
-  .filter-bar { display:flex; gap:12px; align-items:center; flex-wrap:wrap;
-                margin:10px 0; font-size:13px; }
-  .filter-bar label { display:flex; gap:6px; align-items:center; cursor:pointer; }
+  /* ---------- прогресс, пилюли, дельты ---------- */
+  .bar{height:6px; border-radius:99px; background:var(--surface-3); overflow:hidden; min-width:56px; margin-top:5px}
+  .bar>span{display:block; height:100%; border-radius:99px; background:var(--accent)}
+  .bar.ok>span{background:var(--ok)} .bar.fail>span{background:var(--fail)} .bar.warn>span{background:var(--warn)}
+  .pill{
+    display:inline-flex; align-items:center; gap:4px; padding:2px 8px; border-radius:99px;
+    font-size:11.5px; font-weight:700; white-space:nowrap; border:1px solid transparent;
+  }
+  .pill.ok{color:var(--ok); background:var(--ok-soft); border-color:rgba(21,128,61,.2)}
+  .pill.fail{color:var(--fail); background:var(--fail-soft); border-color:rgba(220,38,38,.2)}
+  .pill.warn{color:var(--warn); background:var(--warn-soft); border-color:rgba(180,83,9,.2)}
+  .pill.neutral{color:var(--muted); background:var(--surface-3)}
+  .delta{font-weight:700; white-space:nowrap}
+  .delta.up{color:var(--ok)} .delta.down{color:var(--fail)}
+  .delta.flat{color:var(--muted); font-weight:500}
 
-  .diag { background:#fef9e7; border-left:4px solid var(--warn);
-          padding:8px 12px; font-size:13px; color:#7d6608; border-radius:4px; margin-top:10px; }
-  .diag.info { background:#eaf2f8; border-left-color:var(--accent); color:#1b4f72; }
-  .diag.err { background:#fdedec; border-left-color:var(--fail); color:#78281f; }
-  .diag ul { margin:6px 0 0 18px; padding:0; }
-  .avg-badge { display:inline-block; padding:2px 8px; border-radius:10px; font-size:12px;
-               background:#ecf0f1; color:#34495e; margin-left:6px; }
-  .avg-badge.up { background:#eafaf1; color:var(--ok); }
-  .avg-badge.down { background:#fdedec; color:var(--fail); }
+  /* ---------- таблицы ---------- */
+  .table-head{
+    display:flex; align-items:flex-end; justify-content:space-between; gap:14px;
+    flex-wrap:wrap; margin-bottom:12px;
+  }
+  .table-controls{display:flex; align-items:flex-end; gap:10px; flex-wrap:wrap}
+  .table-wrap{
+    overflow:auto; border:1px solid var(--line); border-radius:12px;
+    max-height:min(72vh,900px); background:var(--surface);
+  }
+  table.data{width:100%; border-collapse:separate; border-spacing:0; font-size:13px}
+  table.data th{
+    position:sticky; top:0; z-index:2; background:var(--surface-2); text-align:left;
+    font-size:11.5px; text-transform:uppercase; letter-spacing:.04em; color:var(--muted);
+    font-weight:700; padding:10px 12px; border-bottom:1px solid var(--line); white-space:nowrap;
+  }
+  table.data td{padding:9px 12px; border-bottom:1px solid var(--line); vertical-align:middle}
+  table.data tbody tr:last-child td{border-bottom:none}
+  table.data tbody tr:hover{background:var(--surface-2)}
+  table.data tr.clickable{cursor:pointer}
+  table.data tr.clickable:focus-visible{outline:2px solid var(--accent); outline-offset:-2px}
+  table.data td.right,table.data th.right{text-align:right}
+  table.data td.center,table.data th.center{text-align:center}
+  table.data.compact td{padding:7px 10px}
+  .table-districts{min-width:850px}
+  .table-schools{min-width:900px}
+  .table-problems{min-width:980px}
+  .table-history{min-width:820px}
+  .table-quality{min-width:760px; font-size:12.5px}
 
-  .recs { margin-top:12px; }
-  .recs summary { cursor:pointer; font-weight:bold; color:var(--accent);
-                  padding:6px 0; outline:none; }
-  .recs summary:hover { color:#1f6391; }
-  .recs ol { margin:8px 0 0 20px; padding:0; font-size:13px; line-height:1.55; }
-  .recs li { margin-bottom:6px; }
-  .recs .rec-note { color:var(--muted); font-size:12px; margin-top:8px; }
-  .recs-block { background:#f4f8fb; border-left:4px solid var(--accent);
-                padding:10px 14px; border-radius:4px; margin-top:12px; }
-  .recs-block h4 { margin:0 0 6px; font-size:14px; }
+  th .sort-btn{
+    all:unset; display:inline-flex; align-items:center; gap:5px; cursor:pointer;
+    font:inherit; color:inherit; letter-spacing:inherit; text-transform:inherit;
+    border-radius:4px;
+  }
+  th .sort-btn:hover{color:var(--text)}
+  th .sort-btn:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+  th[aria-sort="ascending"] .sort-btn,th[aria-sort="descending"] .sort-btn{color:var(--text)}
+  .sort-arrow{font-size:9px; opacity:.45}
+  th[aria-sort="ascending"] .sort-arrow,th[aria-sort="descending"] .sort-arrow{opacity:1; color:var(--accent)}
+
+  .school-cell .name{font-weight:600; line-height:1.3}
+  .school-cell .sub{font-size:11.5px; color:var(--muted); margin-top:1px}
+  .cell-metric{display:flex; flex-direction:column; gap:0; min-width:78px}
+  .cell-metric b{font-weight:700}
+  .link-btn{
+    all:unset; color:var(--accent); font-weight:600; cursor:pointer; border-radius:4px;
+  }
+  .link-btn:hover{text-decoration:underline}
+  .link-btn:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+  .row-link{all:unset; cursor:pointer; border-radius:4px; color:inherit}
+  .row-link:hover{text-decoration:underline}
+  .row-link:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+
+  /* ---------- графики ---------- */
+  .charts{display:grid; grid-template-columns:repeat(auto-fit,minmax(330px,1fr)); gap:16px; margin:16px 0}
+  .chart-box{
+    background:var(--surface); border:1px solid var(--line); border-radius:var(--radius);
+    padding:14px 16px 12px; box-shadow:var(--shadow); min-width:0;
+  }
+  .chart-box h3{font-size:14px; margin-bottom:2px}
+  .chart-box .chart-sub{font-size:12px; color:var(--muted); margin-bottom:8px}
+  .chart-canvas{position:relative; height:285px}
+
+  /* ---------- уведомления ---------- */
+  .notice{
+    display:flex; gap:10px; padding:11px 13px; border-radius:10px; font-size:13px;
+    line-height:1.45; border:1px solid var(--line); background:var(--surface-2);
+  }
+  .notice+.notice{margin-top:10px}
+  .notice .notice-icon{flex:0 0 auto; font-weight:700}
+  .notice.info{background:var(--accent-soft); border-color:rgba(37,99,235,.22)}
+  .notice.warn{background:var(--warn-soft); border-color:rgba(180,83,9,.25)}
+  .notice.err{background:var(--fail-soft); border-color:rgba(220,38,38,.25)}
+  .notice.ok{background:var(--ok-soft); border-color:rgba(21,128,61,.22)}
+  .notice a,.notice button{font-weight:600}
+
+  /* ---------- раскрывающиеся блоки ---------- */
+  details.card{padding:0}
+  details.card>summary{
+    list-style:none; cursor:pointer; padding:14px 18px; font-weight:650; font-size:14px;
+    display:flex; align-items:center; gap:9px; border-radius:var(--radius);
+  }
+  details.card>summary::-webkit-details-marker{display:none}
+  details.card>summary::before{
+    content:"▸"; color:var(--muted); font-size:12px; transition:transform .18s; flex:0 0 auto;
+  }
+  details.card[open]>summary::before{transform:rotate(90deg)}
+  details.card[open]>summary{border-bottom:1px solid var(--line); border-radius:var(--radius) var(--radius) 0 0}
+  details.card .details-body{padding:14px 18px 16px}
+  details.card .summary-meta{margin-left:auto; font-weight:500; font-size:12px; color:var(--muted)}
+
+  .rec-list{margin:8px 0 0 18px; padding:0; line-height:1.55; font-size:13px}
+  .rec-list li{margin-bottom:6px}
+  .rec-note{color:var(--muted); font-size:12px; margin-top:10px}
+
+  .quality-ok{color:var(--ok); font-weight:700}
+  .quality-bad{color:var(--fail); font-weight:700}
+
+  /* ---------- поиск школы ---------- */
+  .search-panel{margin-bottom:16px}
+  .school-search{display:flex; gap:10px; align-items:flex-start; flex-wrap:wrap}
+  .search-combo{position:relative; flex:1 1 360px; max-width:620px}
+  .search-combo input{width:100%}
+  .suggest{
+    position:absolute; left:0; right:0; top:calc(100% + 6px); z-index:50;
+    background:var(--surface); border:1px solid var(--line); border-radius:12px;
+    box-shadow:0 16px 40px rgba(15,23,42,.22); padding:6px; max-height:340px; overflow:auto;
+  }
+  .suggestion{
+    display:block; width:100%; text-align:left; border:none; background:transparent;
+    color:var(--text); padding:8px 10px; border-radius:8px; cursor:pointer; font:inherit;
+  }
+  .suggestion:hover,.suggestion.active{background:var(--surface-2)}
+  .suggestion .s-code{font-weight:750; color:var(--accent); margin-right:6px}
+  .suggestion .s-name{font-weight:600}
+  .suggestion .s-meta{display:block; font-size:11.5px; color:var(--muted); margin-top:2px}
+  .suggestion mark{background:var(--warn-soft); color:inherit; border-radius:3px; padding:0 1px}
+  .recent{display:flex; gap:8px; flex-wrap:wrap; margin-top:10px}
+  .recent .chip{cursor:pointer; background:var(--surface); color:var(--text)}
+  .recent .chip:hover{border-color:var(--accent); color:var(--accent)}
+
+  /* ---------- пустые состояния, ошибки ---------- */
+  .empty{
+    display:grid; place-items:center; gap:8px; text-align:center; color:var(--muted);
+    padding:44px 20px;
+  }
+  .empty .empty-icon{font-size:36px; line-height:1}
+  .empty h3{color:var(--text); font-size:17px}
+  .empty p{max-width:520px}
+  .fatal h2{font-size:19px; margin-bottom:8px}
+  .fatal .actions{display:flex; gap:10px; flex-wrap:wrap; margin-top:14px}
+
+  /* ---------- тосты и загрузчик ---------- */
+  .toast{position:fixed; right:16px; bottom:16px; z-index:300; display:flex; flex-direction:column; gap:8px;
+         max-width:min(420px,92vw)}
+  .toast-item{
+    background:var(--surface); border:1px solid var(--line); border-left:4px solid var(--accent);
+    border-radius:10px; padding:11px 14px; box-shadow:0 12px 30px rgba(15,23,42,.2);
+    font-size:13px; animation:toastIn .18s ease-out;
+  }
+  .toast-item.ok{border-left-color:var(--ok)}
+  .toast-item.warn{border-left-color:var(--warn)}
+  .toast-item.err{border-left-color:var(--fail)}
+  @keyframes toastIn{from{opacity:0; transform:translateY(8px)} to{opacity:1; transform:none}}
+
+  .loader{
+    position:fixed; inset:0; z-index:400; display:grid; place-items:center;
+    background:rgba(15,23,42,.32); backdrop-filter:blur(3px); padding:20px;
+  }
+  .loader-card{
+    background:var(--surface); border:1px solid var(--line); border-radius:16px;
+    padding:24px 26px; width:min(430px,94vw); box-shadow:0 24px 60px rgba(15,23,42,.35);
+    text-align:center;
+  }
+  .spinner{
+    width:38px; height:38px; margin:0 auto 14px; border-radius:50%;
+    border:3px solid var(--surface-3); border-top-color:var(--accent); animation:spin .9s linear infinite;
+  }
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .loader-title{font-weight:700; font-size:16px}
+  .loader-text{color:var(--muted); font-size:13px; margin-top:4px; min-height:19px}
+  .loader-bar{height:6px; border-radius:99px; background:var(--surface-3); overflow:hidden; margin-top:14px}
+  .loader-bar>span{display:block; height:100%; width:0; background:var(--accent); transition:width .25s}
+  .loader-hint{font-size:12px; color:var(--muted); margin-top:12px}
+
+  /* ---------- утилиты ---------- */
+  .mt-4{margin-top:4px} .mt-10{margin-top:10px} .mt-14{margin-top:14px}
+  .mb-8{margin-bottom:8px} .mb-10{margin-bottom:10px}
+  .bad{color:var(--fail); font-weight:700}
+  .good{color:var(--ok); font-weight:600}
+  .head-row{display:flex; justify-content:space-between; gap:14px; flex-wrap:wrap}
+  .district-title{font-size:24px; line-height:1.2}
+  .district-month{font-size:15px; font-weight:600; white-space:nowrap}
+  .recs-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(320px,1fr)); gap:16px}
+  .kpi-detail{font-size:12px; color:var(--muted); margin-top:5px; line-height:1.55}
+  .kpi-detail b{color:var(--text)}
+  .kpi-word{font-size:19px; font-weight:750; line-height:1.3; display:inline-block}
+  .quality-scroll{max-height:340px}
+  .chip[data-action]{cursor:pointer}
+  .chip[data-action]:hover{border-color:var(--accent); color:var(--accent)}
+  table.data tr.current{background:var(--accent-soft)}
+  table.data tr.current:hover{background:var(--accent-soft)}
+
+  /* ---------- печать ---------- */
+  @media print{
+    .app-header,.statusbar,.tabs,.toolbar,.table-controls,.chart-box,.toast,.loader,.recent,.search-panel{display:none !important}
+    body{background:#fff}
+    .app-main{padding:0; max-width:none}
+    .card,.kpi{box-shadow:none; border-color:#ccc}
+    .table-wrap{max-height:none; overflow:visible}
+    table.data th{position:static}
+    table.data{font-size:10pt}
+  }
+
+  /* ---------- мобильные ---------- */
+  @media (max-width:820px){
+    .app-header{position:static; padding:12px 14px}
+    .brand h1{font-size:16px}
+    .brand p{display:none}
+    .header-actions{width:100%; justify-content:space-between; gap:8px}
+    .month-switch{flex:1 1 auto; min-width:0}
+    .month-switch select{min-width:0; flex:1 1 auto}
+    .statusbar{padding:8px 14px; flex-direction:column; align-items:flex-start; gap:6px}
+    .status-left,.status-right{width:100%}
+    .status-right{flex-wrap:wrap}
+    .app-main{padding:0 14px 40px}
+    .section-title h2{font-size:20px}
+    .section-head{align-items:stretch}
+    .toolbar{width:100%}
+    .toolbar .field{flex:1 1 160px; min-width:0}
+    .toolbar .field select,.toolbar .field input{width:100%}
+    .table-controls{width:100%}
+    .table-controls input[type="search"]{flex:1 1 140px; min-width:0}
+    details.card>summary{flex-wrap:wrap}
+    details.card .summary-meta{margin-left:0; flex-basis:100%}
+    .chart-canvas{height:250px}
+    .charts{grid-template-columns:1fr}
+    .card{padding:15px}
+    .kpi .kpi-value{font-size:23px}
+  }
+  @media (prefers-reduced-motion:reduce){
+    *{animation-duration:.01ms !important; transition-duration:.01ms !important}
+  }
 </style>
 </head>
 <body>
 
-<h1>Аналитика питания по районам и школам</h1>
-<p class="hint">
-ФМ (П35): школа проходит, если своевременно ≥ 90% и без ошибок ≥ 80% (отклонений ≤ 20%). 
-ТМ (П36): день засчитан, если соблюдение типового меню в этот день ≥ 75% (в файле — число засчитанных дней). 
-Школа выполняет показатель, если доля засчитанных дней = 100%
-</p>
-
-<div class="controls">
-  <label>Месяц: <select id="monthSelect"></select></label>
-  <button id="reloadBtn" class="secondary">Перезагрузить</button>
-</div>
-
-<div class="tabs">
-  <div class="tab active" data-tab="district">Район</div>
-  <div class="tab" data-tab="school">Школа (по коду пищеблока)</div>
-</div>
-
-<!-- ================== ВКЛАДКА «РАЙОН» ================== -->
-<div id="tab-district">
-  <div class="controls">
-    <label>Район: <select id="districtSelect"></select></label>
+<div class="loader" id="loader" role="status" aria-live="polite">
+  <div class="loader-card">
+    <div class="spinner" aria-hidden="true"></div>
+    <div class="loader-title">Аналитика питания</div>
+    <div class="loader-text" id="loaderText">Подготовка…</div>
+    <div class="loader-bar"><span id="loaderBar"></span></div>
+    <div class="loader-hint" id="loaderHint">Загружаем файлы месяцев</div>
   </div>
-  <p id="status">Загрузка…</p>
-  <div id="summary"></div>
-  <div id="charts" class="charts"></div>
-  <div id="schools"></div>
 </div>
 
-<!-- ================== ВКЛАДКА «ШКОЛА» ================== -->
-<div id="tab-school" style="display:none">
-  <div class="controls">
-    <div class="search-wrap">
-      <input id="schoolSearch" type="text" placeholder="Введите код пищеблока или название школы…" style="min-width:340px">
-      <div class="search-suggest" id="schoolSuggest"></div>
+<header class="app-header">
+  <div class="brand">
+    <div class="brand-logo" aria-hidden="true">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round">
+        <path d="M4 3v6a2.5 2.5 0 0 0 5 0V3"/><path d="M6.5 11v10"/>
+        <path d="M17.5 3c-1.8 1.7-2.7 4-2.7 6.6 0 2 .9 3.5 2.7 4.4v7"/>
+      </svg>
     </div>
-    <button id="searchBtn">Найти</button>
-    <button id="resetSearchBtn" class="secondary">Сбросить</button>
+    <div>
+      <h1>Аналитика питания</h1>
+      <p>Районы и школы · показатели П35 (ФМ) и П36 (ТМ)</p>
+    </div>
   </div>
-  <div id="schoolSummary"></div>
-  <div id="schoolCharts" class="charts"></div>
-  <div id="schoolHistory"></div>
-</div>
+  <div class="header-actions">
+    <div class="month-switch" role="group" aria-label="Выбор месяца">
+      <button type="button" class="icon-btn" data-action="prev-month" aria-label="Предыдущий месяц" title="Предыдущий месяц">‹</button>
+      <select id="monthSelect" aria-label="Месяц отчёта"></select>
+      <button type="button" class="icon-btn" data-action="next-month" aria-label="Следующий месяц" title="Следующий месяц">›</button>
+    </div>
+    <button type="button" class="btn ghost small" data-action="reload" title="Загрузить файлы .xlsx заново">Обновить</button>
+    <button type="button" class="btn ghost small icon" data-action="toggle-theme" aria-label="Переключить светлую/тёмную тему" title="Тема">◐</button>
+  </div>
+</header>
+
+<div class="statusbar" id="statusbar"></div>
+
+<nav class="tabs" role="tablist" aria-label="Разделы">
+  <button type="button" class="tab" role="tab" id="tabBtnSummary" data-tab="summary" aria-selected="true" aria-controls="tab-summary">Районы</button>
+  <button type="button" class="tab" role="tab" id="tabBtnSchool" data-tab="school" aria-selected="false" aria-controls="tab-school">Школа</button>
+  <button type="button" class="tab" role="tab" id="tabBtnProblems" data-tab="problems" aria-selected="false" aria-controls="tab-problems">Проблемные <span class="tab-count" id="problemsCount">—</span></button>
+</nav>
+
+<main class="app-main">
+  <section id="tab-summary" role="tabpanel" aria-labelledby="tabBtnSummary">
+    <div class="section-head">
+      <div class="section-title">
+        <h2 id="summaryTitle">Сводка по районам</h2>
+        <p id="summarySubtitle">Загрузка…</p>
+      </div>
+      <div class="toolbar">
+        <div class="field">
+          <label for="districtSelect">Район</label>
+          <select id="districtSelect"></select>
+        </div>
+        <div class="field" id="summarySearchField">
+          <label for="summarySearch">Поиск</label>
+          <input id="summarySearch" type="search" placeholder="Название района…" autocomplete="off">
+        </div>
+        <label class="check" id="summaryProblemsLabel"><input type="checkbox" id="summaryOnlyProblems"> только проблемные</label>
+        <button type="button" class="btn ghost small" data-action="export" data-kind="districts" title="Скачать таблицу в CSV">CSV</button>
+      </div>
+    </div>
+    <div id="summaryBody"></div>
+  </section>
+
+  <section id="tab-school" role="tabpanel" aria-labelledby="tabBtnSchool" hidden>
+    <div class="section-head">
+      <div class="section-title">
+        <h2>Карточка школы</h2>
+        <p>Поиск по коду пищеблока или названию, история за все месяцы</p>
+      </div>
+    </div>
+    <div class="search-panel">
+      <form class="school-search" id="schoolSearchForm" role="search">
+        <div class="search-combo">
+          <input id="schoolSearch" type="text" placeholder="Код пищеблока или название школы…" autocomplete="off"
+                 role="combobox" aria-expanded="false" aria-controls="schoolSuggest" aria-autocomplete="list"
+                 aria-label="Поиск школы">
+          <div id="schoolSuggest" class="suggest" role="listbox" aria-label="Подсказки" hidden></div>
+        </div>
+        <button type="submit" class="btn">Найти</button>
+        <button type="button" class="btn ghost" data-action="reset-school">Сбросить</button>
+      </form>
+      <div class="recent" id="recentSchools"></div>
+    </div>
+    <div id="schoolBody"></div>
+  </section>
+
+  <section id="tab-problems" role="tabpanel" aria-labelledby="tabBtnProblems" hidden>
+    <div class="section-head">
+      <div class="section-title">
+        <h2>Проблемные школы</h2>
+        <p>Школы, не выполнившие П35 и/или П36 в выбранном месяце</p>
+      </div>
+      <div class="toolbar">
+        <div class="field">
+          <label for="problemsDistrict">Район</label>
+          <select id="problemsDistrict"></select>
+        </div>
+        <div class="field">
+          <label for="problemsType">Тип проблемы</label>
+          <select id="problemsType">
+            <option value="all">Все проблемные</option>
+            <option value="fm">Только ФМ (П35)</option>
+            <option value="tm">Только ТМ (П36)</option>
+            <option value="both">И ФМ, и ТМ</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="problemsSearch">Поиск</label>
+          <input id="problemsSearch" type="search" placeholder="Школа или код…" autocomplete="off">
+        </div>
+        <button type="button" class="btn ghost small" data-action="export" data-kind="problems" title="Скачать таблицу в CSV">CSV</button>
+      </div>
+    </div>
+    <div id="problemsBody"></div>
+  </section>
+</main>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<input type="file" id="fileInput" accept=".xlsx,.xls" multiple hidden>
+
+<noscript>
+  <div style="padding:24px; font-family:sans-serif">Для работы аналитики включите JavaScript.</div>
+</noscript>
 
 <script>
-/* ============================================================
-   ЛОГИРОВАНИЕ
-   ============================================================ */
-const LOG_PREFIX = "[MM]";
-function logTime() {
-  const d = new Date();
-  const pad = n => String(n).padStart(2, "0");
-  return `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}.${String(d.getMilliseconds()).padStart(3,"0")}`;
-}
-const LOG = {
-  log: (...a) => console.log(`${LOG_PREFIX} ${logTime()} `, ...a),
-  info: (...a) => console.info(`${LOG_PREFIX} ${logTime()} `, ...a),
-  warn: (...a) => console.warn(`${LOG_PREFIX} ${logTime()} `, ...a),
-  error: (...a) => console.error(`${LOG_PREFIX} ${logTime()} `, ...a),
-  group: (title) => console.group(`${LOG_PREFIX} ${logTime()} ▼ ${title}`),
-  groupEnd: () => console.groupEnd()
-};
+"use strict";
+/* ============================================================================
+   Аналитика питания: районы и школы (П35 / П36)
+   Данные: файлы «мм <месяц>.xlsx» рядом с index.html (лист TDSheet).
+   ========================================================================== */
 
-/* ============================================================
-   НАСТРОЙКИ (Месяцы)
-   ============================================================ */
+/* ---------------------------------------------------------------------------
+   1. КОНФИГУРАЦИЯ
+   ------------------------------------------------------------------------- */
 const MONTHS = [
-  { value: "мм январь.xlsx",   label: "Январь",   order: 2026 * 100 + 1 },
-  { value: "мм февраль.xlsx",  label: "Февраль",  order: 2026 * 100 + 2 },
-  { value: "мм март.xlsx",     label: "Март",     order: 2026 * 100 + 3 },
-  { value: "мм апрель.xlsx",   label: "Апрель",   order: 2026 * 100 + 4 },
-  { value: "мм май.xlsx",      label: "Май",      order: 2026 * 100 + 5 },
-  { value: "мм сентябрь.xlsx", label: "Сентябрь", order: 2026 * 100 + 9 },
-  { value: "мм октябрь.xlsx",  label: "Октябрь",  order: 2026 * 100 + 10 },
-  { value: "мм ноябрь.xlsx",  label: "Ноябрь",  order: 2026 * 100 + 11 }  
-].sort((a, b) => a.order - b.order);
+  { label: "Январь",   dative: "январю",    prep: "январе",   file: "мм январь.xlsx" },
+  { label: "Февраль",  dative: "февралю",   prep: "феврале",  file: "мм февраль.xlsx" },
+  { label: "Март",     dative: "марту",     prep: "марте",    file: "мм март.xlsx" },
+  { label: "Апрель",   dative: "апрелю",    prep: "апреле",   file: "мм апрель.xlsx" },
+  { label: "Май",      dative: "маю",       prep: "мае",      file: "мм май.xlsx" },
+  { label: "Сентябрь", dative: "сентябрю",  prep: "сентябре", file: "мм сентябрь.xlsx" },
+  { label: "Октябрь",  dative: "октябрю",   prep: "октябре",  file: "мм октябрь.xlsx" },
+  { label: "Ноябрь",   dative: "ноябрю",    prep: "ноябре",   file: "мм ноябрь.xlsx" }
+];
 
 const THRESHOLDS = {
-  timely: 90,
-  noErrors: 80,
-  tmDailyShare: 75,
-  districtPassShare: 100
+  timely: 90,          // ФМ: своевременная выкладка, %
+  noErrors: 80,        // ФМ: без ошибок, %
+  tmDailyShare: 75,    // ТМ: день засчитан при соблюдении типового меню, %
+  districtPassShare: 100 // район проходит, если показатель выполнили 100% школ
 };
 
-const SCHOOL_WORDS = /школ|лицей|гимнази|сош|оош|нош|маоу|мбоу|мкоу|мбоо|маоо|пмаоу|детск|садик|интернат|центр|коррекц|кадеты|техникум|колледж/i;
-const EXCLUDED_REGIONS = new Set(["свердловская область", "итого", "регион", "район", "пищеблок, код"]);
+const EXCLUDED_SECTIONS = new Set([
+  "итого", "свердловская область", "регион", "район", "пищеблок, код"
+]);
 
-/* ============================================================
-   СОСТОЯНИЕ
-   ============================================================ */
-const CACHE = {};
-const SCHOOL_INDEX = {};
-let currentMonthFile = MONTHS[MONTHS.length - 1].value;
-let currentDistrictValue = "__ALL__";
-let currentSort = { field: "name", dir: 1 };
-let currentSchoolCode = null;
-let schoolsFilter = { onlyProblems: false, sortField: "name", sortDir: 1 };
+const STORAGE_KEYS = { theme: "mm-theme-v1", recent: "mm-recent-v1" };
 
-/* ============================================================
-   УТИЛИТЫ
-   ============================================================ */
-function isNumeric(v) {
-  if (v === "" || v === null || v === undefined) return false;
-  return !isNaN(Number(String(v).replace(",", ".")));
+/* ---------------------------------------------------------------------------
+   2. СОСТОЯНИЕ
+   ------------------------------------------------------------------------- */
+const state = {
+  monthFile: MONTHS[MONTHS.length - 1].file,
+  tab: "summary",
+  district: "",
+  school: "",
+  sort: {
+    summary: { field: "name", dir: 1 },
+    districtSchools: { field: "name", dir: 1 },
+    problems: { field: "district", dir: 1 }
+  },
+  filters: {
+    summarySearch: "",
+    summaryOnlyProblems: false,
+    districtSchoolsSearch: "",
+    districtSchoolsOnlyProblems: false,
+    problems: { district: "", type: "all", search: "" }
+  },
+  suggestIndex: -1,
+  suggestItems: []
+};
+
+const store = {
+  months: new Map(),      // file -> разобранные данные месяца
+  index: new Map(),       // код пищеблока -> карточка школы
+  indexDirty: true,
+  errors: new Map(),      // file -> ошибка загрузки
+  pending: new Map(),     // file -> Promise загрузки
+  charts: []
+};
+
+/* ---------------------------------------------------------------------------
+   3. УТИЛИТЫ
+   ------------------------------------------------------------------------- */
+const $ = (sel, root = document) => root.querySelector(sel);
+const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
+
+function esc(value) {
+  return String(value == null ? "" : value)
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 }
-function toNum(v) {
-  if (v === "" || v === null || v === undefined) return NaN;
-  return Number(String(v).replace(",", "."));
+
+function normStr(value) {
+  return String(value == null ? "" : value)
+    .replace(/[\u00A0\u202F\u2007]/g, " ")
+    .replace(/[\u00AD\u200B\uFEFF]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
 }
+
+function toNum(value) {
+  if (value === "" || value === null || value === undefined) return null;
+  if (typeof value === "number") return Number.isFinite(value) ? value : null;
+  const cleaned = String(value).replace(/\s/g, "").replace(",", ".").replace(/%$/, "");
+  if (cleaned === "") return null;
+  const n = Number(cleaned);
+  return Number.isFinite(n) ? n : null;
+}
+
 function fmt(n, digits = 1) {
-  if (!isFinite(n)) return "—";
-  return n.toFixed(digits).replace(".", ",");
-}
-function deltaHtml(cur, prev) {
-  if (prev === null || prev === undefined || !isFinite(prev) || !isFinite(cur)) {
-    return '<span class="delta-flat">—</span>';
-  }
-  const d = cur - prev;
-  if (Math.abs(d) < 0.05) return '<span class="delta-flat">0,0 п.п.</span>';
-  const cls = d > 0 ? "delta-up" : "delta-down";
-  const sign = d > 0 ? "+" : "";
-  return `<span class="${cls}">${sign}${fmt(d)} п.п.</span>`;
-}
-function normStr(s) {
-  return String(s).replace(/[\u00A0\u202F\u2007]/g, " ").replace(/[\u00AD\u200B]/g, "").replace(/\s+/g, " ").trim();
+  if (n === null || n === undefined || !Number.isFinite(Number(n))) return "—";
+  return Number(n).toFixed(digits).replace(".", ",");
 }
 
-function extractCode(nameRaw) {
-  const name = normStr(nameRaw);
-  if (!name) return null;
-  let m = name.match(/,\s*(\d{4,})\s*[»"'.]?\s*$/);
-  if (m) return m[1];
-  m = name.match(/\s(\d{4,})\s*[»"'.]?\s*$/);
-  if (m) return m[1];
-  m = name.match(/(\d{4,})\s*[»"'.]?\s*$/);
-  if (m) return m[1];
-  const all = [...name.matchAll(/\d{4,}/g)];
-  if (all.length) return all[all.length - 1][0];
+function fmtInt(n) {
+  if (n === null || n === undefined || !Number.isFinite(Number(n))) return "—";
+  return Math.round(Number(n)).toLocaleString("ru-RU");
+}
+
+function avg(values) {
+  const list = values.filter(v => v !== null && v !== undefined && Number.isFinite(v));
+  if (!list.length) return null;
+  return list.reduce((sum, v) => sum + v, 0) / list.length;
+}
+
+function plural(n, one, few, many) {
+  const a = Math.abs(n) % 100;
+  const b = a % 10;
+  if (a > 10 && a < 20) return many;
+  if (b > 1 && b < 5) return few;
+  if (b === 1) return one;
+  return many;
+}
+
+function monthOf(file) {
+  return MONTHS.find(m => m.file === file) || null;
+}
+
+function labelOf(file) {
+  const m = monthOf(file);
+  return m ? m.label : file;
+}
+
+function prevMonthFile(file = state.monthFile) {
+  const idx = MONTHS.findIndex(m => m.file === file);
+  if (idx <= 0) return null;
+  for (let i = idx - 1; i >= 0; i--) {
+    if (store.months.has(MONTHS[i].file)) return MONTHS[i].file;
+  }
   return null;
 }
 
-/* ============================================================
-   РЕКОМЕНДАЦИИ
-   ============================================================ */
-const RECOMMENDATIONS = {
-  p35: {
-    title: "Рекомендации по П35 (своевременная выкладка меню и отсутствие ошибок)",
-    items: [
-      "Выкладывайте меню накануне дня питания — до дня питания оно уже должно быть в системе.",
-      "Перед публикацией сверьте меню с типовым меню: оно должно совпадать слово в слово (наименования блюд, выход, состав).",
-      "Убедитесь, что в календаре питания день питания стоит верно (правильная дата и день недели).",
-      "Перед публикацией типового меню проверьте его на наличие отклонений от СанПиН (например, в редакторе/нормативном справочнике).",
-      "Утром до 9:00 проверьте, загрузилось ли меню. Если не загрузилось — успейте подать заявку на дочитывание до 9:00.",
-      "Важно: при дочитывании день всё равно может отобразиться как «нет типового меню». Но при сверке на последующих днях этот день будет учтён — главное, чтобы не было ошибки о несвоевременности выкладки."
-    ],
-    note: "Если меню опубликовано своевременно и без ошибок в ≥ 90% дней периода, школа проходит П35."
-  },
-  p36: {
-    title: "Рекомендации по П36 (соответствие ежедневного меню типовому)",
-    items: [
-      "Все выложенные ежедневные меню должны соответствовать типовому меню.",
-      "Меню считается соответствующим, если процент соблюдения равен или выше 75%.",
-      "Допускается замена блюд (по объективным причинам), из-за которой процент соблюдения снижается, но не ниже 75%.",
-      "Проверяйте каждое ежедневное меню перед публикацией: наименования блюд, выход, состав — всё должно совпадать с типовым (кроме допустимых замен).",
-      "Если замена необходима, фиксируйте её причину — это поможет при разборе спорных дней."
-    ],
-    note: "День считается соблюдённым при соблюдении ТМ ≥ 75%; итоговый флаг «+» в файле — признак прохождения П36."
+function currentData() {
+  return store.months.get(state.monthFile) || null;
+}
+
+function round1(n) {
+  return Math.round(n * 10) / 10;
+}
+
+function deltaHtml(cur, prev, prevLabel) {
+  if (prev === null || prev === undefined || !Number.isFinite(prev) || cur === null || !Number.isFinite(cur)) {
+    return '<span class="delta flat" title="Нет данных для сравнения">—</span>';
   }
-};
-
-function recommendationsHtml(which) {
-  const r = RECOMMENDATIONS[which];
-  if (!r) return "";
-  const items = r.items.map(x => `<li>${x}</li>`).join("");
-  return `
-    <div class="recs-block">
-      <h4>${r.title}</h4>
-      <details class="recs" open>
-        <summary>Показать/скрыть рекомендации</summary>
-        <ol>${items}</ol>
-        <div class="rec-note">${r.note}</div>
-      </details>
-    </div>`;
+  const diff = cur - prev;
+  const title = `Было ${fmt(prev)}%, стало ${fmt(cur)}%` + (prevLabel ? ` (${prevLabel})` : "");
+  if (Math.abs(diff) < 0.05) return `<span class="delta flat" title="${esc(title)}">0,0 п.п.</span>`;
+  const cls = diff > 0 ? "up" : "down";
+  return `<span class="delta ${cls}" title="${esc(title)}">${diff > 0 ? "+" : ""}${fmt(diff)} п.п.</span>`;
 }
 
-/* ============================================================
-   ЗАГРУЗКА
-   ============================================================ */
-async function loadMonth(fileName) {
-  if (CACHE[fileName]) return CACHE[fileName];
-  
-  setStatus(`Загрузка «${fileName}»…`);
-  try {
-    // Кодируем имя файла, чтобы кириллица не ломала URL
-    const resp = await fetch(encodeURI(fileName));
-    if (!resp.ok) throw new Error("Файл не найден: " + fileName);
-    
-    const buf = await resp.arrayBuffer();
-    const wb = XLSX.read(buf, { type: "array" });
-    const ws = wb.Sheets[wb.SheetNames[0]];
-    const aoa = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "" });
-    
-    const districts = parseDistricts(aoa);
-    CACHE[fileName] = { districts };
-
-    // Индексируем
-    districts.forEach(d => {
-      d.schools.forEach(s => {
-        const code = extractCode(s.name);
-        if (!code) return;
-        if (!SCHOOL_INDEX[code]) {
-          SCHOOL_INDEX[code] = { code, name: normStr(s.name), district: d.name, months: {}, districtsByMonth: {} };
-        }
-        SCHOOL_INDEX[code].name = normStr(s.name);
-        SCHOOL_INDEX[code].district = d.name;
-        SCHOOL_INDEX[code].months[fileName] = s;
-        SCHOOL_INDEX[code].districtsByMonth[fileName] = d.name;
-      });
-    });
-
-    return CACHE[fileName];
-  } catch (e) {
-    LOG.error("loadMonth: ОШИБКА при загрузке «" + fileName + "»:", e);
-    throw e;
-  }
+function barHtml(value, pass) {
+  const v = Math.max(0, Math.min(100, Number(value) || 0));
+  return `<div class="bar ${pass ? "ok" : "fail"}"><span style="width:${v.toFixed(1)}%"></span></div>`;
 }
 
-function setStatus(msg) {
-  const el = document.getElementById("status");
-  if (el) el.textContent = msg;
+function pill(pass, textOk = "выполнен", textFail = "не выполнен", textEmpty = "нет данных") {
+  if (pass === null || pass === undefined) return `<span class="pill neutral">${esc(textEmpty)}</span>`;
+  return pass
+    ? `<span class="pill ok">${esc(textOk)}</span>`
+    : `<span class="pill fail">${esc(textFail)}</span>`;
 }
 
-/* ============================================================
-   ПАРСИНГ
-   ============================================================ */
-function looksLikeDistrict(a) {
-  const low = a.toLowerCase();
-  if (EXCLUDED_REGIONS.has(low)) return false;
-  if (SCHOOL_WORDS.test(a)) return false;
-  return true;
+/* Код пищеблока — последняя группа из 4–7 цифр в конце названия. */
+function extractCode(rawName) {
+  const name = normStr(rawName);
+  if (!name) return null;
+  let m = name.match(/[,;]?\s*(\d{4,7})\s*[»"'.]?\s*$/);
+  if (m) return m[1];
+  m = name.match(/(\d{4,7})\s*[»"'.]?\s*$/);
+  if (m) return m[1];
+  const all = [...name.matchAll(/\d{4,7}/g)];
+  return all.length ? all[all.length - 1][0] : null;
 }
 
-function parseDistricts(aoa) {
+/* Название без кода и без ведущей нумерации списка (например «8. МАОУ …»). */
+function cleanSchoolName(rawName) {
+  const name = normStr(rawName);
+  if (!name) return "";
+  let out = name.replace(/[,;]?\s*\d{4,7}\s*[»"'.]?\s*$/, "").trim();
+  out = out.replace(/^\d{1,3}[.)]\s+/, "").trim();
+  return out || name;
+}
+
+function cleanDistrictName(rawName) {
+  return normStr(rawName).replace(/\s+\(/, " (");
+}
+
+function compareText(a, b) {
+  return String(a).localeCompare(String(b), "ru", { sensitivity: "base", numeric: true });
+}
+
+/* Сортировка строк таблиц: text / number, пустые значения — в конец. */
+function sortRows(rows, field, dir, type = "auto") {
+  const factor = dir < 0 ? -1 : 1;
+  return rows.slice().sort((a, b) => {
+    const va = a[field];
+    const vb = b[field];
+    const isText = type === "text" ||
+      (type === "auto" && (typeof va === "string" || typeof vb === "string"));
+    if (isText) return compareText(va == null ? "" : va, vb == null ? "" : vb) * factor;
+    const na = (va === null || va === undefined || !Number.isFinite(va)) ? null : va;
+    const nb = (vb === null || vb === undefined || !Number.isFinite(vb)) ? null : vb;
+    if (na === null && nb === null) return 0;
+    if (na === null) return 1;
+    if (nb === null) return -1;
+    return (na - nb) * factor;
+  });
+}
+
+/* ---------------------------------------------------------------------------
+   4. РАЗБОР ФАЙЛА EXCEL
+   ------------------------------------------------------------------------- */
+function parseWorkbook(buffer, fileName) {
+  if (!window.XLSX) throw new Error("Библиотека XLSX не загружена");
+  const wb = XLSX.read(buffer instanceof ArrayBuffer ? new Uint8Array(buffer) : buffer, { type: "array" });
+  if (!wb.SheetNames.length) throw new Error("В файле нет листов");
+  const sheetName = wb.SheetNames.includes("TDSheet") ? "TDSheet" : wb.SheetNames[0];
+  const ws = wb.Sheets[sheetName];
+  if (!ws) throw new Error("Лист отчёта не найден");
+  const aoa = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "", raw: true, blankrows: false });
+  return parseRows(aoa, fileName, sheetName);
+}
+
+function parseRows(aoa, fileName, sheetName) {
   const districts = [];
+  const districtByName = new Map();
+  const unparsed = [];
+  const noCode = [];
+  const codes = new Map();
+  const flagMismatches = [];
+  let region = null;
   let current = null;
   let orphan = null;
+  let totalSchools = 0;
+
+  const ensureOrphan = () => {
+    if (orphan) return orphan;
+    orphan = {
+      name: "(без района)", fileFM: null, fileTM: null, fileFMPct: null, fileTMPct: null,
+      schools: [], row: 0
+    };
+    districts.push(orphan);
+    return orphan;
+  };
 
   for (let i = 0; i < aoa.length; i++) {
-    const r = aoa[i];
-    const a = normStr(r[0] || "");
+    const row = aoa[i] || [];
+    const a = normStr(row[0]);
     if (!a) continue;
 
-    const bEmpty = normStr(r[1] || "") === "";
-    const cEmpty = normStr(r[2] || "") === "";
-    const dEmpty = normStr(r[3] || "") === "";
-    const eEmpty = normStr(r[4] || "") === "";
+    const b = normStr(row[1]);
+    const c = normStr(row[2]);
+    const d = normStr(row[3]);
+    const e = normStr(row[4]);
+    const lower = a.toLowerCase();
 
-    const fNum = isNumeric(r[5]);
-    const gNum = isNumeric(r[6]);
+    /* Служебная строка «Свердловская область» — сохраняем итоги для сверки. */
+    if (lower === "свердловская область") {
+      region = {
+        fm: toNum(row[5]), tm: toNum(row[6]),
+        fmPct: toNum(row[7]), tmPct: toNum(row[8])
+      };
+      current = null;
+      continue;
+    }
+    if (EXCLUDED_SECTIONS.has(lower)) { current = null; continue; }
+    if (i < 3) continue; // шапка отчёта
 
-    if (a && bEmpty && cEmpty && dEmpty && eEmpty && (fNum || gNum)) {
-      if (!looksLikeDistrict(a)) continue;
-      current = { name: a, pFM: fNum ? toNum(r[5]) : NaN, pTM: gNum ? toNum(r[6]) : NaN, schools: [] };
-      districts.push(current);
+    const isSection = b === "" && c === "" && d === "" && e === "";
+    if (isSection) {
+      current = {
+        name: cleanDistrictName(a),
+        fileFM: toNum(row[5]),
+        fileTM: toNum(row[6]),
+        fileFMPct: toNum(row[7]),
+        fileTMPct: toNum(row[8]),
+        schools: [],
+        row: i + 1
+      };
+      if (districtByName.has(current.name)) {
+        /* Дубликат заголовка — продолжаем наполнять существующий район. */
+        current = districtByName.get(current.name);
+      } else {
+        districtByName.set(current.name, current);
+        districts.push(current);
+      }
       continue;
     }
 
-    if (a && !bEmpty && !cEmpty && !dEmpty) {
-      const days = toNum(r[1]);
-      const timely = toNum(r[2]);
-      const noErrors = toNum(r[3]);
-      const tm = toNum(r[4]);
-      const fmMark = normStr(r[5] || "") === "+";
-      const tmMark = normStr(r[6] || "") === "+";
+    /* Строка школы: дни / % своевременно / % без ошибок обязательны. */
+    const days = toNum(row[1]);
+    const timely = toNum(row[2]);
+    const noErrors = toNum(row[3]);
+    if (days === null || timely === null || noErrors === null) {
+      unparsed.push(i + 1);
+      continue;
+    }
 
-      if (!isNaN(days) && !isNaN(timely) && !isNaN(noErrors)) {
-        const school = { name: a, days, timely, noErrors, tm, fmMark, tmMark };
-        if (current) current.schools.push(school);
-        else {
-          if (!orphan) { orphan = { name: "(без района)", pFM: NaN, pTM: NaN, schools: [] }; districts.push(orphan); }
-          orphan.schools.push(school);
+    const name = a;
+    const code = extractCode(name);
+    const tmRaw = toNum(row[4]);
+    const fmMark = normStr(row[5]) === "+";
+    const tmMark = normStr(row[6]) === "+";
+    const tm = tmRaw === null ? (tmMark ? days : 0) : tmRaw;
+
+    const fmOk = timely >= THRESHOLDS.timely && noErrors >= THRESHOLDS.noErrors;
+    const tmOk = days > 0 && tm >= days - 1e-9;
+
+    const school = {
+      name,
+      displayName: cleanSchoolName(name),
+      code,
+      days,
+      timely,
+      noErrors,
+      tm,
+      fmMark,
+      tmMark,
+      fmOk,
+      tmOk,
+      tmPercent: days > 0 ? Math.min(100, Math.max(0, tm / days * 100)) : 0,
+      row: i + 1
+    };
+
+    if (!code) noCode.push({ row: i + 1, name });
+    else {
+      if (!codes.has(code)) codes.set(code, []);
+      codes.get(code).push(i + 1);
+    }
+    if (fmMark !== fmOk) flagMismatches.push({ row: i + 1, kind: "ФМ" });
+    if (tmMark !== tmOk) flagMismatches.push({ row: i + 1, kind: "ТМ" });
+
+    const target = current || ensureOrphan();
+    target.schools.push(school);
+    totalSchools++;
+  }
+
+  const duplicateCodes = [];
+  codes.forEach((rows, code) => { if (rows.length > 1) duplicateCodes.push({ code, rows }); });
+
+  const data = {
+    file: fileName,
+    label: labelOf(fileName),
+    sheetName,
+    districts,
+    region,
+    totalSchools,
+    unparsed,
+    noCode,
+    duplicateCodes,
+    flagMismatches
+  };
+
+  data.districts = districts.filter(d => d.schools.length > 0);
+  data.byName = new Map(data.districts.map(d => [d.name, d]));
+  data.districts.forEach(d => { d.stats = districtStats(d); });
+  data.quality = buildQuality(data);
+  return data;
+}
+
+/* Показатели района считаются по строкам школ (а не по колонкам «п.ФМ»/«п.ТМ»). */
+function districtStats(district) {
+  const schools = district.schools;
+  const total = schools.length;
+  const fmOk = schools.filter(s => s.fmOk).length;
+  const tmOk = schools.filter(s => s.tmOk).length;
+  return {
+    total,
+    fmOk,
+    tmOk,
+    fmShare: total ? (fmOk / total) * 100 : 0,
+    tmShare: total ? (tmOk / total) * 100 : 0,
+    fmPass: total > 0 && fmOk === total,
+    tmPass: total > 0 && tmOk === total,
+    problemCount: schools.filter(s => !s.fmOk || !s.tmOk).length,
+    avgTimely: avg(schools.map(s => s.timely)),
+    avgNoErrors: avg(schools.map(s => s.noErrors)),
+    avgTmPercent: avg(schools.map(s => s.tmPercent))
+  };
+}
+
+/* Сверка расчёта с итогами, которые уже есть в файле. */
+function buildQuality(data) {
+  const issues = [];
+  let districtMismatch = 0;
+  let pctMismatch = 0;
+
+  data.districts.forEach(d => {
+    if (!d.schools.length) return;
+    const st = d.stats;
+    const fileFM = d.fileFM == null ? 0 : d.fileFM;
+    const fileTM = d.fileTM == null ? 0 : d.fileTM;
+    if (fileFM !== st.fmOk) {
+      districtMismatch++;
+      issues.push(`«${d.name}»: ФМ — в файле ${fmtInt(fileFM)}, рассчитано ${fmtInt(st.fmOk)}`);
+    }
+    if (fileTM !== st.tmOk) {
+      districtMismatch++;
+      issues.push(`«${d.name}»: ТМ — в файле ${fmtInt(fileTM)}, рассчитано ${fmtInt(st.tmOk)}`);
+    }
+    if (d.fileFMPct != null && Math.abs(d.fileFMPct - st.fmShare) > 0.15) {
+      pctMismatch++;
+      issues.push(`«${d.name}»: % ФМ — в файле ${fmt(d.fileFMPct)}, рассчитано ${fmt(st.fmShare)}`);
+    }
+    if (d.fileTMPct != null && Math.abs(d.fileTMPct - st.tmShare) > 0.15) {
+      pctMismatch++;
+      issues.push(`«${d.name}»: % ТМ — в файле ${fmt(d.fileTMPct)}, рассчитано ${fmt(st.tmShare)}`);
+    }
+  });
+
+  let regionMismatch = 0;
+  if (data.region) {
+    const fm = data.districts.reduce((n, d) => n + d.stats.fmOk, 0);
+    const tm = data.districts.reduce((n, d) => n + d.stats.tmOk, 0);
+    if (data.region.fm != null && data.region.fm !== fm) {
+      regionMismatch++;
+      issues.push(`Итого по области: ФМ — в файле ${fmtInt(data.region.fm)}, рассчитано ${fmtInt(fm)}`);
+    }
+    if (data.region.tm != null && data.region.tm !== tm) {
+      regionMismatch++;
+      issues.push(`Итого по области: ТМ — в файле ${fmtInt(data.region.tm)}, рассчитано ${fmtInt(tm)}`);
+    }
+  }
+
+  if (data.unparsed.length) {
+    issues.push(`Не разобрано строк: ${data.unparsed.length} (строки ${data.unparsed.slice(0, 8).join(", ")}${data.unparsed.length > 8 ? "…" : ""})`);
+  }
+  if (data.noCode.length) {
+    issues.push(`Без кода пищеблока: ${data.noCode.length} (${data.noCode.slice(0, 3).map(s => `стр. ${s.row}`).join(", ")}${data.noCode.length > 3 ? "…" : ""})`);
+  }
+  if (data.duplicateCodes.length) {
+    issues.push(`Повторяющиеся коды: ${data.duplicateCodes.map(d => d.code).join(", ")}`);
+  }
+  if (data.flagMismatches.length) {
+    issues.push(`Метки «+» не совпали с расчётом: ${data.flagMismatches.length}`);
+  }
+
+  return {
+    ok: issues.length === 0,
+    issues,
+    districtMismatch,
+    pctMismatch,
+    regionMismatch,
+    unparsed: data.unparsed.length,
+    noCode: data.noCode.length,
+    duplicates: data.duplicateCodes.length,
+    flagMismatch: data.flagMismatches.length
+  };
+}
+
+/* ---------------------------------------------------------------------------
+   5. ЗАГРУЗКА И ИНДЕКС
+   ------------------------------------------------------------------------- */
+async function loadMonth(fileName) {
+  if (store.months.has(fileName)) return store.months.get(fileName);
+  if (store.pending.has(fileName)) return store.pending.get(fileName);
+
+  const task = (async () => {
+    const buffer = await fetchWorkbook(fileName);
+    const data = parseWorkbook(buffer, fileName);
+    if (!data.districts.length || !data.totalSchools) {
+      const error = new Error("EMPTY_WORKBOOK");
+      error.userMessage = `В файле «${fileName}» не найдено ни одной строки школ — проверьте формат отчёта`;
+      throw error;
+    }
+    data.source = "fetch";
+    store.months.set(fileName, data);
+    store.errors.delete(fileName);
+    store.indexDirty = true;
+    return data;
+  })();
+
+  store.pending.set(fileName, task);
+  try {
+    return await task;
+  } catch (error) {
+    store.errors.set(fileName, error);
+    throw error;
+  } finally {
+    store.pending.delete(fileName);
+  }
+}
+
+async function fetchWorkbook(fileName) {
+  if (location.protocol === "file:") {
+    const err = new Error("FILE_PROTOCOL");
+    err.userMessage = "Страница открыта как файл (file://), браузер блокирует чтение .xlsx";
+    throw err;
+  }
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 20000);
+  try {
+    const response = await fetch(encodeURI(fileName), { cache: "no-store", signal: controller.signal });
+    if (!response.ok) {
+      const err = new Error("HTTP " + response.status);
+      err.userMessage = `Файл «${fileName}» не найден (HTTP ${response.status})`;
+      throw err;
+    }
+    return await response.arrayBuffer();
+  } catch (error) {
+    if (error && error.name === "AbortError") {
+      const err = new Error("TIMEOUT");
+      err.userMessage = `Файл «${fileName}» не загрузился за 20 секунд`;
+      throw err;
+    }
+    throw error;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function ingestBuffer(buffer, fileName, source) {
+  const data = parseWorkbook(buffer, fileName);
+  if (!data.districts.length || !data.totalSchools) {
+    throw new Error("в файле не найдено ни одной строки школ");
+  }
+  data.source = source || "upload";
+  store.months.set(fileName, data);
+  store.errors.delete(fileName);
+  store.indexDirty = true;
+  return data;
+}
+
+async function loadAllMonths(onProgress) {
+  let finished = 0;
+  await mapLimit(MONTHS, 4, async month => {
+    try {
+      await loadMonth(month.file);
+    } catch (error) {
+      store.errors.set(month.file, error);
+    }
+    finished++;
+    if (onProgress) onProgress(finished, MONTHS.length, month.label);
+  });
+}
+
+async function mapLimit(items, limit, worker) {
+  const list = Array.from(items);
+  let cursor = 0;
+  const runners = Array.from({ length: Math.min(limit, list.length) }, async () => {
+    while (true) {
+      const index = cursor++;
+      if (index >= list.length) return;
+      await worker(list[index], index);
+    }
+  });
+  await Promise.all(runners);
+}
+
+function ensureIndex() {
+  if (!store.indexDirty && store.index.size) return store.index;
+  const index = new Map();
+  for (const month of MONTHS) {
+    const data = store.months.get(month.file);
+    if (!data) continue;
+    for (const district of data.districts) {
+      for (const school of district.schools) {
+        if (!school.code) continue;
+        let record = index.get(school.code);
+        if (!record) {
+          record = { code: school.code, months: new Map(), districtByMonth: new Map(), names: new Map() };
+          index.set(school.code, record);
         }
+        record.months.set(month.file, school);
+        record.districtByMonth.set(month.file, district.name);
+        record.names.set(month.file, school.name);
       }
     }
   }
-  return districts.filter(d => d.schools.length > 0);
+  store.index = index;
+  store.indexDirty = false;
+  return index;
 }
 
-/* ============================================================
-   ОЦЕНКА
-   ============================================================ */
-function evaluateSchool(s) {
-  const fmOk = s.timely >= THRESHOLDS.timely && s.noErrors >= THRESHOLDS.noErrors;
-  const tmOk = s.tmMark === true;
-  const tmPercent = s.days > 0 ? (s.tm / s.days) * 100 : 0;
-  return { ...s, fmOk, tmOk, tmPercent };
-}
-function evaluateDistrict(d) {
-  const schools = d.schools.map(evaluateSchool);
-  const total = schools.length;
-  const fmOkCount = schools.filter(s => s.fmOk).length;
-  const tmOkCount = schools.filter(s => s.tmOk).length;
-  const fmShare = total ? (fmOkCount / total) * 100 : 0;
-  const tmShare = total ? (tmOkCount / total) * 100 : 0;
-  return {
-    ...d, schools, total, fmOkCount, tmOkCount, fmShare, tmShare,
-    fmPass: fmShare >= THRESHOLDS.districtPassShare,
-    tmPass: tmShare >= THRESHOLDS.districtPassShare
-  };
-}
-function districtMetrics(fileName, districtName) {
-  const data = CACHE[fileName];
-  if (!data) return null;
-  const d = data.districts.find(x => x.name === districtName);
-  if (!d) return null;
-  const ev = evaluateDistrict(d);
-  return { fmShare: ev.fmShare, tmShare: ev.tmShare, total: ev.total };
+function schoolRecord(code) {
+  return ensureIndex().get(String(code)) || null;
 }
 
-function getCanonicalDistrict(code) {
-  const school = SCHOOL_INDEX[code];
-  if (!school) return { district: null, counts: {}, conflicts: [], byMonth: [] };
-  const byMonth = MONTHS
-    .map(m => ({ label: m.label, file: m.value, district: school.districtsByMonth?.[m.value] }))
-    .filter(x => x.district);
+function schoolDisplayName(record) {
+  for (let i = MONTHS.length - 1; i >= 0; i--) {
+    const name = record.names.get(MONTHS[i].file);
+    if (name) return cleanSchoolName(name);
+  }
+  return record.code;
+}
 
-  const counts = {};
-  byMonth.forEach(x => { counts[x.district] = (counts[x.district] || 0) + 1; });
-
-  let bestDistrict = school.district || null;
+function canonicalDistrict(record) {
+  const counts = new Map();
+  for (const month of MONTHS) {
+    const district = record.districtByMonth.get(month.file);
+    if (!district) continue;
+    counts.set(district, (counts.get(district) || 0) + 1);
+  }
+  let best = null;
   let bestCount = -1;
-  byMonth.forEach(x => {
-    const c = counts[x.district];
-    if (c > bestCount) { bestCount = c; bestDistrict = x.district; }
-  });
-
-  const conflicts = byMonth.filter(x => x.district !== bestDistrict);
-  return { district: bestDistrict, counts, conflicts, byMonth };
+  for (const month of MONTHS) {
+    const district = record.districtByMonth.get(month.file);
+    if (!district) continue;
+    const count = counts.get(district);
+    if (count >= bestCount) { best = district; bestCount = count; }
+  }
+  const conflicts = [];
+  for (const month of MONTHS) {
+    const district = record.districtByMonth.get(month.file);
+    if (district && district !== best) conflicts.push({ file: month.file, label: month.label, district });
+  }
+  return { district: best, counts, conflicts };
 }
 
-/* ============================================================
-   ВКЛАДКИ
-   ============================================================ */
-document.querySelectorAll(".tab").forEach(tab => {
-  tab.addEventListener("click", () => {
-    const name = tab.dataset.tab;
-    document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
-    tab.classList.add("active");
-    document.getElementById("tab-district").style.display = name === "district" ? "" : "none";
-    document.getElementById("tab-school").style.display = name === "school" ? "" : "none";
-    if (name === "school") updateUrlSchool(currentSchoolCode);
-    else updateUrlSchool(null);
-  });
-});
-
-/* ============================================================
-   URL
-   ============================================================ */
-function updateUrlSchool(code) {
-  const url = new URL(window.location.href);
-  if (code) url.searchParams.set("school", code);
-  else url.searchParams.delete("school");
-  history.replaceState(null, "", url.toString());
-}
-function readUrlSchool() {
-  const url = new URL(window.location.href);
-  return url.searchParams.get("school");
+function districtForMonth(record, file) {
+  const direct = record.districtByMonth.get(file);
+  if (direct) return direct;
+  return canonicalDistrict(record).district;
 }
 
-/* ============================================================
-   ВЫБОР МЕСЯЦА
-   ============================================================ */
-function buildMonthSelect() {
-  const sel = document.getElementById("monthSelect");
-  sel.innerHTML = "";
-  MONTHS.forEach(m => {
-    const o = document.createElement("option");
-    o.value = m.value;
-    o.textContent = m.label;
-    sel.appendChild(o);
-  });
-  sel.value = currentMonthFile;
-  sel.addEventListener("change", async () => {
-    currentMonthFile = sel.value;
-    await ensureLoaded();
-    renderDistrictTab();
-    if (currentSchoolCode) renderSchoolTab(currentSchoolCode);
-  });
+function districtStatsFor(file, districtName) {
+  const data = store.months.get(file);
+  if (!data) return null;
+  const district = data.byName.get(districtName);
+  return district ? district.stats : null;
 }
 
-/* ============================================================
-   СЕЛЕКТ РАЙОНОВ
-   ============================================================ */
-function buildDistrictSelect(districts) {
-  const sel = document.getElementById("districtSelect");
-  sel.innerHTML = "";
-  const optAll = document.createElement("option");
-  optAll.value = "__ALL__";
-  optAll.textContent = "— Все районы (сводка) —";
-  sel.appendChild(optAll);
-  districts.forEach(d => {
-    const o = document.createElement("option");
-    o.value = d.name;
-    o.textContent = d.name;
-    sel.appendChild(o);
-  });
-  const exists = districts.some(d => d.name === currentDistrictValue);
-  sel.value = exists ? currentDistrictValue : "__ALL__";
-  sel.addEventListener("change", () => {
-    currentDistrictValue = sel.value;
-    renderDistrictTab();
-  });
+function findSchoolByQuery(query) {
+  const q = normStr(query);
+  if (!q) return null;
+  const index = ensureIndex();
+  if (index.has(q)) return index.get(q);
+  const lower = q.toLowerCase();
+
+  const cards = Array.from(index.values()).map(record => ({
+    record,
+    name: schoolDisplayName(record).toLowerCase(),
+    code: record.code
+  }));
+
+  let best = cards.filter(x => x.code.startsWith(q));
+  if (best.length) return best.sort((a, b) => a.code.localeCompare(b.code))[0].record;
+
+  best = cards.filter(x => x.name.includes(lower));
+  if (best.length) return best.sort((a, b) => a.name.localeCompare(b.name, "ru"))[0].record;
+
+  return null;
 }
 
-/* ============================================================
-   ЗАГРУЗКА МЕСЯЦА
-   ============================================================ */
-async function ensureLoaded() {
+function suggestSchools(query, limit = 12) {
+  const q = normStr(query).toLowerCase();
+  if (!q) return [];
+  const scored = [];
+  for (const record of ensureIndex().values()) {
+    const name = schoolDisplayName(record);
+    const nameLower = name.toLowerCase();
+    const code = record.code;
+    let score = 0;
+    if (code === q) score = 100;
+    else if (code.startsWith(q)) score = 80;
+    else if (code.includes(q)) score = 60;
+    else if (nameLower.startsWith(q)) score = 50;
+    else if (nameLower.includes(q)) score = 30;
+    else continue;
+    scored.push({ record, name, score });
+  }
+  scored.sort((a, b) => b.score - a.score || compareText(a.name, b.name));
+  return scored.slice(0, limit);
+}
+
+
+/* ---------------------------------------------------------------------------
+   6. ОБЩИЕ ЭЛЕМЕНТЫ ИНТЕРФЕЙСА
+   ------------------------------------------------------------------------- */
+function cssVar(name) {
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+}
+
+function destroyCharts() {
+  store.charts.forEach(chart => {
+    try { chart.destroy(); } catch (error) { /* ignore */ }
+  });
+  store.charts = [];
+}
+
+function chartFallback(canvasId) {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas) return;
+  const box = canvas.parentElement;
+  if (box) box.innerHTML = '<div class="notice info"><span class="notice-icon">i</span><span>График недоступен: библиотека Chart.js не загрузилась. Таблицы и расчёты работают.</span></div>';
+}
+
+function createChart(canvasId, config) {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas) return null;
+  if (!window.Chart) { chartFallback(canvasId); return null; }
   try {
-    await loadMonth(currentMonthFile);
-    const data = CACHE[currentMonthFile];
-    buildDistrictSelect(data.districts);
-    setStatus(`Загружено: «${MONTHS.find(m => m.value === currentMonthFile).label}». Районов: ${data.districts.length}`);
-    return true;
-  } catch (e) {
-    setStatus("Ошибка: " + e.message);
-    return false;
+    const chart = new Chart(canvas.getContext("2d"), config);
+    store.charts.push(chart);
+    return chart;
+  } catch (error) {
+    console.warn("[MM] Не удалось построить график:", error);
+    chartFallback(canvasId);
+    return null;
   }
 }
 
-/* ============================================================
-   РЕНДЕР ВКЛАДКИ «РАЙОН»
-   ============================================================ */
-let fmChart = null, tmChart = null;
-function destroyCharts() {
-  if (fmChart) { fmChart.destroy(); fmChart = null; }
-  if (tmChart) { tmChart.destroy(); tmChart = null; }
+function baseChartOptions() {
+  const muted = cssVar("--muted");
+  const line = cssVar("--line");
+  return {
+    responsive: true,
+    maintainAspectRatio: false,
+    interaction: { mode: "index", intersect: false },
+    plugins: {
+      legend: {
+        position: "bottom",
+        labels: { usePointStyle: true, boxWidth: 8, boxHeight: 8, padding: 14, color: muted }
+      },
+      tooltip: {
+        backgroundColor: cssVar("--surface"),
+        titleColor: cssVar("--text"),
+        bodyColor: cssVar("--text"),
+        borderColor: line,
+        borderWidth: 1,
+        padding: 10,
+        callbacks: {
+          label: ctx => `${ctx.dataset.label}: ${fmt(ctx.parsed.y)}%`
+        }
+      }
+    },
+    scales: {
+      x: { grid: { display: false }, ticks: { color: muted } },
+      y: {
+        beginAtZero: true, max: 100,
+        ticks: { color: muted, callback: value => value + "%" },
+        grid: { color: line }
+      }
+    }
+  };
 }
 
-function renderDistrictTab() {
-  if (currentDistrictValue === "__ALL__") renderAll();
-  else renderDistrict(currentDistrictValue);
+function kpiCard(label, value, sub, cls = "", extra = "") {
+  return `<div class="kpi ${cls}">
+    <div class="kpi-label">${esc(label)}</div>
+    <div class="kpi-value">${value}</div>
+    ${sub ? `<div class="kpi-sub">${sub}</div>` : ""}
+    ${extra}
+  </div>`;
+}
+
+function sortTh(table, field, label, extraClass = "") {
+  const current = state.sort[table];
+  const active = current.field === field;
+  const aria = active ? (current.dir > 0 ? "ascending" : "descending") : "none";
+  const arrow = active ? (current.dir > 0 ? "▲" : "▼") : "⇅";
+  return `<th class="${extraClass}" aria-sort="${aria}">
+    <button type="button" class="sort-btn" data-action="sort" data-table="${table}" data-field="${field}">
+      ${label}<span class="sort-arrow" aria-hidden="true">${arrow}</span>
+    </button>
+  </th>`;
+}
+
+function chartBox(title, subtitle, canvasId) {
+  return `<div class="chart-box">
+    <h3>${title}</h3>
+    ${subtitle ? `<div class="chart-sub">${subtitle}</div>` : ""}
+    <div class="chart-canvas"><canvas id="${canvasId}" aria-label="${esc(title)}" role="img"></canvas></div>
+  </div>`;
+}
+
+/* ---------------------------------------------------------------------------
+   7. ШАПКА, СТАТУС, ВКЛАДКИ
+   ------------------------------------------------------------------------- */
+function countQualityIssues() {
+  let total = 0;
+  for (const data of store.months.values()) total += data.quality.issues.length;
+  return total;
+}
+
+function renderStatus() {
+  const el = $("#statusbar");
+  if (!el) return;
+  const month = currentData();
+  const loaded = store.months.size;
+  const issues = countQualityIssues();
+  const left = [];
+
+  if (month) {
+    left.push(`<span class="dot ${issues ? "warn" : "ok"}" aria-hidden="true"></span>`);
+    left.push(`<b>${esc(month.label)}</b>`);
+    left.push(`<span class="muted">·</span>`);
+    left.push(`${fmtInt(month.districts.length)} ${plural(month.districts.length, "район", "района", "районов")}`);
+    left.push(`<span class="muted">·</span>`);
+    left.push(`${fmtInt(month.totalSchools)} ${plural(month.totalSchools, "школа", "школы", "школ")}`);
+    if (month.source === "upload") left.push(`<span class="chip">файл выбран вручную</span>`);
+  } else {
+    left.push(`<span class="dot fail" aria-hidden="true"></span>`);
+    left.push(`<b>${esc(labelOf(state.monthFile))}</b>`);
+    left.push(`<span class="fail">данные не загружены</span>`);
+  }
+
+  const right = [];
+  right.push(`<span class="chip" title="Загружено файлов месяцев">${loaded} / ${MONTHS.length} файлов</span>`);
+  if (issues) {
+    right.push(`<span class="chip warn" title="Есть расхождения при сверке с итогами в файлах">${issues} ${plural(issues, "замечание", "замечания", "замечаний")}</span>`);
+  } else if (month) {
+    right.push(`<span class="chip ok" title="Суммы по районам сверены с итогами в файлах">разбор сверен</span>`);
+  }
+  if (loaded < MONTHS.length) {
+    const missing = MONTHS.filter(m => !store.months.has(m.file)).map(m => m.label).join(", ");
+    right.push(`<span class="chip warn" title="Нет данных: ${esc(missing)}">нет: ${esc(missing)}</span>`);
+    right.push(`<button type="button" class="chip" data-action="pick-files" title="Выбрать файлы .xlsx вручную">Выбрать .xlsx</button>`);
+  }
+  if (location.protocol === "file:") {
+    right.push(`<span class="chip warn" title="Браузер блокирует чтение локальных файлов">режим file://</span>`);
+  }
+
+  el.innerHTML = `<div class="status-left">${left.join(" ")}</div><div class="status-right">${right.join("")}</div>`;
+}
+
+function renderTabs() {
+  $$(".tab").forEach(tab => {
+    const active = tab.dataset.tab === state.tab;
+    tab.setAttribute("aria-selected", active ? "true" : "false");
+    tab.classList.toggle("active", active);
+  });
+  $("#tab-summary").hidden = state.tab !== "summary";
+  $("#tab-school").hidden = state.tab !== "school";
+  $("#tab-problems").hidden = state.tab !== "problems";
+
+  const month = currentData();
+  const count = month ? month.districts.reduce((sum, d) => sum + d.stats.problemCount, 0) : null;
+  const badge = $("#problemsCount");
+  if (badge) badge.textContent = count === null ? "—" : fmtInt(count);
+}
+
+function renderMonthSelect() {
+  const select = $("#monthSelect");
+  if (!select) return;
+  if (select.options.length !== MONTHS.length) {
+    select.innerHTML = MONTHS.map(m => `<option value="${esc(m.file)}">${esc(m.label)}</option>`).join("");
+  }
+  select.value = state.monthFile;
+  const index = MONTHS.findIndex(m => m.file === state.monthFile);
+  const prevBtn = $('[data-action="prev-month"]');
+  const nextBtn = $('[data-action="next-month"]');
+  if (prevBtn) prevBtn.disabled = index <= 0;
+  if (nextBtn) nextBtn.disabled = index >= MONTHS.length - 1;
+}
+
+function fillSelect(select, values, current, placeholder, missingSuffix) {
+  if (!select) return;
+  const options = [];
+  if (placeholder) options.push(`<option value="">${esc(placeholder)}</option>`);
+  values.forEach(value => options.push(`<option value="${esc(value)}">${esc(value)}</option>`));
+  const isMissing = Boolean(current) && !values.includes(current);
+  if (isMissing && missingSuffix) {
+    options.push(`<option value="${esc(current)}">${esc(current)} ${esc(missingSuffix)}</option>`);
+  }
+  select.innerHTML = options.join("");
+  select.value = values.includes(current) || (isMissing && missingSuffix) ? current : "";
+}
+
+function renderDistrictOptions() {
+  const month = currentData();
+  const names = month ? month.districts.map(d => d.name).sort(compareText) : [];
+  fillSelect($("#districtSelect"), names, state.district, "— все районы —", "(нет в этом месяце)");
+  fillSelect($("#problemsDistrict"), names, state.filters.problems.district, "— все районы —", "(нет в этом месяце)");
 }
 
 function renderAll() {
+  ensureIndex();
+  renderTabs();
+  renderStatus();
+  renderMonthSelect();
+  renderDistrictOptions();
+  renderTab();
+}
+
+function renderTab() {
+  if (state.tab === "summary") renderSummary();
+  else if (state.tab === "school") renderSchool();
+  else renderProblems();
+}
+
+function switchTab(tab) {
+  if (!["summary", "school", "problems"].includes(tab)) return;
+  state.tab = tab;
+  renderTabs();
+  renderTab();
+  syncUrl();
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+/* ---------------------------------------------------------------------------
+   8. ВКЛАДКА «РАЙОНЫ»
+   ------------------------------------------------------------------------- */
+function renderSummary() {
   destroyCharts();
-  document.getElementById("charts").innerHTML = "";
+  const body = $("#summaryBody");
+  const month = currentData();
+  const title = $("#summaryTitle");
+  const subtitle = $("#summarySubtitle");
 
-  const data = CACHE[currentMonthFile];
-  if (!data) return;
-  
-  const evaluated = data.districts.map(evaluateDistrict);
-  const curIdx = MONTHS.findIndex(m => m.value === currentMonthFile);
-  const prevMonth = curIdx > 0 ? MONTHS[curIdx - 1] : null;
-  const prevFile = prevMonth && CACHE[prevMonth.value] ? prevMonth.value : null;
+  const isDetail = Boolean(state.district);
+  $("#summarySearchField").hidden = isDetail;
+  $("#summaryProblemsLabel").hidden = isDetail;
+  const exportBtn = $('#tab-summary .toolbar [data-action="export"][data-kind="districts"]');
+  if (exportBtn) exportBtn.hidden = isDetail;
 
-  const sorted = [...evaluated].sort((a, b) => {
-    if (currentSort.field === "name") return a.name.localeCompare(b.name) * currentSort.dir;
-    return ((a[currentSort.field] || 0) - (b[currentSort.field] || 0)) * currentSort.dir;
+  if (!month) {
+    title.textContent = "Данные не загружены";
+    subtitle.textContent = "Не удалось прочитать файл выбранного месяца";
+    body.innerHTML = loadErrorHtml();
+    return;
+  }
+
+  const prevFile = prevMonthFile();
+  const prevLabel = prevFile ? labelOf(prevFile) : null;
+
+  if (state.district) {
+    const district = month.byName.get(state.district);
+    title.textContent = state.district;
+    subtitle.textContent = district
+      ? `${fmtInt(district.stats.total)} ${plural(district.stats.total, "школа", "школы", "школ")} · ${month.label} · показатель выполнен, если его выполнили ${THRESHOLDS.districtPassShare}% школ`
+      : `Нет данных в ${monthOf(month.file).prep}`;
+    if (district) {
+      body.innerHTML = districtDetailHtml(month, district);
+      buildDistrictCharts(district);
+    } else {
+      body.innerHTML = districtMissingHtml(month, state.district);
+    }
+    return;
+  }
+
+  title.textContent = "Сводка по районам";
+  const prevDative = prevFile ? monthOf(prevFile).dative : null;
+  subtitle.textContent = `${month.label} · ${fmtInt(month.districts.length)} ${plural(month.districts.length, "район", "района", "районов")} · ${fmtInt(month.totalSchools)} ${plural(month.totalSchools, "школа", "школы", "школ")}` +
+    (prevDative ? ` · Δ — к ${prevDative}` : " · сравнение недоступно");
+
+  body.innerHTML = districtListHtml(month, prevLabel);
+}
+
+function districtRows(month) {
+  const prevFile = prevMonthFile();
+  const prev = prevFile ? store.months.get(prevFile) : null;
+  return month.districts.map(district => {
+    const stats = district.stats;
+    const prevDistrict = prev ? prev.byName.get(district.name) : null;
+    const prevStats = prevDistrict ? prevDistrict.stats : null;
+    return {
+      name: district.name,
+      total: stats.total,
+      fmOk: stats.fmOk,
+      tmOk: stats.tmOk,
+      fmShare: round1(stats.fmShare),
+      tmShare: round1(stats.tmShare),
+      fmPass: stats.fmPass,
+      tmPass: stats.tmPass,
+      problem: stats.problemCount,
+      prevFm: prevStats ? prevStats.fmShare : null,
+      prevTm: prevStats ? prevStats.tmShare : null,
+      hasPrev: Boolean(prevStats)
+    };
   });
+}
 
-  const rows = sorted.map(d => {
-    const prev = prevFile ? districtMetrics(prevFile, d.name) : null;
-    const deltaFm = !prevFile ? '—' : (prev ? deltaHtml(d.fmShare, prev.fmShare) : '<span class="delta-flat">нет в прошлом</span>');
-    const deltaTm = !prevFile ? '—' : (prev ? deltaHtml(d.tmShare, prev.tmShare) : '<span class="delta-flat">нет в прошлом</span>');
-    return `<tr>
-      <td>${d.name}</td>
-      <td>${d.total}</td>
-      <td>${d.fmOkCount}</td>
-      <td>${fmt(d.fmShare)}%</td>
-      <td class="${d.fmPass ? 'ok' : 'fail'}">${d.fmPass ? 'да' : 'нет'}</td>
-      <td>${deltaFm}</td>
-      <td>${d.tmOkCount}</td>
-      <td>${fmt(d.tmShare)}%</td>
-      <td class="${d.tmPass ? 'ok' : 'fail'}">${d.tmPass ? 'да' : 'нет'}</td>
-      <td>${deltaTm}</td>
+function filteredDistrictRows(month) {
+  let rows = districtRows(month);
+  const query = normStr(state.filters.summarySearch).toLowerCase();
+  if (query) rows = rows.filter(row => row.name.toLowerCase().includes(query));
+  if (state.filters.summaryOnlyProblems) rows = rows.filter(row => !row.fmPass || !row.tmPass);
+  const sort = state.sort.summary;
+  return sortRows(rows, sort.field, sort.dir, sort.field === "name" ? "text" : "number");
+}
+
+function districtStatus(row) {
+  if (row.fmPass && row.tmPass) return '<span class="pill ok">оба выполнены</span>';
+  if (row.fmPass) return '<span class="pill warn">только ФМ</span>';
+  if (row.tmPass) return '<span class="pill warn">только ТМ</span>';
+  return '<span class="pill fail">оба не выполнены</span>';
+}
+
+function districtListHtml(month, prevLabel) {
+  const rows = filteredDistrictRows(month);
+  const all = month.districts;
+  const totalSchools = month.totalSchools;
+  const fmOk = all.reduce((sum, d) => sum + d.stats.fmOk, 0);
+  const tmOk = all.reduce((sum, d) => sum + d.stats.tmOk, 0);
+  const problem = all.reduce((sum, d) => sum + d.stats.problemCount, 0);
+  const bothPass = all.filter(d => d.stats.fmPass && d.stats.tmPass).length;
+  const fmShare = totalSchools ? fmOk / totalSchools * 100 : 0;
+  const tmShare = totalSchools ? tmOk / totalSchools * 100 : 0;
+  const problemShare = totalSchools ? problem / totalSchools * 100 : 0;
+
+  const kpis = `<div class="kpis">
+    ${kpiCard("Школ в отчёте", fmtInt(totalSchools), `${fmtInt(all.length)} ${plural(all.length, "район", "района", "районов")}`)}
+    ${kpiCard("Выполнили ФМ · П35", `${fmt(fmShare)}<small>%</small>`, `${fmtInt(fmOk)} из ${fmtInt(totalSchools)} школ`, "ok", barHtml(fmShare, true))}
+    ${kpiCard("Выполнили ТМ · П36", `${fmt(tmShare)}<small>%</small>`, `${fmtInt(tmOk)} из ${fmtInt(totalSchools)} школ`, "ok", barHtml(tmShare, true))}
+    ${kpiCard("Проблемные школы", fmtInt(problem), `${fmt(problemShare)}% от всех`, problem ? "fail" : "ok")}
+    ${kpiCard("Районы с обоими показателями", `${fmtInt(bothPass)}<small>/${fmtInt(all.length)}</small>`, `нужно 100% школ района`, bothPass === all.length ? "ok" : "")}
+  </div>`;
+
+  const table = rows.length ? `
+    <div class="table-wrap">
+      <table class="data table-districts">
+        <thead><tr>
+          ${sortTh("summary", "name", "Район")}
+          ${sortTh("summary", "total", "Школ", "right")}
+          ${sortTh("summary", "fmShare", "ФМ, %", "right")}
+          <th class="right" title="Изменение к предыдущему месяцу, п.п.">Δ ФМ</th>
+          ${sortTh("summary", "tmShare", "ТМ, %", "right")}
+          <th class="right" title="Изменение к предыдущему месяцу, п.п.">Δ ТМ</th>
+          ${sortTh("summary", "problem", "Проблемных", "right")}
+          <th>Итог</th>
+        </tr></thead>
+        <tbody>
+          ${rows.map(row => `
+            <tr class="clickable" data-action="open-district" data-name="${esc(row.name)}" title="Открыть район «${esc(row.name)}»">
+              <td>
+                <div class="school-cell">
+                  <button type="button" class="row-link name" data-action="open-district" data-name="${esc(row.name)}">${esc(row.name)}</button>
+                  ${prevLabel && !row.hasPrev ? '<div class="sub">нет в прошлом месяце</div>' : ""}
+                </div>
+              </td>
+              <td class="right">${fmtInt(row.total)}</td>
+              <td class="right">
+                <div class="cell-metric"><b>${fmt(row.fmShare)}%</b>
+                  <span class="small muted">${fmtInt(row.fmOk)} из ${fmtInt(row.total)}</span>
+                  ${barHtml(row.fmShare, row.fmPass)}
+                </div>
+              </td>
+              <td class="right">${deltaHtml(row.fmShare, row.hasPrev ? row.prevFm : null, prevLabel)}</td>
+              <td class="right">
+                <div class="cell-metric"><b>${fmt(row.tmShare)}%</b>
+                  <span class="small muted">${fmtInt(row.tmOk)} из ${fmtInt(row.total)}</span>
+                  ${barHtml(row.tmShare, row.tmPass)}
+                </div>
+              </td>
+              <td class="right">${deltaHtml(row.tmShare, row.hasPrev ? row.prevTm : null, prevLabel)}</td>
+              <td class="right">${row.problem ? `<span class="pill warn">${fmtInt(row.problem)}</span>` : '<span class="muted">0</span>'}</td>
+              <td>${districtStatus(row)}</td>
+            </tr>`).join("")}
+        </tbody>
+      </table>
+    </div>` : `<div class="empty"><div class="empty-icon">🔎</div><h3>Ничего не найдено</h3><p>Измените поисковый запрос или снимите фильтр «только проблемные».</p></div>`;
+
+  return `<div class="stack">
+    ${kpis}
+    ${qualityCardHtml()}
+    <div class="card">
+      <div class="table-head">
+        <div>
+          <h3>Районы</h3>
+          <p class="small muted">Показатель района выполнен, если его выполнили ${THRESHOLDS.districtPassShare}% школ. Нажмите на строку, чтобы открыть район.</p>
+        </div>
+        <div class="table-controls">
+          <span class="chip">${fmtInt(rows.length)} из ${fmtInt(all.length)} ${plural(all.length, "района", "районов", "районов")}</span>
+        </div>
+      </div>
+      ${table}
+    </div>
+  </div>`;
+}
+
+function districtDetailHtml(month, district) {
+  const stats = district.stats;
+  const prevFile = prevMonthFile();
+  const prevStats = prevFile ? districtStatsFor(prevFile, district.name) : null;
+  const prevLabel = prevFile ? labelOf(prevFile) : null;
+
+  const monthSeries = MONTHS.map(m => ({
+    month: m,
+    stats: districtStatsFor(m.file, district.name)
+  }));
+  const missingMonths = monthSeries.filter(item => !item.stats).map(item => item.month.label);
+
+  const kpis = `<div class="kpis">
+    ${kpiCard("Школ в районе", fmtInt(stats.total), `${month.label}`, "")}
+    ${kpiCard("ФМ · П35", `${fmt(stats.fmShare)}<small>%</small>`, `${fmtInt(stats.fmOk)} из ${fmtInt(stats.total)} школ`, stats.fmPass ? "ok" : "fail", barHtml(stats.fmShare, stats.fmPass))}
+    ${kpiCard("ТМ · П36", `${fmt(stats.tmShare)}<small>%</small>`, `${fmtInt(stats.tmOk)} из ${fmtInt(stats.total)} школ`, stats.tmPass ? "ok" : "fail", barHtml(stats.tmShare, stats.tmPass))}
+    ${kpiCard("Проблемные школы", fmtInt(stats.problemCount), stats.total ? `${fmt(stats.problemCount / stats.total * 100)}% от всех` : "", stats.problemCount ? "warn" : "ok")}
+  </div>`;
+
+  const compare = prevLabel
+    ? `<p class="small muted mt-10">К ${esc(monthOf(prevFile).dative)}: ФМ ${deltaHtml(stats.fmShare, prevStats ? prevStats.fmShare : null, prevLabel)}, ТМ ${deltaHtml(stats.tmShare, prevStats ? prevStats.tmShare : null, prevLabel)}</p>`
+    : "";
+
+  const averages = `<p class="small muted mt-10">
+    Средние по району: своевременно <b>${fmt(stats.avgTimely)}%</b> ·
+    без ошибок <b>${fmt(stats.avgNoErrors)}%</b> ·
+    засчитанных дней ТМ <b>${fmt(stats.avgTmPercent)}%</b>
+  </p>`;
+
+  const missingNotice = missingMonths.length
+    ? `<div class="notice warn"><span class="notice-icon">!</span><span>Район отсутствует в файлах: <b>${missingMonths.map(esc).join(", ")}</b>. Возможно, в эти месяцы школы отнесены к другому району — это видно в карточке школы.</span></div>`
+    : "";
+
+  const schoolsTable = districtSchoolsTableHtml(district);
+
+  return `<div class="stack">
+    <div class="card">
+      <button type="button" class="btn ghost small" data-action="back-districts">← Все районы</button>
+      <div class="mt-14">${kpis}</div>
+      ${compare}
+      ${averages}
+    </div>
+    ${missingNotice}
+    <div class="charts">
+      ${chartBox("Динамика по месяцам", "Доля школ района, выполнивших показатель, %. Июнь–август не входят в отчётность.", "chartDistrictSeries")}
+      ${chartBox("Текущий и предыдущий месяц", prevLabel ? `${month.label} и ${prevLabel.toLowerCase()}` : month.label, "chartDistrictCompare")}
+    </div>
+    <div class="recs-grid">
+      ${recommendationsHtml("p35")}
+      ${recommendationsHtml("p36")}
+    </div>
+    <div class="card">
+      <div class="table-head">
+        <div>
+          <h3>Школы района</h3>
+          <p class="small muted">ФМ: своевременно ≥ ${THRESHOLDS.timely}% и без ошибок ≥ ${THRESHOLDS.noErrors}%. ТМ: засчитаны все дни периода.</p>
+        </div>
+        <div class="table-controls">
+          <input id="districtSchoolsSearch" type="search" placeholder="Поиск школы…" autocomplete="off"
+                 value="${esc(state.filters.districtSchoolsSearch)}" aria-label="Поиск школы в районе">
+          <label class="check"><input type="checkbox" id="districtSchoolsOnlyProblems" ${state.filters.districtSchoolsOnlyProblems ? "checked" : ""}> только проблемные</label>
+          <button type="button" class="btn ghost small" data-action="export" data-kind="district-schools">CSV</button>
+        </div>
+      </div>
+      <div id="districtSchoolsTable">${schoolsTable}</div>
+    </div>
+  </div>`;
+}
+
+function refreshDistrictSchoolsTable() {
+  const container = document.getElementById("districtSchoolsTable");
+  const month = currentData();
+  const district = month ? month.byName.get(state.district) : null;
+  if (!container || !district) { renderSummary(); return; }
+  container.innerHTML = districtSchoolsTableHtml(district);
+}
+
+function filteredDistrictSchools(district) {
+  let schools = district.schools.map(school => ({
+    name: school.displayName,
+    code: school.code || "",
+    days: school.days,
+    timely: school.timely,
+    noErrors: school.noErrors,
+    tm: school.tm,
+    tmPercent: round1(school.tmPercent),
+    fmOk: school.fmOk,
+    tmOk: school.tmOk
+  }));
+
+  const query = normStr(state.filters.districtSchoolsSearch).toLowerCase();
+  if (query) {
+    schools = schools.filter(s => s.name.toLowerCase().includes(query) || s.code.includes(query));
+  }
+  if (state.filters.districtSchoolsOnlyProblems) {
+    schools = schools.filter(s => !s.fmOk || !s.tmOk);
+  }
+  const sort = state.sort.districtSchools;
+  return sortRows(schools, sort.field, sort.dir, sort.field === "name" ? "text" : "number");
+}
+
+function districtSchoolsTableHtml(district) {
+  const schools = filteredDistrictSchools(district);
+
+  if (!schools.length) {
+    return `<div class="empty"><div class="empty-icon">🏫</div><h3>Школы не найдены</h3><p>Измените запрос или снимите фильтр «только проблемные».</p></div>`;
+  }
+
+  const rows = schools.map(school => {
+    const hasCode = Boolean(school.code);
+    const nameHtml = hasCode
+      ? `<button type="button" class="row-link name" data-action="open-school" data-code="${esc(school.code)}" title="Открыть карточку школы">${esc(school.name)}</button>`
+      : `<span class="name">${esc(school.name)}</span>`;
+    return `<tr class="${hasCode ? "clickable" : ""}" ${hasCode ? `data-action="open-school" data-code="${esc(school.code)}" title="Открыть карточку школы"` : ""}>
+      <td class="school-cell">
+        ${nameHtml}
+        <div class="sub">${hasCode ? "Код " + esc(school.code) : "код не указан"}</div>
+      </td>
+      <td class="right">${fmtInt(school.days)}</td>
+      <td class="right ${school.timely < THRESHOLDS.timely ? "bad" : "good"}">${fmt(school.timely)}%</td>
+      <td class="right ${school.noErrors < THRESHOLDS.noErrors ? "bad" : "good"}">${fmt(school.noErrors)}%</td>
+      <td>${pill(school.fmOk, "выполнен", "нет")}</td>
+      <td class="right">${fmtInt(school.tm)}</td>
+      <td class="right">${fmt(school.tmPercent)}%</td>
+      <td>${pill(school.tmOk, "выполнен", "нет")}</td>
     </tr>`;
   }).join("");
 
-  const monthLabel = MONTHS.find(m => m.value === currentMonthFile).label;
-
-  document.getElementById("summary").innerHTML = `
-    <div class="card">
-      <h2>Сводка по всем районам — ${monthLabel}</h2>
-      ${prevMonth ? `<p class="method">Сравнение с: <b>${prevMonth.label}</b> (дельта в п.п.). «нет в прошлом» — района не было в файле прошлого месяца.</p>` : ""}
-      <p class="method">
-        <b>ФМ (П35):</b> школа проходит, если своевременно ≥ ${THRESHOLDS.timely}% и без ошибок ≥ ${THRESHOLDS.noErrors}%.<br>
-        <b>ТМ (П36):</b> день считается соблюдённым, если соблюдение ТМ в этот день ≥ ${THRESHOLDS.tmDailyShare}%; в файле — число засчитанных дней, «+» — итоговый флаг.<br>
-        <b>Порог по району:</b> ${THRESHOLDS.districtPassShare}% школ.
-      </p>
-      <table>
-        <thead><tr>
-          <th class="sortable" data-field="name">Район</th>
-          <th class="sortable" data-field="total">Школ</th>
-          <th class="sortable" data-field="fmOkCount">ФМ ок</th>
-          <th class="sortable" data-field="fmShare">ФМ, %</th>
-          <th>ФМ (порог ${THRESHOLDS.districtPassShare}%)</th>
-          <th>Δ ФМ</th>
-          <th class="sortable" data-field="tmOkCount">ТМ ок</th>
-          <th class="sortable" data-field="tmShare">ТМ, %</th>
-          <th>ТМ (порог ${THRESHOLDS.districtPassShare}%)</th>
-          <th>Δ ТМ</th>
-        </tr></thead>
-        <tbody>${rows}</tbody>
-      </table>
-    </div>`;
-
-  document.querySelectorAll("th.sortable").forEach(th => {
-    th.addEventListener("click", () => {
-      const f = th.dataset.field;
-      if (currentSort.field === f) currentSort.dir *= -1;
-      else { currentSort.field = f; currentSort.dir = 1; }
-      renderAll();
-    });
-  });
-
-  document.getElementById("schools").innerHTML = "";
+  return `<div class="table-wrap">
+    <table class="data table-schools">
+      <thead><tr>
+        ${sortTh("districtSchools", "name", "Школа")}
+        ${sortTh("districtSchools", "days", "Дней", "right")}
+        ${sortTh("districtSchools", "timely", "Своевременность", "right")}
+        ${sortTh("districtSchools", "noErrors", "Без ошибок", "right")}
+        <th>ФМ · П35</th>
+        ${sortTh("districtSchools", "tm", "Засчитано дней", "right")}
+        ${sortTh("districtSchools", "tmPercent", "% дней ТМ", "right")}
+        <th>ТМ · П36</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+  </div>
+  <p class="small muted mt-10">Показано ${fmtInt(schools.length)} из ${fmtInt(district.schools.length)}.</p>`;
 }
 
-function renderDistrict(districtName) {
-  const data = CACHE[currentMonthFile];
-  const d = data.districts.find(x => x.name === districtName);
-  if (!d) {
-    document.getElementById("summary").innerHTML = `<div class="card"><p class="fail">Район «${districtName}» не найден в текущем месяце.</p></div>`;
-    destroyCharts();
-    document.getElementById("charts").innerHTML = "";
-    document.getElementById("schools").innerHTML = "";
-    return;
-  }
-  const ev = evaluateDistrict(d);
-
-  const monthSeries = MONTHS.map(m => {
-    if (!CACHE[m.value]) return { month: m, fmShare: null, tmShare: null, total: null };
-    const mData = districtMetrics(m.value, districtName);
-    return { month: m, ...(mData || { fmShare: null, tmShare: null, total: null }) };
+function buildDistrictCharts(district) {
+  const labels = MONTHS.map(m => m.label);
+  const fm = MONTHS.map(m => {
+    const stats = districtStatsFor(m.file, district.name);
+    return stats ? round1(stats.fmShare) : null;
   });
-
-  const curIdx = MONTHS.findIndex(m => m.value === currentMonthFile);
-  const prevMonth = curIdx > 0 ? MONTHS[curIdx - 1] : null;
-  const prevM = prevMonth && CACHE[prevMonth.value] ? districtMetrics(prevMonth.value, districtName) : null;
-
-  const monthLabel = MONTHS.find(m => m.value === currentMonthFile).label;
-
-  document.getElementById("summary").innerHTML = `
-    <div class="card">
-      <h2>${d.name} — ${monthLabel}</h2>
-      <p>Всего школ: <b>${ev.total}</b> ${prevM ? ` (в прошлом месяце: <b>${prevM.total}</b>)` : ""}</p>
-      <div class="metric-row">
-        <div class="metric">
-          ФМ (П35) — доля школ, выполнивших критерий
-          <b>${fmt(ev.fmShare)}%</b>
-          <span class="${ev.fmPass ? 'ok' : 'fail'}">${ev.fmPass ? 'выполняется' : 'не выполняется'}</span>
-          <small>${prevMonth ? `К ${prevMonth.label.toLowerCase()}: ${prevM ? deltaHtml(ev.fmShare, prevM.fmShare) : 'нет в прошлом'}` : ""}</small>
-        </div>
-        <div class="metric">
-          ТМ (П36) — доля школ, выполнивших критерий
-          <b>${fmt(ev.tmShare)}%</b>
-          <span class="${ev.tmPass ? 'ok' : 'fail'}">${ev.tmPass ? 'выполняется' : 'не выполняется'}</span>
-          <small>${prevMonth ? `К ${prevMonth.label.toLowerCase()}: ${prevM ? deltaHtml(ev.tmShare, prevM.tmShare) : 'нет в прошлом'}` : ""}</small>
-        </div>
-      </div>
-      ${recommendationsHtml("p35")}
-      ${recommendationsHtml("p36")}
-    </div>`;
-
-  renderDistrictCharts(monthSeries, d.name, monthLabel);
-  renderSchoolsTable(ev, monthLabel);
-}
-
-function renderSchoolsTable(ev, monthLabel) {
-  let schools = ev.schools.map(s => ({ ...s, code: extractCode(s.name) }));
-
-  if (schoolsFilter.onlyProblems) {
-    schools = schools.filter(s => !s.fmOk || !s.tmOk);
-  }
-
-  const f = schoolsFilter.sortField;
-  const dir = schoolsFilter.sortDir;
-  schools.sort((a, b) => {
-    if (f === "name") return normStr(a.name).localeCompare(normStr(b.name)) * dir;
-    const va = a[f] ?? 0, vb = b[f] ?? 0;
-    return (va - vb) * dir;
+  const tm = MONTHS.map(m => {
+    const stats = districtStatsFor(m.file, district.name);
+    return stats ? round1(stats.tmShare) : null;
   });
+  const goal = MONTHS.map(() => 100);
+  const seriesOptions = baseChartOptions();
+  seriesOptions.plugins.tooltip.filter = item => item.dataset.label !== "Цель 100%";
 
-  const rows = schools.map(s => `
-    <tr>
-      <td>${s.name}</td>
-      <td>${s.code || "—"}</td>
-      <td>${s.days}</td>
-      <td>${fmt(s.timely)}%</td>
-      <td>${fmt(s.noErrors)}%</td>
-      <td class="${s.fmOk ? 'ok' : 'fail'}">${s.fmOk ? 'выполн.' : 'нет'}</td>
-      <td>${s.tm}</td>
-      <td>${fmt(s.tmPercent)}%</td>
-      <td>${s.tmMark ? '+' : ''}</td>
-      <td class="${s.tmOk ? 'ok' : 'fail'}">${s.tmOk ? 'выполн.' : 'нет'}</td>
-      <td>${s.code ? `<button class="secondary" onclick="openSchool('${s.code}')">Открыть</button>` : ""}</td>
-    </tr>`).join("");
-
-  document.getElementById("schools").innerHTML = `
-    <div class="card">
-      <h3>Школы района — ${monthLabel}</h3>
-      <div class="filter-bar">
-        <label><input type="checkbox" id="onlyProblems" ${schoolsFilter.onlyProblems ? "checked" : ""}> Показать только проблемные (не выполнен ФМ или ТМ)</label>
-        <span class="method">Показано: <b>${schools.length}</b> из ${ev.schools.length}</span>
-      </div>
-      <table>
-        <thead><tr>
-          <th class="sortable" data-field="name">Школа</th>
-          <th>Код</th>
-          <th class="sortable" data-field="days">Дней</th>
-          <th class="sortable" data-field="timely">Своевр., %</th>
-          <th class="sortable" data-field="noErrors">Без ошибок, %</th>
-          <th>ФМ (П35)</th>
-          <th class="sortable" data-field="tm">Засчитано дней ТМ</th>
-          <th class="sortable" data-field="tmPercent">% дней ТМ</th>
-          <th>Метка «+»</th>
-          <th>ТМ (П36)</th>
-          <th></th>
-        </tr></thead>
-        <tbody>${rows}</tbody>
-      </table>
-    </div>`;
-
-  document.getElementById("onlyProblems").addEventListener("change", e => {
-    schoolsFilter.onlyProblems = e.target.checked;
-    renderSchoolsTable(ev, monthLabel);
-  });
-
-  document.querySelectorAll("#schools th.sortable").forEach(th => {
-    th.addEventListener("click", () => {
-      const field = th.dataset.field;
-      if (schoolsFilter.sortField === field) schoolsFilter.sortDir *= -1;
-      else { schoolsFilter.sortField = field; schoolsFilter.sortDir = 1; }
-      renderSchoolsTable(ev, monthLabel);
-    });
-  });
-}
-
-function renderDistrictCharts(monthSeries, districtName, monthLabel) {
-  destroyCharts();
-
-  const labels = monthSeries.map(x => x.month.label);
-  const fmData = monthSeries.map(x => x.fmShare);
-  const tmData = monthSeries.map(x => x.tmShare);
-
-  const curIdx = MONTHS.findIndex(m => m.value === currentMonthFile);
-  const prevMonth = curIdx > 0 ? MONTHS[curIdx - 1] : null;
-  const curM = districtMetrics(currentMonthFile, districtName);
-  const prevM = prevMonth && CACHE[prevMonth.value] ? districtMetrics(prevMonth.value, districtName) : null;
-
-  document.getElementById("charts").innerHTML = `
-    <div class="chart-box"><h4>Динамика по месяцам: доля школ, выполнивших показатель (%)</h4><canvas id="fmChart"></canvas></div>
-    <div class="chart-box"><h4>Сравнение «${monthLabel}»${prevMonth ? ` vs «${prevMonth.label}»` : ""}: ФМ и ТМ (%)</h4><canvas id="tmChart"></canvas></div>`;
-
-  fmChart = new Chart(document.getElementById("fmChart"), {
+  createChart("chartDistrictSeries", {
     type: "line",
     data: {
       labels,
       datasets: [
-        { label: "ФМ (П35), % школ", data: fmData, borderColor: "#2980b9", backgroundColor: "rgba(41,128,185,0.15)", tension: 0.25, fill: true, pointRadius: 4, spanGaps: true },
-        { label: "ТМ (П36), % школ", data: tmData, borderColor: "#27ae60", backgroundColor: "rgba(39,174,96,0.15)", tension: 0.25, fill: true, pointRadius: 4, spanGaps: true }
+        {
+          label: "ФМ · П35",
+          data: fm,
+          borderColor: cssVar("--accent"),
+          backgroundColor: "rgba(37,99,235,.12)",
+          pointBackgroundColor: cssVar("--accent"),
+          pointRadius: 4,
+          tension: 0.25,
+          fill: true,
+          spanGaps: true
+        },
+        {
+          label: "ТМ · П36",
+          data: tm,
+          borderColor: cssVar("--ok"),
+          backgroundColor: "rgba(21,128,61,.1)",
+          pointBackgroundColor: cssVar("--ok"),
+          pointRadius: 4,
+          tension: 0.25,
+          fill: true,
+          spanGaps: true
+        },
+        {
+          label: "Цель 100%",
+          data: goal,
+          borderColor: cssVar("--muted"),
+          borderDash: [5, 4],
+          borderWidth: 1,
+          pointRadius: 0,
+          fill: false
+        }
       ]
     },
-    options: { responsive: true, scales: { y: { beginAtZero: true, max: 100, ticks: { callback: v => v + "%" } } }, plugins: { legend: { position: "bottom" } } }
+    options: seriesOptions
   });
 
-  const compareLabels = prevMonth ? [prevMonth.label, monthLabel] : [monthLabel];
-  const fmCmp = prevMonth ? [prevM ? prevM.fmShare : null, curM.fmShare] : [curM.fmShare];
-  const tmCmp = prevMonth ? [prevM ? prevM.tmShare : null, curM.tmShare] : [curM.tmShare];
+  const prevFile = prevMonthFile();
+  const prevLabel = prevFile ? labelOf(prevFile) : null;
+  const prevStats = prevFile ? districtStatsFor(prevFile, district.name) : null;
+  const currentStats = districtStatsFor(state.monthFile, district.name);
+  const compareLabels = prevLabel ? [prevLabel, labelOf(state.monthFile)] : [labelOf(state.monthFile)];
+  const fmData = prevLabel ? [prevStats ? round1(prevStats.fmShare) : null, round1(currentStats.fmShare)] : [round1(currentStats.fmShare)];
+  const tmData = prevLabel ? [prevStats ? round1(prevStats.tmShare) : null, round1(currentStats.tmShare)] : [round1(currentStats.tmShare)];
 
-  tmChart = new Chart(document.getElementById("tmChart"), {
+  createChart("chartDistrictCompare", {
     type: "bar",
     data: {
       labels: compareLabels,
       datasets: [
-        { label: "ФМ (П35), %", data: fmCmp, backgroundColor: "#2980b9" },
-        { label: "ТМ (П36), %", data: tmCmp, backgroundColor: "#27ae60" }
+        { label: "ФМ · П35", data: fmData, backgroundColor: cssVar("--accent"), borderRadius: 6, maxBarThickness: 60 },
+        { label: "ТМ · П36", data: tmData, backgroundColor: cssVar("--ok"), borderRadius: 6, maxBarThickness: 60 }
       ]
     },
-    options: { responsive: true, scales: { y: { beginAtZero: true, max: 100, ticks: { callback: v => v + "%" } } }, plugins: { legend: { position: "bottom" } } }
+    options: baseChartOptions()
   });
 }
 
-/* ============================================================
-   ВКЛАДКА «ШКОЛА»
-   ============================================================ */
-const searchInput = document.getElementById("schoolSearch");
-const suggestBox = document.getElementById("schoolSuggest");
+function districtMissingHtml(month, name) {
+  const available = MONTHS
+    .map(m => ({ month: m, stats: districtStatsFor(m.file, name) }))
+    .filter(item => item.stats);
 
-function renderSuggestions(query) {
-  const q = normStr(query).toLowerCase();
-  if (!q) { suggestBox.style.display = "none"; return; }
-  const items = Object.values(SCHOOL_INDEX).filter(s => s.code.includes(q) || s.name.toLowerCase().includes(q)).slice(0, 20);
-  if (!items.length) { suggestBox.style.display = "none"; return; }
-  suggestBox.innerHTML = items.map(s => {
-    const monthsCount = Object.keys(s.months).length;
-    const canon = getCanonicalDistrict(s.code);
-    return `<div data-code="${s.code}"><b>${s.code}</b> — ${s.name}<br><small>${canon.district || "—"} • месяцев с данными: ${monthsCount}</small></div>`;
-  }).join("");
-  suggestBox.style.display = "block";
-  suggestBox.querySelectorAll("div").forEach(el => {
-    el.addEventListener("click", () => {
-      const code = el.dataset.code;
-      searchInput.value = code;
-      suggestBox.style.display = "none";
-      openSchool(code);
-    });
-  });
-}
-
-searchInput.addEventListener("input", e => renderSuggestions(e.target.value));
-searchInput.addEventListener("keydown", e => {
-  if (e.key === "Enter") {
-    const q = normStr(e.target.value);
-    if (!q) return;
-    const found = findSchoolByQuery(q);
-    if (found) openSchool(found.code);
-    else alert("Школа с таким кодом/названием не найдена");
-  }
-});
-
-function findSchoolByQuery(qRaw) {
-  const q = normStr(qRaw);
-  if (SCHOOL_INDEX[q]) return SCHOOL_INDEX[q];
-  const ql = q.toLowerCase();
-  let list = Object.values(SCHOOL_INDEX).filter(s => s.code.includes(q));
-  if (list.length) return list[0];
-  list = Object.values(SCHOOL_INDEX).filter(s => s.name.toLowerCase().includes(ql));
-  return list.length ? list[0] : null;
-}
-
-document.getElementById("searchBtn").addEventListener("click", () => {
-  const q = normStr(searchInput.value);
-  if (!q) return;
-  const found = findSchoolByQuery(q);
-  if (found) openSchool(found.code);
-  else alert("Школа с таким кодом/названием не найдена");
-});
-document.getElementById("resetSearchBtn").addEventListener("click", () => {
-  searchInput.value = "";
-  suggestBox.style.display = "none";
-  currentSchoolCode = null;
-  document.getElementById("schoolSummary").innerHTML = "";
-  document.getElementById("schoolCharts").innerHTML = "";
-  document.getElementById("schoolHistory").innerHTML = "";
-  destroySchoolCharts();
-  updateUrlSchool(null);
-});
-
-function openSchool(code) {
-  currentSchoolCode = code;
-  document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
-  document.querySelector('.tab[data-tab="school"]').classList.add("active");
-  document.getElementById("tab-district").style.display = "none";
-  document.getElementById("tab-school").style.display = "";
-  searchInput.value = code;
-  updateUrlSchool(code);
-  renderSchoolTab(code);
-  window.scrollTo({ top: 0, behavior: "smooth" });
-}
-
-/* ============================================================
-   КАРТОЧКА ШКОЛЫ
-   ============================================================ */
-let sTimelyChart = null, sTmChart = null;
-function destroySchoolCharts() {
-  if (sTimelyChart) { sTimelyChart.destroy(); sTimelyChart = null; }
-  if (sTmChart) { sTmChart.destroy(); sTmChart = null; }
-}
-
-function findNearestMonthWithData(school, preferFile) {
-  const idx = MONTHS.findIndex(m => m.value === preferFile);
-  if (idx >= 0 && school.months[preferFile]) return preferFile;
-  for (let i = idx - 1; i >= 0; i--) if (school.months[MONTHS[i].value]) return MONTHS[i].value;
-  for (let i = idx + 1; i < MONTHS.length; i++) if (school.months[MONTHS[i].value]) return MONTHS[i].value;
-  return Object.keys(school.months)[0] || null;
-}
-
-function renderSchoolTab(code) {
-  const school = SCHOOL_INDEX[code];
-  if (!school) {
-    document.getElementById("schoolSummary").innerHTML = `<div class="card"><p class="fail">Школа с кодом «${code}» не найдена.</p></div>`;
-    document.getElementById("schoolCharts").innerHTML = "";
-    document.getElementById("schoolHistory").innerHTML = "";
-    destroySchoolCharts();
-    return;
+  if (!available.length) {
+    return `<div class="card fatal">
+      <h2>Район «${esc(name)}» не найден</h2>
+      <p class="muted">Такого района нет ни в одном загруженном файле. Возможно, ссылка устарела или район переименован.</p>
+      <div class="actions"><button type="button" class="btn" data-action="back-districts">Показать все районы</button></div>
+    </div>`;
   }
 
-  const selectedMonthLabel = MONTHS.find(m => m.value === currentMonthFile).label;
-  const effectiveFile = findNearestMonthWithData(school, currentMonthFile);
-  const effectiveMonth = MONTHS.find(m => m.value === effectiveFile);
-  const curData = effectiveFile ? school.months[effectiveFile] : null;
-  const monthLabel = effectiveMonth ? effectiveMonth.label : selectedMonthLabel;
+  const rows = available.map(item => `
+    <tr class="clickable" data-action="goto-month" data-file="${esc(item.month.file)}" title="Открыть ${esc(item.month.label)}">
+      <td>${esc(item.month.label)}</td>
+      <td class="right">${fmtInt(item.stats.total)}</td>
+      <td class="right">${fmt(item.stats.fmShare)}%</td>
+      <td class="right">${fmt(item.stats.tmShare)}%</td>
+      <td class="center muted" aria-hidden="true">→</td>
+    </tr>`).join("");
 
-  const series = MONTHS.map(m => {
-    const s = school.months[m.value];
-    return { month: m, s: s ? evaluateSchool(s) : null };
-  });
+  return `<div class="card fatal">
+    <h2>«${esc(name)}» отсутствует в файле за ${esc(month.label.toLowerCase())}</h2>
+    <p class="muted">В этом месяце район не выделен отдельной строкой. Возможно, его школы отнесены к другому району — проверьте карточку школы.</p>
+    <p class="small muted mt-10">Район есть в файлах:</p>
+    <div class="table-wrap mt-10">
+      <table class="data compact table-quality">
+        <thead><tr><th>Месяц</th><th class="right">Школ</th><th class="right">ФМ, %</th><th class="right">ТМ, %</th><th></th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
+    <div class="actions"><button type="button" class="btn" data-action="back-districts">Показать все районы</button></div>
+  </div>`;
+}
 
-  const effIdx = MONTHS.findIndex(m => m.value === effectiveFile);
-  const prevMonth = effIdx > 0 ? MONTHS[effIdx - 1] : null;
+function loadErrorHtml() {
+  const error = store.errors.get(state.monthFile);
+  const reason = error
+    ? (error.userMessage || error.message || "Неизвестная ошибка")
+    : "Файл ещё не загружен";
+  const isFile = location.protocol === "file:";
+  const loadedLabels = MONTHS.filter(m => store.months.has(m.file)).map(m => m.label);
+  return `<div class="card fatal">
+    <h2>Не удалось загрузить «${esc(labelOf(state.monthFile))}»</h2>
+    <p class="muted">${esc(reason)}</p>
+    ${isFile ? `<div class="notice warn mt-10"><span class="notice-icon">!</span><span>Страница открыта как локальный файл. Браузер запрещает читать .xlsx из папки. Запустите локальный сервер (например, <code>python -m http.server</code>) или выберите файлы вручную.</span></div>` : ""}
+    <div class="actions">
+      <button type="button" class="btn" data-action="retry">Повторить загрузку</button>
+      <button type="button" class="btn ghost" data-action="pick-files">Выбрать .xlsx вручную</button>
+    </div>
+    <p class="small muted mt-14">Загружены: ${loadedLabels.length ? esc(loadedLabels.join(", ")) : "ни одного файла"}. Ожидаемые файлы: ${MONTHS.map(m => esc(m.file)).join(", ")}.</p>
+  </div>`;
+}
 
-  const canon = getCanonicalDistrict(code);
-  const canonicalDistrict = canon.district || school.district || "—";
-  const curDistrictAvg = effectiveFile ? districtMetrics(effectiveFile, canonicalDistrict) : null;
-
-  const monthMismatch = effectiveFile && effectiveFile !== currentMonthFile
-    ? `<div class="diag info">В месяце «${selectedMonthLabel}» данных по этой школе нет. Показан ближайший месяц с данными: <b>${monthLabel}</b>.</div>`
-    : "";
-
-  const monthCompare = (() => {
-    if (!prevMonth) return "";
-    const prevExists = !!school.months[prevMonth.value];
-    const curExists = !!school.months[effectiveFile];
-    if (curExists && !prevExists) {
-      // Исправлена синтаксическая ошибка (пропущена скобка)
-      return `<div class="diag info">В прошлом месяце (<b>${prevMonth.label}</b>) данных по школе не было — сравнение недоступно.</div>`;
+function qualityCardHtml() {
+  const loaded = MONTHS.map(m => store.months.get(m.file)).filter(Boolean);
+  if (!loaded.length) return "";
+  const issues = loaded.reduce((sum, data) => sum + data.quality.issues.length, 0);
+  const rows = MONTHS.map(month => {
+    const data = store.months.get(month.file);
+    if (!data) {
+      return `<tr><td>${esc(month.label)}</td><td class="right">—</td><td class="right">—</td><td><span class="pill fail">нет файла</span></td><td class="muted">${esc(store.errors.get(month.file)?.userMessage || "не загружен")}</td></tr>`;
     }
-    return "";
-  })();
-
-  const districtMismatch = (canon.conflicts && canon.conflicts.length)
-    ? `<div class="diag err">
-       </div>`
-    : "";
-
-  const districtNote = `<div class="diag info">Район школы: <b>${canonicalDistrict}</b> (определён по большинству месяцев: ${Object.entries(canon.counts).map(([k,v]) => `${k} — ${v}`).join(", ")}).</div>`;
-
-  if (curData) {
-    const ev = evaluateSchool(curData);
-    const fmAvg = curDistrictAvg ? curDistrictAvg.fmShare : null;
-    const tmAvg = curDistrictAvg ? curDistrictAvg.tmShare : null;
-    const fmBadge = fmBadgeHtml(ev.fmOk ? 100 : 0, fmAvg);
-    const tmBadge = tmBadgeHtml(ev.tmOk ? 100 : 0, tmAvg);
-
-    document.getElementById("schoolSummary").innerHTML = `
-      <div class="card">
-        <h2>${school.name}</h2>
-        <p class="method">Код пищеблока: <b>${school.code}</b> • Район: <b>${canonicalDistrict}</b> • Месяц данных: <b>${monthLabel}</b></p>
-        ${monthMismatch}
-        ${districtNote}
-        ${districtMismatch}
-        ${monthCompare}
-        <div class="metric-row">
-          <div class="metric">ФМ (П35)<b>${ev.fmOk ? "выполн." : "нет"} ${fmBadge}</b><small>Своевременно: ${fmt(ev.timely)}% (порог ${THRESHOLDS.timely}%)<br>Без ошибок: ${fmt(ev.noErrors)}% (порог ${THRESHOLDS.noErrors}%)<br>Среднее по району: ${fmAvg != null ? fmt(fmAvg) + "%" : "—"}</small></div>
-          <div class="metric">ТМ (П36)<b>${ev.tmOk ? "выполн." : "нет"} ${tmBadge}</b><small>Засчитано дней: ${ev.tm} из ${ev.days} (${fmt(ev.tmPercent)}%)<br>День засчитывается при соблюдении ≥ ${THRESHOLDS.tmDailyShare}%<br>Среднее по району: ${tmAvg != null ? fmt(tmAvg) + "%" : "—"}</small></div>
-          <div class="metric">Дней в периоде<b>${ev.days}</b><small>Сравнение с ${prevMonth ? prevMonth.label.toLowerCase() : "—"}: см. графики ниже</small></div>
-        </div>
-        ${recommendationsHtml("p35")}
-        ${recommendationsHtml("p36")}
-      </div>`;
-  } else {
-    document.getElementById("schoolSummary").innerHTML = `<div class="card"><h2>${school.name}</h2><p class="method">Код пищеблока: <b>${school.code}</b> • Район: <b>${canonicalDistrict}</b></p><p class="warn">Нет данных ни за один месяц.</p>${buildDiagnostics(school)}</div>`;
-  }
-
-  document.getElementById("schoolCharts").innerHTML = `
-    <div class="chart-box"><h4>Динамика ФМ: % своевременно и % без ошибок</h4><canvas id="sTimelyChart"></canvas></div>
-    <div class="chart-box"><h4>Динамика ТМ: засчитано дней, % дней ТМ</h4><canvas id="sTmChart"></canvas></div>`;
-
-  destroySchoolCharts();
-
-  const labels = series.map(x => x.month.label);
-  const timelyData = series.map(x => x.s ? x.s.timely : null);
-  const noErrData  = series.map(x => x.s ? x.s.noErrors : null);
-  const tmPctData  = series.map(x => x.s ? x.s.tmPercent : null);
-
-  sTimelyChart = new Chart(document.getElementById("sTimelyChart"), {
-    type: "line",
-    data: { labels, datasets: [
-      { label: "% своевременно", data: timelyData, borderColor: "#2980b9", backgroundColor: "rgba(41,128,185,0.15)", tension: 0.25, fill: true, pointRadius: 4, spanGaps: true },
-      { label: "% без ошибок", data: noErrData, borderColor: "#8e44ad", backgroundColor: "rgba(142,68,173,0.15)", tension: 0.25, fill: true, pointRadius: 4, spanGaps: true }
-    ]},
-    options: { responsive: true, scales: { y: { beginAtZero: true, max: 100, ticks: { callback: v => v + "%" } } }, plugins: { legend: { position: "bottom" } } }
-  });
-
-  sTmChart = new Chart(document.getElementById("sTmChart"), {
-    type: "line",
-    data: { labels, datasets: [{ label: "% дней с ТМ ≥ 75%", data: tmPctData, borderColor: "#27ae60", backgroundColor: "rgba(39,174,96,0.15)", tension: 0.25, fill: true, pointRadius: 4, spanGaps: true }] },
-    options: { responsive: true, scales: { y: { beginAtZero: true, max: 100, ticks: { callback: v => v + "%" } } }, plugins: { legend: { position: "bottom" } } }
-  });
-
-  const histRows = series.map(x => {
-    const m = x.month; const s = x.s;
-    if (!s) return `<tr><td>${m.label}</td><td colspan="8" class="delta-flat">нет данных</td></tr>`;
+    const q = data.quality;
+    const note = q.issues.length
+      ? esc(q.issues.slice(0, 2).join("; ")) + (q.issues.length > 2 ? ` и ещё ${q.issues.length - 2}` : "")
+      : "расхождений нет";
     return `<tr>
-      <td>${m.label}</td><td>${s.days}</td><td>${fmt(s.timely)}%</td><td>${fmt(s.noErrors)}%</td>
-      <td class="${s.fmOk ? 'ok' : 'fail'}">${s.fmOk ? 'выполн.' : 'нет'}</td>
-      <td>${s.tm}</td><td>${fmt(s.tmPercent)}%</td><td>${s.tmMark ? '+' : ''}</td>
-      <td class="${s.tmOk ? 'ok' : 'fail'}">${s.tmOk ? 'выполн.' : 'нет'}</td>
+      <td>${esc(month.label)}${data.source === "upload" ? ' <span class="chip">вручную</span>' : ""}</td>
+      <td class="right">${fmtInt(data.districts.length)}</td>
+      <td class="right">${fmtInt(data.totalSchools)}</td>
+      <td>${q.ok ? '<span class="pill ok">сверено</span>' : `<span class="pill warn">${q.issues.length} ${plural(q.issues.length, "замечание", "замечания", "замечаний")}</span>`}</td>
+      <td class="${q.ok ? "muted" : "bad"}">${note}</td>
     </tr>`;
   }).join("");
 
-  document.getElementById("schoolHistory").innerHTML = `
-    <div class="card">
-      <h3>История по месяцам</h3>
-      ${buildDiagnostics(school)}
-      <table>
-        <thead><tr><th>Месяц</th><th>Дней</th><th>Своевр., %</th><th>Без ошибок, %</th><th>ФМ (П35)</th><th>Засчитано дней ТМ</th><th>% дней ТМ</th><th>Метка «+»</th><th>ТМ (П36)</th></tr></thead>
-        <tbody>${histRows}</tbody>
-      </table>
-    </div>`;
+  return `<details class="card">
+    <summary>
+      <span class="dot ${issues ? "warn" : "ok"}" aria-hidden="true"></span>
+      Проверка данных: ${issues ? `${issues} ${plural(issues, "замечание", "замечания", "замечаний")}` : "расхождений нет"}
+      <span class="summary-meta">${loaded.length} из ${MONTHS.length} файлов</span>
+    </summary>
+    <div class="details-body">
+      <p class="small muted mb-10">Колонки «п.ФМ», «п.ТМ», «% ФМ», «% ТМ» из файла сверяются с расчётом по строкам школ. Расхождения означают, что структура файла изменилась.</p>
+      <div class="table-wrap quality-scroll">
+        <table class="data compact table-quality">
+          <thead><tr>
+            <th>Месяц</th><th class="right">Районов</th><th class="right">Школ</th><th>Сверка</th><th>Замечания</th>
+          </tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+    </div>
+  </details>`;
 }
 
-function fmBadgeHtml(schoolValue, avg) {
-  if (avg == null) return "";
-  if (schoolValue > avg) return `<span class="avg-badge up">выше среднего по району</span>`;
-  if (schoolValue < avg) return `<span class="avg-badge down">ниже среднего по району</span>`;
-  return `<span class="avg-badge">на уровне среднего</span>`;
-}
-function tmBadgeHtml(schoolValue, avg) { return fmBadgeHtml(schoolValue, avg); }
 
-function buildDiagnostics(school) {
-  const present = MONTHS.filter(m => school.months[m.value]).map(m => m.label);
-  const missing = MONTHS.filter(m => !school.months[m.value]).map(m => m.label);
-  if (!missing.length) return `<div class="diag info">Данные есть за все ${MONTHS.length} месяцев.</div>`;
-  return `<div class="diag"><b>Наличие данных по месяцам:</b> есть — ${present.length ? present.join(", ") : "—"}; ${missing.length ? `<br>нет — ${missing.join(", ")}` : ""}</div>`;
+
+/* ---------------------------------------------------------------------------
+   9. РЕКОМЕНДАЦИИ
+   ------------------------------------------------------------------------- */
+const RECOMMENDATIONS = {
+  p35: {
+    title: "Как выполнить П35 (ФМ)",
+    meta: "своевременность и отсутствие ошибок",
+    items: [
+      "Выкладывайте меню накануне дня питания — к началу дня оно уже должно быть в системе.",
+      "Перед публикацией сверяйте меню с типовым: наименования блюд, выход и состав должны совпадать.",
+      "Проверяйте, что в календаре питания стоит верная дата и день недели.",
+      "Перед публикацией типового меню проверяйте его на отклонения от СанПиН в редакторе.",
+      "Утром до 9:00 проверяйте, загрузилось ли меню; если нет — успевайте подать заявку на дочитывание.",
+      "При дочитывании день может отобразиться как «нет типового меню», но при сверке на последующих днях он будет учтён — главное избежать ошибки о несвоевременности."
+    ],
+    note: `Школа проходит П35, если меню опубликовано своевременно не менее чем в ${THRESHOLDS.timely}% дней и без ошибок не менее чем в ${THRESHOLDS.noErrors}% дней периода.`
+  },
+  p36: {
+    title: "Как выполнить П36 (ТМ)",
+    meta: "соответствие типовому меню",
+    items: [
+      "Все опубликованные ежедневные меню должны соответствовать типовому меню.",
+      "День считается засчитанным, если соблюдение типового меню в этот день не ниже 75%.",
+      "Допускается замена блюд по объективным причинам, но соблюдение не должно опускаться ниже 75%.",
+      "Проверяйте каждое ежедневное меню перед публикацией: блюда, выход, состав.",
+      "Если замена необходима, фиксируйте её причину — это поможет разобрать спорные дни."
+    ],
+    note: `Школа проходит П36, если засчитаны все дни периода (100%). В файле уже указано число засчитанных дней и итоговая метка «+».`
+  }
+};
+
+function recommendationsHtml(which) {
+  const rec = RECOMMENDATIONS[which];
+  if (!rec) return "";
+  const items = rec.items.map(item => `<li>${item}</li>`).join("");
+  return `<details class="card">
+    <summary>${esc(rec.title)}<span class="summary-meta">${esc(rec.meta)}</span></summary>
+    <div class="details-body">
+      <ol class="rec-list">${items}</ol>
+      <p class="rec-note">${esc(rec.note)}</p>
+    </div>
+  </details>`;
 }
 
-/* ============================================================
-   СТАРТ
-   ============================================================ */
-async function init() {
-  buildMonthSelect();
-  
-  // 1. Сначала обязательно грузим месяц, который выбран по умолчанию (Октябрь)
-  const ok = await ensureLoaded();
-  if (!ok) {
-    setStatus("Критическая ошибка: не удалось загрузить файл текущего месяца. Проверьте, что файлы лежат рядом с index.html и имеют правильные имена.");
+/* ---------------------------------------------------------------------------
+   10. ВКЛАДКА «ШКОЛА»
+   ------------------------------------------------------------------------- */
+function effectiveMonth(record, preferredFile) {
+  if (record.months.has(preferredFile)) return { file: preferredFile, fallback: false };
+  let index = MONTHS.findIndex(m => m.file === preferredFile);
+  if (index < 0) index = MONTHS.length - 1;
+  for (let i = index - 1; i >= 0; i--) {
+    if (record.months.has(MONTHS[i].file)) return { file: MONTHS[i].file, fallback: true };
+  }
+  for (let i = index + 1; i < MONTHS.length; i++) {
+    if (record.months.has(MONTHS[i].file)) return { file: MONTHS[i].file, fallback: true };
+  }
+  const first = MONTHS.find(m => record.months.has(m.file));
+  return { file: first ? first.file : null, fallback: true };
+}
+
+function compareBadge(value, average) {
+  if (value === null || value === undefined || average === null || average === undefined || !Number.isFinite(average)) return "";
+  const diff = value - average;
+  if (Math.abs(diff) < 0.5) return '<span class="pill neutral">на уровне района</span>';
+  return diff > 0
+    ? `<span class="pill ok">+${fmt(diff)} п.п. к району</span>`
+    : `<span class="pill fail">${fmt(diff)} п.п. к району</span>`;
+}
+
+function renderSchool() {
+  destroyCharts();
+  const body = $("#schoolBody");
+  const input = $("#schoolSearch");
+  if (input && document.activeElement !== input) input.value = state.school || "";
+  renderRecent();
+
+  if (!state.school) {
+    body.innerHTML = schoolEmptyHtml();
     return;
   }
 
-  // 2. Потом грузим остальные
-  for (const m of MONTHS) {
-    if (!CACHE[m.value]) {
-      try { 
-        await loadMonth(m.value); 
-      } catch (e) { 
-        console.warn(`[MM] Месяц «${m.value}» не загружен: `, e.message); 
-      }
-    }
+  const record = schoolRecord(state.school);
+  if (!record) {
+    body.innerHTML = `<div class="card fatal">
+      <h2>Школа не найдена</h2>
+      <p class="muted">Код «${esc(state.school)}» отсутствует в загруженных файлах. Проверьте код или найдите школу по названию.</p>
+      <div class="actions"><button type="button" class="btn" data-action="reset-school">Сбросить поиск</button></div>
+    </div>`;
+    return;
   }
-  
-  // 3. Отрисовываем
-  buildDistrictSelect(CACHE[currentMonthFile].districts);
-  renderDistrictTab();
 
-  const fromUrl = readUrlSchool();
-  if (fromUrl) openSchool(fromUrl);
+  const { file: effFile, fallback } = effectiveMonth(record, state.monthFile);
+  if (!effFile) {
+    body.innerHTML = `<div class="card fatal"><h2>${esc(schoolDisplayName(record))}</h2><p class="muted">Нет данных ни за один месяц.</p></div>`;
+    return;
+  }
+
+  const school = record.months.get(effFile);
+  const effMonth = monthOf(effFile);
+  const selectedMonth = monthOf(state.monthFile);
+  const district = districtForMonth(record, effFile);
+  const canon = canonicalDistrict(record);
+  const districtStats = districtStatsFor(effFile, district);
+  const prevFile = prevMonthFile(effFile);
+  const prevSchool = prevFile ? record.months.get(prevFile) || null : null;
+  const prevLabel = prevFile ? labelOf(prevFile) : null;
+
+  const coverage = MONTHS.filter(m => record.months.has(m.file));
+  const missing = MONTHS.filter(m => !record.months.has(m.file));
+
+  const notices = [];
+  if (fallback && selectedMonth) {
+    notices.push(`<div class="notice info"><span class="notice-icon">i</span><span>В ${esc(selectedMonth.prep)} данных по школе нет. Показан ближайший месяц с данными — <b>${esc(effMonth.label)}</b>.
+      <button type="button" class="link-btn" data-action="goto-month" data-file="${esc(effFile)}">Перейти в ${esc(effMonth.dative)}</button></span></div>`);
+  }
+  if (canon.district && district && canon.district !== district) {
+    notices.push(`<div class="notice warn"><span class="notice-icon">!</span><span>В файле за ${esc(effMonth.label.toLowerCase())} школа отнесена к району <b>${esc(district)}</b>, а по большинству месяцев — к району <b>${esc(canon.district)}</b>. Средние по району ниже считаны по фактическому району месяца.</span></div>`);
+  }
+  if (canon.conflicts.length) {
+    const grouped = new Map();
+    canon.conflicts.forEach(item => {
+      if (!grouped.has(item.district)) grouped.set(item.district, []);
+      grouped.get(item.district).push(item.label);
+    });
+    const list = Array.from(grouped.entries())
+      .map(([name, months]) => `<b>${esc(name)}</b> — ${months.map(esc).join(", ")}`)
+      .join("; ");
+    notices.push(`<div class="notice info"><span class="notice-icon">i</span><span>Район школы отличался от большинства месяцев: ${list}.</span></div>`);
+  }
+  if (missing.length) {
+    notices.push(`<div class="notice"><span class="notice-icon">·</span><span>Нет данных за: <b>${missing.map(m => esc(m.label)).join(", ")}</b>. Данные есть за ${coverage.length} из ${MONTHS.length} месяцев.</span></div>`);
+  }
+
+  const fmBadgeTimely = districtStats ? compareBadge(school.timely, districtStats.avgTimely) : "";
+  const fmBadgeErrors = districtStats ? compareBadge(school.noErrors, districtStats.avgNoErrors) : "";
+  const tmBadge = districtStats ? compareBadge(school.tmPercent, districtStats.avgTmPercent) : "";
+
+  const kpis = `<div class="kpis">
+    ${kpiCard("ФМ · П35", `<span class="kpi-word ${school.fmOk ? "good" : "bad"}">${school.fmOk ? "выполнен" : "не выполнен"}</span>`,
+      `<div class="kpi-detail">Своевременно: <b>${fmt(school.timely)}%</b> ${fmBadgeTimely}</div>
+       <div class="kpi-detail">Без ошибок: <b>${fmt(school.noErrors)}%</b> ${fmBadgeErrors}</div>`,
+      school.fmOk ? "ok" : "fail")}
+    ${kpiCard("ТМ · П36", `<span class="kpi-word ${school.tmOk ? "good" : "bad"}">${school.tmOk ? "выполнен" : "не выполнен"}</span>`,
+      `<div class="kpi-detail">Засчитано дней: <b>${fmtInt(school.tm)} из ${fmtInt(school.days)}</b> (${fmt(school.tmPercent)}%)</div>
+       <div class="kpi-detail">${tmBadge || `День засчитывается при соблюдении ≥ ${THRESHOLDS.tmDailyShare}%`}</div>`,
+      school.tmOk ? "ok" : "fail")}
+    ${kpiCard("Дней в периоде", fmtInt(school.days), `${esc(effMonth.label)} · ${esc(district || "район не указан")}`, "")}
+    ${kpiCard("Данные по месяцам", `${coverage.length}<small>/${MONTHS.length}</small>`, missing.length ? `нет: ${missing.map(m => esc(m.label)).join(", ")}` : "есть за все месяцы", missing.length ? "warn" : "ok")}
+  </div>`;
+
+  const title = `<div class="card">
+    <div class="head-row">
+      <div>
+        ${district ? `<button type="button" class="btn ghost small mb-8" data-action="open-district" data-name="${esc(district)}">← Район «${esc(district)}»</button>` : ""}
+        <h2 class="district-title">${esc(schoolDisplayName(record))}</h2>
+        <p class="small muted mt-4">Код пищеблока: <b>${esc(record.code)}</b> · Район: <b>${esc(district || "—")}</b> · Месяц данных: <b>${esc(effMonth.label)}</b></p>
+      </div>
+    </div>
+    <div class="mt-14">${kpis}</div>
+    ${prevLabel ? `<p class="small muted mt-10">Предыдущий месяц: <b>${esc(prevLabel)}</b>${prevSchool ? "" : " — данных по школе нет"}</p>` : ""}
+    ${notices.length ? `<div class="mt-14">${notices.join("")}</div>` : ""}
+  </div>`;
+
+  const charts = `<div class="charts">
+    ${chartBox("ФМ: своевременность и ошибки", `Пороги ${THRESHOLDS.timely}% и ${THRESHOLDS.noErrors}% · июнь–август не входят в отчётность`, "chartSchoolFm")}
+    ${chartBox("ТМ: засчитанные дни", `Столбцы — дни (левая шкала), линия — % (правая шкала). День засчитывается при соблюдении ≥ ${THRESHOLDS.tmDailyShare}%`, "chartSchoolTm")}
+  </div>`;
+
+  const history = schoolHistoryHtml(record, effFile);
+
+  body.innerHTML = `<div class="stack">${title}${charts}${history}
+    <div class="recs-grid">${recommendationsHtml("p35")}${recommendationsHtml("p36")}</div>
+  </div>`;
+
+  buildSchoolCharts(record);
 }
 
-document.getElementById("reloadBtn").addEventListener("click", async () => {
-  Object.keys(CACHE).forEach(k => delete CACHE[k]);
-  Object.keys(SCHOOL_INDEX).forEach(k => delete SCHOOL_INDEX[k]);
-  await init();
-});
+function schoolEmptyHtml() {
+  const total = ensureIndex().size;
+  return `<div class="card">
+    <div class="empty">
+      <div class="empty-icon">🔎</div>
+      <h3>Найдите школу</h3>
+      <p>Введите код пищеблока (например, <b>28357</b>) или часть названия — подсказки появятся под строкой поиска.</p>
+      <p class="small muted">В базе ${fmtInt(total)} ${plural(total, "школа", "школы", "школ")} за ${MONTHS.length} месяцев. Можно открыть школу из таблицы района или из вкладки «Проблемные».</p>
+    </div>
+  </div>`;
+}
 
-// Запускаем
-init();
+function schoolHistoryHtml(record, effectiveFile) {
+  const rows = MONTHS.map(month => {
+    const school = record.months.get(month.file) || null;
+    const current = month.file === effectiveFile;
+    if (!school) {
+      return `<tr class="${current ? "current" : ""}">
+        <td>${esc(month.label)}</td>
+        <td colspan="8" class="muted">нет данных</td>
+      </tr>`;
+    }
+    const classes = [current ? "current" : "", month.file === state.monthFile ? "" : "clickable"].filter(Boolean).join(" ");
+    const attrs = month.file === state.monthFile
+      ? ""
+      : `data-action="goto-month" data-file="${esc(month.file)}" title="Показать ${esc(month.label)}"`;
+    return `<tr class="${classes}" ${attrs}>
+      <td>${esc(month.label)}${current ? ' <span class="pill neutral">показан</span>' : ""}${month.file === state.monthFile ? ' <span class="pill ok">выбран</span>' : ""}</td>
+      <td class="right">${fmtInt(school.days)}</td>
+      <td class="right ${school.timely < THRESHOLDS.timely ? "bad" : "good"}">${fmt(school.timely)}%</td>
+      <td class="right ${school.noErrors < THRESHOLDS.noErrors ? "bad" : "good"}">${fmt(school.noErrors)}%</td>
+      <td>${pill(school.fmOk, "выполнен", "нет")}</td>
+      <td class="right">${fmtInt(school.tm)}</td>
+      <td class="right">${fmt(school.tmPercent)}%</td>
+      <td>${pill(school.tmOk, "выполнен", "нет")}</td>
+    </tr>`;
+  }).join("");
+
+  return `<div class="card">
+    <div class="table-head">
+      <div>
+        <h3>История по месяцам</h3>
+        <p class="small muted">Нажмите на строку, чтобы открыть этот месяц.</p>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table class="data table-history">
+        <thead><tr>
+          <th>Месяц</th><th class="right">Дней</th><th class="right">Своевременность</th><th class="right">Без ошибок</th>
+          <th>ФМ · П35</th><th class="right">Засчитано дней</th><th class="right">% дней ТМ</th><th>ТМ · П36</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
+  </div>`;
+}
+
+function buildSchoolCharts(record) {
+  const labels = MONTHS.map(m => m.label);
+  const series = MONTHS.map(m => record.months.get(m.file) || null);
+  const timely = series.map(s => s ? round1(s.timely) : null);
+  const noErrors = series.map(s => s ? round1(s.noErrors) : null);
+  const tmPercent = series.map(s => s ? round1(s.tmPercent) : null);
+  const counted = series.map(s => s ? s.tm : null);
+  const missed = series.map(s => s ? Math.max(0, s.days - s.tm) : null);
+
+  const fmOptions = baseChartOptions();
+  fmOptions.plugins.tooltip.filter = item => !String(item.dataset.label).startsWith("Порог");
+
+  createChart("chartSchoolFm", {
+    type: "bar",
+    data: {
+      labels,
+      datasets: [
+        {
+          type: "bar", label: "Своевременно, %", data: timely,
+          backgroundColor: cssVar("--accent"), borderRadius: 4, maxBarThickness: 24
+        },
+        {
+          type: "bar", label: "Без ошибок, %", data: noErrors,
+          backgroundColor: "#8b5cf6", borderRadius: 4, maxBarThickness: 24
+        },
+        {
+          type: "line", label: `Порог ${THRESHOLDS.timely}%`,
+          data: labels.map(() => THRESHOLDS.timely),
+          borderColor: cssVar("--muted"), borderDash: [5, 4], borderWidth: 1,
+          pointRadius: 0, fill: false
+        },
+        {
+          type: "line", label: `Порог ${THRESHOLDS.noErrors}%`,
+          data: labels.map(() => THRESHOLDS.noErrors),
+          borderColor: cssVar("--muted"), borderDash: [2, 3], borderWidth: 1,
+          pointRadius: 0, fill: false
+        }
+      ]
+    },
+    options: fmOptions
+  });
+
+  const options = baseChartOptions();
+  options.scales = {
+    x: { grid: { display: false }, ticks: { color: cssVar("--muted") }, stacked: true },
+    y: {
+      stacked: true, beginAtZero: true,
+      ticks: { color: cssVar("--muted"), precision: 0 },
+      grid: { color: cssVar("--line") },
+      title: { display: true, text: "дней", color: cssVar("--muted") }
+    },
+    y1: {
+      position: "right", beginAtZero: true, max: 100,
+      grid: { drawOnChartArea: false },
+      ticks: { color: cssVar("--muted"), callback: value => value + "%" }
+    }
+  };
+  options.plugins.tooltip.callbacks.label = ctx => {
+    if (ctx.dataset.yAxisID === "y1") return `${ctx.dataset.label}: ${fmt(ctx.parsed.y)}%`;
+    return `${ctx.dataset.label}: ${fmtInt(ctx.parsed.y)} дн.`;
+  };
+
+  createChart("chartSchoolTm", {
+    type: "bar",
+    data: {
+      labels,
+      datasets: [
+        {
+          type: "bar", label: "Засчитано дней", data: counted,
+          backgroundColor: cssVar("--ok"), stack: "days", yAxisID: "y", borderRadius: 4, maxBarThickness: 34
+        },
+        {
+          type: "bar", label: "Не засчитано", data: missed,
+          backgroundColor: cssVar("--surface-3"), stack: "days", yAxisID: "y", borderRadius: 4, maxBarThickness: 34
+        },
+        {
+          type: "line", label: "% дней ТМ", data: tmPercent,
+          borderColor: cssVar("--accent"), backgroundColor: "transparent",
+          pointRadius: 3, tension: 0.25, spanGaps: true, yAxisID: "y1"
+        }
+      ]
+    },
+    options
+  });
+}
+
+function renderRecent() {
+  const box = $("#recentSchools");
+  if (!box) return;
+  const codes = readRecent();
+  const items = codes
+    .map(code => schoolRecord(code))
+    .filter(Boolean)
+    .filter(record => record.code !== state.school)
+    .slice(0, 6);
+  if (!items.length) { box.innerHTML = ""; return; }
+  box.innerHTML = `<span class="small muted">Недавние:</span>` + items.map(record => {
+    const name = schoolDisplayName(record);
+    return `<button type="button" class="chip" data-action="open-school" data-code="${esc(record.code)}" title="${esc(name)}">
+      <b>${esc(record.code)}</b> · ${esc(name.length > 38 ? name.slice(0, 38) + "…" : name)}
+    </button>`;
+  }).join("");
+}
+
+function readRecent() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(STORAGE_KEYS.recent) || "[]");
+    return Array.isArray(raw) ? raw.filter(item => typeof item === "string") : [];
+  } catch (error) { return []; }
+}
+
+function rememberRecent(code) {
+  try {
+    const list = readRecent().filter(item => item !== code);
+    list.unshift(code);
+    localStorage.setItem(STORAGE_KEYS.recent, JSON.stringify(list.slice(0, 8)));
+  } catch (error) { /* localStorage может быть недоступен */ }
+}
+
+function openSchool(code) {
+  const record = schoolRecord(code);
+  if (!record) {
+    toast(`Школа с кодом «${code}» не найдена`, "warn");
+    return;
+  }
+  state.school = record.code;
+  state.tab = "school";
+  rememberRecent(record.code);
+  const input = $("#schoolSearch");
+  if (input) input.value = record.code;
+  hideSuggestions();
+  renderAll();
+  syncUrl();
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function resetSchool() {
+  state.school = "";
+  const input = $("#schoolSearch");
+  if (input) input.value = "";
+  hideSuggestions();
+  renderSchool();
+  syncUrl();
+}
+
+/* ---------------------------------------------------------------------------
+   11. ВКЛАДКА «ПРОБЛЕМНЫЕ»
+   ------------------------------------------------------------------------- */
+function problemRows(month) {
+  const rows = [];
+  for (const district of month.districts) {
+    for (const school of district.schools) {
+      if (school.fmOk && school.tmOk) continue;
+      rows.push({
+        district: district.name,
+        name: school.displayName,
+        code: school.code || "",
+        days: school.days,
+        timely: school.timely,
+        noErrors: school.noErrors,
+        tm: school.tm,
+        tmPercent: round1(school.tmPercent),
+        fmOk: school.fmOk,
+        tmOk: school.tmOk,
+        type: !school.fmOk && !school.tmOk ? "both" : (!school.fmOk ? "fm" : "tm")
+      });
+    }
+  }
+  return rows;
+}
+
+function filteredProblemRows(month) {
+  let rows = problemRows(month);
+  const filters = state.filters.problems;
+  if (filters.district) rows = rows.filter(row => row.district === filters.district);
+  if (filters.type === "fm") rows = rows.filter(row => row.type === "fm");
+  else if (filters.type === "tm") rows = rows.filter(row => row.type === "tm");
+  else if (filters.type === "both") rows = rows.filter(row => row.type === "both");
+  const query = normStr(filters.search).toLowerCase();
+  if (query) rows = rows.filter(row => row.name.toLowerCase().includes(query) || row.code.includes(query));
+  const sort = state.sort.problems;
+  return sortRows(rows, sort.field, sort.dir, sort.field === "district" || sort.field === "name" ? "text" : "number");
+}
+
+function renderProblems() {
+  destroyCharts();
+  const body = $("#problemsBody");
+  const month = currentData();
+  if (!month) {
+    body.innerHTML = loadErrorHtml();
+    return;
+  }
+
+  const all = problemRows(month);
+  const rows = filteredProblemRows(month);
+  const fmOnly = all.filter(row => row.type === "fm").length;
+  const tmOnly = all.filter(row => row.type === "tm").length;
+  const both = all.filter(row => row.type === "both").length;
+
+  const kpis = `<div class="kpis">
+    ${kpiCard("Всего проблемных", fmtInt(all.length), `${month.label}`, all.length ? "warn" : "ok")}
+    ${kpiCard("Не выполнили ФМ", fmtInt(fmOnly + both), `П35 · порог ${THRESHOLDS.timely}% / ${THRESHOLDS.noErrors}%`, fmOnly + both ? "fail" : "ok")}
+    ${kpiCard("Не выполнили ТМ", fmtInt(tmOnly + both), `П36 · нужны все дни`, tmOnly + both ? "fail" : "ok")}
+    ${kpiCard("Провалили оба", fmtInt(both), "ФМ и ТМ одновременно", both ? "fail" : "ok")}
+  </div>`;
+
+  if (!all.length) {
+    body.innerHTML = `<div class="stack">${kpis}<div class="card"><div class="empty">
+      <div class="empty-icon">✅</div><h3>Проблемных школ нет</h3>
+      <p>В ${esc(month.label.toLowerCase())} все школы выполнили и П35, и П36.</p>
+    </div></div></div>`;
+    return;
+  }
+
+  const table = rows.length ? `<div class="table-wrap">
+    <table class="data table-problems">
+      <thead><tr>
+        ${sortTh("problems", "name", "Школа")}
+        ${sortTh("problems", "district", "Район")}
+        ${sortTh("problems", "timely", "Своевременность", "right")}
+        ${sortTh("problems", "noErrors", "Без ошибок", "right")}
+        ${sortTh("problems", "tmPercent", "% дней ТМ", "right")}
+        <th>ФМ · П35</th>
+        <th>ТМ · П36</th>
+        <th>Проблема</th>
+      </tr></thead>
+      <tbody>
+        ${rows.map(row => {
+          const hasCode = Boolean(row.code);
+          const badge = row.type === "both"
+            ? '<span class="pill fail">ФМ и ТМ</span>'
+            : row.type === "fm" ? '<span class="pill warn">ФМ</span>' : '<span class="pill warn">ТМ</span>';
+          return `<tr class="${hasCode ? "clickable" : ""}" ${hasCode ? `data-action="open-school" data-code="${esc(row.code)}" title="Открыть карточку школы"` : ""}>
+            <td class="school-cell">
+              ${hasCode
+                ? `<button type="button" class="row-link name" data-action="open-school" data-code="${esc(row.code)}" title="Открыть карточку школы">${esc(row.name)}</button>`
+                : `<span class="name">${esc(row.name)}</span>`}
+              <div class="sub">${hasCode ? "Код " + esc(row.code) : "код не указан"}</div>
+            </td>
+            <td>${esc(row.district)}</td>
+            <td class="right ${row.timely < THRESHOLDS.timely ? "bad" : "good"}">${fmt(row.timely)}%</td>
+            <td class="right ${row.noErrors < THRESHOLDS.noErrors ? "bad" : "good"}">${fmt(row.noErrors)}%</td>
+            <td class="right">${fmt(row.tmPercent)}%</td>
+            <td>${pill(row.fmOk, "выполнен", "нет")}</td>
+            <td>${pill(row.tmOk, "выполнен", "нет")}</td>
+            <td>${badge}</td>
+          </tr>`;
+        }).join("")}
+      </tbody>
+    </table>
+  </div>` : `<div class="empty"><div class="empty-icon">🔎</div><h3>Ничего не найдено</h3><p>Снимите фильтры или измените запрос.</p></div>`;
+
+  body.innerHTML = `<div class="stack">
+    ${kpis}
+    <div class="card">
+      <div class="table-head">
+        <div>
+          <h3>Проблемные школы — ${esc(month.label)}</h3>
+          <p class="small muted">Показано ${fmtInt(rows.length)} из ${fmtInt(all.length)}. Нажмите на строку, чтобы открыть карточку школы.</p>
+        </div>
+        <div class="table-controls">
+          <span class="chip">${fmtInt(rows.length)} ${plural(rows.length, "школа", "школы", "школ")}</span>
+        </div>
+      </div>
+      ${table}
+    </div>
+  </div>`;
+}
+
+
+/* ---------------------------------------------------------------------------
+   12. СОБЫТИЯ
+   ------------------------------------------------------------------------- */
+const debounceTimers = new Map();
+
+function debounce(key, fn, delay = 180) {
+  clearTimeout(debounceTimers.get(key));
+  debounceTimers.set(key, setTimeout(() => {
+    debounceTimers.delete(key);
+    fn();
+  }, delay));
+}
+
+function withFocus(fn) {
+  const active = document.activeElement;
+  const id = active && active.id;
+  const start = active && typeof active.selectionStart === "number" ? active.selectionStart : null;
+  const end = active && typeof active.selectionEnd === "number" ? active.selectionEnd : null;
+  fn();
+  if (!id) return;
+  const next = document.getElementById(id);
+  if (!next) return;
+  next.focus({ preventScroll: true });
+  if (start !== null && typeof next.setSelectionRange === "function") {
+    try { next.setSelectionRange(start, end == null ? start : end); } catch (error) { /* ignore */ }
+  }
+}
+
+function bindEvents() {
+  document.addEventListener("click", handleClick);
+  document.addEventListener("input", handleInput);
+  document.addEventListener("change", handleChange);
+  document.addEventListener("keydown", handleKeydown);
+
+  const form = $("#schoolSearchForm");
+  if (form) form.addEventListener("submit", event => { event.preventDefault(); submitSchoolSearch(); });
+
+  const fileInput = $("#fileInput");
+  if (fileInput) {
+    fileInput.addEventListener("change", event => {
+      const files = Array.from(event.target.files || []);
+      event.target.value = "";
+      handleFiles(files);
+    });
+  }
+
+  window.addEventListener("error", event => {
+    if (event.error) console.error("[MM] Ошибка:", event.error);
+  });
+  window.addEventListener("unhandledrejection", event => {
+    console.error("[MM] Необработанная ошибка:", event.reason);
+  });
+}
+
+function handleClick(event) {
+  const tab = event.target.closest(".tab[data-tab]");
+  if (tab) { switchTab(tab.dataset.tab); return; }
+
+  const target = event.target.closest("[data-action]");
+  if (!target) {
+    if (!event.target.closest(".search-combo")) hideSuggestions();
+    return;
+  }
+
+  const action = target.dataset.action;
+  if (action !== "pick-school") hideSuggestions();
+
+  switch (action) {
+    case "prev-month":
+    case "next-month":
+      changeMonth(action === "next-month" ? 1 : -1);
+      break;
+    case "reload":
+      reloadData();
+      break;
+    case "toggle-theme":
+      toggleTheme();
+      break;
+    case "sort":
+      applySort(target.dataset.table, target.dataset.field);
+      break;
+    case "export":
+      exportCsv(target.dataset.kind);
+      break;
+    case "open-district":
+      openDistrict(target.dataset.name);
+      break;
+    case "back-districts":
+      state.district = "";
+      renderDistrictOptions();
+      renderSummary();
+      syncUrl();
+      break;
+    case "open-school":
+      openSchool(target.dataset.code);
+      break;
+    case "pick-school":
+      openSchool(target.dataset.code);
+      break;
+    case "reset-school":
+      resetSchool();
+      break;
+    case "goto-month":
+      setMonth(target.dataset.file);
+      break;
+    case "pick-files":
+      openFilePicker();
+      break;
+    case "retry":
+      retryMonth();
+      break;
+    case "print":
+      window.print();
+      break;
+    default:
+      break;
+  }
+}
+
+function handleInput(event) {
+  const target = event.target;
+  if (!target || !target.id) return;
+  switch (target.id) {
+    case "summarySearch":
+      state.filters.summarySearch = target.value;
+      debounce("summary", () => renderSummary());
+      break;
+    case "districtSchoolsSearch":
+      state.filters.districtSchoolsSearch = target.value;
+      debounce("districtSchools", () => withFocus(refreshDistrictSchoolsTable));
+      break;
+    case "problemsSearch":
+      state.filters.problems.search = target.value;
+      debounce("problems", () => renderProblems());
+      break;
+    case "schoolSearch":
+      renderSuggestions(target.value);
+      break;
+    default:
+      break;
+  }
+}
+
+function handleChange(event) {
+  const target = event.target;
+  if (!target || !target.id) return;
+  switch (target.id) {
+    case "monthSelect":
+      setMonth(target.value);
+      break;
+    case "districtSelect":
+      if (state.district !== target.value) {
+        state.filters.districtSchoolsSearch = "";
+        state.filters.districtSchoolsOnlyProblems = false;
+      }
+      state.district = target.value;
+      renderSummary();
+      syncUrl();
+      break;
+    case "summaryOnlyProblems":
+      state.filters.summaryOnlyProblems = target.checked;
+      renderSummary();
+      break;
+    case "districtSchoolsOnlyProblems":
+      state.filters.districtSchoolsOnlyProblems = target.checked;
+      withFocus(refreshDistrictSchoolsTable);
+      break;
+    case "problemsDistrict":
+      state.filters.problems.district = target.value;
+      renderProblems();
+      break;
+    case "problemsType":
+      state.filters.problems.type = target.value;
+      renderProblems();
+      break;
+    default:
+      break;
+  }
+}
+
+function handleKeydown(event) {
+  const target = event.target;
+  const isField = target && (target.tagName === "INPUT" || target.tagName === "SELECT" || target.tagName === "TEXTAREA");
+
+  if (event.key === "/" && !isField) {
+    event.preventDefault();
+    focusActiveSearch();
+    return;
+  }
+
+  if (event.key === "Enter" && target && target.matches && target.matches("tr[data-action]")) {
+    event.preventDefault();
+    target.click();
+    return;
+  }
+
+  if (target && target.id === "schoolSearch") {
+    const box = $("#schoolSuggest");
+    const isOpen = box && !box.hidden;
+
+    if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+      if (!isOpen) return;
+      const options = $$(".suggestion[data-code]", box);
+      if (!options.length) return;
+      event.preventDefault();
+      if (event.key === "ArrowDown") {
+        state.suggestIndex = Math.min(options.length - 1, state.suggestIndex + 1);
+      } else {
+        state.suggestIndex = Math.max(0, state.suggestIndex - 1);
+      }
+      options.forEach((option, index) => {
+        const active = index === state.suggestIndex;
+        option.classList.toggle("active", active);
+        option.setAttribute("aria-selected", active ? "true" : "false");
+      });
+      const current = options[state.suggestIndex];
+      if (current) {
+        target.setAttribute("aria-activedescendant", current.id);
+        current.scrollIntoView({ block: "nearest" });
+      }
+      return;
+    }
+
+    if (event.key === "Enter") {
+      if (isOpen && state.suggestIndex >= 0 && state.suggestItems[state.suggestIndex]) {
+        event.preventDefault();
+        openSchool(state.suggestItems[state.suggestIndex].record.code);
+      }
+      return;
+    }
+
+    if (event.key === "Escape") {
+      hideSuggestions();
+      return;
+    }
+  }
+
+  if (event.key === "Escape") hideSuggestions();
+}
+
+function focusActiveSearch() {
+  const id = state.tab === "school" ? "schoolSearch"
+    : state.tab === "problems" ? "problemsSearch"
+    : state.district ? "districtSchoolsSearch" : "summarySearch";
+  const element = document.getElementById(id);
+  if (element) element.focus();
+}
+
+function applySort(table, field) {
+  const current = state.sort[table];
+  if (!current || !field) return;
+  if (current.field === field) current.dir *= -1;
+  else { current.field = field; current.dir = 1; }
+  if (table === "districtSchools" && state.tab === "summary" && state.district) {
+    refreshDistrictSchoolsTable();
+    return;
+  }
+  renderTab();
+}
+
+function openDistrict(name) {
+  if (!name) return;
+  if (state.district !== name) {
+    state.filters.districtSchoolsSearch = "";
+    state.filters.districtSchoolsOnlyProblems = false;
+  }
+  state.district = name;
+  state.tab = "summary";
+  renderAll();
+  syncUrl();
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+async function setMonth(file) {
+  if (!file || file === state.monthFile) return;
+  state.monthFile = file;
+  if (!store.months.has(file)) {
+    showLoader(`Загрузка «${labelOf(file)}»…`);
+    setLoaderProgress(15);
+    try {
+      await loadMonth(file);
+    } catch (error) {
+      store.errors.set(file, error);
+    }
+    hideLoader();
+  }
+  renderAll();
+  syncUrl();
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function changeMonth(delta) {
+  const index = MONTHS.findIndex(m => m.file === state.monthFile);
+  const next = MONTHS[index + delta];
+  if (next) setMonth(next.file);
+}
+
+async function reloadData() {
+  store.months.clear();
+  store.index.clear();
+  store.errors.clear();
+  store.indexDirty = true;
+  showLoader("Обновление данных…");
+  setLoaderProgress(2);
+  await loadAllMonths((done, total, label) => {
+    setLoaderText(`Загрузка ${done} из ${total} · ${label}`);
+    setLoaderProgress(done / total * 100);
+  });
+  hideLoader();
+  renderAll();
+  const failed = store.errors.size;
+  if (failed) toast(`Не удалось загрузить файлов: ${failed}`, "warn");
+  else toast("Данные обновлены", "ok");
+}
+
+async function retryMonth() {
+  const file = state.monthFile;
+  store.errors.delete(file);
+  store.months.delete(file);
+  store.indexDirty = true;
+  showLoader(`Повторная загрузка «${labelOf(file)}»…`);
+  setLoaderProgress(20);
+  try {
+    await loadMonth(file);
+    toast("Файл загружен", "ok");
+  } catch (error) {
+    toast(error.userMessage || "Не удалось загрузить файл", "err");
+  }
+  hideLoader();
+  renderAll();
+}
+
+function openFilePicker() {
+  const input = $("#fileInput");
+  if (input) input.click();
+}
+
+function matchMonthByFileName(fileName) {
+  const lower = String(fileName).toLowerCase();
+  for (const month of MONTHS) {
+    if (lower === month.file.toLowerCase()) return month;
+  }
+  for (const month of MONTHS) {
+    if (lower.includes(month.label.toLowerCase())) return month;
+  }
+  return null;
+}
+
+async function handleFiles(files) {
+  if (!files || !files.length) return;
+  showLoader("Чтение выбранных файлов…");
+  setLoaderProgress(10);
+  let matched = 0;
+  const failed = [];
+
+  for (let i = 0; i < files.length; i++) {
+    const file = files[i];
+    const month = matchMonthByFileName(file.name);
+    setLoaderText(`Файл ${i + 1} из ${files.length}: ${file.name}`);
+    setLoaderProgress(10 + (i / files.length) * 80);
+    if (!month) {
+      failed.push(`${file.name} — не удалось определить месяц`);
+      continue;
+    }
+    try {
+      const buffer = await file.arrayBuffer();
+      await ingestBuffer(buffer, month.file, "upload");
+      matched++;
+    } catch (error) {
+      failed.push(`${file.name}: ${error.message}`);
+    }
+  }
+
+  hideLoader();
+  if (matched) {
+    if (!store.months.has(state.monthFile)) {
+      const lastLoaded = [...MONTHS].reverse().find(m => store.months.has(m.file));
+      if (lastLoaded) state.monthFile = lastLoaded.file;
+    }
+    renderAll();
+    toast(`Загружено ${matched} ${plural(matched, "файл", "файла", "файлов")}`, "ok");
+  }
+  if (failed.length) toast(failed.join("; "), "warn");
+}
+
+/* ---------------------------------------------------------------------------
+   13. ПОДСКАЗКИ ПОИСКА ШКОЛЫ
+   ------------------------------------------------------------------------- */
+function highlight(text, query) {
+  const source = String(text == null ? "" : text);
+  const index = source.toLowerCase().indexOf(String(query).toLowerCase());
+  if (index < 0) return esc(source);
+  return esc(source.slice(0, index)) +
+    "<mark>" + esc(source.slice(index, index + query.length)) + "</mark>" +
+    esc(source.slice(index + query.length));
+}
+
+function renderSuggestions(query) {
+  const input = $("#schoolSearch");
+  const box = $("#schoolSuggest");
+  if (!input || !box) return;
+
+  const q = normStr(query);
+  if (!q) { hideSuggestions(); return; }
+
+  const items = suggestSchools(q);
+  state.suggestItems = items;
+  state.suggestIndex = -1;
+
+  if (!items.length) {
+    box.innerHTML = `<div class="suggestion" aria-disabled="true"><span class="s-meta">Ничего не найдено. Введите код пищеблока или часть названия.</span></div>`;
+    box.hidden = false;
+    input.setAttribute("aria-expanded", "true");
+    return;
+  }
+
+  box.innerHTML = items.map((item, index) => {
+    const record = item.record;
+    const canon = canonicalDistrict(record);
+    const months = record.months.size;
+    return `<button type="button" class="suggestion" role="option" id="suggest-${index}"
+        data-action="pick-school" data-code="${esc(record.code)}" aria-selected="false">
+      <span class="s-code">${highlight(record.code, q)}</span><span class="s-name">${highlight(item.name, q)}</span>
+      <span class="s-meta">${esc(canon.district || "район не указан")} · ${months} ${plural(months, "месяц", "месяца", "месяцев")} с данными</span>
+    </button>`;
+  }).join("");
+
+  box.hidden = false;
+  input.setAttribute("aria-expanded", "true");
+}
+
+function hideSuggestions() {
+  const box = $("#schoolSuggest");
+  const input = $("#schoolSearch");
+  if (box) { box.hidden = true; box.innerHTML = ""; }
+  if (input) input.setAttribute("aria-expanded", "false");
+  state.suggestIndex = -1;
+}
+
+function submitSchoolSearch() {
+  const input = $("#schoolSearch");
+  if (!input) return;
+  const query = normStr(input.value);
+  if (!query) { input.focus(); return; }
+  const record = findSchoolByQuery(query);
+  if (record) openSchool(record.code);
+  else {
+    hideSuggestions();
+    toast(`Школа «${query}» не найдена`, "warn");
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   14. ЭКСПОРТ CSV
+   ------------------------------------------------------------------------- */
+function csvCell(value) {
+  const text = String(value == null ? "" : value);
+  return /[";\r\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+}
+
+function downloadCsv(baseName, header, rows) {
+  const lines = [header, ...rows].map(row => row.map(csvCell).join(";"));
+  const blob = new Blob(["\uFEFF" + lines.join("\r\n")], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = baseName.replace(/[\\/:*?"<>|]/g, "-") + ".csv";
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1500);
+  toast("CSV выгружен", "ok");
+}
+
+function exportCsv(kind) {
+  const month = currentData();
+  if (!month) { toast("Нет данных для экспорта", "warn"); return; }
+
+  if (kind === "districts") {
+    const rows = filteredDistrictRows(month);
+    downloadCsv(`Районы ${month.label}`, [
+      "Район", "Школ", "Выполнили ФМ", "ФМ, %", "ФМ выполнен", "ФМ прошлый, %",
+      "Выполнили ТМ", "ТМ, %", "ТМ выполнен", "ТМ прошлый, %", "Проблемных"
+    ], rows.map(row => [
+      row.name, row.total, row.fmOk, fmt(row.fmShare), row.fmPass ? "да" : "нет",
+      row.hasPrev ? fmt(row.prevFm) : "",
+      row.tmOk, fmt(row.tmShare), row.tmPass ? "да" : "нет",
+      row.hasPrev ? fmt(row.prevTm) : "", row.problem
+    ]));
+    return;
+  }
+
+  if (kind === "district-schools") {
+    if (!state.district) { toast("Сначала выберите район", "warn"); return; }
+    const district = month.byName.get(state.district);
+    if (!district) { toast("Район не найден в этом месяце", "warn"); return; }
+    const rows = filteredDistrictSchools(district);
+    downloadCsv(`Школы ${district.name} ${month.label}`, [
+      "Школа", "Код", "Дней", "Своевременно, %", "Без ошибок, %", "ФМ",
+      "Засчитано дней ТМ", "% дней ТМ", "ТМ"
+    ], rows.map(row => [
+      row.name, row.code, row.days, fmt(row.timely), fmt(row.noErrors), row.fmOk ? "выполнен" : "нет",
+      row.tm, fmt(row.tmPercent), row.tmOk ? "выполнен" : "нет"
+    ]));
+    return;
+  }
+
+  if (kind === "problems") {
+    const rows = filteredProblemRows(month);
+    downloadCsv(`Проблемные школы ${month.label}`, [
+      "Школа", "Код", "Район", "Своевременно, %", "Без ошибок, %", "ФМ",
+      "Засчитано дней ТМ", "Дней", "% дней ТМ", "ТМ", "Проблема"
+    ], rows.map(row => [
+      row.name, row.code, row.district, fmt(row.timely), fmt(row.noErrors), row.fmOk ? "выполнен" : "нет",
+      row.tm, row.days, fmt(row.tmPercent), row.tmOk ? "выполнен" : "нет",
+      row.type === "both" ? "ФМ и ТМ" : row.type === "fm" ? "ФМ" : "ТМ"
+    ]));
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   15. ЗАГРУЗЧИК, ТОСТЫ, ТЕМА
+   ------------------------------------------------------------------------- */
+function showLoader(text) {
+  const loader = $("#loader");
+  if (!loader) return;
+  loader.hidden = false;
+  setLoaderText(text || "Загрузка…");
+  setLoaderProgress(0);
+}
+
+function setLoaderText(text) {
+  const element = $("#loaderText");
+  if (element) element.textContent = text;
+}
+
+function setLoaderProgress(percent) {
+  const bar = $("#loaderBar");
+  if (bar) bar.style.width = Math.max(0, Math.min(100, percent)).toFixed(0) + "%";
+}
+
+function hideLoader() {
+  const loader = $("#loader");
+  if (loader) loader.hidden = true;
+}
+
+function toast(message, type = "") {
+  const container = $("#toast");
+  if (!container) return;
+  const item = document.createElement("div");
+  item.className = "toast-item" + (type ? " " + type : "");
+  item.textContent = message;
+  container.appendChild(item);
+  setTimeout(() => {
+    item.style.transition = "opacity .2s, transform .2s";
+    item.style.opacity = "0";
+    item.style.transform = "translateY(6px)";
+    setTimeout(() => item.remove(), 220);
+  }, 4200);
+}
+
+function applyTheme() {
+  try {
+    const forced = new URLSearchParams(location.search).get("theme");
+    if (forced === "light" || forced === "dark") {
+      document.documentElement.dataset.theme = forced;
+      return;
+    }
+  } catch (error) { /* ignore */ }
+  let theme = null;
+  try { theme = localStorage.getItem(STORAGE_KEYS.theme); } catch (error) { /* ignore */ }
+  if (theme !== "light" && theme !== "dark") {
+    theme = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  }
+  document.documentElement.dataset.theme = theme;
+}
+
+function toggleTheme() {
+  const next = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
+  document.documentElement.dataset.theme = next;
+  try { localStorage.setItem(STORAGE_KEYS.theme, next); } catch (error) { /* ignore */ }
+  renderAll();
+  toast(next === "dark" ? "Тёмная тема" : "Светлая тема");
+}
+
+/* ---------------------------------------------------------------------------
+   16. URL
+   ------------------------------------------------------------------------- */
+function syncUrl() {
+  try {
+    const url = new URL(location.href);
+    const params = url.searchParams;
+    params.set("month", labelOf(state.monthFile));
+    if (state.tab === "summary") params.delete("tab");
+    else params.set("tab", state.tab);
+    if (state.district) params.set("district", state.district);
+    else params.delete("district");
+    if (state.tab === "school" && state.school) params.set("school", state.school);
+    else params.delete("school");
+    history.replaceState(null, "", url.toString());
+  } catch (error) { /* file:// и ограничения истории */ }
+}
+
+function readUrlState() {
+  let params;
+  try { params = new URLSearchParams(location.search); } catch (error) { return; }
+
+  const monthParam = params.get("month");
+  if (monthParam) {
+    const lower = monthParam.toLowerCase();
+    const found = MONTHS.find(m =>
+      m.label.toLowerCase() === lower || m.file.toLowerCase() === lower || m.file === monthParam);
+    if (found) state.monthFile = found.file;
+  }
+
+  const tab = params.get("tab");
+  if (tab === "summary" || tab === "school" || tab === "problems") state.tab = tab;
+
+  const district = params.get("district");
+  if (district) state.district = district;
+
+  const school = params.get("school");
+  if (school) { state.school = school; state.tab = "school"; }
+}
+
+/* ---------------------------------------------------------------------------
+   17. ЗАПУСК
+   ------------------------------------------------------------------------- */
+function loadScript(src, timeout = 5000) {
+  return new Promise((resolve, reject) => {
+    const script = document.createElement("script");
+    script.src = src;
+    script.async = true;
+    const timer = setTimeout(() => {
+      script.remove();
+      reject(new Error("timeout: " + src));
+    }, timeout);
+    script.onload = () => { clearTimeout(timer); resolve(); };
+    script.onerror = () => { clearTimeout(timer); script.remove(); reject(new Error("load: " + src)); };
+    document.head.appendChild(script);
+  });
+}
+
+async function ensureXlsxLib() {
+  if (window.XLSX) return true;
+  const candidates = ["../xlsx.full.min.js", "xlsx.full.min.js"];
+  for (const src of candidates) {
+    try {
+      await loadScript(src);
+      if (window.XLSX) return true;
+    } catch (error) { /* пробуем следующий */ }
+  }
+  return Boolean(window.XLSX);
+}
+
+function showFatal(title, text) {
+  hideLoader();
+  state.tab = "summary";
+  renderTabs();
+  $("#summaryTitle").textContent = title;
+  $("#summarySubtitle").textContent = "Работа приложения остановлена";
+  $("#summaryBody").innerHTML = `<div class="card fatal">
+    <h2>${esc(title)}</h2>
+    <p class="muted">${esc(text)}</p>
+    <div class="actions">
+      <button type="button" class="btn" data-action="reload">Попробовать снова</button>
+      <button type="button" class="btn ghost" data-action="pick-files">Выбрать .xlsx вручную</button>
+    </div>
+  </div>`;
+}
+
+async function init() {
+  applyTheme();
+  bindEvents();
+  readUrlState();
+  renderMonthSelect();
+  renderStatus();
+
+  try {
+    showLoader("Проверка библиотек…");
+    setLoaderProgress(3);
+
+    const xlsxReady = await ensureXlsxLib();
+    if (!xlsxReady) {
+      showFatal("Не загрузилась библиотека XLSX",
+        "Не удалось получить SheetJS ни с CDN, ни из файла ../xlsx.full.min.js. Проверьте интернет или положите xlsx.full.min.js рядом с index.html.");
+      return;
+    }
+
+    setLoaderText("Загрузка файлов месяцев…");
+    setLoaderProgress(5);
+    await loadAllMonths((done, total, label) => {
+      setLoaderText(`Загрузка ${done} из ${total} · ${label}`);
+      setLoaderProgress(5 + (done / total) * 90);
+    });
+
+    hideLoader();
+    ensureIndex();
+    renderAll();
+
+    if (state.school && !store.index.has(state.school)) {
+      toast(`Школа «${state.school}» не найдена`, "warn");
+      state.school = "";
+      renderSchool();
+    }
+
+    if (new URLSearchParams(location.search).has("selftest")) runSelfTest();
+
+    window.MM = {
+      state, store, MONTHS, THRESHOLDS,
+      parseWorkbook, districtStats, ensureIndex, canonicalDistrict, problemRows
+    };
+  } catch (error) {
+    console.error("[MM] Критическая ошибка:", error);
+    showFatal("Ошибка запуска", error && error.message ? error.message : String(error));
+  }
+}
+
+/* Диагностика для ?selftest=1: сверка расчёта с итогами из файлов. */
+function runSelfTest() {
+  const lines = [];
+  let pass = true;
+  for (const month of MONTHS) {
+    const data = store.months.get(month.file);
+    if (!data) { lines.push(`SKIP ${month.label}: файл не загружен`); pass = false; continue; }
+    let mismatches = 0;
+    for (const district of data.districts) {
+      const fm = district.schools.filter(s => s.fmOk).length;
+      const tm = district.schools.filter(s => s.tmOk).length;
+      if ((district.fileFM == null ? 0 : district.fileFM) !== fm) mismatches++;
+      if ((district.fileTM == null ? 0 : district.fileTM) !== tm) mismatches++;
+    }
+    const ok = mismatches === 0 && data.unparsed.length === 0 && data.duplicateCodes.length === 0;
+    if (!ok) pass = false;
+    lines.push(`${ok ? "PASS" : "FAIL"} ${month.label}: районов=${data.districts.length} школ=${data.totalSchools} расхождений=${mismatches} неразобранных=${data.unparsed.length}`);
+  }
+  const pre = document.createElement("pre");
+  pre.id = "selftest";
+  pre.style.cssText = "position:fixed;left:8px;bottom:8px;z-index:9999;background:#fff;color:#111;padding:10px;font:11px/1.4 monospace;max-height:45vh;overflow:auto;border:2px solid #111;max-width:92vw";
+  pre.textContent = `SELFTEST ${pass ? "PASS" : "FAIL"}\n` + lines.join("\n");
+  document.body.appendChild(pre);
+  document.title = `SELFTEST ${pass ? "PASS" : "FAIL"}`;
+}
+
+document.addEventListener("DOMContentLoaded", init);
+
 </script>
 </body>
 </html>
