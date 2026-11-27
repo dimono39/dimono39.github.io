@@ -1,0 +1,19 @@
+{
+  "name": "PRO Редактор типового меню ФЦМПО",
+  "short_name": "PRO Меню",
+  "description": "Редактор типового меню для пищеблоков образовательных учреждений",
+  "start_url": "/editor.html",
+  "display": "standalone",
+  "orientation": "landscape",
+  "background_color": "#f1f5f9",
+  "theme_color": "#4f46e5",
+  "lang": "ru",
+  "icons": [
+    {
+      "src": "/app-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
